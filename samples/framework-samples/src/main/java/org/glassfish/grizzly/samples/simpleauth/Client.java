@@ -82,7 +82,7 @@ public class Client {
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         // Create a FilterChain using FilterChainBuilder
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
         filterChainBuilder.add(new TransportFilter());

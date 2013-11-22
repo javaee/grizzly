@@ -1066,7 +1066,7 @@ public class HttpResponseStreamsTest extends TestCase {
         try {
             server.start();
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(1024));
             clientFilterChainBuilder.add(new HttpClientFilter());

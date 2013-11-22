@@ -58,6 +58,7 @@ import org.glassfish.grizzly.PendingWriteQueueLimitExceededException;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.utils.Exceptions;
 
@@ -205,14 +206,14 @@ public class SSLFilter extends SSLBaseFilter {
         // Try to find corresponding FilterChain
         
         final FilterChain filterChain = connection.getFilterChain();
-        final int idx = filterChain.indexOf(this);
+        final FilterReg sslFilterReg = filterChain.getRegByType(SSLFilter.class);
 
-        if (idx == -1) {
+        if (sslFilterReg == null) {
             throw new IllegalStateException("Can't construct FilterChainContext");
         }
 
         final FilterChainContext context = filterChain.obtainFilterChainContext(
-                connection, idx, 0, idx);
+                connection, sslFilterReg, null, sslFilterReg);
         handshake(connection, completionHandler, dstAddress,
                 sslEngineConfigurator, context);
     }

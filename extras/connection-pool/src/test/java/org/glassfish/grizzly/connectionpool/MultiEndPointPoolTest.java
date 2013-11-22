@@ -79,7 +79,7 @@ public class MultiEndPointPoolTest {
     
     @Before
     public void init() throws IOException {
-        final FilterChain filterChain = FilterChainBuilder.stateless()
+        final FilterChain filterChain = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new BaseFilter() {
 

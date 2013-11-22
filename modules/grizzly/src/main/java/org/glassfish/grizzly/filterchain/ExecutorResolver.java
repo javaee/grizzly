@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -128,10 +128,8 @@ abstract class ExecutorResolver {
             case ACCEPT: return ACCEPT_EXECUTOR;
             case CLOSE: return CLOSE_EXECUTOR;
             case CONNECT: return CONNECT_EXECUTOR;
-            case EVENT: return (context.getFilterIdx() == FilterChainContext.NO_FILTER_INDEX ||
-                        context.getStartIdx() <= context.getEndIdx()) ?
-                    EVENT_UPSTREAM_EXECUTOR:
-                    EVENT_DOWNSTREAM_EXECUTOR;
+            case UPSTREAM_EVENT: return EVENT_UPSTREAM_EXECUTOR;
+            case DOWNSTREAM_EVENT: return EVENT_DOWNSTREAM_EXECUTOR;
             default: return null;
         }
     }
@@ -141,58 +139,23 @@ abstract class ExecutorResolver {
      * {@link org.glassfish.grizzly.ServiceEvent}.
      */
     public static abstract class UpstreamExecutor implements FilterExecutor {
-
         @Override
-        public final int defaultStartIdx(FilterChainContext context) {
-            if (context.getFilterIdx() != FilterChainContext.NO_FILTER_INDEX) {
-                return context.getFilterIdx();
-            }
-
-            context.setFilterIdx(0);
-            return 0;
+        public final FilterReg next(final FilterReg reg) {
+            return reg.next;
         }
 
         @Override
-        public final int defaultEndIdx(FilterChainContext context) {
-            return context.getFilterChain().size();
-        }
-
-        @Override
-        public final int getNextFilter(FilterChainContext context) {
-            return context.getFilterIdx() + 1;
-        }
-
-        @Override
-        public final int getPreviousFilter(FilterChainContext context) {
-            return context.getFilterIdx() - 1;
-        }
-
-        @Override
-        public final boolean hasNextFilter(FilterChainContext context, int idx) {
-            return idx < context.getFilterChain().size() - 1;
-        }
-
-        @Override
-        public final boolean hasPreviousFilter(FilterChainContext context, int idx) {
-            return idx > 0;
+        public final FilterReg prev(final FilterReg reg) {
+            return reg.prev;
         }
 
         @Override
         public final void initIndexes(FilterChainContext context) {
-            final int startIdx = defaultStartIdx(context);
-            context.setStartIdx(startIdx);
-            context.setFilterIdx(startIdx);
-            context.setEndIdx(defaultEndIdx(context));
-        }
-
-        @Override
-        public final boolean isUpstream() {
-            return true;
-        }
-
-        @Override
-        public final  boolean isDownstream() {
-            return false;
+            final FilterChain chain = context.getFilterChain();
+            final FilterReg startReg = context.getStartFilterReg() != null ?
+                    context.getStartFilterReg() : chain.firstFilterReg();
+            
+            context.setRegs(startReg, chain.lastFilterReg().next, startReg);
         }
     }
 
@@ -202,57 +165,22 @@ abstract class ExecutorResolver {
      */
     public static abstract class DownstreamExecutor implements FilterExecutor {
         @Override
-        public final int defaultStartIdx(FilterChainContext context) {
-            if (context.getFilterIdx() != FilterChainContext.NO_FILTER_INDEX) {
-                return context.getFilterIdx();
-            }
-
-            final int idx = context.getFilterChain().size() - 1;
-            context.setFilterIdx(idx);
-            return idx;
+        public final FilterReg next(final FilterReg reg) {
+            return reg.prev;
         }
 
         @Override
-        public final int defaultEndIdx(FilterChainContext context) {
-            return -1;
+        public final FilterReg prev(final FilterReg reg) {
+            return reg.next;
         }
 
         @Override
-        public final int getNextFilter(FilterChainContext context) {
-            return context.getFilterIdx() - 1;
-        }
-
-        @Override
-        public final int getPreviousFilter(FilterChainContext context) {
-            return context.getFilterIdx() + 1;
-        }
-
-        @Override
-        public final boolean hasNextFilter(FilterChainContext context, int idx) {
-            return idx > 0;
-        }
-
-        @Override
-        public final boolean hasPreviousFilter(FilterChainContext context, int idx) {
-            return idx < context.getFilterChain().size() - 1;
-        }
-
-        @Override
-        public final void initIndexes(FilterChainContext context) {
-            final int startIdx = defaultStartIdx(context);
-            context.setStartIdx(startIdx);
-            context.setFilterIdx(startIdx);
-            context.setEndIdx(defaultEndIdx(context));
-        }
-
-        @Override
-        public final boolean isUpstream() {
-            return false;
-        }
-
-        @Override
-        public final  boolean isDownstream() {
-            return true;
+        public final void initIndexes(final FilterChainContext context) {
+            final FilterChain chain = context.getFilterChain();
+            final FilterReg startReg = context.getStartFilterReg() != null ?
+                    context.getStartFilterReg() : chain.lastFilterReg();
+            
+            context.setRegs(startReg, chain.firstFilterReg().prev, startReg);
         }
     }
 }

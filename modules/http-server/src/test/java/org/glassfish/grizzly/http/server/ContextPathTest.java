@@ -137,7 +137,7 @@ public class ContextPathTest {
     private Future<HttpContent> send(String host, int port, HttpPacket request) throws Exception {
         final FutureImpl<HttpContent> future = SafeFutureImpl.create();
 
-        final FilterChainBuilder builder = FilterChainBuilder.stateless();
+        final FilterChainBuilder builder = FilterChainBuilder.newInstance();
         builder.add(new TransportFilter());
 
         builder.add(new HttpClientFilter());

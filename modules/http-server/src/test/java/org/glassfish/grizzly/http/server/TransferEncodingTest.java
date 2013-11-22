@@ -233,7 +233,7 @@ public class TransferEncodingTest {
             final FutureImpl<HttpContent> testResultFuture = SafeFutureImpl.create();
 
             server.start();
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(3));
             clientFilterChainBuilder.add(new HttpClientFilter());
@@ -272,7 +272,7 @@ public class TransferEncodingTest {
             final FutureImpl<HttpHeader> testResultFuture = SafeFutureImpl.create();
 
             server.start();
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(3));
             clientFilterChainBuilder.add(new HttpClientFilter());

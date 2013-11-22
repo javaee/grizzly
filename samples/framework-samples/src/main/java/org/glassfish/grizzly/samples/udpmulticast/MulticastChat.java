@@ -127,7 +127,7 @@ public class MulticastChat {
         }
         
         // Build FilterChain to parse incoming UDP packets and print to System.out
-        final FilterChain filterChain = FilterChainBuilder.stateless()
+        final FilterChain filterChain = FilterChainBuilder.newInstance()
                 // Add TransportFilter, which will be responsible for reading and
                 // writing data to the connection
                 .add(new TransportFilter())

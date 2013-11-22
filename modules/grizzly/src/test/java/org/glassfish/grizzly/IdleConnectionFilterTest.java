@@ -71,7 +71,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
         IdleTimeoutFilter idleTimeoutFilter =
                 new IdleTimeoutFilter(timeoutExecutor, 2, TimeUnit.SECONDS);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(idleTimeoutFilter);
         filterChainBuilder.add(new BaseFilter() {
@@ -126,7 +126,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
         IdleTimeoutFilter idleTimeoutFilter =
                 new IdleTimeoutFilter(timeoutExecutor, 2, TimeUnit.SECONDS);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(idleTimeoutFilter);
         filterChainBuilder.add(new BaseFilter() {
@@ -182,7 +182,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
         IdleTimeoutFilter idleTimeoutFilter =
                 new IdleTimeoutFilter(timeoutExecutor, -1, TimeUnit.SECONDS);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(idleTimeoutFilter);
         filterChainBuilder.add(new BaseFilter() {

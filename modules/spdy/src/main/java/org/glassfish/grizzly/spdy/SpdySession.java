@@ -404,19 +404,11 @@ public final class SpdySession {
         if (downstreamChain == null) {
             synchronized(this) {
                 if (downstreamChain == null) {
-                    if (isUpStream) {
-                        upstreamChain = (FilterChain) context.getFilterChain().subList(
-                                context.getFilterIdx(), context.getEndIdx());
+                    upstreamChain = context.getFilterChain().copy();
+                    upstreamChain.removeAllBefore(context.getFilterReg().name());
 
-                        downstreamChain = (FilterChain) context.getFilterChain().subList(
-                                context.getStartIdx(), context.getFilterIdx());
-                    } else {
-                        upstreamChain = (FilterChain) context.getFilterChain().subList(
-                                context.getFilterIdx(), context.getFilterChain().size());
-
-                        downstreamChain = (FilterChain) context.getFilterChain().subList(
-                                context.getEndIdx() + 1, context.getFilterIdx());
-                    }
+                    downstreamChain = context.getFilterChain().copy();
+                    downstreamChain.removeAllAfter(context.getFilterReg().prev().name());
                     
                     return true;
                 }

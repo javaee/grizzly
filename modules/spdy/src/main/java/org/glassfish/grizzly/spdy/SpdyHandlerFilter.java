@@ -949,9 +949,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
         if (spdyMode == SpdyMode.NPN) {
             final FilterChain filterChain = connection.getFilterChain();
-            final int idx = filterChain.indexOfType(SSLFilter.class);
-            if (idx != -1) { // use TLS NPN
-                final SSLFilter sslFilter = (SSLFilter) filterChain.get(idx);
+            final SSLFilter sslFilter = filterChain.getByType(SSLFilter.class);
+            if (sslFilter != null) { // use TLS NPN
                 NextProtoNegSupport.getInstance().configure(sslFilter);
                 NextProtoNegSupport.getInstance().setClientSideNegotiator(
                         connection, getClientNpnNegotioator());

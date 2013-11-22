@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -481,7 +481,7 @@ public class BasicAjpTest extends AjpTestBase {
     private Future<Buffer> send(String host, int port, Buffer request) throws Exception {
         final FutureImpl<Buffer> future = SafeFutureImpl.create();
 
-        final FilterChainBuilder builder = FilterChainBuilder.stateless();
+        final FilterChainBuilder builder = FilterChainBuilder.newInstance();
         builder.add(new TransportFilter());
 
         builder.add(new AjpClientMessageFilter());

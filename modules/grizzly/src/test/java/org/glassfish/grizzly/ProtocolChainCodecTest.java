@@ -138,7 +138,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
         final String clientMessage = "Hello server! It's a client";
         final String serverMessage = "Hello client! It's a server";
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         for (Filter filter : filters) {
             filterChainBuilder.add(filter);
@@ -173,7 +173,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
             
             FilterChainBuilder clientFilterChainBuilder =
-                    FilterChainBuilder.stateless();
+                    FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new StringFilter());
             clientFilterChainBuilder.add(new BaseFilter() {

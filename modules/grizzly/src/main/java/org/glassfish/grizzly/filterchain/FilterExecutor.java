@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,21 +48,9 @@ public interface FilterExecutor {
     public NextAction execute(Filter filter, FilterChainContext context)
             throws Exception;
 
-    public int defaultStartIdx(FilterChainContext context);
+    public FilterReg next(FilterReg reg);
 
-    public int defaultEndIdx(FilterChainContext context);
-
-    public int getNextFilter(FilterChainContext context);
-
-    public int getPreviousFilter(FilterChainContext context);
+    public FilterReg prev(FilterReg reg);
 
     public void initIndexes(FilterChainContext context);
-
-    public boolean hasNextFilter(FilterChainContext context, int idx);
-
-    public boolean hasPreviousFilter(FilterChainContext context, int idx);
-
-    public boolean isUpstream();
-
-    public boolean isDownstream();
 }

@@ -146,7 +146,7 @@ public class GZipTest {
     void doTest(boolean applyChunking, String... messages) throws Exception {
         Connection connection = null;
 
-        FilterChainBuilder serverChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder serverChainBuilder = FilterChainBuilder.newInstance();
         serverChainBuilder.add(new TransportFilter());
         if (applyChunking) {
             serverChainBuilder.add(new ChunkingFilter(2));
@@ -167,7 +167,7 @@ public class GZipTest {
             transport.start();
 
             FutureImpl<Boolean> completeFuture = SafeFutureImpl.create();
-            FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance();
             clientChainBuilder.add(new TransportFilter());
             clientChainBuilder.add(new GZipFilter());
             clientChainBuilder.add(new StringFilter());

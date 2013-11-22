@@ -976,7 +976,7 @@ public class FileCacheTest {
                                      FutureImpl<HttpContent> future)
     throws Exception {
 
-        final FilterChainBuilder builder = FilterChainBuilder.stateless();
+        final FilterChainBuilder builder = FilterChainBuilder.newInstance();
         builder.add(new TransportFilter());
 
         if (isSslEnabled) {

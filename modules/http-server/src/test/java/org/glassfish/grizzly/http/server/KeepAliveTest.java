@@ -532,7 +532,7 @@ public class KeepAliveTest extends TestCase {
         }
 
         public Future<Connection> connect(String host, int port) throws IOException {
-            FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
             filterChainBuilder.add(new TransportFilter());
             filterChainBuilder.add(new HttpClientFilter());
             filterChainBuilder.add(new HttpResponseFilter());

@@ -83,7 +83,7 @@ public class SingleEndPointPoolTest {
     
     @Before
     public void init() throws IOException {
-        final FilterChain filterChain = FilterChainBuilder.stateless()
+        final FilterChain filterChain = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new BaseFilter() {
 
@@ -320,7 +320,7 @@ public class SingleEndPointPoolTest {
     public void testReconnect() throws Exception {
         final long reconnectDelayMillis = 1000;
         
-        final FilterChain filterChain = FilterChainBuilder.stateless()
+        final FilterChain filterChain = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .build();
         
@@ -376,7 +376,7 @@ public class SingleEndPointPoolTest {
     public void testReconnectFailureNotification() throws Exception {
         final long reconnectDelayMillis = 1000;
 
-        final FilterChain filterChain = FilterChainBuilder.stateless()
+        final FilterChain filterChain = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .build();
 

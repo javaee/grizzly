@@ -58,6 +58,7 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpContent;
@@ -714,9 +715,9 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         listener.registerAddOn(new AddOn() {
 
             @Override
-            public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
-                final int idx = builder.indexOfType(TransportFilter.class);
-                builder.add(idx + 1, new BaseFilter() {
+            public void setup(NetworkListener networkListener, FilterChain chain) {
+                final FilterReg reg = chain.getRegByType(TransportFilter.class);
+                chain.addAfter(reg.name(), new BaseFilter() {
                     final AtomicInteger counter = new AtomicInteger();
                     @Override
                     public NextAction handleWrite(FilterChainContext ctx)
@@ -1190,9 +1191,8 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
     private void setInitialSpdyWindowSize(final FilterChain filterChain,
             final int windowSize) {
         
-        final int spdyFilterIdx = filterChain.indexOfType(SpdyHandlerFilter.class);
         final SpdyHandlerFilter spdyHandlerFilter =
-                (SpdyHandlerFilter) filterChain.get(spdyFilterIdx);
+                filterChain.getByType(SpdyHandlerFilter.class);
         spdyHandlerFilter.setInitialWindowSize(windowSize);
     }
 

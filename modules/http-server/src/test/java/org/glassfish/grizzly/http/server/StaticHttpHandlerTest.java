@@ -267,7 +267,7 @@ public class StaticHttpHandlerTest {
             final ResponseValidator validator,
             final boolean isSslEnabled) throws Exception {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        FilterChainBuilder builder = FilterChainBuilder.stateless();
+        FilterChainBuilder builder = FilterChainBuilder.newInstance();
         builder.add(new TransportFilter());
         
         // simulate slow read

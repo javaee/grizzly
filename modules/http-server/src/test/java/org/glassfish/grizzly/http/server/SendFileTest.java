@@ -540,7 +540,7 @@ public class SendFileTest extends TestCase {
     private static TCPNIOTransport createClient(final ReusableFuture<File> result,
                                                 final ResponseValidator validator) {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        FilterChainBuilder builder = FilterChainBuilder.stateless();
+        FilterChainBuilder builder = FilterChainBuilder.newInstance();
         builder.add(new TransportFilter());
         builder.add(new HttpClientFilter());
         builder.add(new BaseFilter() {

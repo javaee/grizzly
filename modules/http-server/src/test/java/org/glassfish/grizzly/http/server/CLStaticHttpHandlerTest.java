@@ -171,7 +171,7 @@ public class CLStaticHttpHandlerTest {
     private static TCPNIOTransport createClient(final FutureImpl<File> result,
             final ResponseValidator validator) throws Exception {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        FilterChainBuilder builder = FilterChainBuilder.stateless();
+        FilterChainBuilder builder = FilterChainBuilder.newInstance();
         builder.add(new TransportFilter());
         
         builder.add(new HttpClientFilter());

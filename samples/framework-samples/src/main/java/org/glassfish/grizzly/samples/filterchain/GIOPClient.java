@@ -68,7 +68,7 @@ public class GIOPClient {
         final FutureImpl<GIOPMessage> resultMessageFuture = SafeFutureImpl.create();
 
         // Create a FilterChain using FilterChainBuilder
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
         filterChainBuilder.add(new TransportFilter());

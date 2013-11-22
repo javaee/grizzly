@@ -158,7 +158,7 @@ public class ErrorPageTest {
             final FutureImpl<HttpContent> testResultFuture = SafeFutureImpl.create();
 
             server.start();
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(4));
             clientFilterChainBuilder.add(new HttpClientFilter());

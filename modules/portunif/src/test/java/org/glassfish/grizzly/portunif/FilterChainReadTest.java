@@ -96,7 +96,7 @@ public class FilterChainReadTest extends TestCase {
 
         puFilter.register(new SimpleProtocolFinder(clientMsgs[0]), subProtocolChain);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter());
         filterChainBuilder.add(puFilter);
@@ -115,7 +115,7 @@ public class FilterChainReadTest extends TestCase {
             assertTrue(connection != null);
 
             FilterChainBuilder clientFilterChainBuilder =
-                    FilterChainBuilder.stateless();
+                    FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new StringFilter());
             clientFilterChainBuilder.add(new BaseFilter() {
@@ -181,7 +181,7 @@ public class FilterChainReadTest extends TestCase {
 
         puFilter.register(new SimpleProtocolFinder(clientMsgs[0]), subProtocolChain);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(stringFilter);
         filterChainBuilder.add(puFilter);
@@ -201,7 +201,7 @@ public class FilterChainReadTest extends TestCase {
             assertTrue(connection != null);
 
             FilterChainBuilder clientFilterChainBuilder =
-                    FilterChainBuilder.stateless();
+                    FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(stringFilter);
             clientFilterChainBuilder.add(new BaseFilter() {
@@ -274,7 +274,7 @@ public class FilterChainReadTest extends TestCase {
 
         puFilter.register(new SimpleProtocolFinder(clientMsgs[0]), subProtocolChain);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter());
         filterChainBuilder.add(puFilter);
@@ -291,7 +291,7 @@ public class FilterChainReadTest extends TestCase {
             assertTrue(connection != null);
 
             FilterChainBuilder clientFilterChainBuilder =
-                    FilterChainBuilder.stateless();
+                    FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new StringFilter());
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();

@@ -148,7 +148,7 @@ public class LZMATest {
 
         Connection connection = null;
 
-        FilterChainBuilder serverChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder serverChainBuilder = FilterChainBuilder.newInstance();
         serverChainBuilder.add(new TransportFilter());
         if (applyChunking) {
             serverChainBuilder.add(new ChunkingFilter(2));
@@ -169,7 +169,7 @@ public class LZMATest {
             transport.start();
 
             FutureImpl<Boolean> completeFuture = SafeFutureImpl.create();
-            FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance();
             clientChainBuilder.add(new TransportFilter());
             clientChainBuilder.add(new LZMAFilter());
             clientChainBuilder.add(new StringFilter());

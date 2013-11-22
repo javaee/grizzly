@@ -227,7 +227,7 @@ public class TCPNIOTransportTest {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
 
         try {
-            FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
             filterChainBuilder.add(new TransportFilter());
             filterChainBuilder.add(new BaseFilter() {
 
@@ -290,10 +290,10 @@ public class TCPNIOTransportTest {
     public void testSimpleEcho() throws Exception {
         Connection connection = null;
 
-        FilterChainBuilder serverChainBuilder = FilterChainBuilder.stateless();
-        serverChainBuilder.add(new TransportFilter());
-        serverChainBuilder.add(new StringFilter());
-        serverChainBuilder.add(new EchoFilter());
+        final FilterChainBuilder serverChainBuilder = FilterChainBuilder.newInstance()
+                .add(new TransportFilter())
+                .add(new StringFilter())
+                .add(new EchoFilter());
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setFilterChain(serverChainBuilder.build());
@@ -303,7 +303,7 @@ public class TCPNIOTransportTest {
             transport.start();
 
             final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
-            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter())
                     .add(inQueueFilter);
@@ -341,7 +341,7 @@ public class TCPNIOTransportTest {
     public void testSeveralPacketsEcho() throws Exception {
         Connection connection = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter())
                 .add(new EchoFilter());
@@ -355,7 +355,7 @@ public class TCPNIOTransportTest {
             transport.configureBlocking(true);
 
             final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
-            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter())
                     .add(inQueueFilter);
@@ -393,7 +393,7 @@ public class TCPNIOTransportTest {
     public void testAsyncReadWriteEcho() throws Exception {
         Connection connection = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter())
                 .add(new EchoFilter());
@@ -406,7 +406,7 @@ public class TCPNIOTransportTest {
             transport.start();
 
             final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
-            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter())
                     .add(inQueueFilter);
@@ -446,7 +446,7 @@ public class TCPNIOTransportTest {
 
         Connection connection = null;
         
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter() {
 
@@ -470,7 +470,7 @@ public class TCPNIOTransportTest {
             transport.start();
 
             final BufferInQueueFilter inQueueFilter = new BufferInQueueFilter(packetSize);
-            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(inQueueFilter);
 
@@ -559,7 +559,7 @@ public class TCPNIOTransportTest {
 
         CheckSizeFilter checkSizeFilter = new CheckSizeFilter(fullMessageSize);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(checkSizeFilter);
         filterChainBuilder.add(new EchoFilter());
@@ -572,7 +572,7 @@ public class TCPNIOTransportTest {
             transport.start();
 
             final BufferInQueueFilter inQueueFilter = new BufferInQueueFilter(fullMessageSize);
-            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(inQueueFilter);
 
@@ -631,7 +631,7 @@ public class TCPNIOTransportTest {
         final CustomChannelDistributor distributor = new CustomChannelDistributor(transport);
         transport.setNIOChannelDistributor(distributor);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter())
                 .add(new BaseFilter() {
@@ -657,7 +657,7 @@ public class TCPNIOTransportTest {
             transport.start();
 
             final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
-            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter())
                     .add(inQueueFilter);
@@ -698,10 +698,10 @@ public class TCPNIOTransportTest {
         final AtomicInteger connectCounter = new AtomicInteger();
         final AtomicInteger closeCounter = new AtomicInteger();
         
-        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.newInstance()
             .add(new TransportFilter());
 
-        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance()
             .add(new TransportFilter())
             .add(new BaseFilter() {
             @Override
@@ -766,7 +766,7 @@ public class TCPNIOTransportTest {
 
         final ExecutorService executorService = Executors.newCachedThreadPool();
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new RandomDelayOnWriteFilter());
         filterChainBuilder.add(new StringFilter());
@@ -782,7 +782,7 @@ public class TCPNIOTransportTest {
             transport.start();
 
             final FutureImpl<Boolean> clientFuture = SafeFutureImpl.create();
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new StringFilter());
 

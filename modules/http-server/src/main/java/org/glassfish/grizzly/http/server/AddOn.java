@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.http.server;
 
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChain;
 
 /**
  * The {@link HttpServer} addon interface, responsible for adding
@@ -53,15 +53,15 @@ public interface AddOn {
      * The method, which will be invoked by {@link HttpServer} in order to
      * initialize the AddOn on the passed {@link NetworkListener}.
      * Most of the time the AddOn implementation will update the passed
-     * {@link NetworkListener}'s {@link FilterChainBuilder} by adding custom
+     * {@link NetworkListener}'s {@link FilterChain} by adding custom
      * {@link org.glassfish.grizzly.filterchain.Filter}(s), which implement
      * AddOn's logic.
      * 
      * @param networkListener the {@link NetworkListener} the addon is being
      *          initialized on.
-     * @param builder the {@link FilterChainBuilder},
+     * @param filterChain the {@link FilterChain},
      *          representing the {@link NetworkListener} logic.
      */
     public void setup(NetworkListener networkListener,
-            FilterChainBuilder builder);
+            FilterChain filterChain);
 }

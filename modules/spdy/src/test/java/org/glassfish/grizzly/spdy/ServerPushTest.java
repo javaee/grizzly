@@ -277,9 +277,8 @@ public class ServerPushTest extends AbstractSpdyTest {
     private void setInitialWindowSize(final FilterChain filterChain,
             final int initialWindowSize) {
         
-        final int spdyFilterIdx = filterChain.indexOfType(SpdyHandlerFilter.class);
         final SpdyHandlerFilter spdyHandlerFilter =
-                (SpdyHandlerFilter) filterChain.get(spdyFilterIdx);
+                filterChain.getByType(SpdyHandlerFilter.class);
         spdyHandlerFilter.setInitialWindowSize(initialWindowSize);
     }
     

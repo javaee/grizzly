@@ -90,7 +90,7 @@ public class UDPNIOTransportTest {
     public void testSimpleEcho() throws Exception {
         Connection connection = null;
 
-        FilterChainBuilder serverChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder serverChainBuilder = FilterChainBuilder.newInstance();
         serverChainBuilder.add(new TransportFilter());
         serverChainBuilder.add(new StringFilter());
         serverChainBuilder.add(new EchoFilter());
@@ -103,7 +103,7 @@ public class UDPNIOTransportTest {
             transport.start();
 
             final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
-            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter())
                     .add(inQueueFilter);
@@ -141,7 +141,7 @@ public class UDPNIOTransportTest {
     public void testSeveralPacketsEcho() throws Exception {
         Connection connection = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter())
                 .add(new EchoFilter());
@@ -155,7 +155,7 @@ public class UDPNIOTransportTest {
             transport.configureBlocking(true);
 
             final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
-            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter())
                     .add(inQueueFilter);
@@ -193,7 +193,7 @@ public class UDPNIOTransportTest {
     public void testAsyncReadWriteEcho() throws Exception {
         Connection connection = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter())
                 .add(new EchoFilter());
@@ -206,7 +206,7 @@ public class UDPNIOTransportTest {
             transport.start();
 
             final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
-            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter())
                     .add(inQueueFilter);
@@ -246,7 +246,7 @@ public class UDPNIOTransportTest {
 
         Connection connection = null;
         
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter() {
 
@@ -271,7 +271,7 @@ public class UDPNIOTransportTest {
             transport.start();
 
             final BufferInQueueFilter inQueueFilter = new BufferInQueueFilter(packetSize);
-            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.stateless()
+            final FilterChainBuilder clientChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(inQueueFilter);
 
@@ -327,10 +327,10 @@ public class UDPNIOTransportTest {
         final AtomicInteger connectCounter = new AtomicInteger();
         final AtomicInteger closeCounter = new AtomicInteger();
         
-        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.newInstance()
             .add(new TransportFilter());
 
-        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance()
             .add(new TransportFilter())
             .add(new BaseFilter() {
             @Override

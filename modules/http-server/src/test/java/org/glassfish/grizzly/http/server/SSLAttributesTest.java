@@ -249,7 +249,7 @@ public class SSLAttributesTest {
     
     private Connection connectClient(final boolean isSSLEnabled,
             Queue<HttpContent> resultQueue) throws Exception {
-        final FilterChainBuilder builder = FilterChainBuilder.stateless();
+        final FilterChainBuilder builder = FilterChainBuilder.newInstance();
         builder.add(new TransportFilter());
         
         if (isSSLEnabled) {

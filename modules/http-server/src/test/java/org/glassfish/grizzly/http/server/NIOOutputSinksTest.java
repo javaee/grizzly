@@ -58,8 +58,10 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
@@ -96,7 +98,7 @@ public class NIOOutputSinksTest extends TestCase {
         listener.setMaxPendingBytes(MAX_LENGTH);
         server.addListener(listener);
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new BaseFilter() {
@@ -248,7 +250,7 @@ public class NIOOutputSinksTest extends TestCase {
         listener.setMaxPendingBytes(maxPendingWriteQueueSize);
         server.addListener(listener);
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new DelayFilter(5, 0));
         filterChainBuilder.add(new HttpClientFilter());
@@ -371,7 +373,7 @@ public class NIOOutputSinksTest extends TestCase {
         listener.setMaxPendingBytes(MAX_LENGTH);
         server.addListener(listener);
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new BaseFilter() {
@@ -528,7 +530,7 @@ public class NIOOutputSinksTest extends TestCase {
         listener.setMaxPendingBytes(maxPendingWriteQueueSize);
         server.addListener(listener);
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new DelayFilter(5, 0));
         filterChainBuilder.add(new HttpClientFilter());
@@ -641,9 +643,9 @@ public class NIOOutputSinksTest extends TestCase {
         listener.registerAddOn(new AddOn() {
 
             @Override
-            public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
-                final int idx = builder.indexOfType(TransportFilter.class);
-                builder.add(idx + 1, new BaseFilter() {
+            public void setup(NetworkListener networkListener, FilterChain filterChain) {
+                final FilterReg reg = filterChain.getRegByType(TransportFilter.class);
+                filterChain.addAfter(reg.name(), new BaseFilter() {
                     final AtomicInteger counter = new AtomicInteger();
                     @Override
                     public NextAction handleWrite(FilterChainContext ctx)
@@ -662,7 +664,7 @@ public class NIOOutputSinksTest extends TestCase {
         
         server.addListener(listener);
         final FutureImpl<Boolean> parseResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new BaseFilter() {
@@ -767,7 +769,7 @@ public class NIOOutputSinksTest extends TestCase {
         listener.setMaxPendingBytes(MAX_LENGTH);
         server.addListener(listener);
         final FutureImpl<String> parseResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new BaseFilter() {
@@ -878,7 +880,7 @@ public class NIOOutputSinksTest extends TestCase {
         server.addListener(listener);
         
         final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new BaseFilter() {
@@ -1024,7 +1026,7 @@ public class NIOOutputSinksTest extends TestCase {
         server.addListener(listener);
         
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new BaseFilter() {
@@ -1174,7 +1176,7 @@ public class NIOOutputSinksTest extends TestCase {
 
         final FutureImpl<Integer> parseResult =
                 SafeFutureImpl.<Integer>create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new BaseFilter() {
@@ -1368,7 +1370,7 @@ public class NIOOutputSinksTest extends TestCase {
         final FutureImpl<Boolean> floodReached = Futures.createSafeFuture();
         final FutureImpl<HttpContent> result = Futures.createSafeFuture();
         
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new BaseFilter() {

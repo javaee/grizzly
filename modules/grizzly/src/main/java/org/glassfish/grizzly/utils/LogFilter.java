@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,12 +43,13 @@ package org.glassfish.grizzly.utils;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
-import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Event;
+import org.glassfish.grizzly.filterchain.FilterReg;
 
 /**
  * Simple log {@link Filter}
@@ -90,10 +91,15 @@ public class LogFilter extends BaseFilter {
     }
 
     @Override
-    public void onFilterChainConstructed(FilterChain filterChain) {
-        logger.log(level, "LogFilter onFilterChainConstructed");
+    public void onAdded(FilterReg reg) {
+        logger.log(level, "LogFilter onAdded");
     }
 
+    @Override
+    public void onRemoved(FilterReg reg) {
+        logger.log(level, "LogFilter onRemoved");
+    }
+    
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         logger.log(level, "LogFilter handleRead. Connection={0} message={1}",
@@ -129,6 +135,13 @@ public class LogFilter extends BaseFilter {
         return ctx.getInvokeAction();
     }
 
+    @Override
+    public NextAction handleEvent(FilterChainContext ctx, Event event) throws Exception {
+        logger.log(level, "LogFilter handleEvent. Connection={0} message={1} event={2}",
+                new Object[] {ctx.getConnection(), ctx.getMessage(), event});
+        return ctx.getInvokeAction();
+    }
+    
     @Override
     public void exceptionOccurred(FilterChainContext ctx,
             Throwable error) {

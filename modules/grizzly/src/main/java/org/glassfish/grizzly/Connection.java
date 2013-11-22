@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,10 @@ package org.glassfish.grizzly;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.attributes.AttributeStorage;
+import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainState;
+import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 
@@ -98,6 +101,13 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
      */
     FilterChain getFilterChain();
 
+    /**
+     * @return {@link FilterChain} associated state, which keeps track of the
+     *      incomplete chunks passed along with the {@link NextAction} returned
+     *      by {@link Filter}s
+     */
+    FilterChainState getFilterChainState();
+    
     /**
      * Sets the default {@link FilterChain}, which will process {@link Connection}
      * events.

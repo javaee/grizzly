@@ -91,7 +91,7 @@ public class HttpCommTest extends TestCase {
 
     @SuppressWarnings("unchecked")
     public void testSinglePacket() throws Exception {
-        final FilterChain serverFilterChain = FilterChainBuilder.stateless()
+        final FilterChain serverFilterChain = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new ChunkingFilter(2))
                 .add(new HttpServerFilter())
@@ -108,7 +108,7 @@ public class HttpCommTest extends TestCase {
             
             final BlockingQueue<HttpPacket> resultQueue = DataStructures.getLTQInstance(HttpPacket.class);
 
-            final FilterChain clientFilterChain = FilterChainBuilder.stateless()
+            final FilterChain clientFilterChain = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new ChunkingFilter(2))
                     .add(new HttpClientFilter())

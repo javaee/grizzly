@@ -475,7 +475,7 @@ public class NIOInputSourcesTest extends TestCase {
         final AtomicInteger bytesRead = new AtomicInteger();
         final FutureImpl<Integer> resultFuture = SafeFutureImpl.<Integer>create();
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
 
@@ -641,7 +641,7 @@ public class NIOInputSourcesTest extends TestCase {
                 TCPNIOTransportBuilder.newInstance().build();
         try {
             server.start();
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(128));
             clientFilterChainBuilder.add(new HttpClientFilter());

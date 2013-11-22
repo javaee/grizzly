@@ -59,8 +59,10 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
@@ -211,7 +213,7 @@ public class ChunkedTransferEncodingTest {
         final NetworkListener networkListener = httpServer.getListener("grizzly");
         final TCPNIOTransport transport = networkListener.getTransport();
         
-        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
         clientFilterChainBuilder.add(new TransportFilter())
                 .add(new HttpClientFilter())
                 .add(new HTTPResponseFilter(queue));
@@ -358,9 +360,10 @@ public class ChunkedTransferEncodingTest {
 
                 @Override
                 public void setup(final NetworkListener networkListener,
-                        final FilterChainBuilder builder) {
-                    final int idx = builder.indexOfType(TransportFilter.class);
-                    builder.add(idx + 1, new ChunkingFilter(2));
+                        final FilterChain filterChain) {
+                    
+                    final FilterReg reg = filterChain.getRegByType(TransportFilter.class);
+                    filterChain.addAfter(reg.name(), new ChunkingFilter(2));
                 }
             });
         }

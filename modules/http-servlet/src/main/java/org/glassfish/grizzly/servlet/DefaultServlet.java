@@ -40,8 +40,6 @@
 package org.glassfish.grizzly.servlet;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.filterchain.Filter;
-import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.server.FileCacheFilter;
 import org.glassfish.grizzly.http.server.Request;
@@ -75,8 +73,6 @@ public class DefaultServlet extends HttpServlet {
     private static final Logger LOGGER = Grizzly.logger(DefaultServlet.class);
 
     private final ArraySet<File> docRoots;
-
-    private volatile int fileCacheFilterIdx = -1;
 
     // ------------------------------------------------------------ Constructors
 
@@ -267,27 +263,6 @@ public class DefaultServlet extends HttpServlet {
     }
 
     private FileCacheFilter lookupFileCache(final FilterChainContext fcContext) {
-        final FilterChain fc = fcContext.getFilterChain();
-        final int lastFileCacheIdx = fileCacheFilterIdx;
-
-        if (lastFileCacheIdx != -1) {
-            final Filter filter = fc.get(lastFileCacheIdx);
-            if (filter instanceof FileCacheFilter) {
-                return (FileCacheFilter) filter;
-            }
-        }
-
-        final int size = fc.size();
-        for (int i = 0; i < size; i++) {
-            final Filter filter = fc.get(i);
-
-            if (filter instanceof FileCacheFilter) {
-                fileCacheFilterIdx = i;
-                return (FileCacheFilter) filter;
-            }
-        }
-
-        fileCacheFilterIdx = -1;
-        return null;
+        return fcContext.getFilterChain().getByType(FileCacheFilter.class);
     }
 }

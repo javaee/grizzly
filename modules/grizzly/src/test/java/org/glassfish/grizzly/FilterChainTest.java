@@ -42,11 +42,7 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
@@ -60,7 +56,6 @@ import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -128,7 +123,7 @@ public class FilterChainTest extends TestCase {
 
         final StringFilter stringFilter = new StringFilter();
         
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(stringFilter);
         filterChainBuilder.add(new BaseFilter() { // Batch filter
@@ -175,7 +170,7 @@ public class FilterChainTest extends TestCase {
             transport.start();
 
             final FilterChain clientFilterChain =
-                    FilterChainBuilder.stateless()
+                    FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter())
                     .build();
@@ -224,115 +219,13 @@ public class FilterChainTest extends TestCase {
         }
     }
     
-    public void testImmutability() throws Exception {
-        
-        final Filter control = new EventCounterFilter(0);
-        FilterChain chain = FilterChainBuilder.stateless().add(control).build();
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        
-        try {
-            chain.add(new EventCounterFilter(1));
-            fail("filterchain should be immutable");
-        } catch (UnsupportedOperationException e) {
-        }
-        
-        assertTrue(control == chain.get(0));
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        
-        try {
-            chain.add(0, new EventCounterFilter(1));
-            fail("filterchain should be immutable");
-        } catch (UnsupportedOperationException e) {
-        }
-
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-        
-        List<Filter> l = new ArrayList<Filter>(1);
-        l.add(new EventCounterFilter(1));
-        try {
-            chain.addAll(l);
-            fail("filterchain should be immutable");
-        } catch (UnsupportedOperationException e) {
-        }
-        
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-
-        try {
-            assertFalse(chain.addAll(0, l));
-            fail("filterchain should be immutable");
-        } catch (UnsupportedOperationException e) {
-        }
-        
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-
-        try {
-            assertFalse(chain.remove(control));
-            fail("filterchain should be immutable");
-        } catch (UnsupportedOperationException e) {
-        }
-        
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-
-        try {
-            chain.remove(0);
-            fail("filterchain should be immutable");
-        } catch (UnsupportedOperationException e) {
-        }
-        
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-        
-        try {
-            chain.clear();
-            fail("filterchain should be immutable");
-        } catch (UnsupportedOperationException e) {
-        }
-        
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-        
-        Iterator i = chain.iterator();
-        assertTrue(i.hasNext());
-        try {
-            i.remove();
-            fail("Iterator allowed modification");
-        } catch (UnsupportedOperationException expected) {}
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-        
-        ListIterator ii = chain.listIterator();
-        assertTrue(ii.hasNext());
-        try {
-            ii.remove();
-            fail("Iterator allowed modification");
-        } catch (UnsupportedOperationException expected) {
-        }
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-
-        ii = chain.listIterator(0);
-        assertTrue(ii.hasNext());
-        try {
-            ii.remove();
-            fail("Iterator allowed modification");
-        } catch (UnsupportedOperationException expected) {
-        }
-        assertEquals("Expected chain length of 1", 1, chain.size());
-        assertTrue(control == chain.get(0));
-
-    }
-
     public void testEventUpstream() throws Exception {
         final Connection connection =
                 new TCPNIOConnection(TCPNIOTransportBuilder.newInstance().build(), null);
 
         counterAttr.set(connection, new AtomicInteger(0));
 
-        final FilterChain chain = FilterChainBuilder.stateless()
+        final FilterChain chain = FilterChainBuilder.newInstance()
                 .add(new EventCounterFilter(0))
                 .add(new EventCounterFilter(1))
                 .add(new EventCounterFilter(2))
@@ -354,7 +247,7 @@ public class FilterChainTest extends TestCase {
 
         counterAttr.set(connection, new AtomicInteger(3));
 
-        final FilterChain chain = FilterChainBuilder.stateless()
+        final FilterChain chain = FilterChainBuilder.newInstance()
                 .add(new EventCounterFilter(0))
                 .add(new EventCounterFilter(1))
                 .add(new EventCounterFilter(2))
@@ -379,7 +272,7 @@ public class FilterChainTest extends TestCase {
 
         final AtomicInteger serverEchoCounter = new AtomicInteger();
         
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter() {
 
@@ -402,7 +295,7 @@ public class FilterChainTest extends TestCase {
 
             final FutureImpl<Integer> resultEcho = SafeFutureImpl.create();
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new BufferWriteFilter());
             clientFilterChainBuilder.add(new EchoResultFilter(
@@ -451,7 +344,7 @@ public class FilterChainTest extends TestCase {
                 .maxAsyncWriteQueueSizeInBytes(-1)
                 .build();
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
@@ -465,7 +358,7 @@ public class FilterChainTest extends TestCase {
 
             final FutureImpl<Boolean> resultEcho = SafeFutureImpl.create();
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ClonerTestEchoResultFilter(resultEcho));
             final FilterChain clientChain = clientFilterChainBuilder.build();
@@ -500,7 +393,7 @@ public class FilterChainTest extends TestCase {
         final Buffer msg1 = Buffers.wrap(mm, "part1");
         final Buffer msg2 = Buffers.wrap(mm, "part2");
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new BufferStateFilter(part1Future, part2Future));
         transport.setFilterChain(filterChainBuilder.build());
@@ -511,7 +404,7 @@ public class FilterChainTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             final FilterChain clientChain = clientFilterChainBuilder.build();
 
@@ -550,7 +443,7 @@ public class FilterChainTest extends TestCase {
                 AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "testInvokeActionWithRemainder.counter");
         
-        final FilterChain filterChain = FilterChainBuilder.stateless()
+        final FilterChain filterChain = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new BaseFilter() {
                     @Override
@@ -614,7 +507,7 @@ public class FilterChainTest extends TestCase {
 
             final FutureImpl<Integer> resultEcho = SafeFutureImpl.create();
 
-            final FilterChain clientChain = FilterChainBuilder.stateless()
+            final FilterChain clientChain = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new EchoResultFilter(msgSize, resultEcho))
                     .build();
@@ -651,7 +544,7 @@ public class FilterChainTest extends TestCase {
 
         final ScheduledExecutorService scheduledExecutorService =
                 Executors.newScheduledThreadPool(1);
-        final FilterChain filterChain = FilterChainBuilder.stateless()
+        final FilterChain filterChain = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter())
                 .add(new BaseFilter() {
@@ -690,7 +583,7 @@ public class FilterChainTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            final FilterChain clientChain = FilterChainBuilder.stateless()
+            final FilterChain clientChain = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter())
                     .build();

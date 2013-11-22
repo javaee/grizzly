@@ -1313,7 +1313,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         try {
             FilterChainBuilder clientFilterChainBuilder =
-                    FilterChainBuilder.stateless()
+                    FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new DelayFilter(0, 150))
                     .add(new ChunkingFilter(chunkSize))

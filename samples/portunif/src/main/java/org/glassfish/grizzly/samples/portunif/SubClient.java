@@ -75,7 +75,7 @@ public class SubClient {
         Connection connection = null;
         
         // Construct the client filter chain
-        final FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+        final FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.newInstance()
                 // Add TransportFilter
                 .add(new TransportFilter())
                 // Add SUB-service message parser/serializer

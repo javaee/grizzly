@@ -593,7 +593,7 @@ public class SuspendTest {
 
     private Connection runClient(String testString, boolean checkResponse,
             FutureImpl<Boolean> resultFuture) throws Exception {
-        final FilterChainBuilder builder = FilterChainBuilder.stateless();
+        final FilterChainBuilder builder = FilterChainBuilder.newInstance();
         builder.add(new TransportFilter());
         if (isSslEnabled) {
             final SSLFilter sslFilter = new SSLFilter(createSSLConfig(true),

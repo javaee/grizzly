@@ -275,7 +275,7 @@ public class MultiEndpointPoolSample implements ClientCallback {
         tcpTransport.start();
         clientTransport = tcpTransport;
         
-        final FilterChain clientFilterChain = FilterChainBuilder.stateless()
+        final FilterChain clientFilterChain = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter(Charsets.UTF8_CHARSET))
                 .add(new ClientFilter(this))

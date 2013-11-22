@@ -360,7 +360,7 @@ public class LZMAEncodingTest {
     throws Throwable {
 
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(networkChunkSize));
 
@@ -381,7 +381,7 @@ public class LZMAEncodingTest {
             transport.bind(PORT);
             transport.start();
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(networkChunkSize));
 

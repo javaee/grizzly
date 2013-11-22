@@ -293,8 +293,9 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
     }
     
     protected void setIdleTimeout(final FilterChainContext ctx) {
-        final FilterChain filterChain = ctx.getFilterChain();
-        if (filterChain.indexOfType(IdleTimeoutFilter.class) >= 0) {
+        final IdleTimeoutFilter f = ctx.getFilterChain()
+                .getByType(IdleTimeoutFilter.class);
+        if (f != null) {
             IdleTimeoutFilter.setCustomTimeout(ctx.getConnection(),
                     wsTimeoutMS, TimeUnit.MILLISECONDS);
         }

@@ -80,8 +80,8 @@ public final class FilterChainContext implements AttributeStorage {
         RUNNING, SUSPEND
     }
 
-    public enum Operation {
-        NONE, ACCEPT, CONNECT, READ, WRITE, EVENT, CLOSE
+    enum Operation {
+        NONE, ACCEPT, CONNECT, READ, WRITE, UPSTREAM_EVENT, DOWNSTREAM_EVENT, CLOSE
     }
 
     private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =
@@ -99,8 +99,6 @@ public final class FilterChainContext implements AttributeStorage {
         return context;
     }
 
-
-    public static final int NO_FILTER_INDEX = Integer.MIN_VALUE;
 
     /**
      * Cached {@link NextAction} instance for "Invoke action" implementation
@@ -162,10 +160,11 @@ public final class FilterChainContext implements AttributeStorage {
      * Index of the currently executing {@link Filter} in
      * the {@link FilterChainContext} list.
      */
-    private int filterIdx;
+    private FilterReg filterReg;
 
-    private int startIdx;
-    private int endIdx;
+    private FilterReg startFilterReg;
+
+    private FilterReg endFilterReg;
 
     private final StopAction cachedStopAction = new StopAction();
     
@@ -178,7 +177,6 @@ public final class FilterChainContext implements AttributeStorage {
             new ArrayList<CopyListener>(2);
     
     public FilterChainContext() {
-        filterIdx = NO_FILTER_INDEX;
     }
 
     /**
@@ -298,30 +296,41 @@ public final class FilterChainContext implements AttributeStorage {
         return state;
     }
 
-    public int getFilterIdx() {
-        return filterIdx;
+    protected final void setRegs(final FilterReg start, final FilterReg end,
+            final FilterReg current) {
+        this.startFilterReg = start;
+        this.endFilterReg = end;
+        this.filterReg = current;
+    }
+    
+    /**
+     * @return the current {@link FilterReg} being processed
+     */
+    public FilterReg getFilterReg() {
+        return filterReg;
     }
 
-    protected void setFilterIdx(int index) {
-        this.filterIdx = index;
+    protected void setFilterReg(final FilterReg filterReg) {
+        this.filterReg = filterReg;
     }
 
-    public int getStartIdx() {
-        return startIdx;
+    protected FilterReg getStartFilterReg() {
+        return startFilterReg;
     }
 
-    protected void setStartIdx(int startIdx) {
-        this.startIdx = startIdx;
+    protected void setStartFilterReg(final FilterReg startFilterReg) {
+        this.startFilterReg = startFilterReg;
     }
 
-    public int getEndIdx() {
-        return endIdx;
+    protected FilterReg getEndFilterReg() {
+        return endFilterReg;
     }
 
-    protected void setEndIdx(int endIdx) {
-        this.endIdx = endIdx;
+    protected void setEndFilterReg(final FilterReg endFilterReg) {
+        this.endFilterReg = endFilterReg;
     }
 
+    
     /**
      * Get {@link FilterChain}, which runs the {@link Filter}.
      *
@@ -671,15 +680,19 @@ public final class FilterChainContext implements AttributeStorage {
      * @throws IOException if an I/O error occurs.
      */
     public ReadResult read() throws IOException {
-        final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext(getConnection(),
-                0, filterIdx, 0);
+        final FilterChain fc = getFilterChain();
+        final FilterReg firstFilterReg = fc.firstFilterReg();
         
+        final FilterChainContext newContext =
+                fc.obtainFilterChainContext(getConnection(),
+                        firstFilterReg, filterReg, firstFilterReg);
+        
+        newContext.getInternalContext().setEvent(IOEvent.READ);
         newContext.operation = Operation.READ;
         newContext.transportFilterContext.configureBlocking(true);
         newContext.customAttributes = getAttributes();
 
-        final ReadResult rr = getFilterChain().read(newContext);
+        final ReadResult rr = fc.read(newContext);
         newContext.completeAndRecycle();
 
         return rr;
@@ -760,8 +773,8 @@ public final class FilterChainContext implements AttributeStorage {
                       final boolean blocking) {
 
         final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext(getConnection(),
-                filterIdx - 1, -1, filterIdx - 1);
+                getFilterChain().obtainFilterChainContext(getConnection());
+        newContext.setStartFilterReg(filterReg.prev);
 
         newContext.operation = Operation.WRITE;
         newContext.transportFilterContext.configureBlocking(blocking);
@@ -776,10 +789,10 @@ public final class FilterChainContext implements AttributeStorage {
 
     public void flush(final CompletionHandler completionHandler) {
         final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext(getConnection(),
-                filterIdx - 1, -1, filterIdx - 1);
+                getFilterChain().obtainFilterChainContext(getConnection());
+        newContext.setStartFilterReg(filterReg.prev);
 
-        newContext.operation = Operation.EVENT;
+        newContext.operation = Operation.DOWNSTREAM_EVENT;
         newContext.setEvent(TransportFilter.createFlushEvent(completionHandler));
         newContext.transportFilterContext.configureBlocking(transportFilterContext.isBlocking());
         newContext.addressHolder = addressHolder;
@@ -796,9 +809,10 @@ public final class FilterChainContext implements AttributeStorage {
             final CompletionHandler<FilterChainContext> completionHandler) {
         
         final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext(getConnection(),
-                filterIdx + 1, endIdx, filterIdx + 1);
+                getFilterChain().obtainFilterChainContext(getConnection());
+        newContext.setStartFilterReg(filterReg.next);
 
+        newContext.operation = Operation.UPSTREAM_EVENT;
         newContext.setEvent(event);
         newContext.addressHolder = addressHolder;
         newContext.customAttributes = getAttributes();
@@ -815,10 +829,10 @@ public final class FilterChainContext implements AttributeStorage {
             final CompletionHandler<FilterChainContext> completionHandler) {
         
         final FilterChainContext newContext =
-                getFilterChain().obtainFilterChainContext(getConnection(),
-                filterIdx - 1, -1, filterIdx - 1);
+                getFilterChain().obtainFilterChainContext(getConnection());
+        newContext.setStartFilterReg(filterReg.prev);
 
-        newContext.operation = Operation.EVENT;
+        newContext.operation = Operation.DOWNSTREAM_EVENT;
         newContext.setEvent(event);
         newContext.addressHolder = addressHolder;
         newContext.customAttributes = getAttributes();
@@ -900,8 +914,8 @@ public final class FilterChainContext implements AttributeStorage {
     public FilterChainContext copy() {
         final FilterChain p = getFilterChain();
         final FilterChainContext newContext =
-                p.obtainFilterChainContext(getConnection(),
-                getStartIdx(), getEndIdx(), getFilterIdx());
+                p.obtainFilterChainContext(getConnection());
+        newContext.setRegs(startFilterReg, endFilterReg, filterReg);
         newContext.setOperation(getOperation());
         
         internalContext.softCopyTo(newContext.internalContext);
@@ -918,7 +932,7 @@ public final class FilterChainContext implements AttributeStorage {
         cachedStopAction.reset();
         message = null;
         addressHolder = null;
-        filterIdx = NO_FILTER_INDEX;
+        filterReg = startFilterReg = endFilterReg = null;
         state = State.RUNNING;
         operationCompletionHandler = null;
         customAttributes = null;

@@ -92,7 +92,7 @@ public class PUServer {
         puFilter.register(subProtocol);
         
         // Construct the main filter chain
-        final FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+        final FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(puFilter);
 

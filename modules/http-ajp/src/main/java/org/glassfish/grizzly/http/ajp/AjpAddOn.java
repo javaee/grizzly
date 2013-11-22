@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,8 @@
 package org.glassfish.grizzly.http.ajp;
 
 import java.util.Properties;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
@@ -51,7 +52,7 @@ import org.glassfish.grizzly.http.server.NetworkListener;
  * Ajp {@link AddOn} for the {@link org.glassfish.grizzly.http.server.HttpServer}.
  *
  * The addon searches for {@link HttpCodecFilter} occurrence in the passed
- * {@link FilterChainBuilder}, removes it and adds 2 filters:
+ * {@link FilterChain}, removes it and adds 2 filters:
  * {@link AjpMessageFilter} and {@link AjpHandlerFilter} on its place.
  *
  * @author Alexey Stashok
@@ -125,28 +126,29 @@ public class AjpAddOn implements AddOn {
 
     @Override
     public void setup(final NetworkListener networkListener,
-            final FilterChainBuilder builder) {
+            final FilterChain filterChain) {
 
-        final int httpCodecFilterIdx = builder.indexOfType(HttpCodecFilter.class);
-        final int httpServerFilterIdx = builder.indexOfType(HttpServerFilter.class);
+        final FilterReg httpCodecFilterReg = filterChain.getRegByType(HttpCodecFilter.class);
+        final FilterReg httpServerFilterReg = filterChain.getRegByType(HttpServerFilter.class);
 
-        int idx;
+        String addBeforeFilter = null;
 
-        if (httpCodecFilterIdx >= 0) {
-            builder.remove(httpCodecFilterIdx);
-            idx = httpCodecFilterIdx;
-        } else {
-            idx = httpServerFilterIdx;
+        if (httpCodecFilterReg != null) {
+            addBeforeFilter = httpCodecFilterReg.next().name();
+            filterChain.remove(httpCodecFilterReg.name());
+        } else if (httpServerFilterReg != null) {
+            addBeforeFilter = httpServerFilterReg.name();
         }
 
-        if (idx >= 0) {
-            builder.add(idx, createAjpMessageFilter());
+        if (addBeforeFilter != null) {
+            final AjpMessageFilter ajpMessageFilter = createAjpMessageFilter();
 
             final AjpHandlerFilter ajpHandlerFilter = createAjpHandlerFilter();
             ajpHandlerFilter.setSecret(secret);
             ajpHandlerFilter.setTomcatAuthentication(isTomcatAuthentication);
 
-            builder.add(idx + 1, ajpHandlerFilter);
+            filterChain.addBefore(addBeforeFilter,
+                    ajpMessageFilter, ajpHandlerFilter);
         }
     }
 

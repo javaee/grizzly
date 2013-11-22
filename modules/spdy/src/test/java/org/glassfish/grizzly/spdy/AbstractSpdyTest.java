@@ -146,7 +146,7 @@ public abstract class AbstractSpdyTest {
             final boolean isSecure,
             final Filter... clientFilters) {
         
-        final FilterChainBuilder builder = FilterChainBuilder.stateless()
+        final FilterChainBuilder builder = FilterChainBuilder.newInstance()
              .add(new TransportFilter());
         if (isSecure) {
             builder.add(new SSLFilter(null, getClientSSLEngineConfigurator()));

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,90 +37,81 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.filterchain;
 
+import org.glassfish.grizzly.Appender;
 import org.glassfish.grizzly.Event;
 
 /**
- * Provides empty implementation for {@link Filter} processing methods.
- *
- * @see Filter
- * 
- * @author Alexey Stashok
+ * The state holder, responsible for keeping a {@link Connection} state for a
+ * given {@link Event} associated with a {@link Filter}-in-{@link FilterChain}.
  */
-public class BaseFilter implements Filter {
+public class FilterState {
+    private boolean isUnparsed;
+    private Appender appender;
+    private Object remainder;
+    
+    private final Event event;
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onAdded(FilterReg reg) {
+    protected FilterState(final Event event) {
+        this.event = event;
     }
 
     /**
-     * {@inheritDoc}
+     * @return the {@link Event} the state is associated with
      */
-    @Override
-    public void onRemoved(FilterReg reg) {
+    protected Event getEvent() {
+        return event;
+    }
+        
+    /**
+     * @return <tt>true</tt> if the state represents unparsed message, which
+     *         can contain another ready message, or <tt>false</tt> for incomplete
+     *         message
+     */
+    public boolean isUnparsed() {
+        return isUnparsed;
     }
 
+    protected void setUnparsed(boolean isUnparsed) {
+        this.isUnparsed = isUnparsed;
+    }
+    
     /**
-     * {@inheritDoc}
+     * @return {@link Appender}, which will be used to append incomplete messages
+     *         before passing them to a {@link Filter}
      */
-    @Override
-    public NextAction handleRead(FilterChainContext ctx) throws Exception {
-        return ctx.getInvokeAction();
+    public Appender getAppender() {
+        return appender;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NextAction handleWrite(FilterChainContext ctx) throws Exception {
-        return ctx.getInvokeAction();
+    protected void setAppender(Appender appender) {
+        this.appender = appender;
     }
-
+    
     /**
-     * {@inheritDoc}
+     * @return actual state message, which may represent either incomplete or
+     *         unparsed message
      */
-    @Override
-    public NextAction handleConnect(FilterChainContext ctx) throws Exception {
-        return ctx.getInvokeAction();
+    public Object getRemainder() {
+        return remainder;
     }
-
+ 
     /**
-     * {@inheritDoc}
+     * @return <tt>true</tt> if there is some message (state) associated
      */
-    @Override
-    public NextAction handleAccept(FilterChainContext ctx) throws Exception {
-        return ctx.getInvokeAction();
+    public boolean isReady() {
+        return remainder != null;
     }
-
+    
     /**
-     * {@inheritDoc}
+     * Resets the <tt>FilterState</tt> and makes it ready to be reused.
      */
-    @Override
-    public NextAction handleEvent(final FilterChainContext ctx,
-            final Event event) throws Exception {
-        return ctx.getInvokeAction();
+    public void reset() {
+        remainder = appender = null;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public NextAction handleClose(FilterChainContext ctx) throws Exception {
-        return ctx.getInvokeAction();
-    }
-
-    /**
-     * Notification about exception, occurred on the {@link FilterChain}
-     *
-     * @param ctx event processing {@link FilterChainContext}
-     * @param error error, which occurred during <tt>FilterChain</tt> execution
-     */
-    @Override
-    public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
-    }
+    
+    protected void setRemainder(Object remainder) {
+        this.remainder = remainder;
+    }    
 }

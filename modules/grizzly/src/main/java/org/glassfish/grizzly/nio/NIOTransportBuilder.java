@@ -45,6 +45,7 @@ import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
+import org.glassfish.grizzly.filterchain.DefaultFilterChain;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
@@ -76,7 +77,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     protected int selectorRunnerCount = NIOTransport.DEFAULT_SELECTOR_RUNNER_COUNT;
     protected NIOChannelDistributor nioChannelDistributor;
     protected String name;
-    protected FilterChain filterChain = FilterChain.EMPTY;
+    protected FilterChain filterChain;
     protected int readBufferSize = Transport.DEFAULT_READ_BUFFER_SIZE;
     protected int writeBufferSize = Transport.DEFAULT_WRITE_BUFFER_SIZE;
     protected int clientSocketSoTimeout = NIOTransport.DEFAULT_CLIENT_SOCKET_SO_TIMEOUT;
@@ -299,7 +300,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         transport.setAttributeBuilder(attributeBuilder);
         transport.setSelectorRunnersCount(selectorRunnerCount);
         transport.setNIOChannelDistributor(nioChannelDistributor);
-        transport.setFilterChain(filterChain);
+        transport.setFilterChain(filterChain != null ? filterChain : new DefaultFilterChain());
         transport.setReadBufferSize(readBufferSize);
         transport.setWriteBufferSize(writeBufferSize);
         transport.setReuseAddress(reuseAddress);

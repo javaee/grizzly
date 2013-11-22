@@ -42,8 +42,9 @@ package org.glassfish.grizzly.http.server.util;
 
 import java.io.IOException;
 import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.server.AddOn;
@@ -65,14 +66,14 @@ public class AggregatorAddOn implements AddOn {
      */
     @Override
     public void setup(final NetworkListener networkListener,
-            final FilterChainBuilder builder) {
+            final FilterChain filterChain) {
         
-        // Get the index of HttpServerFilter in the HttpServer filter chain
-        final int httpServerFilterIdx = builder.indexOfType(HttpServerFilter.class);
+        // Get the HttpServerFilter registration in the HttpServer filter chain
+        final FilterReg reg = filterChain.getRegByType(HttpServerFilter.class);
 
-        if (httpServerFilterIdx >= 0) {
+        if (reg != null) {
             // Insert the AggregatorFilter right before HttpServerFilter
-            builder.add(httpServerFilterIdx, new AggregatorFilter());
+            filterChain.addBefore(reg.name(), new AggregatorFilter());
         }     
     }
     

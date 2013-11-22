@@ -616,7 +616,7 @@ public class HttpServer {
     private void configureListener(final NetworkListener listener) {
         FilterChain chain = listener.getFilterChain();
         if (chain == null) {
-            final FilterChainBuilder builder = FilterChainBuilder.stateless();
+            final FilterChainBuilder builder = FilterChainBuilder.newInstance();
             builder.add(new TransportFilter());
             if (listener.isSecure()) {
                 SSLEngineConfigurator sslConfig = listener.getSslEngineConfig();
@@ -697,17 +697,16 @@ public class HttpServer {
                     serverConfig.getMonitoringConfig().getWebServerConfig().getProbes());
 
             builder.add(httpServerFilter);
+            chain = builder.build();
 
             final AddOn[] addons = listener.getAddOnSet().getArray();
             if (addons != null) {
                 for (AddOn addon : addons) {
-                    addon.setup(listener, builder);
+                    addon.setup(listener, chain);
                 }
             }
 
-            chain = builder.build();
             listener.setFilterChain(chain);
-
             final int transactionTimeout = listener.getTransactionTimeout();
             if (transactionTimeout >= 0) {
                 ThreadPoolConfig threadPoolConfig = transport.getWorkerThreadPoolConfig();

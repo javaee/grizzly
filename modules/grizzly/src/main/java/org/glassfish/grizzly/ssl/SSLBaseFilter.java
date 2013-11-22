@@ -71,8 +71,8 @@ import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.Buffers;
@@ -198,34 +198,45 @@ public class SSLBaseFilter extends BaseFilter {
     }
 
     
-    public TransportFilter createOptimizedTransportFilter(final TransportFilter childFilter) {
+    public TransportFilter createOptimizedTransportFilter(
+            final TransportFilter childFilter) {
         return new SSLTransportFilterWrapper(childFilter);
     }
 
+
+
     @Override
-    public void onBeforeFilterChainConstructed(final FilterChainBuilder builder) {
-        final boolean isSsl = builder.indexOfType(SSLBaseFilter.class) >= 0;
-        final int sslTransportFilterIdx = builder.indexOfType(SSLTransportFilterWrapper.class);
+    public void onAdded(final FilterReg reg) {
+        final FilterChain fc = reg.filterChain();
         
-        if (isSsl) {
-            if (sslTransportFilterIdx == -1) {
-                final int transportFilterIdx =
-                        builder.indexOfType(TransportFilter.class);
-                if (transportFilterIdx >= 0) {
-                    builder.set(transportFilterIdx,
-                            createOptimizedTransportFilter(
-                            (TransportFilter) builder.get(transportFilterIdx)));
-                }
-            }
-        } else { // SSLBaseFilter has been removed
-            if (sslTransportFilterIdx >= 0) {
-                SSLTransportFilterWrapper wrapper =
-                        (SSLTransportFilterWrapper) builder.get(sslTransportFilterIdx);
-                builder.set(sslTransportFilterIdx, wrapper.transportFilter);
+        final FilterReg sslTransportWrapperReg =
+                fc.getRegByType(SSLTransportFilterWrapper.class);
+        if (sslTransportWrapperReg == null) {
+            final FilterReg transportFilterReg =
+                    fc.getRegByType(TransportFilter.class);
+            if (transportFilterReg != null) {
+                final String name = transportFilterReg.name();
+                fc.replace(name,
+                        createOptimizedTransportFilter(
+                        (TransportFilter) transportFilterReg.filter()),
+                        name);
             }
         }
     }
 
+    @Override
+    public void onRemoved(final FilterReg reg) {
+        final FilterChain fc = reg.filterChain();
+        
+        final FilterReg sslTransportWrapperReg =
+                fc.getRegByType(SSLTransportFilterWrapper.class);
+        if (sslTransportWrapperReg != null) {
+            final SSLTransportFilterWrapper wrapper =
+                    (SSLTransportFilterWrapper) sslTransportWrapperReg.filter();
+            final String name = sslTransportWrapperReg.name();
+            fc.replace(name, wrapper.transportFilter, name);
+        }
+    }
     
     // ----------------------------------------------------- Methods from Filter
 
@@ -803,14 +814,20 @@ public class SSLBaseFilter extends BaseFilter {
 
     private FilterChainContext obtainProtocolChainContext(
             final FilterChainContext ctx,
-            final FilterChain completeProtocolFilterChain) {
+            final FilterChain connectionChain) {
 
+        final FilterReg sslFilterReg =
+                connectionChain.getRegByType(SSLBaseFilter.class);
+        if (sslFilterReg == null) {
+            throw new IllegalStateException("Protocol FilterChain should contain SSLBaseFilter or a derived class");
+        }
+        
         final FilterChainContext newFilterChainContext =
-                completeProtocolFilterChain.obtainFilterChainContext(
-                        ctx.getConnection(),
-                        ctx.getStartIdx(),
-                        completeProtocolFilterChain.size(),
-                        ctx.getFilterIdx());
+                connectionChain.obtainFilterChainContext(
+                ctx.getConnection(),
+                connectionChain.firstFilterReg(),
+                null,
+                sslFilterReg);
 
         newFilterChainContext.setAddressHolder(ctx.getAddressHolder());
         newFilterChainContext.setMessage(ctx.getMessage());
@@ -989,11 +1006,6 @@ public class SSLBaseFilter extends BaseFilter {
         @Override
         public NextAction handleClose(FilterChainContext ctx) throws Exception {
             return transportFilter.handleClose(ctx);
-        }
-
-        @Override
-        public void onFilterChainConstructed(FilterChain filterChain) {
-            transportFilter.onFilterChainConstructed(filterChain);
         }
 
         @Override

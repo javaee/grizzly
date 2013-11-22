@@ -166,74 +166,74 @@ public class SSLTest {
 
     @Test
     public void testSimpleSyncSSL() throws Exception {
-        doTestSSL(true, 1, 1, 0);
+        doTestSSL(true, 1, 1, null);
     }
 
     @Test
     public void testSimpleAsyncSSL() throws Exception {
-        doTestSSL(false, 1, 1, 0);
+        doTestSSL(false, 1, 1);
     }
 
     @Test
     public void test5PacketsOn1ConnectionSyncSSL() throws Exception {
-        doTestSSL(true, 1, 5, 0);
+        doTestSSL(true, 1, 5);
     }
 
     @Test
     public void test5PacketsOn1ConnectionAsyncSSL() throws Exception {
-        doTestSSL(false, 1, 5, 0);
+        doTestSSL(false, 1, 5);
     }
 
     @Test
     public void test5PacketsOn5ConnectionsSyncSSL() throws Exception {
-        doTestSSL(true, 5, 5, 0);
+        doTestSSL(true, 5, 5);
     }
 
     @Test
     public void test5PacketsOn5ConnectionsAsyncSSL() throws Exception {
-        doTestSSL(false, 5, 5, 0);
+        doTestSSL(false, 5, 5);
     }
 
     @Test
     public void testSimpleSyncSSLChunkedBefore() throws Exception {
-        doTestSSL(true, 1, 1, 1, new ChunkingFilter(1));
+        doTestSSL(true, 1, 1, "transport", new ChunkingFilter(1));
     }
 
     @Test
     public void testSimpleAsyncSSLChunkedBefore() throws Exception {
-        doTestSSL(false, 1, 1, 1, new ChunkingFilter(1));
+        doTestSSL(false, 1, 1, "transport", new ChunkingFilter(1));
     }
 
     @Test
     public void testSimpleSyncSSLChunkedAfter() throws Exception {
-        doTestSSL(true, 1, 1, 2, new ChunkingFilter(1));
+        doTestSSL(true, 1, 1, "ssl", new ChunkingFilter(1));
     }
 
     @Test
     public void testSimpleAsyncSSLChunkedAfter() throws Exception {
-        doTestSSL(false, 1, 1, 2, new ChunkingFilter(1));
+        doTestSSL(false, 1, 1, "ssl", new ChunkingFilter(1));
     }
 
     @Test
     @Ignore
     public void testPingPongFilterChainSync() throws Exception {
-        doTestPingPongFilterChain(true, 5, 0);
+        doTestPingPongFilterChain(true, 5);
     }
 
     @Test
     public void testPingPongFilterChainAsync() throws Exception {
-        doTestPingPongFilterChain(false, 5, 0);
+        doTestPingPongFilterChain(false, 5);
     }
 
     @Test
     @Ignore
     public void testPingPongFilterChainSyncChunked() throws Exception {
-        doTestPingPongFilterChain(true, 5, 1, new ChunkingFilter(1));
+        doTestPingPongFilterChain(true, 5, "transport", new ChunkingFilter(1));
     }
 
     @Test
     public void testPingPongFilterChainAsyncChunked() throws Exception {
-        doTestPingPongFilterChain(false, 5, 1, new ChunkingFilter(1));
+        doTestPingPongFilterChain(false, 5, "transport", new ChunkingFilter(1));
     }
 
     @Test
@@ -283,7 +283,7 @@ public class SSLTest {
         }
 
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator, null));
         filterChainBuilder.add(new EchoFilter());
@@ -295,7 +295,7 @@ public class SSLTest {
 
         TCPNIOTransport cTransport =
                 TCPNIOTransportBuilder.newInstance().build();
-        FilterChainBuilder clientChain = FilterChainBuilder.stateless();
+        FilterChainBuilder clientChain = FilterChainBuilder.newInstance();
         clientChain.add(new TransportFilter());
         clientChain.add(new SSLFilter(null, clientSSLEngineConfigurator));
         clientChain.add(new StringFilter());
@@ -399,9 +399,13 @@ public class SSLTest {
 
     // ------------------------------------------------------- Protected Methods
 
+    protected void doTestPingPongFilterChain(boolean isBlocking,
+            int turnAroundsNum) throws Exception {
+        doTestPingPongFilterChain(isBlocking, turnAroundsNum, null);
+    }
 
     protected void doTestPingPongFilterChain(boolean isBlocking,
-            int turnAroundsNum, int filterIndex, Filter... filters)
+            int turnAroundsNum, String afterName, Filter... filters)
             throws Exception {
 
         final Integer pingPongTurnArounds = turnAroundsNum;
@@ -425,12 +429,15 @@ public class SSLTest {
         final SSLPingPongFilter pingPongFilter = new SSLPingPongFilter(
                 sslFilter, pingPongTurnArounds);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(sslFilter);
-        filterChainBuilder.add(new StringFilter());
-        filterChainBuilder.add(pingPongFilter);
-        filterChainBuilder.addAll(filterIndex, filters);
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
+        filterChainBuilder.add(new TransportFilter(), "transport");
+        filterChainBuilder.add(sslFilter, "ssl");
+        filterChainBuilder.add(new StringFilter(), "string-codec");
+        filterChainBuilder.add(pingPongFilter, "ping-pong");
+        
+        if (afterName != null) {
+            filterChainBuilder.addAfter(afterName, filters);
+        }
 
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
@@ -476,7 +483,12 @@ public class SSLTest {
     }
     
     protected void doTestSSL(boolean isBlocking, int connectionsNum,
-            int packetsNumber, int filterIndex, Filter... filters) throws Exception {
+            int packetsNumber) throws Exception {
+        doTestSSL(isBlocking, connectionsNum, packetsNumber, null);
+    }
+    
+    protected void doTestSSL(boolean isBlocking, int connectionsNum,
+            int packetsNumber, String afterName, Filter... filters) throws Exception {
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
         SSLEngineConfigurator clientSSLConfigurator = null;
@@ -500,13 +512,16 @@ public class SSLTest {
             fail("Failed to validate SSLContextConfiguration.");
         }
 
-        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
-        serverFilterChainBuilder.add(new TransportFilter());
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.newInstance();
+        serverFilterChainBuilder.add(new TransportFilter(), "transport");
         serverFilterChainBuilder.add(new SSLFilter(
-                serverSSLConfigurator, clientSSLConfigurator));
-        serverFilterChainBuilder.add(new StringFilter());
-        serverFilterChainBuilder.add(new EchoFilter());
-        serverFilterChainBuilder.addAll(filterIndex, filters);
+                serverSSLConfigurator, clientSSLConfigurator), "ssl");
+        serverFilterChainBuilder.add(new StringFilter(), "string-codec");
+        serverFilterChainBuilder.add(new EchoFilter(), "echo");
+        
+        if (afterName != null) {
+            serverFilterChainBuilder.addAfter(afterName, filters);
+        }
 
         TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
@@ -521,7 +536,7 @@ public class SSLTest {
 
             final BlockingQueue<String> inQueue = new LinkedBlockingQueue<String>();
             
-            final FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            final FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             final SSLFilter sslFilter =
                     new SSLFilter(serverSSLConfigurator, clientSSLConfigurator);
@@ -602,7 +617,7 @@ public class SSLTest {
             fail("Failed to validate SSLContextConfiguration.");
         }
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
                 clientSSLEngineConfigurator));
@@ -623,7 +638,7 @@ public class SSLTest {
                 final String messagePattern = "Hello world! Connection#" + i + " Packet#";
 
                 final FutureImpl<Integer> clientFuture = SafeFutureImpl.create();
-                FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+                FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
                 clientFilterChainBuilder.add(new TransportFilter());
                 clientFilterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
                         clientSSLEngineConfigurator));
@@ -692,7 +707,7 @@ public class SSLTest {
 
         final ExecutorService executorService = Executors.newCachedThreadPool();
         
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new RandomDelayOnWriteFilter());
         filterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
@@ -712,7 +727,7 @@ public class SSLTest {
             transport.start();
 
             final FutureImpl<Boolean> clientFuture = SafeFutureImpl.<Boolean>create();
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
                     clientSSLEngineConfigurator));

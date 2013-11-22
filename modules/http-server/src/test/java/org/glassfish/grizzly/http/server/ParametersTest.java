@@ -108,7 +108,7 @@ public class ParametersTest {
                 TCPNIOTransportBuilder.newInstance().build();
         try {
             final CountDownLatch latch = new CountDownLatch(1);
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new DelayFilter(0, 2000));
             clientFilterChainBuilder.add(new ChunkingFilter(256));

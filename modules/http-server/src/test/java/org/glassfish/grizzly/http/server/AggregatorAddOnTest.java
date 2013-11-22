@@ -227,7 +227,7 @@ public class AggregatorAddOnTest {
     private static TCPNIOTransport createClient(final FutureImpl<HttpContent> result,
             final boolean isSslEnabled) throws Exception {
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-        FilterChainBuilder builder = FilterChainBuilder.stateless();
+        FilterChainBuilder builder = FilterChainBuilder.newInstance();
         builder.add(new TransportFilter());
         
         // simulate slow read

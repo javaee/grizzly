@@ -115,7 +115,7 @@ public class AsyncPUTest {
             puFilter.register(createProtocol(puFilter, protocol));
         }
 
-        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter(CHARSET))
                 .add(puFilter);
@@ -131,7 +131,7 @@ public class AsyncPUTest {
                 final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
                 
                 final FilterChain clientFilterChain =
-                        FilterChainBuilder.stateless()
+                        FilterChainBuilder.newInstance()
                         .add(new TransportFilter())
                         .add(new StringFilter(CHARSET))
                         .add(new ClientResultFilter(protocol, resultFuture, 1))
@@ -182,7 +182,7 @@ public class AsyncPUTest {
                     scheduleDelayMillis, exitDelayMillis));
         }
 
-        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter(CHARSET))
                 .add(puFilter);
@@ -198,7 +198,7 @@ public class AsyncPUTest {
                 final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
                 
                 final FilterChain clientFilterChain =
-                        FilterChainBuilder.stateless()
+                        FilterChainBuilder.newInstance()
                         .add(new TransportFilter())
                         .add(new StringFilter(CHARSET))
                         .add(new ClientResultFilter(protocol, resultFuture, 2))

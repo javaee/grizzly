@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.comet;
 
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -59,12 +59,11 @@ public class CometAddOn implements AddOn {
 
     @Override
     public void setup(final NetworkListener networkListener,
-            final FilterChainBuilder builder) {
+            final FilterChain filterChain) {
         
         
-        final int httpServerFilterIdx = builder.indexOfType(HttpServerFilter.class);
         final HttpServerFilter httpServerFilter =
-                (HttpServerFilter) builder.get(httpServerFilterIdx);
+                filterChain.getByType(HttpServerFilter.class);
         httpServerFilter.getMonitoringConfig().addProbes(new HttpServerProbe.Adapter() {
             @Override
             public void onBeforeServiceEvent(final HttpServerFilter filter,

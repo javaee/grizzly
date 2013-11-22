@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -74,20 +74,22 @@ import org.glassfish.grizzly.attributes.Attribute;
  */
 public interface Filter {
     /**
-     * Method is called, before the {@link FilterChain} this <tt>Filter</tt> is part of,
-     * is constructed.
+     * Method is called, when this {@link Filter}, represented by the
+     * {@link FilterReg}, has been added to a {@link FilterChain}.
      *
-     * @param builder the {@link FilterChainBuilder}.
+     * @param reg the {@link FilterReg}. The filter registration, binding the {@link Filter} and
+     *        the {@link FilterChain} it's been registered in
      */
-    public void onBeforeFilterChainConstructed(final FilterChainBuilder builder);
-    
+    public void onAdded(final FilterReg reg);
+
     /**
-     * Method is called, when the {@link FilterChain} this <tt>Filter</tt> is part of,
-     * has been constructed.
+     * Method is called, when this {@link Filter}, represented by the
+     * {@link FilterReg}, has been removed from a {@link FilterChain}.
      *
-     * @param filterChain the {@link FilterChain}.
+     * @param reg the {@link FilterReg}. The filter registration, binding the {@link Filter} and
+     *        the {@link FilterChain} it's been registered in
      */
-    public void onFilterChainConstructed(FilterChain filterChain);
+    public void onRemoved(final FilterReg reg);
     
     /**
      * Execute a unit of processing work to be performed, when channel will

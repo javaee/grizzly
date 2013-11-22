@@ -241,7 +241,7 @@ public class HttpRequestParseTest extends TestCase {
 
         Connection connection = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new ChunkingFilter(2))
                 .add(new HttpServerFilter())
@@ -255,7 +255,7 @@ public class HttpRequestParseTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless()
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance()
                     .add(new TransportFilter());
             
             SocketConnectorHandler connectorHandler =

@@ -44,7 +44,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.TransportProbe;
 import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
@@ -63,6 +62,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import static org.glassfish.grizzly.spdy.Constants.*;
 
 import javax.net.ssl.SSLEngine;
+import org.glassfish.grizzly.filterchain.FilterReg;
 
 /**
  * FilterChain after being processed by SpdyAddOn:
@@ -97,7 +97,7 @@ public class SpdyAddOn implements AddOn {
 
 
     @Override
-    public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+    public void setup(NetworkListener networkListener, FilterChain chain) {
         final TCPNIOTransport transport = networkListener.getTransport();
         
         if (mode == SpdyMode.NPN) {
@@ -111,11 +111,11 @@ public class SpdyAddOn implements AddOn {
                 return;
             }
             
-            configureNpn(builder);
+            configureNpn(chain);
 
             transport.getMonitoringConfig().addProbes(getConfigProbe());
         } else {
-            updateFilterChain(mode, builder);
+            updateFilterChain(mode, chain);
         }
     }
 
@@ -172,9 +172,8 @@ public class SpdyAddOn implements AddOn {
         return new SpdyNpnConfigProbe();
     }
 
-    protected void configureNpn(FilterChainBuilder builder) {
-        final int idx = builder.indexOfType(SSLBaseFilter.class);
-        final SSLBaseFilter sslFilter = (SSLBaseFilter) builder.get(idx);
+    protected void configureNpn(FilterChain chain) {
+        final SSLBaseFilter sslFilter = chain.getByType(SSLBaseFilter.class);
         
         NextProtoNegSupport.getInstance().configure(sslFilter);
     }
@@ -183,29 +182,29 @@ public class SpdyAddOn implements AddOn {
     // ----------------------------------------------------- Private Methods
 
 
-    protected void updateFilterChain(final SpdyMode mode, final FilterChainBuilder builder) {
-        final int idx = removeHttpServerCodecFilter(builder);
-        insertSpdyFilters(mode, builder, idx);
+    protected void updateFilterChain(final SpdyMode mode, final FilterChain chain) {
+        final String addAfterFilterName = removeHttpServerCodecFilter(chain);
+        insertSpdyFilters(mode, chain, addAfterFilterName);
     }
     
-    private static int removeHttpServerCodecFilter(FilterChainBuilder builder) {
-        int idx = builder.indexOfType(org.glassfish.grizzly.http.HttpServerFilter.class);
-        builder.remove(idx);
+    private static String removeHttpServerCodecFilter(FilterChain chain) {
+        final FilterReg reg = chain.getRegByType(org.glassfish.grizzly.http.HttpServerFilter.class);
+        chain.remove(reg.name());
 
-        return idx;
+        return reg.prev().name();
     }
 
-    private void insertSpdyFilters(SpdyMode mode,
-            FilterChainBuilder builder, int idx) {
+    private void insertSpdyFilters(final SpdyMode mode,
+            final FilterChain chain, final String addAfterFilterName) {
         
         final SpdyFramingFilter spdyFramingFilter = new SpdyFramingFilter();
         spdyFramingFilter.setMaxFrameLength(getMaxFrameLength());
-        builder.add(idx, spdyFramingFilter);
         
         final SpdyHandlerFilter spdyHandlerFilter = new SpdyHandlerFilter(mode);
         spdyHandlerFilter.setInitialWindowSize(getInitialWindowSize());
         spdyHandlerFilter.setMaxConcurrentStreams(getMaxConcurrentStreams());
-        builder.add(idx + 1, spdyHandlerFilter);
+        
+        chain.addAfter(addAfterFilterName, spdyFramingFilter, spdyHandlerFilter);
     }
 
     // ---------------------------------------------------------- Nested Classes
@@ -217,13 +216,11 @@ public class SpdyAddOn implements AddOn {
 
 
         @Override
-        public void onBeforeStartEvent(Transport transport) {
-            FilterChain transportFilterChain = transport.getFilterChain();
-            FilterChainBuilder builder = FilterChainBuilder.stateless();
-            builder.addAll(transportFilterChain);
-            updateFilterChain(SpdyMode.NPN, builder);
+        public void onBeforeStartEvent(final Transport transport) {
+            final FilterChain newFilterChain = transport.getFilterChain().copy();
+            updateFilterChain(SpdyMode.NPN, newFilterChain);
             NextProtoNegSupport.getInstance().setServerSideNegotiator(transport,
-                    new ProtocolNegotiator(builder.build()));
+                    new ProtocolNegotiator(newFilterChain));
         }
 
     } // END SpdyTransportProbe

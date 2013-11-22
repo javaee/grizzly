@@ -310,7 +310,7 @@ public class CompressionSemanticsTest extends TestCase {
     throws Throwable {
 
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(2));
 
@@ -333,7 +333,7 @@ public class CompressionSemanticsTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(2));
 

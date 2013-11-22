@@ -339,7 +339,7 @@ public class SkipRemainderTest {
     private Future<Connection> connect(String host, int port,
             BlockingQueue<Integer> transferQueue) throws Exception {
 
-        final FilterChainBuilder builder = FilterChainBuilder.stateless();
+        final FilterChainBuilder builder = FilterChainBuilder.newInstance();
         builder.add(new TransportFilter());
         builder.add(new HttpClientFilter());
         builder.add(new HttpMessageFilter(transferQueue));

@@ -147,7 +147,7 @@ public class WebSocketClient extends SimpleWebSocket {
     }
 
     private static FilterChain createFilterChain() {
-        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
         clientFilterChainBuilder.add(new TransportFilter());
         clientFilterChainBuilder.add(new HttpClientFilter());
         clientFilterChainBuilder.add(new WebSocketClientFilter());

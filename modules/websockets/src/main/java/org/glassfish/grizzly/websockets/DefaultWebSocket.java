@@ -81,8 +81,8 @@ public class DefaultWebSocket extends SimpleWebSocket {
             final WSRequestImpl grizzlyRequest = new WSRequestImpl();
             final Response grizzlyResponse = grizzlyRequest.getResponse();
 
-            int idx = ctx.getFilterChain().indexOfType(HttpServerFilter.class);
-            grizzlyRequest.initialize(request, ctx, (HttpServerFilter) ctx.getFilterChain().get(idx));
+            grizzlyRequest.initialize(request, ctx,
+                    ctx.getFilterChain().getByType(HttpServerFilter.class));
             grizzlyResponse.initialize(grizzlyRequest, request.getResponse(),
                     ctx, null, null);
 

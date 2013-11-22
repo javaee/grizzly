@@ -119,7 +119,7 @@ public class ChunkedTransferEncodingTest {
     public void before() throws Exception {
         Grizzly.setTrackingThreadCache(true);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         if (isChunkWhenParsing) {
             filterChainBuilder.add(new ChunkingFilter(2));
@@ -144,7 +144,7 @@ public class ChunkedTransferEncodingTest {
         transport.bind(PORT);
         transport.start();
 
-        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
         clientFilterChainBuilder.add(new TransportFilter());
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler

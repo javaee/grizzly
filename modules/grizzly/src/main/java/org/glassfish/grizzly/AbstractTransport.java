@@ -78,7 +78,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Transport default Processor
      */
-    protected FilterChain filterChain = FilterChain.EMPTY;
+    protected FilterChain filterChain;
 
     /**
      * Transport strategy

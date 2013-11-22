@@ -648,7 +648,7 @@ public class HttpSemanticsTest extends TestCase {
 
     private void doTest(final ClientFilter clientFilter, Filter serverFilter)
             throws Throwable {
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(1024));
         filterChainBuilder.add(httpServerFilter);
@@ -662,7 +662,7 @@ public class HttpSemanticsTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(1024));
             clientFilterChainBuilder.add(new HttpClientFilter());

@@ -117,7 +117,7 @@ public class IOStrategyTest {
         
         Connection connection = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter(Charsets.UTF8_CHARSET));
         filterChainBuilder.add(serverEchoFilter);
@@ -135,7 +135,7 @@ public class IOStrategyTest {
                 serverEchoFilter.reset();
                 
                 final FutureImpl<Integer> resultEcho = SafeFutureImpl.create();
-                FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+                FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
                 clientFilterChainBuilder.add(new TransportFilter());
                 clientFilterChainBuilder.add(new StringFilter(Charsets.UTF8_CHARSET));
                 

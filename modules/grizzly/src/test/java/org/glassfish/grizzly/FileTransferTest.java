@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -76,7 +76,7 @@ public class FileTransferTest {
     @Test
     public void testSimpleFileTransfer() throws Exception {
         TCPNIOTransport t = TCPNIOTransportBuilder.newInstance().build();
-        FilterChainBuilder builder = FilterChainBuilder.stateless();
+        FilterChainBuilder builder = FilterChainBuilder.newInstance();
         final File f = generateTempFile(1024 * 1024);
         builder.add(new TransportFilter());
         builder.add(new BaseFilter() {
@@ -91,7 +91,7 @@ public class FileTransferTest {
         t.start();
 
         TCPNIOTransport client = TCPNIOTransportBuilder.newInstance().build();
-        FilterChainBuilder clientChain = FilterChainBuilder.stateless();
+        FilterChainBuilder clientChain = FilterChainBuilder.newInstance();
         final SafeFutureImpl<File> future = SafeFutureImpl.create();
         final File temp = File.createTempFile("grizzly-download-", ".tmp");
         temp.deleteOnExit();

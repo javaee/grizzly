@@ -139,7 +139,7 @@ public class SSLAndPlainTest {
             }
         }
 
-        final FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+        final FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(rootPuFilter);
 
@@ -155,7 +155,7 @@ public class SSLAndPlainTest {
 
 
                 final FilterChainBuilder clientFilterChainBuilder =
-                        FilterChainBuilder.stateless()
+                        FilterChainBuilder.newInstance()
                         .add(new TransportFilter());
                 if (protocol.isSecure) {
                     clientFilterChainBuilder.add(
@@ -178,7 +178,7 @@ public class SSLAndPlainTest {
 
                 connection.write(protocol.name);
 
-                assertTrue(resultFuture.get(10, TimeUnit.SECONDS));
+                assertTrue(resultFuture.get(10000, TimeUnit.SECONDS));
             }
 
         } finally {

@@ -55,6 +55,7 @@ import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.utils.ArraySet;
 
@@ -144,8 +145,7 @@ public class PUFilter extends BaseFilter {
      * @return {@link FilterChainBuilder}.
      */
     public FilterChainBuilder getPUFilterChainBuilder() {
-        final FilterChainBuilder builder = FilterChainBuilder.stateless();
-        return builder;
+        return FilterChainBuilder.newInstance();
     }
 
     /**
@@ -218,17 +218,26 @@ public class PUFilter extends BaseFilter {
             final PUProtocol protocol,
             final FilterChainContext ctx) {
         final FilterChain nestedFilterChain = protocol.getFilterChain();
-        final FilterChainBuilder newFilterChainBuilder = FilterChainBuilder.stateless();
-        final FilterChain currentFilterChain = ctx.getFilterChain();
-        final int currentFilterIdx = ctx.getFilterIdx();
-        for (int i = 0; i < currentFilterIdx; i++) {
-            newFilterChainBuilder.add(currentFilterChain.get(i));
-        }
-        for (int i = 0; i < nestedFilterChain.size(); i++) {
-            newFilterChainBuilder.add(nestedFilterChain.get(i));
+        
+        final FilterChain newFilterChain = ctx.getFilterChain().copy();
+
+        assert !newFilterChain.isEmpty();
+        
+        // Copy the current FilterChain filters up to the current one
+        // Make sure the copied Filters share the state with the original ones
+        final String lastFilterNameToKeep = ctx.getFilterReg().prev().name();
+        newFilterChain.removeAllAfter(lastFilterNameToKeep);
+
+        // Append sub-protocol Filters
+        if (!nestedFilterChain.isEmpty()) {
+            FilterReg curFilterReg = nestedFilterChain.firstFilterReg();
+            do {
+                newFilterChain.addLast(curFilterReg.filter());
+                curFilterReg = curFilterReg.next();
+            } while (curFilterReg != null);
         }
         
-        return newFilterChainBuilder.build();
+        return newFilterChain;
     }
     
     private FilterChainContext obtainProtocolChainContext(
@@ -236,13 +245,19 @@ public class PUFilter extends BaseFilter {
             final FilterChainContext ctx,
             final FilterChain completeProtocolFilterChain) {
 
+        // find the last filter we copied from the master PU FilterChain into the complete FilterChain for this sub-protocol
+        final String prevName = ctx.getFilterReg().prev().name();
+        
+        // find the correspondent FilterReg in the complete sub-protocol FilterChain to continue processing from
+        final FilterReg curReg =
+                completeProtocolFilterChain.getFilterReg(prevName).next();
         
         final FilterChainContext newFilterChainContext =
                 completeProtocolFilterChain.obtainFilterChainContext(
                 ctx.getConnection(),
-                ctx.getStartIdx(),
-                completeProtocolFilterChain.size(),
-                ctx.getFilterIdx());
+                completeProtocolFilterChain.firstFilterReg(),
+                null,
+                curReg);
         
         newFilterChainContext.setAddressHolder(ctx.getAddressHolder());
         newFilterChainContext.setMessage(ctx.getMessage());

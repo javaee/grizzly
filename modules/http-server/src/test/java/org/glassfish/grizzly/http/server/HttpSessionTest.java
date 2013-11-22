@@ -381,7 +381,7 @@ public class HttpSessionTest extends TestCase {
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance().build();
 
-        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
         clientFilterChainBuilder.add(new TransportFilter());
         clientFilterChainBuilder.add(new ChunkingFilter(5));
         clientFilterChainBuilder.add(new HttpClientFilter());

@@ -209,7 +209,7 @@ public class NIOTransportTest {
     public void testConnectorHandlerConnectAndWrite() throws Exception {
         Connection connection = null;
 
-        transport.setFilterChain(FilterChainBuilder.stateless()
+        transport.setFilterChain(FilterChainBuilder.newInstance()
                                          .add(new TransportFilter())
                                          .build());
 

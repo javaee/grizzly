@@ -97,7 +97,7 @@ public class TestClient {
         final FutureImpl<HttpPacket> httpResponseFuture =
                 Futures.createSafeFuture();
         
-        FilterChain filterChain = FilterChainBuilder.stateless()
+        FilterChain filterChain = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new SSLFilter(null, clientSSLEngineConfigurator))
                 .add(new SpdyFramingFilter())

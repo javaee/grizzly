@@ -63,6 +63,7 @@ import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
@@ -125,15 +126,14 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         
         try {
             server.start();
-            final FilterChainBuilder clientFilterChainBuilder =
-                    createRawClientFilterChainAsBuilder();
+            final FilterChain clientFilterChain = createRawClientFilterChain();
             
             final BlockingQueue<SpdyFrame> clientInQueue =
                     new LinkedBlockingQueue<SpdyFrame>();
             
-            clientFilterChainBuilder.add(new RawClientFilter(clientInQueue));
+            clientFilterChain.add(new RawClientFilter(clientInQueue));
             
-            clientTransport.setFilterChain(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChain);
 
             clientTransport.start();
 
@@ -204,15 +204,14 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         
         try {
             server.start();
-            final FilterChainBuilder clientFilterChainBuilder =
-                    createRawClientFilterChainAsBuilder();
+            final FilterChain clientFilterChain = createRawClientFilterChain();
             
             final BlockingQueue<SpdyFrame> clientInQueue =
                     new LinkedBlockingQueue<SpdyFrame>();
             
-            clientFilterChainBuilder.add(new RawClientFilter(clientInQueue));
+            clientFilterChain.add(new RawClientFilter(clientInQueue));
             
-            clientTransport.setFilterChain(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChain);
 
             clientTransport.start();
 
@@ -394,10 +393,9 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         
         try {
             server.start();
-            final FilterChainBuilder clientFilterChainBuilder =
-                    createRawClientFilterChainAsBuilder();
+            final FilterChain clientFilterChain = createRawClientFilterChain();
             
-            clientTransport.setFilterChain(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChain);
 
             clientTransport.start();
 
@@ -509,11 +507,11 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
             
             final BlockingQueue<SpdyFrame> clientInQueue =
                     new LinkedBlockingQueue<SpdyFrame>();
-            final FilterChainBuilder clientFilterChainBuilder =
-                    createRawClientFilterChainAsBuilder()
-                    .add(new RawClientFilter(clientInQueue));
+
+            final FilterChain clientFilterChain = createRawClientFilterChain();
+            clientFilterChain.add(new RawClientFilter(clientInQueue));
                         
-            clientTransport.setFilterChain(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChain);
 
             clientTransport.start();
 
@@ -611,11 +609,10 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
             
             final BlockingQueue<SpdyFrame> clientInQueue =
                     new LinkedBlockingQueue<SpdyFrame>();
-            final FilterChainBuilder clientFilterChainBuilder =
-                    createRawClientFilterChainAsBuilder()
-                    .add(new RawClientFilter(clientInQueue));
+            final FilterChain clientFilterChain = createRawClientFilterChain();
+            clientFilterChain.add(new RawClientFilter(clientInQueue));
             
-            clientTransport.setFilterChain(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChain);
 
             clientTransport.start();
 
@@ -848,12 +845,11 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                     new LinkedTransferQueue<SpdyFrame>();
             
             server.start();
-            final FilterChainBuilder clientFilterChainBuilder =
-                    createRawClientFilterChainAsBuilder();
+            final FilterChain clientFilterChain = createRawClientFilterChain();
             
-            clientFilterChainBuilder.add(new RawClientFilter(clientQueue));
+            clientFilterChain.add(new RawClientFilter(clientQueue));
             
-            clientTransport.setFilterChain(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChain);
 
             clientTransport.start();
 
@@ -965,12 +961,11 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                     new LinkedTransferQueue<SpdyFrame>();
             
             server.start();
-            final FilterChainBuilder clientFilterChainBuilder =
-                    createRawClientFilterChainAsBuilder();
+            final FilterChain clientFilterChain = createRawClientFilterChain();
             
-            clientFilterChainBuilder.add(new RawClientFilter(clientQueue));
+            clientFilterChain.add(new RawClientFilter(clientQueue));
             
-            clientTransport.setFilterChain(clientFilterChainBuilder.build());
+            clientTransport.setFilterChain(clientFilterChain);
 
             clientTransport.start();
 
@@ -1026,23 +1021,22 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
         return createServer(".", PORT, SpdyMode.PLAIN, false, registrations);
     }
     
-    private static FilterChainBuilder createRawClientFilterChainAsBuilder() {
-        final FilterChainBuilder builder = createClientFilterChainAsBuilder(
+    private static FilterChain createRawClientFilterChain() {
+        final FilterChain chain = createClientFilterChain(
                 SpdyMode.PLAIN, false);
-        final int handlerIdx = builder.indexOfType(SpdyHandlerFilter.class);
-        if (handlerIdx != -1) {
-            builder.remove(handlerIdx);
+        final FilterReg handlerReg = chain.getRegByType(SpdyHandlerFilter.class);
+        if (handlerReg != null) {
+            chain.remove(handlerReg.name());
         }
         
-        return builder;
+        return chain;
     }
     
     private void setMaxConcurrentStreams(final FilterChain filterChain,
             final int maxConcurrentStreams) {
         
-        final int spdyFilterIdx = filterChain.indexOfType(SpdyHandlerFilter.class);
         final SpdyHandlerFilter spdyHandlerFilter =
-                (SpdyHandlerFilter) filterChain.get(spdyFilterIdx);
+                filterChain.getByType(SpdyHandlerFilter.class);
         spdyHandlerFilter.setMaxConcurrentStreams(maxConcurrentStreams);
     }
     

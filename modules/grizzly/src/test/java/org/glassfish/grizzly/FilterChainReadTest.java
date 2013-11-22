@@ -82,7 +82,7 @@ public class FilterChainReadTest extends TestCase {
         int messageNum = 3;
 
         final BlockingQueue<String> intermResultQueue = DataStructures.getLTQInstance(String.class);
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter());
         filterChainBuilder.add(new BaseFilter() {
@@ -126,7 +126,7 @@ public class FilterChainReadTest extends TestCase {
             final InQueueFilter<String> inQueueFilter = new InQueueFilter<String>();
 
             FilterChain clientFilterChain =
-                    FilterChainBuilder.stateless()
+                    FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter())
                     .add(inQueueFilter)
@@ -183,7 +183,7 @@ public class FilterChainReadTest extends TestCase {
         final StringFilter stringFilter = new StringFilter();
         
         final BlockingQueue<String> intermResultQueue = DataStructures.getLTQInstance(String.class);
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(stringFilter);
         filterChainBuilder.add(new BaseFilter() {
@@ -227,7 +227,7 @@ public class FilterChainReadTest extends TestCase {
             final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
 
             FilterChainBuilder clientFilterChainBuilder =
-                    FilterChainBuilder.stateless();
+                    FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(stringFilter);
             clientFilterChainBuilder.add(new BaseFilter() {
@@ -297,7 +297,7 @@ public class FilterChainReadTest extends TestCase {
         Connection connection = null;
 
         final BlockingQueue<Object> intermResultQueue = DataStructures.getLTQInstance(Object.class);
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter());
         filterChainBuilder.add(new BaseFilter() {
@@ -333,7 +333,7 @@ public class FilterChainReadTest extends TestCase {
             transport.start();
 
             FilterChainBuilder clientFilterChainBuilder =
-                    FilterChainBuilder.stateless();
+                    FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new StringFilter());
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();

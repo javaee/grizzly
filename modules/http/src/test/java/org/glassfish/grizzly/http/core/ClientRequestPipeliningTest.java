@@ -132,7 +132,7 @@ public class ClientRequestPipeliningTest extends TestCase {
 
         final TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
-        final FilterChainBuilder b = FilterChainBuilder.stateless();
+        final FilterChainBuilder b = FilterChainBuilder.newInstance();
         b.add(new TransportFilter());
         b.add(new HttpClientFilter());
         b.add(clientFilter);
@@ -145,7 +145,7 @@ public class ClientRequestPipeliningTest extends TestCase {
 
         final TCPNIOTransport transport =
                 TCPNIOTransportBuilder.newInstance().build();
-        final FilterChainBuilder b = FilterChainBuilder.stateless();
+        final FilterChainBuilder b = FilterChainBuilder.newInstance();
         b.add(new TransportFilter());
         b.add(new HttpServerFilter());
         b.add(new SimpleResponseFilter());

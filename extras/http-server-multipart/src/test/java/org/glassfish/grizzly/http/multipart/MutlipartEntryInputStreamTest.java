@@ -326,7 +326,7 @@ public class MutlipartEntryInputStreamTest {
         }
 
         public Future<Connection> connect(String host, int port) throws IOException {
-            FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+            FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
             filterChainBuilder.add(new TransportFilter());
 
             if (chunkSize > 0) {

@@ -90,7 +90,7 @@ public class BasicPUTest {
             puFilter.register(createProtocol(puFilter, protocol, isBlocking));
         }
 
-        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new BaseFilter() {
                     @Override
@@ -144,7 +144,7 @@ public class BasicPUTest {
         final PUFilter puFilter = new PUFilter(true);
         puFilter.register(createProtocol(puFilter, "X", false));
 
-        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter(CHARSET))
                 .add(puFilter);
@@ -193,7 +193,7 @@ public class BasicPUTest {
         final PUFilter puFilter = new PUFilter(false);
         puFilter.register(createProtocol(puFilter, "X", false));
 
-        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter(CHARSET))
                 .add(puFilter)
@@ -395,7 +395,7 @@ public class BasicPUTest {
                     new EventCounterFilter(counters[i], CustomEvent.TYPE, serverConnectionFutures[i])));
         }
 
-        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter(CHARSET))
                 .add(puFilter);
@@ -461,7 +461,7 @@ public class BasicPUTest {
             throws TimeoutException, IOException, ExecutionException, InterruptedException {
         
         final FilterChain clientFilterChain =
-                FilterChainBuilder.stateless()
+                FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter(CHARSET))
                 .add(new ClientResultFilter(resultFuture))

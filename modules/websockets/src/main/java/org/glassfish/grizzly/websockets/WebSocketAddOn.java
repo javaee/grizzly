@@ -40,7 +40,8 @@
 
 package org.glassfish.grizzly.websockets;
 
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
@@ -62,13 +63,15 @@ public class WebSocketAddOn implements AddOn {
      * {@inheritDoc}
      */
     @Override
-    public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
+    public void setup(NetworkListener networkListener, FilterChain filterChain) {
         // Get the index of HttpServerFilter in the HttpServer filter chain
-        final int httpServerFilterIdx = builder.indexOfType(HttpServerFilter.class);
+        final FilterReg httpServerFilterReg =
+                filterChain.getRegByType(HttpServerFilter.class);
 
-        if (httpServerFilterIdx >= 0) {
+        if (httpServerFilterReg != null) {
             // Insert the WebSocketFilter right before HttpServerFilter
-            builder.add(httpServerFilterIdx, createWebSocketFilter());
+            filterChain.addBefore(httpServerFilterReg.name(),
+                    createWebSocketFilter());
         }
     }
 

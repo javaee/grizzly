@@ -825,12 +825,7 @@ public class NetworkListener {
 
     public HttpServerFilter getHttpServerFilter() {
         if (httpServerFilter == null) {
-            final int idx = filterChain.indexOfType(HttpServerFilter.class);
-            if (idx == -1) {
-                return null;
-            }
-            
-            httpServerFilter = (HttpServerFilter) filterChain.get(idx);
+            httpServerFilter = filterChain.getByType(HttpServerFilter.class);
         }
         return httpServerFilter;
 
@@ -838,12 +833,7 @@ public class NetworkListener {
 
     public HttpCodecFilter getHttpCodecFilter() {
         if (httpCodecFilter == null) {
-            final int idx = filterChain.indexOfType(HttpCodecFilter.class);
-            if (idx == -1) {
-                return null;
-            }
-            
-            httpCodecFilter = (HttpCodecFilter) filterChain.get(idx);
+            httpCodecFilter = filterChain.getByType(HttpCodecFilter.class);
         }
         return httpCodecFilter;
 
@@ -871,7 +861,7 @@ public class NetworkListener {
     }
 
     /**
-     * Returns {@link CompressionConfig} configuration.
+     * @return {@link CompressionConfig} configuration.
      * 
      * @since 2.3.5
      */

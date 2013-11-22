@@ -41,15 +41,18 @@ package org.glassfish.grizzly.filterchain;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.Appender;
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
@@ -60,15 +63,11 @@ import org.glassfish.grizzly.ProcessorResult;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
-import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
-import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
-import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * Default {@link FilterChain} implementation
@@ -78,31 +77,84 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  * 
  * @author Alexey Stashok
  */
-final class DefaultFilterChain extends ListFacadeFilterChain {
+public final class DefaultFilterChain implements FilterChain {
 
-    public enum FILTER_STATE_TYPE {
-        INCOMPLETE, UNPARSED
-    }
-    
-    private static final Attribute<FiltersState> FILTERS_STATE_ATTR =
-            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            FilterChain.class.getName() + ".filters-state-attr",
-            new NullaryFunction<FiltersState>() {
-                @Override
-                public FiltersState evaluate() {
-                    return new FiltersState();
-                }
-            });
-            
     /**
      * Logger
      */
     private static final Logger LOGGER = Grizzly.logger(DefaultFilterChain.class);
+    private static final String TAIL_NAME = "TAIL";
+    private static final String HEAD_NAME = "HEAD";
+    private static final String AUTO_GENERATED_NAME_MARKER = "*";
 
-    public DefaultFilterChain(Collection<Filter> initialFilters) {
-        super(new ArrayList<Filter>(initialFilters));
+    private final FilterReg head, tail;
+    private final Map<String, FilterReg> idToRegMap =
+            new ConcurrentHashMap<String, FilterReg>(8);
+    
+    public DefaultFilterChain() {
+        head = new FilterReg(this, new BaseFilter(), HEAD_NAME, true); // dummy head filter
+        tail = new FilterReg(this, new BaseFilter(), TAIL_NAME, true); // dummy tail filter
+        head.next = tail;
+        tail.prev = head;
+    }
+    
+    public DefaultFilterChain(final Collection<Filter> initialFilters) {
+        this();
+        
+        if (initialFilters == null || initialFilters.isEmpty()) {
+            return;
+        }
+        
+        final Iterator<Filter> it = initialFilters.iterator();
+
+        FilterReg current = head;
+        
+        while (it.hasNext()) {
+            final FilterReg next = newFilterReg(it.next(), false);
+            current.next = next;
+            next.prev = current;
+            next.next = tail;
+            
+            current = next;
+            tail.prev = current;
+            
+            current.filter.onAdded(current);
+        }
     }
 
+    private DefaultFilterChain(final FilterChain filterChain) {
+        this();
+        
+        if (filterChain.isEmpty()) {
+            return;
+        }
+        
+        FilterReg cElement;
+        try {
+            cElement = filterChain.firstFilterReg();
+        } catch (NoSuchElementException nsee) {
+            // source FilterChain was cleaned asynchronously
+            return;
+        }
+
+        assert cElement != null;
+        FilterReg current = head;
+        
+        do {
+            final FilterReg next = newFilterReg(cElement);
+            current.next = next;
+            next.prev = current;
+            next.next = tail;
+            
+            current = next;
+            tail.prev = current;
+            
+            current.filter.onAdded(current);
+            
+            cElement = cElement.next();
+        } while (cElement != null);
+    }
+    
     @Override
     public ProcessorResult process(final Context context) {
         if (isEmpty()) return ProcessorResult.createComplete();
@@ -119,17 +171,53 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             if (operation != null) {
                 filterChainContext.setOperation(operation);
             } else {
-                filterChainContext.setOperation(Operation.EVENT);
+                filterChainContext.setOperation(Operation.UPSTREAM_EVENT);
             }
         }
 
         return execute(filterChainContext);
     }
+
+    @Override
+    public final FilterChainContext obtainFilterChainContext(
+            final Connection connection) {
+
+        final FilterChainContext context = FilterChainContext.create(connection);
+        context.internalContext.setFilterChain(this);
+        return context;
+    }
+
+    @Override
+    public FilterChainContext obtainFilterChainContext(
+            final Connection connection,
+            final FilterReg startFilterReg,
+            final FilterReg endFilterReg,
+            final FilterReg currentFilterReg) {
+        
+        checkFilterReg(startFilterReg);
+        checkFilterReg(endFilterReg);
+        checkFilterReg(currentFilterReg);
+        
+        final FilterChainContext context = FilterChainContext.create(connection);
+        context.internalContext.setFilterChain(this);
+        context.setRegs(startFilterReg != null ? startFilterReg : head.next,
+                endFilterReg != null ? endFilterReg : tail,
+                currentFilterReg != null ? currentFilterReg : tail);
+        return context;
+    }
+
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final Context obtainContext(final Connection connection) {
+        return obtainFilterChainContext(connection).internalContext;
+    }
     
     /**
      * Execute this FilterChain.
      * @param initialContext {@link FilterChainContext} processing context
-     * @throws java.lang.Exception
      */
     @Override
     public ProcessorResult execute(final FilterChainContext initialContext) {
@@ -138,13 +226,11 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         
         final FilterExecutor executor = ExecutorResolver.resolve(ctx);
 
-        if (ctx.getFilterIdx() == FilterChainContext.NO_FILTER_INDEX) {
+        if (ctx.getFilterReg() == null) {
             executor.initIndexes(ctx);
         }
 
-        final Connection connection = ctx.getConnection();
-        final FiltersState filtersState = obtainFiltersState(connection);
-        final int end = ctx.getEndIdx();
+        final FilterReg endReg = ctx.getEndFilterReg();
 
         try {
             
@@ -153,7 +239,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             do {
                 isRerunFilterChain = false;
                 final FilterExecution execution = executeChainPart(ctx,
-                        executor, ctx.getFilterIdx(), end, filtersState);
+                        executor, ctx.getFilterReg(), endReg);
                 switch (execution.type) {
                     case FilterExecution.TERMINATE_TYPE:
                         return ProcessorResult.createTerminate();
@@ -162,8 +248,8 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                         isRerunFilterChain = true;
                 }
             } while (isRerunFilterChain ||
-                    prepareRemainder(ctx, filtersState,
-                    ctx.getStartIdx(), end));
+                    prepareRemainder(ctx, executor,
+                    ctx.getStartFilterReg(), endReg));
         } catch (Throwable e) {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_FILTERCHAIN_EXCEPTION(), e);
@@ -184,26 +270,25 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      * @param ctx {@link FilterChainContext} processing context
      * @param executor {@link FilterExecutor}, which will call appropriate
      *          filter operation to process {@link org.glassfish.grizzly.IOEvent}.
+     * @param current
+     * @param end
      * @return TODO: Update
+     * @throws java.lang.Exception
      */
     @SuppressWarnings("unchecked")
     protected final FilterExecution executeChainPart(final FilterChainContext ctx,
             final FilterExecutor executor,
-            final int start,
-            final int end,
-            final FiltersState filtersState)
+            FilterReg current,
+            final FilterReg end)
             throws Exception {
 
-        int i = start;
-        Filter currentFilter = null;
-        
         int lastNextActionType = InvokeAction.TYPE;
         NextAction lastNextAction = null;
         
-        while (i != end) {
+        while (current != end) {
             
             // current Filter to be executed
-            currentFilter = get(i);
+            final Filter currentFilter = current.filter;
             
             if (ctx.predefinedThrowable != null) {
                 final Throwable error = ctx.predefinedThrowable;
@@ -215,7 +300,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             if (ctx.predefinedNextAction == null) {
 
                 // Checks if there was a remainder message stored from the last filter execution
-                checkStoredMessage(ctx, filtersState, currentFilter);
+                checkStoredMessage(ctx, current);
 
                 // execute the task
                 lastNextAction = executeFilter(executor, currentFilter, ctx);
@@ -223,6 +308,8 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                 lastNextAction = ctx.predefinedNextAction;
                 ctx.predefinedNextAction = null;
             }
+            
+            assert lastNextAction != null;
             
             lastNextActionType = lastNextAction.type();
             if (lastNextActionType != InvokeAction.TYPE) { // if we don't need to execute next filter
@@ -234,17 +321,12 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             
             if (chunk != null) {
                 // Store the remainder
-                final FILTER_STATE_TYPE type = invokeAction.isIncomplete() ?
-                                               FILTER_STATE_TYPE.INCOMPLETE :
-                                               FILTER_STATE_TYPE.UNPARSED;
-                storeMessage(ctx,
-                        filtersState, type,
-                        currentFilter,
+                storeMessage(ctx, !invokeAction.isIncomplete(), current,
                         chunk, invokeAction.getAppender());
             }
 
-            i = executor.getNextFilter(ctx);
-            ctx.setFilterIdx(i);
+            current = executor.next(current);
+            ctx.setFilterReg(current);
         }
 
         switch (lastNextActionType) {
@@ -252,18 +334,20 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                 notifyComplete(ctx);
                 break;
             case StopAction.TYPE:
-                assert currentFilter != null;
+                assert current != null;
+                assert lastNextAction != null;
                 
                 // If the next action is StopAction and there is some data to store for the processed Filter - store it
                 final StopAction stopAction = (StopAction) lastNextAction;
                 storeMessage(ctx,
-                             filtersState,
-                             FILTER_STATE_TYPE.INCOMPLETE,
-                             currentFilter,
+                             false,
+                             current,
                              stopAction.getIncompleteChunk(),
                              stopAction.getAppender());
                 break;
             case ForkAction.TYPE:
+                assert lastNextAction != null;
+                
                 final ForkAction forkAction =
                         (ForkAction) lastNextAction;
                 return FilterExecution.createFork(
@@ -312,15 +396,21 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
     /**
      * Locates a message remainder in the {@link FilterChain}, associated with the
      * {@link Connection} and prepares the {@link Context} for remainder processing.
+     * @param ctx
+     * @param executor
+     * @param start
+     * @param end
+     * @return 
      */
     protected boolean prepareRemainder(final FilterChainContext ctx,
-            final FiltersState filtersState, final int start, final int end) {
+            final FilterExecutor executor,
+            final FilterReg start, final FilterReg end) {
 
-        final int idx = indexOfRemainder(filtersState, ctx.getOperation(),
+        final FilterReg remainderReg = remainderReg(ctx, executor,
                 start, end);
         
-        if (idx != -1) {
-            ctx.setFilterIdx(idx);
+        if (remainderReg != null) {
+            ctx.setFilterReg(remainderReg);
             ctx.setMessage(null);
             return true;
         }
@@ -332,21 +422,29 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      * Locates a message remainder in the {@link FilterChain}, associated with the
      * {@link Connection}.
      */
-    private int indexOfRemainder(final FiltersState filtersState,
-            final Operation operation, final int start, final int end) {
+    private FilterReg remainderReg(final FilterChainContext ctx,
+            final FilterExecutor executor,
+            final FilterReg start, final FilterReg end) {
 
-        final int add = (end - start > 0) ? 1 : -1;
+        final FilterReg termReg = executor.prev(start);
+        FilterReg curReg = executor.prev(end);
         
-        for (int i = end - add; i != start - add; i -= add) {
-            final FilterState element =
-                    filtersState.getState(operation, get(i));
-            if (element != null
-                    && element.getType() == FILTER_STATE_TYPE.UNPARSED) {
-                return i;
+        final Connection connection = ctx.getConnection();
+        
+        while (curReg != termReg) {
+            if (curReg.isEverHadState) {
+                final FilterState state = connection.getFilterChainState()
+                        .getFilterState(curReg, ctx.getEvent());
+                
+                if (state != null && state.getRemainder() != null
+                        && state.isUnparsed()) {
+                    return curReg;
+                }
             }
+            curReg = executor.prev(curReg);
         }
         
-        return -1;
+        return null;
     }
     
     @Override
@@ -377,18 +475,17 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
                     Futures.toCompletionHandler(future);
 
             final FilterExecutor executor = ExecutorResolver.resolve(context);
-            final FiltersState filtersState = obtainFiltersState(connection);
 
             try {
                 do {
-                    if (!prepareRemainder(context, filtersState,
-                            0, context.getEndIdx())) {
-                        context.setFilterIdx(0);
+                    if (!prepareRemainder(context, executor,
+                            head.next, context.getEndFilterReg())) {
+                        context.setFilterReg(head.next);
                         context.setMessage(null);
                     }
 
-                    executeChainPart(context, executor, context.getFilterIdx(),
-                            context.getEndIdx(), filtersState);
+                    executeChainPart(context, executor, context.getFilterReg(),
+                            context.getEndFilterReg());
                 } while (!future.isDone());
 
                 final FilterChainContext retContext = future.get();
@@ -426,7 +523,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
     public void flush(final Connection connection,
             final CompletionHandler<WriteResult> completionHandler) {
         final FilterChainContext context = obtainFilterChainContext(connection);
-        context.setOperation(Operation.EVENT);
+        context.setOperation(Operation.DOWNSTREAM_EVENT);
         context.setEvent(TransportFilter.createFlushEvent(completionHandler));
         ExecutorResolver.DOWNSTREAM_EXECUTOR_SAMPLE.initIndexes(context);
 
@@ -439,7 +536,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             final CompletionHandler<FilterChainContext> completionHandler) {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.operationCompletionHandler = completionHandler;
-        context.setOperation(Operation.EVENT);
+        context.setOperation(Operation.DOWNSTREAM_EVENT);
         context.setEvent(event);
         ExecutorResolver.DOWNSTREAM_EXECUTOR_SAMPLE.initIndexes(context);
 
@@ -452,7 +549,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
             final CompletionHandler<FilterChainContext> completionHandler) {
         final FilterChainContext context = obtainFilterChainContext(connection);
         context.operationCompletionHandler = completionHandler;
-        context.setOperation(Operation.EVENT);
+        context.setOperation(Operation.UPSTREAM_EVENT);
         context.setEvent(event);
         ExecutorResolver.UPSTREAM_EXECUTOR_SAMPLE.initIndexes(context);
 
@@ -460,10 +557,10 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     @Override
-    public void fail(FilterChainContext context, Throwable failure) {
+    public void fail(final FilterChainContext context, final Throwable failure) {
         throwChain(context, ExecutorResolver.resolve(context), failure);
     }
-
+    
     /**
      * Notify the filters about error.
      * @param ctx {@link FilterChainContext}
@@ -474,31 +571,14 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
 
         notifyFailure(ctx, exception);
 
-        final int endIdx = ctx.getStartIdx();
+        final FilterReg endReg = ctx.getStartFilterReg();
+        FilterReg curReg = ctx.getFilterReg();
 
-        if (ctx.getFilterIdx() == endIdx) {
-            return;
+        while (curReg != endReg) {
+            curReg = executor.prev(curReg);
+            ctx.setFilterReg(curReg);
+            curReg.filter.exceptionOccurred(ctx, exception);
         }
-
-        int i;
-        while (true) {
-            i = executor.getPreviousFilter(ctx);
-            ctx.setFilterIdx(i);
-            get(i).exceptionOccurred(ctx, exception);
-
-            if (i == endIdx) {
-                return;
-            }
-        }
-    }
-
-    @Override
-    public DefaultFilterChain subList(int fromIndex, int toIndex) {
-        return new DefaultFilterChain(filters.subList(fromIndex, toIndex));
-    }
-
-    private static FiltersState obtainFiltersState(final Connection connection) {
-        return FILTERS_STATE_ATTR.get(connection);
     }
 
     /**
@@ -508,28 +588,32 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      * 
      * @param ctx {@link FilterChainContext}
      * @param filtersState {@link FiltersState} associated with the Connection
-     * @param filter the current filter
+     * @param filterReg the current filter
      */
     @SuppressWarnings("unchecked")
     private void checkStoredMessage(final FilterChainContext ctx,
-            final FiltersState filtersState, final Filter filter) {
+            final FilterReg filterReg) {
 
-        final Operation operation = ctx.getOperation();
-        final FilterState filterState;
-
-        // Check if there is any data stored for the current Filter
-        if (filtersState != null && (filterState = filtersState.clearState(operation, filter)) != null) {
-            Object storedMessage = filterState.getState();
-            final Object currentMessage = ctx.getMessage();
-            if (currentMessage != null) {
-                final Appender appender = filterState.getAppender();
-                if (appender != null) {
-                    storedMessage = appender.append(storedMessage, currentMessage);
-                } else {
-                    storedMessage = ((Appendable) storedMessage).append(currentMessage);
+        if (filterReg.isEverHadState) {
+            final FilterState state = ctx.getConnection().getFilterChainState()
+                    .getFilterState(filterReg, ctx.getEvent());
+            
+            // Check if there is any data stored for the current Filter
+            if (state != null && state.isReady()) {
+                Object storedMessage = state.getRemainder();
+                final Object currentMessage = ctx.getMessage();
+                if (currentMessage != null) {
+                    final Appender appender = state.getAppender();
+                    if (appender != null) {
+                        storedMessage = appender.append(storedMessage, currentMessage);
+                    } else {
+                        storedMessage = ((Appendable) storedMessage).append(currentMessage);
+                    }
                 }
+                
+                state.reset();
+                ctx.setMessage(storedMessage);
             }
-            ctx.setMessage(storedMessage);
         }
     }
 
@@ -540,21 +624,25 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
      * @param ctx
      * @param filtersState
      * @param type
-     * @param filter
+     * @param filterReg
      * @param messageToStore
      * @param appender
      * @return
      */
     private <M> void storeMessage(final FilterChainContext ctx,
-            final FiltersState filtersState, final FILTER_STATE_TYPE type,
-            final Filter filter, final M messageToStore,
+            final boolean isUnparsed,
+            final FilterReg filterReg, final M messageToStore,
             final Appender<M> appender) {
 
         if (messageToStore != null) {
-            final Operation operation = ctx.getOperation();
-
-            filtersState.setState(operation, filter,
-                    FilterState.create(type, messageToStore, appender));
+            filterReg.isEverHadState = true;
+            
+            final FilterState state = ctx.getConnection().getFilterChainState()
+                    .obtainFilterState(filterReg, ctx.getEvent());
+            
+            state.setAppender(appender);
+            state.setRemainder(messageToStore);
+            state.setUnparsed(isUnparsed);
         }
     }
 
@@ -591,109 +679,673 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         }
     }
 
-    public static final class FiltersState {
-
-        private final Map<Filter, FilterState>[] state;
-
-        @SuppressWarnings("unchecked")
-        public FiltersState() {
-            this.state = new Map[Operation.values().length];
-        }
-
-        public FilterState getState(final Operation operation,
-                final Filter filter) {
-            final Map<Filter, FilterState> stateMap = state[operation.ordinal()];
-            return stateMap != null && !stateMap.isEmpty() ?
-                    stateMap.get(filter) : null;
-        }
-
-        public void setState(final Operation operation, final Filter filter,
-                final FilterState stateElement) {
-            Map<Filter, FilterState> stateMap =
-                    state[operation.ordinal()];
-            if (stateMap == null) {
-                stateMap = new WeakHashMap<Filter, FilterState>();
-                state[operation.ordinal()] = stateMap;
-            }
+    FilterReg newFilterReg(final Filter filter, final String name,
+            final boolean isService) {
+        
+        synchronized (idToRegMap) {
+            checkFilterName(name);
             
-            stateMap.put(filter, stateElement);
-        }
-
-        public FilterState clearState(final Operation operation,
-                final Filter filter) {
-            final Map<Filter, FilterState> stateMap = state[operation.ordinal()];
-            return stateMap != null && !stateMap.isEmpty() ?
-                    stateMap.remove(filter) : null;
+            final FilterReg filterReg = new FilterReg(this, filter, name,
+                    isService);
+            idToRegMap.put(name, filterReg);
+            
+            return filterReg;
         }
     }
 
-    private static final class FilterState {
-
-        public static FilterState create(
-                final FILTER_STATE_TYPE type,
-                final Object remainder) {
-            if (remainder instanceof Buffer) {
-                return create(type, (Buffer) remainder,
-                        Buffers.getBufferAppender(true));
-            } else {
-                return create(type, (Appendable) remainder);
-            }
+    FilterReg newFilterReg(final Filter filter, final boolean isService) {
+        synchronized (idToRegMap) {
+            final String name = generateUniqueFilterName(filter);
+            final FilterReg filterReg = new FilterReg(this, filter, name,
+                    isService);
+            idToRegMap.put(name, filterReg);
+            
+            return filterReg;
         }
-
-        public static FilterState create(
-                final FILTER_STATE_TYPE type, final Appendable state) {
-            return new FilterState(type, state);
+    }
+    
+    FilterReg newFilterReg(final FilterReg reg) {
+        synchronized (idToRegMap) {
+            checkFilterName(reg.name());
+            
+            final FilterReg filterReg = new FilterReg(this, reg);
+            idToRegMap.put(reg.name(), filterReg);
+            
+            return filterReg;
         }
+    }
 
-        public static <E> FilterState create(
-                final FILTER_STATE_TYPE type,
-                final E state, final Appender<E> appender) {
-            return new FilterState(type, state, appender);
+    private void checkFilterName(final String name) throws IllegalStateException {
+        if (name == null) {
+            throw new NullPointerException("The name can't be null");
         }
         
-        private final FILTER_STATE_TYPE type;
-        private final Object state;
-        private final Appender appender;
+        if (idToRegMap.containsKey(name)) {
+            throw new IllegalStateException("The Filter name has to be unique within the given FilterChain scope");
+        }
+        
+        if (HEAD_NAME.equalsIgnoreCase(name)) {
+            throw new IllegalStateException(HEAD_NAME + " is reserved name");
+        }
+        
+        if (TAIL_NAME.equalsIgnoreCase(name)) {
+            throw new IllegalStateException(TAIL_NAME + " is reserved name");
+        }
+    }
+    
+    private String generateUniqueFilterName(final Filter filter) {
+        String name = filter.getClass().getName();
+        final int dotIdx = name.lastIndexOf(".");
+        if (dotIdx != -1) {
+            name = name.substring(dotIdx + 1);
+        }
+        
+        name = AUTO_GENERATED_NAME_MARKER + name;
+        
+        if (idToRegMap.containsKey(name)) {
+            String uniqueName;
+            int counter = 0;
+            do {
+                uniqueName = new StringBuilder(name.length() + 3).append(name)
+                        .append('(').append(counter).append(')').toString();
+                counter++;
+            } while (idToRegMap.containsKey(uniqueName));
+            
+            name = uniqueName;
+        }
+        
+        return name;
+    }
+    
+    /**
+     * Adds Filters after specified afterFilter
+     * 
+     * @param afterReg
+     * @param filters
+     * @return the {@link FilterReg} of the last filter that has been added as the
+     *          result of this invocation.
+     */
+    FilterReg addFilterRegAfter(final FilterReg afterReg, final Filter... filters) {
+        if (filters == null || filters.length == 0) {
+            throw new IllegalArgumentException("At least one filter has to be passed");
+        }
+        
+        checkFilterReg(afterReg);
+        
+        final FilterReg beforeReg = afterReg.next;
+        FilterReg currentReg = afterReg;
+        
+        synchronized (idToRegMap) {
+            // create a chain based on the passed Filters
+                    
+            for (Filter filter : filters) {
+                final FilterReg newFilterReg = newFilterReg(filter, false);
+                
+                newFilterReg.prev = currentReg;
+                newFilterReg.next = beforeReg;
+                
+                currentReg.next = newFilterReg;
+                beforeReg.prev = newFilterReg;
 
-        private FilterState(FILTER_STATE_TYPE type, Appendable state) {
-            this.type = type;
-            this.state = state;
-            appender = null;
+                filter.onAdded(newFilterReg);
+                
+                currentReg = newFilterReg;
+            }
+            
+            return currentReg;
+        }
+    }
+    
+    FilterReg addFilterRegAfter(final FilterReg afterReg,
+            final Filter filter, final String name) {
+        checkFilterReg(afterReg);
+        
+        synchronized (idToRegMap) {
+            final FilterReg newFilterReg = newFilterReg(filter, name, false);
+            newFilterReg.prev = afterReg;
+            newFilterReg.next = afterReg.next;
+            
+            afterReg.next.prev = newFilterReg;
+            afterReg.next = newFilterReg;
+            
+            filter.onAdded(newFilterReg); // notify the filter
+            
+            return newFilterReg;
+        }
+    }
+
+    FilterReg replaceFilterReg(final FilterReg oldFilterReg,
+            final Filter newFilter) {
+        
+        synchronized (idToRegMap) {
+            removeFilterReg(oldFilterReg);
+            return addFilterRegAfter(oldFilterReg.prev, newFilter);
+        }
+    }
+
+    FilterReg replaceFilterReg(final FilterReg oldFilterReg,
+            final Filter newFilter, final String newFilterName) {
+        
+        synchronized (idToRegMap) {
+            removeFilterReg(oldFilterReg);
+            return addFilterRegAfter(oldFilterReg.prev, newFilter, newFilterName);
+        }
+    }
+
+    void removeFilterReg(final FilterReg reg) {
+        checkFilterReg(reg);
+        
+        synchronized (idToRegMap) {
+            if (idToRegMap.remove(reg.name) != null) {
+                reg.prev.next = reg.next;
+                reg.next.prev = reg.prev;
+                
+                reg.filter.onRemoved(reg); // Notify the filter
+            }
+        }
+    }
+    
+    void checkFilterReg(final FilterReg reg) {
+        if (reg != null && reg.filterChain != this) {
+            throw new IllegalArgumentException("Invalid FilterReg: doesn't belong to this FilterChain");
+        }
+    }
+    
+    @Override
+    public FilterReg firstFilterReg() {
+        final FilterReg first = head.next;
+        if (first == tail) {
+            throw new NoSuchElementException("The filter chain is empty");
+        }
+        
+        return first;
+    }
+
+    @Override
+    public FilterReg lastFilterReg() {
+        final FilterReg last = tail.prev;
+        if (last == head) {
+            throw new NoSuchElementException("The filter chain is empty");
+        }
+        
+        return last;
+    }
+
+    @Override
+    public Filter first() {
+        final FilterReg first = head.next;
+        if (first == tail) {
+            throw new NoSuchElementException("The filter chain is empty");
+        }
+        
+        return first.filter;
+    }
+
+    @Override
+    public Filter last() {
+        final FilterReg last = tail.prev;
+        if (last == head) {
+            throw new NoSuchElementException("The filter chain is empty");
+        }
+        
+        return last.filter;
+    }
+    
+    @Override
+    public Filter get(final String name) {
+        final FilterReg reg = idToRegMap.get(name);
+        return reg != null ? reg.filter : null;
+    }
+
+    @Override
+    public FilterReg getFilterReg(final String name) {
+        return idToRegMap.get(name);
+    }
+
+    @Override
+    public FilterReg getFilterReg(final Filter filter) {
+        for (FilterReg reg = head.next; reg != tail; reg = reg.next) {
+            if (reg.filter.equals(filter)) {
+                return reg;
+            }
+        }
+        
+        return null;
+    }
+    
+    @SuppressWarnings("unchecked")
+    @Override
+    public <E extends Filter> E getByType(final Class<E> filterType) {
+        for (FilterReg reg = head.next; reg != tail; reg = reg.next) {
+            if (filterType.isAssignableFrom(reg.filter.getClass())) {
+                return (E) reg.filter;
+            }
+        }
+        
+        return null;
+    }
+
+    private static final Filter[] NO_FILTERS = new Filter[0];
+    
+    @Override
+    public Filter[] getAllByType(final Class<? extends Filter> filterType) {
+        Filter[] result = NO_FILTERS;
+        
+        for (FilterReg reg = head.next; reg != tail; reg = reg.next) {
+            if (filterType.isAssignableFrom(reg.filter.getClass())) {
+                result = Arrays.copyOf(result, result.length + 1);
+                result[result.length - 1] = reg.filter;
+            }
+        }
+        
+        return result;
+    }
+    
+    @Override
+    public FilterReg getRegByType(final Class<? extends Filter> filterType) {
+        for (FilterReg reg = head.next; reg != tail; reg = reg.next) {
+            if (filterType.isAssignableFrom(reg.filter.getClass())) {
+                return reg;
+            }
+        }
+        
+        return null;
+    }
+
+    private static final FilterReg[] NO_FILTER_REGS = new FilterReg[0];
+    
+    @Override
+    public FilterReg[] getAllRegsByType(final Class<? extends Filter> filterType) {
+        FilterReg[] result = NO_FILTER_REGS;
+        
+        for (FilterReg reg = head.next; reg != tail; reg = reg.next) {
+            if (filterType.isAssignableFrom(reg.filter.getClass())) {
+                result = Arrays.copyOf(result, result.length + 1);
+                result[result.length - 1] = reg;
+            }
+        }
+        
+        return result;
+    }
+    
+    @Override
+    public int size() {
+        return idToRegMap.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return head.next == tail;
+    }
+    
+    @Override
+    public void add(final Filter... filter) {
+        addLast(filter);
+    }
+
+    @Override
+    public void add(final Filter filter, final String filterName) {
+        addLast(filter, filterName);
+    }
+
+    @Override
+    public void addFirst(final Filter... filter) {
+        addFilterRegAfter(head, filter);
+    }
+
+    @Override
+    public void addFirst(Filter filter, String filterName) {
+        addFilterRegAfter(head, filter, filterName);
+    }
+
+    @Override
+    public void addLast(final Filter... filter) {
+        addFilterRegAfter(tail.prev, filter);
+    }
+
+    @Override
+    public void addLast(final Filter filter, final String filterName) {
+        addFilterRegAfter(tail.prev, filter, filterName);
+    }
+
+    @Override
+    public void addAfter(final Filter baseFilter, final Filter... filter) {
+        final FilterReg baseFilterReg = getFilterReg(baseFilter);
+        if (baseFilterReg == null) {
+            throw new NoSuchElementException("The filter " + baseFilter + " is not found");
+        }
+        
+        addFilterRegAfter(baseFilterReg, filter);
+    }
+
+    @Override
+    public void addAfter(final Filter baseFilter,
+            final Filter filter, final String filterName) {
+        
+        final FilterReg baseFilterReg = getFilterReg(baseFilter);
+        if (baseFilterReg == null) {
+            throw new NoSuchElementException("The filter " + baseFilter + " is not found");
+        }
+        
+        addFilterRegAfter(baseFilterReg, filter, filterName);
+    }
+
+    @Override
+    public void addAfter(final String baseFilterName, final Filter... filter) {
+        final FilterReg baseFilterReg = getFilterReg(baseFilterName);
+        if (baseFilterReg == null) {
+            throw new NoSuchElementException("The filter " + baseFilterName + " is not found");
+        }
+        
+        addFilterRegAfter(baseFilterReg, filter);
+    }
+
+    @Override
+    public void addAfter(String baseFilterName, Filter filter, String filterName) {
+        final FilterReg baseFilterReg = getFilterReg(baseFilterName);
+        if (baseFilterReg == null) {
+            throw new NoSuchElementException("The filter " + baseFilterName + " is not found");
+        }
+        
+        addFilterRegAfter(baseFilterReg, filter, filterName);
+    }
+
+    @Override
+    public void addBefore(final Filter baseFilter, final Filter... filter) {
+        final FilterReg baseFilterReg = getFilterReg(baseFilter);
+        if (baseFilterReg == null) {
+            throw new NoSuchElementException("The filter " + baseFilter + " is not found");
+        }
+        
+        addFilterRegAfter(baseFilterReg.prev, filter);
+    }
+
+    @Override
+    public void addBefore(final Filter baseFilter,
+            final Filter filter, final String filterName) {
+        final FilterReg baseFilterReg = getFilterReg(baseFilter);
+        if (baseFilterReg == null) {
+            throw new NoSuchElementException("The filter " + baseFilter + " is not found");
+        }
+        
+        addFilterRegAfter(baseFilterReg.prev, filter, filterName);
+    }
+
+    @Override
+    public void addBefore(final String baseFilterName, final Filter... filter) {
+        final FilterReg baseFilterReg = getFilterReg(baseFilterName);
+        if (baseFilterReg == null) {
+            throw new NoSuchElementException("The filter " + baseFilterName + " is not found");
+        }
+        
+        addFilterRegAfter(baseFilterReg.prev, filter);
+    }
+
+    @Override
+    public void addBefore(final String baseFilterName,
+            final Filter filter, final String filterName) {
+        final FilterReg baseFilterReg = getFilterReg(baseFilterName);
+        if (baseFilterReg == null) {
+            throw new NoSuchElementException("The filter " + baseFilterName + " is not found");
+        }
+        
+        addFilterRegAfter(baseFilterReg.prev, filter, filterName);
+    }
+
+    @Override
+    public void replace(final Filter oldFilter, final Filter newFilter) {
+        final FilterReg oldFilterReg = getFilterReg(oldFilter);
+        if (oldFilterReg == null) {
+            throw new NoSuchElementException("The filter " + oldFilter + " is not found");
+        }
+        
+        replaceFilterReg(oldFilterReg, newFilter);
+    }
+
+    @Override
+    public void replace(final Filter oldFilter,
+            final Filter newFilter, final String newFilterName) {
+        
+        final FilterReg oldFilterReg = getFilterReg(oldFilter);
+        if (oldFilterReg == null) {
+            throw new NoSuchElementException("The filter " + oldFilter + " is not found");
+        }
+        
+        replaceFilterReg(oldFilterReg, newFilter, newFilterName);
+    }
+
+    @Override
+    public void replace(final String oldFilterName, final Filter newFilter) {
+        final FilterReg oldFilterReg = getFilterReg(oldFilterName);
+        if (oldFilterReg == null) {
+            throw new NoSuchElementException("The filter " + oldFilterName + " is not found");
+        }
+        
+        replaceFilterReg(oldFilterReg, newFilter);
+    }
+
+    @Override
+    public void replace(final String oldFilterName,
+            final Filter newFilter, final String newFilterName) {
+        
+        final FilterReg oldFilterReg = getFilterReg(oldFilterName);
+        if (oldFilterReg == null) {
+            throw new NoSuchElementException("The filter " + oldFilterName + " is not found");
+        }
+        
+        replaceFilterReg(oldFilterReg, newFilter, newFilterName);
+    }
+
+
+    @Override
+    public boolean remove(final Filter filter) {
+        final FilterReg filterReg = getFilterReg(filter);
+        if (filterReg == null) {
+            return false;
+        }
+        
+        removeFilterReg(filterReg);
+        
+        return true;
+    }
+
+    @Override
+    public boolean remove(final String filterName) {
+        final FilterReg filterReg = getFilterReg(filterName);
+        if (filterReg == null) {
+            return false;
+        }
+        
+        removeFilterReg(filterReg);
+        
+        return true;
+    }
+
+    @Override
+    public Filter removeFirst() {
+        final FilterReg first = head.next;
+        if (first == tail) {
+            throw new NoSuchElementException("The filter chain is empty");
+        }
+        
+        removeFilterReg(first);
+        
+        return first.filter;
+    }
+
+    @Override
+    public Filter removeLast() {
+        final FilterReg last = tail.prev;
+        if (last == head) {
+            throw new NoSuchElementException("The filter chain is empty");
+        }
+        
+        removeFilterReg(last);
+        
+        return last.filter;
+    }
+    
+    @Override
+    public void removeAllBefore(final String filterName) {
+        final FilterReg filterReg = getFilterReg(filterName);
+        if (filterReg == null) {
+            throw new NoSuchElementException("The filter " + filterName + " is not found");
+        }
+        
+        while (head != filterReg.prev) {
+            removeFilterReg(filterReg.prev);
+        }
+    }
+
+    @Override
+    public void removeAllAfter(final String filterName) {
+        final FilterReg filterReg = getFilterReg(filterName);
+        if (filterReg == null) {
+            throw new NoSuchElementException("The filter " + filterName + " is not found");
+        }
+        
+        while (tail != filterReg.next) {
+            removeFilterReg(filterReg.next);
+        }
+    }
+    
+    @Override
+    public boolean contains(final Filter filter) {
+        return getFilterReg(filter) != null;
+    }
+
+    @Override
+    public boolean contains(final String filterName) {
+        return getFilterReg(filterName) != null;
+    }
+
+    @Override
+    public List<String> names() {
+        final List<String> list = new ArrayList<String>(8);
+        for (FilterReg reg = head.next; reg != tail; reg = reg.next) {
+            list.add(reg.name);
+        }
+        
+        return list;
+    }
+    
+    @Override
+    public void clear() {
+        head.next = tail;
+        tail.prev = head;
+
+        synchronized (idToRegMap) {
+            idToRegMap.clear();
+        }
+    }
+    
+    @Override
+    public FilterChainIterator iterator() {
+        return filterChainIterator(head.next);
+    }
+
+    @Override
+    public FilterChainIterator iterator(final String name) {
+        final FilterReg filterReg = getFilterReg(name);
+        
+        return filterReg != null ? filterChainIterator(filterReg) : null;
+    }
+
+    @Override
+    public FilterChain copy() {
+        return new DefaultFilterChain(this);
+    }
+
+    private FilterChainIterator filterChainIterator(final FilterReg nextFilterReg) {
+        checkFilterReg(nextFilterReg);
+        
+        return new Iter(nextFilterReg);
+    }
+
+    private final class Iter implements FilterChainIterator {
+        private FilterReg nextReg;
+        private FilterReg currentReg;
+
+        private Iter(final FilterReg nextFilterReg) {
+            nextReg = nextFilterReg;
+        }
+        
+        @Override
+        public boolean hasNext() {
+            return nextReg != tail;
         }
 
-        private <E> FilterState(FILTER_STATE_TYPE type, E state, Appender<E> appender) {
-            this.type = type;
-            this.state = state;
-            this.appender = appender;
+        @Override
+        public Filter next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            
+            currentReg = nextReg;
+            nextReg = currentReg.next;
+            
+            return currentReg.filter;
         }
 
-        private FILTER_STATE_TYPE getType() {
-            return type;
+        @Override
+        public boolean hasPrevious() {
+            return nextReg.prev != head;
         }
 
-        public Object getState() {
-            return state;
+        @Override
+        public Filter previous() {
+            if (!hasPrevious()) {
+                throw new NoSuchElementException();
+            }
+            
+            currentReg = nextReg = nextReg.prev;
+            
+            return currentReg.filter;
         }
 
-        public Appender getAppender() {
-            return appender;
+        @Override
+        public void add(final Filter e) {
+            currentReg = null;
+            addFilterRegAfter(nextReg.prev, e);
+        }
+
+        @Override
+        public void set(final Filter e) {
+            if (currentReg == null) {
+                throw new IllegalStateException();
+            }
+
+            currentReg = replaceFilterReg(currentReg, e);
+        }
+
+        @Override
+        public void remove() {
+            if (currentReg == null) {
+                throw new IllegalStateException();
+            }
+            
+            removeFilterReg(currentReg);
+            
+            if (nextReg == currentReg) {
+                nextReg = nextReg.next;
+            }
+            
+            currentReg = null;
         }
     }
     
     private static final class FilterExecution {
+
         private static final int CONTINUE_TYPE = 0;
         private static final int TERMINATE_TYPE = 1;
         private static final int FORK_TYPE = 2;
-        
         private static final FilterExecution CONTINUE =
                 new FilterExecution(CONTINUE_TYPE, null);
-        
         private static final FilterExecution TERMINATE =
                 new FilterExecution(TERMINATE_TYPE, null);
-        
         private final int type;
         private final FilterChainContext context;
-        
+
         public static FilterExecution createContinue() {
             return CONTINUE;
         }
@@ -701,7 +1353,7 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         public static FilterExecution createTerminate() {
             return TERMINATE;
         }
-        
+
         public static FilterExecution createFork(final FilterChainContext context) {
             return new FilterExecution(FORK_TYPE, context);
         }
@@ -714,9 +1366,9 @@ final class DefaultFilterChain extends ListFacadeFilterChain {
         public int getType() {
             return type;
         }
-        
+
         public FilterChainContext getContext() {
             return context;
         }
-    }
+    }    
 }

@@ -51,8 +51,6 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.filterchain.Filter;
-import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
 import org.glassfish.grizzly.http.io.NIOOutputStream;
@@ -75,8 +73,6 @@ import org.glassfish.grizzly.utils.GenericAdapter;
 public abstract class StaticHttpHandlerBase extends HttpHandler {
     private static final Logger LOGGER = Grizzly.logger(StaticHttpHandlerBase.class);
 
-    private volatile int fileCacheFilterIdx = -1;
-    
     private volatile boolean isFileCacheEnabled = true;
     
     /**
@@ -290,28 +286,7 @@ public abstract class StaticHttpHandlerBase extends HttpHandler {
     
 
     protected FileCacheFilter lookupFileCache(final FilterChainContext fcContext) {
-        final FilterChain fc = fcContext.getFilterChain();
-        final int lastFileCacheIdx = fileCacheFilterIdx;
-
-        if (lastFileCacheIdx != -1) {
-            final Filter filter = fc.get(lastFileCacheIdx);
-            if (filter instanceof FileCacheFilter) {
-                return (FileCacheFilter) filter;
-            }
-        }
-
-        final int size = fc.size();
-        for (int i = 0; i < size; i++) {
-            final Filter filter = fc.get(i);
-
-            if (filter instanceof FileCacheFilter) {
-                fileCacheFilterIdx = i;
-                return (FileCacheFilter) filter;
-            }
-        }
-
-        fileCacheFilterIdx = -1;
-        return null;
+        return fcContext.getFilterChain().getByType(FileCacheFilter.class);
     }
 
     protected static void pickupContentType(final Response response,

@@ -71,7 +71,9 @@ import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
+import org.glassfish.grizzly.filterchain.DefaultFilterChainState;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainState;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
@@ -116,7 +118,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected short zeroByteReadCount;
     private final Queue<CloseListener> closeListeners =
             new ConcurrentLinkedQueue<CloseListener>();
-    
+    private final FilterChainState filterChainState =
+            new DefaultFilterChainState();
     /**
      * Connection probes
      */
@@ -332,6 +335,11 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         this.filterChain = preferableFilterChain;
     }
 
+    @Override
+    public FilterChainState getFilterChainState() {
+        return filterChainState;
+    }
+    
     protected TaskQueue<AsyncWriteQueueRecord> getAsyncWriteQueue() {
         return asyncWriteQueue;
     }

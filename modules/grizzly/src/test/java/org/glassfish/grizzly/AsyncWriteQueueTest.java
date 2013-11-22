@@ -119,7 +119,7 @@ public class AsyncWriteQueueTest {
         final AtomicInteger serverRcvdMessages = new AtomicInteger();
         final AtomicInteger clientRcvdMessages = new AtomicInteger();
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter(Charsets.UTF8_CHARSET));
         filterChainBuilder.add(new EchoFilter() {
@@ -139,7 +139,7 @@ public class AsyncWriteQueueTest {
             transport.bind(PORT);
             transport.start();
 
-            FilterChain clientFilterChain = FilterChainBuilder.stateless()
+            FilterChain clientFilterChain = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())
                     .add(new StringFilter(Charsets.UTF8_CHARSET))
                     .add(new BaseFilter() {
@@ -249,7 +249,7 @@ public class AsyncWriteQueueTest {
         
         final FutureImpl<Buffer> responseFuture = Futures.createSafeFuture();
 
-        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new EchoFilter() {
 
@@ -261,7 +261,7 @@ public class AsyncWriteQueueTest {
             }
         });
 
-        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless()
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new BaseFilter() {
             final int expectedResponseSize = packetNumber * packetSize;
@@ -383,7 +383,7 @@ public class AsyncWriteQueueTest {
         Connection connection = null;
         final int packetSize = 256000;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
 
 
@@ -455,7 +455,7 @@ public class AsyncWriteQueueTest {
 
         final AtomicInteger serverRcvdBytes = new AtomicInteger();
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new BaseFilter() {
 

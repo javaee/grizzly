@@ -87,7 +87,7 @@ public class EchoServer {
         
         isRunning = true;
         
-        final FilterChain filterChain =FilterChainBuilder.stateless()
+        final FilterChain filterChain =FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new StringFilter(Charsets.UTF8_CHARSET))
                 .add(new EchoFilter())

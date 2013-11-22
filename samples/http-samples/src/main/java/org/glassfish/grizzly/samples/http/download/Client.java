@@ -90,7 +90,7 @@ public class Client {
         final FutureImpl<String> completeFuture = SafeFutureImpl.create();
 
         // Build HTTP client filter chain
-        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
         // Add transport filter
         clientFilterChainBuilder.add(new TransportFilter());
         // Add IdleTimeoutFilter, which will close connections, which stay

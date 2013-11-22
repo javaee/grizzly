@@ -74,7 +74,7 @@ public class Server {
         timeoutExecutor.start();
 
         // Construct filter chain
-        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.newInstance();
         // Add transport filter
         serverFilterChainBuilder.add(new TransportFilter());
         // Add IdleTimeoutFilter, which will close connetions, which stay
