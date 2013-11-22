@@ -663,10 +663,11 @@ public class HttpServerFilter extends HttpCodecFilter {
         final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
         
         // Check host header
-        if (isHttp11 && (hostDC == null || hostDC.getLength() == 0)) {
+        if (isHttp11 && (hostDC == null || hostDC.isNull())) {
             state.error = true;
             return;
         }
+        request.unparsedHostC = hostDC;
         
         // If it's upgraded HTTP - don't check semantics
         if (isUpgraded) {

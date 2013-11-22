@@ -41,9 +41,9 @@ package org.glassfish.grizzly.http.ajp;
 
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.Buffers;
-import java.io.CharConversionException;
 import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.BufferChunk;
@@ -106,8 +106,7 @@ final class AjpMessageUtils {
         decodeAttributes(requestContent, offset, req,
                 tomcatAuthentication);
 
-        final DataChunk valueDC = req.getHeaders().getValue("host");
-        parseHost(valueDC, req);
+        req.setUnparsedHostHeader(req.getHeaders().getValue("host"));
     }
 
     private static int decodeAttributes(final Buffer requestContent, int offset,
@@ -278,16 +277,16 @@ final class AjpMessageUtils {
     /**
      * Parse host.
      */
-    private static void parseHost(final DataChunk hostDC,
-            final AjpHttpRequest request)
-            throws CharConversionException {
+    static void parseHost(final DataChunk hostDC,
+            final DataChunk serverNameDC,
+            final HttpRequestPacket request) {
 
         if (hostDC == null) {
             // HTTP/1.0
             // Default is what the socket tells us. Overriden if a host is
             // found/parsed
             request.setServerPort(request.getLocalPort());
-            request.serverName().setString(request.getLocalName());
+            serverNameDC.setString(request.getLocalName());
             return;
         }
 
@@ -319,9 +318,9 @@ final class AjpMessageUtils {
                 // 443 - Default HTTPS port
                 request.setServerPort(443);
             }
-            request.serverName().setBuffer(valueB, valueS, valueS + valueL);
+            serverNameDC.setBuffer(valueB, valueS, valueS + valueL);
         } else {
-            request.serverName().setBuffer(valueB, valueS, valueS + colonPos);
+            serverNameDC.setBuffer(valueB, valueS, valueS + colonPos);
 
             int port = 0;
             int mult = 1;
@@ -329,7 +328,9 @@ final class AjpMessageUtils {
                 int charValue = DEC[(int) valueB.get(i + valueS)];
                 if (charValue == -1) {
                     // Invalid character
-                    throw new CharConversionException("Invalid char in port: " + valueB.get(i + valueS));
+                    throw new IllegalStateException(
+                            String.format("Host header %s contained a non-decimal value in the port definition.",
+                                          hostDC.toString()));
                 }
                 port = port + (charValue * mult);
                 mult = 10 * mult;

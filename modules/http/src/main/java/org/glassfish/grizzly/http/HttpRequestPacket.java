@@ -101,6 +101,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
     private boolean requiresAcknowledgement;
 
+    protected DataChunk unparsedHostC;
     private boolean hostHeaderParsed;
 
     /**
@@ -260,6 +261,17 @@ public abstract class HttpRequestPacket extends HttpHeader {
         queryC.setString(query);
     }
 
+    
+    /**
+     * Return the buffer holding the server name, if
+     * any. Use isNull() to check if there is no value
+     * set.
+     * This is the "virtual host", derived from the
+     * Host: header.
+     */
+    protected DataChunk serverNameRaw() {
+        return serverNameC;
+    }
     
     /**
      * Return the buffer holding the server name, if
@@ -632,6 +644,9 @@ public abstract class HttpRequestPacket extends HttpHeader {
         methodC.recycle();
         parsedMethod = null;
 
+        hostHeaderParsed = false;
+        unparsedHostC = null;
+        
         remoteAddressC.recycle();
         remoteHostC.recycle();
         localAddressC.recycle();
@@ -700,13 +715,14 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
     private void parseHostHeader() {
         if (!hostHeaderParsed) {
-            HttpCodecUtils.parseHost(getHeaders().getValue(Header.Host),
-                                     serverNameC,
-                                     this);
+            doParseHostHeader();
             hostHeaderParsed = true;
         }
     }
 
+    protected void doParseHostHeader() {
+        HttpCodecUtils.parseHost(unparsedHostC, serverNameC, this);
+    }
     
     // ---------------------------------------------------------- Nested Classes
 
