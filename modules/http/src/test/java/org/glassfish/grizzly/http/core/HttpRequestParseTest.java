@@ -187,15 +187,6 @@ public class HttpRequestParseTest extends TestCase {
             assertTrue(true);
         }
     }
-
-    public void testEmptyHost() {
-        try {
-            doTestDecoder("GET /index.html HTTP/1.1\nHost:    \n\n", 1000);
-            assertTrue("Empty host exception had to be thrown", false);
-        } catch (IllegalStateException e) {
-            assertTrue(true);
-        }
-    }    
     
     @SuppressWarnings({"unchecked"})
     private HttpPacket doTestDecoder(String request, int limit) {
