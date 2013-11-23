@@ -39,7 +39,10 @@
  */
 package org.glassfish.grizzly.http.server;
 
+import java.io.CharConversionException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -70,6 +73,17 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
     private static final Logger LOGGER = Grizzly.logger(HttpHandlerChain.class);
 
+    private static final Map<String, PathUpdater> ROOT_URLS;
+    
+    static {
+        ROOT_URLS = new HashMap<String, PathUpdater>(3);
+        ROOT_URLS.put("", new EmptyPathUpdater());
+        ROOT_URLS.put("/", new SlashPathUpdater());
+        ROOT_URLS.put("/*", new SlashStarPathUpdater());
+    }
+    
+    private final FullUrlPathResolver fullUrlPathResolver =
+            new FullUrlPathResolver(this);
     /**
      * The name -> {@link HttpHandler} map.
      */
@@ -86,6 +100,18 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
             DataStructures.<HttpHandler, String[]>getConcurrentMap();
     private final ConcurrentMap<HttpHandler, Object> monitors =
             DataStructures.<HttpHandler, Object>getConcurrentMap();
+    
+    /**
+     * Number of registered HttpHandlers
+     */
+    private int handlersCount;
+    
+    /**
+     * The root {@link HttpHandler}, used in cases when HttpHandlerChain has
+     * only one {@link HttpHandler} registered and this {@link HttpHandler} is
+     * registered as root resource.
+     */
+    private volatile RootHttpHandler rootHttpHandler;
     
     /**
      * Internal {@link Mapper} used to Map request to their associated {@link HttpHandler}
@@ -165,6 +191,14 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
         response.setErrorPageGenerator(getErrorPageGenerator(request));
         
         try {
+            final RootHttpHandler rootHttpHandlerLocal = rootHttpHandler;
+            
+            if (rootHttpHandlerLocal != null) {
+                final HttpHandler rh = rootHttpHandlerLocal.httpHandler;
+                rootHttpHandlerLocal.pathUpdater.update(this, rh, request);
+                return rh.doHandle(request, response);
+            }
+            
             final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
             uriRef.setDefaultURIEncoding(getRequestURIEncoding());
             final DataChunk decodedURI = uriRef.getDecodedRequestURIBC(
@@ -214,6 +248,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
      * Map the {@link Request} to the proper {@link HttpHandler}
      * @param request The {@link Request}
      * @param response The {@link Response}
+     * @throws java.lang.Exception
      */
     @Override
     public void service(final Request request, final Response response) throws Exception {
@@ -240,8 +275,10 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                     }
                 }
 
-                handlers.put(httpHandler, mappings);
-
+                if (handlers.put(httpHandler, mappings) == null) {
+                    handlersCount++;
+                }
+                
                 final String name = httpHandler.getName();
                 if (name != null) {
                     handlersByName.put(name, httpHandler);
@@ -276,6 +313,16 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                     }
                     mapper.addWrapper(LOCAL_HOST, ctx, wrapper, httpHandler);
                 }
+                
+                // Check if the only one HttpHandler is registered
+                // and if it's a root HttpHandler - apply optimization
+                if (handlersCount == 1 && mappings.length == 1 &&
+                        ROOT_URLS.containsKey(mappings[0])) {
+                    rootHttpHandler = new RootHttpHandler(httpHandler,
+                            ROOT_URLS.get(mappings[0]));
+                } else {
+                    rootHttpHandler = null;
+                }
             }
         } finally {
             mapperUpdateLock.writeLock().unlock();
@@ -285,6 +332,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 
     /**
      * Remove a {@link HttpHandler}
+     * @param httpHandler {@link HttpHandler} to remove
      * @return <tt>true</tt> if removed
      */
     public boolean removeHttpHandler(final HttpHandler httpHandler) {
@@ -308,6 +356,24 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 }
                 deregisterJmxForHandler(httpHandler);
                 httpHandler.destroy();
+
+                // Check if the only one HttpHandler left
+                // and if it's a root HttpHandler - apply optimization
+                handlersCount--;
+                if (handlersCount == 1) {
+                    final Map.Entry<HttpHandler, String[]> entry =
+                            handlers.entrySet().iterator().next();
+                    final String[] lastHttpHandlerMappings = entry.getValue();
+                    if (lastHttpHandlerMappings.length == 1
+                            && ROOT_URLS.containsKey(lastHttpHandlerMappings[0])) {
+                        rootHttpHandler = new RootHttpHandler(httpHandler,
+                                ROOT_URLS.get(lastHttpHandlerMappings[0]));
+                    } else {
+                        rootHttpHandler = null;
+                    }
+                } else {
+                    rootHttpHandler = null;
+                }
             }
             
             return (mappings != null);
@@ -436,5 +502,81 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
                 mappingData.servletName = nameStr;
             }
         }
+    }
+    
+    private static final class RootHttpHandler {
+        private final HttpHandler httpHandler;
+        private final PathUpdater pathUpdater;
+
+        public RootHttpHandler(final HttpHandler httpHandler,
+                final PathUpdater pathUpdater) {
+            this.httpHandler = httpHandler;
+            this.pathUpdater = pathUpdater;
+        }
+    }
+    
+    private static interface PathUpdater {
+
+        public void update(HttpHandlerChain handlerChain,
+                HttpHandler httpHandler, Request request);
+    }
+    
+    private static class SlashPathUpdater implements PathUpdater {
+
+        @Override
+        public void update(final HttpHandlerChain handlerChain,
+                final HttpHandler httpHandler, final Request request) {
+
+            request.setContextPath("");
+            request.setPathInfo((String) null);
+            request.setHttpHandlerPath(handlerChain.fullUrlPathResolver);
+        }
+        
+    }
+    
+    private static class SlashStarPathUpdater implements PathUpdater {
+
+        @Override
+        public void update(final HttpHandlerChain handlerChain,
+                final HttpHandler httpHandler, final Request request) {
+            request.setContextPath("");
+            request.setPathInfo(handlerChain.fullUrlPathResolver);
+            request.setHttpHandlerPath("");
+        }
+    }
+    
+    private static class EmptyPathUpdater implements PathUpdater {
+
+        @Override
+        public void update(final HttpHandlerChain handlerChain,
+                final HttpHandler httpHandler, final Request request) {
+            request.setContextPath("");
+            request.setPathInfo((String) null);
+            request.setHttpHandlerPath((String) null);
+        }
+    }    
+    
+    private static class FullUrlPathResolver implements Request.PathResolver {
+        private final HttpHandler httpHandler;
+
+        public FullUrlPathResolver(HttpHandler httpHandler) {
+            this.httpHandler = httpHandler;
+        }
+        
+        @Override
+        public String resolve(final Request request) {
+            try {
+                final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
+                uriRef.setDefaultURIEncoding(httpHandler.getRequestURIEncoding());
+                final DataChunk decodedURI = uriRef.getDecodedRequestURIBC(
+                        httpHandler.isAllowEncodedSlash());
+                
+                final int pos = decodedURI.indexOf(';', 0);
+                return pos < 0 ? decodedURI.toString() : decodedURI.toString(0, pos);
+            } catch (CharConversionException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        
     }
 }

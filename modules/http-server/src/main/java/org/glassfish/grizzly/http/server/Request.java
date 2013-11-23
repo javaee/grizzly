@@ -307,9 +307,9 @@ public class Request {
      */
     private String scheme;
 
-    private String contextPath = "";
-    private String httpHandlerPath;
-    private String pathInfo;
+    private final PathData contextPath = new PathData(this, "", null);
+    private final PathData httpHandlerPath = new PathData(this);
+    private final PathData pathInfo = new PathData(this);
 
     private MappingData cachedMappingData;
 
@@ -592,9 +592,9 @@ public class Request {
      */
     protected void recycle() {
         scheme = null;
-        contextPath = "";
-        httpHandlerPath = null;
-        pathInfo = null;
+        contextPath.setPath("");
+        httpHandlerPath.reset();
+        pathInfo.reset();
         dispatcherType = null;
         requestDispatcherPath = null;
 
@@ -775,6 +775,13 @@ public class Request {
     }
 
     /**
+     * @return {@link HttpServerFilter}, which dispatched this request
+     */
+    public HttpServerFilter getHttpFilter() {
+        return httpServerFilter;
+    }
+    
+    /**
      * Returns the portion of the request URI that indicates the context of the request.
      * The context path always comes first in a request URI.
      * The path starts with a "/" character but does not end with a "/" character.
@@ -784,20 +791,17 @@ public class Request {
      * @return a String specifying the portion of the request URI that indicates the context of the request
      */
     public String getContextPath() {
-        return contextPath;
+        return contextPath.get();
     }
 
     protected void setContextPath(final String contextPath) {
-        this.contextPath = contextPath;
-    }
-
-    /**
-     * Returns {@link HttpServerFilter}, which dispatched this request.
-     */
-    public HttpServerFilter getHttpFilter() {
-        return httpServerFilter;
+        this.contextPath.setPath(contextPath);
     }
     
+    protected void setContextPath(final PathResolver contextPath) {
+        this.contextPath.setResolver(contextPath);
+    }
+
     /**
      * Returns the part of this request's URL that calls the HttpHandler.
      * This includes either the HttpHandler name or a path to the HttpHandler,
@@ -810,11 +814,15 @@ public class Request {
      *          failed.
      */
     public String getHttpHandlerPath() {
-        return httpHandlerPath;
+        return httpHandlerPath.get();
     }
 
-    protected void setHttpHandlerPath(String httpHandlerPath) {
-        this.httpHandlerPath = httpHandlerPath;
+    protected void setHttpHandlerPath(final String httpHandlerPath) {
+        this.httpHandlerPath.setPath(httpHandlerPath);
+    }
+
+    protected void setHttpHandlerPath(final PathResolver httpHandlerPath) {
+        this.httpHandlerPath.setResolver(httpHandlerPath);
     }
 
     /**
@@ -829,13 +837,16 @@ public class Request {
      * or null if the URL does not have any extra path information
      */
     public String getPathInfo() {
-        return pathInfo;
+        return pathInfo.get();
     }
 
-    protected void setPathInfo(String pathInfo) {
-        this.pathInfo = pathInfo;
+    protected void setPathInfo(final String pathInfo) {
+        this.pathInfo.setPath(pathInfo);
     }
 
+    protected void setPathInfo(final PathResolver pathInfo) {
+        this.pathInfo.setResolver(pathInfo);
+    }
     
     // ------------------------------------------------- ServletRequest Methods
 
@@ -2526,5 +2537,46 @@ public class Request {
      */
     private static long generateRandomLong() {
         return (RANDOM.nextLong() & 0x7FFFFFFFFFFFFFFFl);
+    }
+    
+    private static class PathData {
+        private final Request request;
+        private String path;
+        private PathResolver resolver;
+
+        public PathData(Request request) {
+            this.request = request;
+        }
+
+        public PathData(final Request request, final String path,
+                final PathResolver resolver) {
+            this.request = request;
+            this.path = path;
+            this.resolver = resolver;
+        }
+        
+        public void setPath(final String path) {
+            this.path = path;
+            resolver = null;
+        }
+
+        public void setResolver(final PathResolver resolver) {
+            this.resolver = resolver;
+            path = null;
+        }
+
+        public String get() {
+            return path != null ? path :
+                    (resolver != null ? (path = resolver.resolve(request)) : null);
+        }
+        
+        public void reset() {
+            path = null;
+            resolver = null;
+        }
+    }
+    
+    protected static interface PathResolver {
+        public String resolve(Request request);
     }
 }
