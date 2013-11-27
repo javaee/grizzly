@@ -42,7 +42,7 @@ package org.glassfish.grizzly.filterchain;
 
 /**
  * {@link NextAction} type, which is expected only on post processing phase.
- * Instructs {@link FilterChain} to re-process the {@link org.glassfish.grizzly.ServiceEvent}
+ * Instructs {@link FilterChain} to re-process the {@link org.glassfish.grizzly.Event}
  * processing again from the beginning.
  * 
  * @author Alexey Stashok

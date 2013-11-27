@@ -130,7 +130,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * <em>optional</em> methods of the {@link Map} and {@link Iterator}
  * interfaces.
  *
- * <p>Like {@link Hashtable} but unlike {@link HashMap}, this class
+ * <p>Like {@link java.util.Hashtable} but unlike {@link HashMap}, this class
  * does <em>not</em> allow {@code null} to be used as a key or value.
  *
  * <p>ConcurrentHashMapV8s support a set of sequential and parallel bulk
@@ -182,12 +182,10 @@ import java.util.concurrent.locks.ReentrantLock;
  * argument. Methods proceed sequentially if the current map size is
  * estimated to be less than the given threshold. Using a value of
  * {@code Long.MAX_VALUE} suppresses all parallelism.  Using a value
- * of {@code 1} results in maximal parallelism by partitioning into
- * enough subtasks to fully utilize the {@link
- * ForkJoinPool#commonPool()} that is used for all parallel
- * computations. Normally, you would initially choose one of these
- * extreme values, and then measure performance of using in-between
- * values that trade off overhead versus throughput.
+ * of {@code 1} results in maximal parallelism.. Normally, you would
+ * initially choose one of these extreme values, and then measure
+ * performance of using in-between values that trade off overhead versus
+ * throughput.
  *
  * <p>The concurrency properties of bulk operations follow
  * from those of ConcurrentHashMapV8: Any non-null result returned

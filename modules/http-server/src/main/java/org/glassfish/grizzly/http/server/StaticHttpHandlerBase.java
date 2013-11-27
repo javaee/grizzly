@@ -216,8 +216,8 @@ public abstract class StaticHttpHandlerBase extends HttpHandler {
     
     
     /**
-     * Based on the {@link Request} URI, try to map the file from the
-     * {@link #getDocRoots()}, and send it back to a client.
+     * Return the content specified by the request URI.
+     *
      * @param request the {@link Request}
      * @param response the {@link Response}
      * @throws Exception
@@ -258,7 +258,6 @@ public abstract class StaticHttpHandlerBase extends HttpHandler {
      * The method will be called, if the static resource requested by the {@link Request}
      * wasn't found, so {@link StaticHttpHandler} implementation may try to
      * workaround this situation.
-     * The default implementation - sends a 404 response page by calling {@link #customizedErrorPage(Request, Response)}.
      *
      * @param request the {@link Request}
      * @param response the {@link Response}

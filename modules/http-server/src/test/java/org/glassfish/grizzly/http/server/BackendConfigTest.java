@@ -63,7 +63,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * {@link BackendConfiguration} related tests.
+ * {@link BackendConfig} related tests.
  * 
  * @author Alexey Stashok
  */

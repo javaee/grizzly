@@ -164,7 +164,7 @@ final class HttpServerProbeNotifier {
      *
      * @param filter {@link HttpServerFilter}, the event belongs to.
      * @param connection {@link Connection}, the event belongs to.
-     * @param response {@link Response}.
+     * @param request {@link Request}.
      * @param httpHandler {@link HttpHandler}.
      */
     static void notifyBeforeService(final HttpServerFilter filter,

@@ -43,10 +43,11 @@ import org.glassfish.grizzly.Event;
 
 /**
  * The implementations of this interface are responsible for holding a
- * {@link Connection} state associated with a {@link Filter} in a {@link FilterChain}.
+ * {@link org.glassfish.grizzly.Connection} state associated with a {@link Filter}
+ * in a {@link FilterChain}.
  * 
  * The same {@link Filter} instance registered on different {@link FilterChain}s
- * can have different state associated with the same {@link Connection}.
+ * can have different state associated with the same {@link org.glassfish.grizzly.Connection}.
  */
 public interface FilterChainState {
     /**

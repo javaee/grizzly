@@ -72,7 +72,7 @@ public interface AsyncQueueWriter<L> extends Writer<L>, AsyncQueue {
     public static final int AUTO_SIZE = -2;
 
     /**
-     * Method writes the {@link Buffer} to the specific address.
+     * Method writes the {@link org.glassfish.grizzly.Buffer} to the specific address.
      *
      * @param connection        the {@link org.glassfish.grizzly.Connection} to write to
      * @param dstAddress        the destination address the {@link WritableMessage} will be

@@ -587,7 +587,6 @@ public final class DefaultFilterChain implements FilterChain {
      * set the result as context message.
      * 
      * @param ctx {@link FilterChainContext}
-     * @param filtersState {@link FiltersState} associated with the Connection
      * @param filterReg the current filter
      */
     @SuppressWarnings("unchecked")
@@ -621,13 +620,12 @@ public final class DefaultFilterChain implements FilterChain {
      * Stores the Filter associated remainder. This remainder will be reused next
      * time the same filter will be invoked on this Connection.
      * 
-     * @param ctx
-     * @param filtersState
-     * @param type
-     * @param filterReg
-     * @param messageToStore
-     * @param appender
-     * @return
+     * @param ctx the {@link FilterChainContext}.
+     * @param isUnparsed flag indicating whether or not the message to store
+     *                   has been parsed or not.
+     * @param filterReg the {@link FilterReg} with the message to store.
+     * @param messageToStore the message to store.
+     * @param appender the {@link Appender} to associate with the state.
      */
     private <M> void storeMessage(final FilterChainContext ctx,
             final boolean isUnparsed,

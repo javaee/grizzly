@@ -106,7 +106,7 @@ public interface ConnectionProbe {
     public void onCloseEvent(Connection connection);
 
     /**
-     * Method will be called, when {@link ServiceEvent} for the specific
+     * Method will be called, when {@link IOEvent} for the specific
      * {@link Connection} gets ready.
      *
      * @param connection {@link Connection}, the event belongs to.

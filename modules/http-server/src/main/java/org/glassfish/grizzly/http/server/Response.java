@@ -611,7 +611,7 @@ public class Response {
      *
      * By default the returned {@link NIOOutputStream} will work as blocking
      * {@link java.io.OutputStream}, but it will be possible to call {@link NIOOutputStream#canWrite()} or
-     * {@link NIOOutputStream#notifyCanWrite(org.glassfish.grizzly.WriteHandler)} to
+     * {@link NIOOutputStream#notifyWritePossible(org.glassfish.grizzly.WriteHandler)}  to
      * avoid blocking.
      * 
      * @return the {@link NIOOutputStream} associated with this {@link Response}.
@@ -653,7 +653,7 @@ public class Response {
      *
      * By default the returned {@link NIOWriter} will work as blocking
      * {@link java.io.Writer}, but it will be possible to call {@link NIOWriter#canWrite()} or
-     * {@link NIOWriter#notifyCanWrite(org.glassfish.grizzly.WriteHandler)} to
+     * {@link NIOWriter#notifyWritePossible(org.glassfish.grizzly.WriteHandler)} to
      * avoid blocking.
      * 
      * @throws IllegalStateException if {@link #getOutputStream()} has been

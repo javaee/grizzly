@@ -74,7 +74,7 @@ public interface Transformer<K, L> {
      *        get/put a state.
      * @return the result {@link TransformationResult}
      * 
-     * @throws org.glassfish.grizzly.TransformationException
+     * @throws TransformationException
      */
     TransformationResult<K, L> transform(AttributeStorage storage, K input)
             throws TransformationException;

@@ -90,8 +90,9 @@ final class MultipartEntryNIOReader extends NIOReader {
 
     /**
      * 
-     * @param requestNIOInputStream the {@link Request} {@link NIOInputStream}
-     * from which binary content will be supplied
+     * @param requestInputStream the {@link org.glassfish.grizzly.http.server.Request}
+     *  {@link NIOInputStream} from which binary content will be supplied.
+     * @param encoding the request encoding.
      */
     protected void initialize(final NIOInputStream requestInputStream,
             final String encoding) {
@@ -190,7 +191,7 @@ final class MultipartEntryNIOReader extends NIOReader {
     }
 
     /**
-     * This {@link Reader} implementation does not support marking.
+     * This {@link java.io.Reader} implementation does not support marking.
      *
      * @return <code>false</code>
      */

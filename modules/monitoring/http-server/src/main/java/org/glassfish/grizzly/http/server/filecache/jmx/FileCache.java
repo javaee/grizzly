@@ -142,7 +142,7 @@ public class FileCache extends JmxObject {
      *
      * <p>
      * When invoked, this method will remove the {@link FileCacheProbe} added
-     * by the {@link #onRegister(org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager, org.glassfish.gmbal.GmbalMBean)}
+     * by the {@link #onRegister(GrizzlyJmxManager, org.glassfish.gmbal.GmbalMBean)}
      * call.
      * </p>
      */

@@ -153,7 +153,7 @@ public class NetworkListener extends JmxObject {
 
 
     /**
-     * @see org.glassfish.grizzly.http.KeepAlive#getIdleTimeoutInSeconds()
+     * @see org.glassfish.grizzly.http.KeepAliveConfig#getIdleTimeoutInSeconds()
      */
     @ManagedAttribute(id="idle-timeout-in-seconds")
     @Description("The time, in seconds, to keep an inactive request alive.")

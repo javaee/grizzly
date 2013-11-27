@@ -51,9 +51,9 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.ThreadCache;
 
 /**
- * Simple thread-unsafe {@link Future} implementation.
+ * Simple thread-unsafe {@link java.util.concurrent.Future} implementation.
  *
- * @see Future
+ * @see java.util.concurrent.Future
  * 
  * @author Alexey Stashok
  */
@@ -63,7 +63,7 @@ public final class UnsafeFutureImpl<R> implements FutureImpl<R> {
             ThreadCache.obtainIndex(UnsafeFutureImpl.class, 4);
 
     /**
-     * Construct {@link Future}.
+     * Construct {@link java.util.concurrent.Future}.
      */
     @SuppressWarnings("unchecked")
     public static <R> UnsafeFutureImpl<R> create() {

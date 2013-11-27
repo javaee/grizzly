@@ -68,7 +68,7 @@ public interface FilterChainIterator extends Iterator<Filter> {
      * element repeatedly.)
      *
      * @return the previous element in the list
-     * @throws NoSuchElementException if the iteration has no previous
+     * @throws java.util.NoSuchElementException if the iteration has no previous
      *         element
      */
     Filter previous();

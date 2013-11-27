@@ -118,7 +118,7 @@ public class DataStructures {
     /**
      * Creates a new map with the same mappings as the given map.
      *
-     * @param m the map
+     * @param map the map
      * 
      * @since 2.3.5
      */

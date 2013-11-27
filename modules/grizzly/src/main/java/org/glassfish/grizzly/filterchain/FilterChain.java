@@ -82,7 +82,6 @@ import org.glassfish.grizzly.WriteResult;
  * </p>
  *
  * @see Filter
- * @see Codec
  *
  * @author Grizzly team
  */
@@ -627,7 +626,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
     public FilterChain copy();
     
     /**
-     * Method processes occurred {@link ServiceEvent} on this {@link FilterChain}.
+     * Method processes occurred {@link Event} on this {@link FilterChain}.
      *
      * @param context processing context
      * @return {@link ProcessorResult}

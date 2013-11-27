@@ -136,7 +136,7 @@ abstract class ExecutorResolver {
     
     /**
      * Executes appropriate {@link Filter} processing method to process occurred
-     * {@link org.glassfish.grizzly.ServiceEvent}.
+     * {@link org.glassfish.grizzly.Event}.
      */
     public static abstract class UpstreamExecutor implements FilterExecutor {
         @Override
@@ -161,7 +161,7 @@ abstract class ExecutorResolver {
 
     /**
      * Executes appropriate {@link Filter} processing method to process occurred
-     * {@link org.glassfish.grizzly.ServiceEvent}.
+     * {@link org.glassfish.grizzly.Event}.
      */
     public static abstract class DownstreamExecutor implements FilterExecutor {
         @Override

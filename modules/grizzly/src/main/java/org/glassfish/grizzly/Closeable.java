@@ -52,7 +52,7 @@ public interface Closeable {
      * with it. If the stream is already closed then invoking this 
      * method has no effect. 
      *
-     * @return {@link Future}, which could be checked in case, if close operation
+     * @return {@link GrizzlyFuture}, which could be checked in case, if close operation
      *         will be run asynchronously
      */
     public GrizzlyFuture<Closeable> close();

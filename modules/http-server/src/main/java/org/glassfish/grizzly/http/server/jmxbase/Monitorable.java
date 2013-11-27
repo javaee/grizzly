@@ -41,8 +41,8 @@
 package org.glassfish.grizzly.http.server.jmxbase;
 
 /**
- * Interface that allows arbitrary entities to provide a {@link JmxObject}
- * that can be registered with the {@link org.glassfish.grizzly.monitoring.jmx.GrizzlyJmxManager}.
+ * Interface that allows arbitrary entities to provide a <code>JmxObject</code>
+ * that can be registered with the {@link org.glassfish.grizzly.jmxbase.GrizzlyJmxManager}.
  */
 public interface Monitorable {
 

@@ -43,8 +43,8 @@ import org.glassfish.grizzly.Appender;
 import org.glassfish.grizzly.Event;
 
 /**
- * The state holder, responsible for keeping a {@link Connection} state for a
- * given {@link Event} associated with a {@link Filter}-in-{@link FilterChain}.
+ * The state holder, responsible for keeping a {@link org.glassfish.grizzly.Connection}
+ * state for a given {@link Event} associated with a {@link Filter}-in-{@link FilterChain}.
  */
 public class FilterState {
     private boolean isUnparsed;

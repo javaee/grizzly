@@ -175,7 +175,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
      * <tt>true</tt>, if zero-copy file-send feature could be used, or
      * <tt>false</tt> otherwise.
      */
-    private boolean isFileSendEnabled;
+    private boolean fileSendEnabled;
     
     /**
      * File cache probes
@@ -636,7 +636,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
      * @since 2.3.5
      */
     public boolean isFileSendEnabled() {
-        return isFileSendEnabled;
+        return fileSendEnabled;
     }
 
     /**
@@ -644,12 +644,12 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
      * {@link java.io.File} resources via {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}.
      * If disabled, the more traditional byte[] copy will be used to send content.
      *
-     * @param sendFileEnabled <code>true</code> to enable {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     * @param fileSendEnabled <code>true</code> to enable {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
      *                        support.
      * @since 2.3.5
      */
-    public void setFileSendEnabled(boolean isFileSendEnabled) {
-        this.isFileSendEnabled = isFileSendEnabled;
+    public void setFileSendEnabled(boolean fileSendEnabled) {
+        this.fileSendEnabled = fileSendEnabled;
     }
     
     /**

@@ -54,8 +54,8 @@ import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
- * This class implements a {@link org.glassfish.grizzly.Transformer} which decodes data
- * represented in the GZIP format.
+ * This class implements a {@link org.glassfish.grizzly.compression.Transformer}
+ * which decodes data represented in the GZIP format.
  *
  * @author Alexey Stashok
  */

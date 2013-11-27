@@ -55,7 +55,7 @@ import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
 
 /**
- * JMX management object for {@link org.glassfish.grizzly.http.KeepAlive}.
+ * JMX management object for {@link org.glassfish.grizzly.http.KeepAliveConfig}.
  *
  * @since 2.0
  */
@@ -152,7 +152,7 @@ public class KeepAlive extends JmxObject {
 
 
     /**
-     * @see org.glassfish.grizzly.http.KeepAlive#getIdleTimeoutInSeconds()
+     * @see org.glassfish.grizzly.http.KeepAliveConfig#getIdleTimeoutInSeconds()
      */
     @ManagedAttribute(id="idle-timeout-seconds")
     @Description("The time period keep-alive connection may stay idle")
@@ -161,7 +161,7 @@ public class KeepAlive extends JmxObject {
     }
 
     /**
-     * @see org.glassfish.grizzly.http.KeepAlive#getMaxRequestsCount()
+     * @see org.glassfish.grizzly.http.KeepAliveConfig#getMaxRequestsCount()
      */
     @ManagedAttribute(id="max-requests-count")
     @Description("the max number of HTTP requests allowed to be processed on one keep-alive connection")

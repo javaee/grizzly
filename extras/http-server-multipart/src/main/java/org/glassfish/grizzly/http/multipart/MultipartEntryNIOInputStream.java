@@ -80,8 +80,8 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
     }
 
     /**
-     * @param parentNIOInputStream the {@link Request} {@link NIOInputStream}
-     * from which binary content will be supplied
+     * @param parentNIOInputStream the {@link org.glassfish.grizzly.http.server.Request}
+     * {@link NIOInputStream} from which binary content will be supplied
      */
     protected void initialize(final NIOInputStream parentNIOInputStream) {
         this.parentNIOInputStream = parentNIOInputStream;
@@ -177,7 +177,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
     }
 
     /**
-     * This {@link InputStream} implementation supports marking.
+     * This {@link java.io.InputStream} implementation supports marking.
      *
      * @return <code>true</code>
      */

@@ -41,7 +41,7 @@ package org.glassfish.grizzly.filterchain;
 
 /**
  * Executes appropriate {@link Filter} processing method to process occurred
- * {@link Event}.
+ * {@link org.glassfish.grizzly.Event}.
  */
 public interface FilterExecutor {
 

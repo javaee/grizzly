@@ -42,7 +42,7 @@ package org.glassfish.grizzly.http;
 import org.glassfish.grizzly.Connection;
 
 /**
- * Monitoring probe providing callbacks that may be invoked by Grizzly {@link KeepAlive}.
+ * Monitoring probe providing callbacks that may be invoked by Grizzly {@link KeepAliveConfig}.
  *
  * @author Alexey Stashok
  *

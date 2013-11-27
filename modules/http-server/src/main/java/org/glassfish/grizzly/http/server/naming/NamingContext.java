@@ -51,12 +51,11 @@ public interface NamingContext {
 
     /**
      * Retrieves the named object.
-     * See {@link #lookup(Name)} for details.
-     * @param name
-     *          the name of the object to look up
+     * @param name the name of the object to look up
+     *
      * @return  the object bound to <tt>name</tt>
      * @throws  NamingException if a naming exception is encountered
      */
-    public Object lookup(String pathStr) throws NamingException;
+    public Object lookup(String name) throws NamingException;
     
 }

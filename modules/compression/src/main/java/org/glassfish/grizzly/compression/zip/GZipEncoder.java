@@ -53,8 +53,8 @@ import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
- * This class implements a {@link org.glassfish.grizzly.Transformer} which encodes plain data to
- * the GZIP format.
+ * This class implements a {@link org.glassfish.grizzly.compression.Transformer}
+ * which encodes plain data to the GZIP format.
  *
  * @author Alexey Stashok
  */

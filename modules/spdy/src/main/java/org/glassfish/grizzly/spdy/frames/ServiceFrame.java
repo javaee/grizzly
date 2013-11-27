@@ -44,7 +44,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * Service frames represent virtual, not real SPDY frames,
- * used internally in {@link Filter}s communication.
+ * used internally in {@link org.glassfish.grizzly.filterchain.Filter}s communication.
  * 
  * @author Alexey Stashok
  */

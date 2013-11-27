@@ -467,7 +467,8 @@ public class Request {
     /**
      * The {@link RequestExecutorProvider} responsible for executing user's code
      * in {@link HttpHandler#service(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}
-     * and notifying {@link ReadHandler}, {@link WriteHandler} registered by the user
+     * and notifying {@link org.glassfish.grizzly.ReadHandler},
+     * {@link org.glassfish.grizzly.WriteHandler} registered by the user.
      */
      private RequestExecutorProvider requestExecutorProvider;
     
@@ -548,8 +549,8 @@ public class Request {
     }
 
     /**
-     * @return the {@link Executor} responsible for notifying {@link ReadHandler},
-     * {@link WriteHandler} associated with this <tt>Request</tt> processing.
+     * @return the {@link Executor} responsible for notifying {@link org.glassfish.grizzly.ReadHandler},
+     * {@link org.glassfish.grizzly.WriteHandler} associated with this <tt>Request</tt> processing.
      */    
     public Executor getRequestExecutor() {
         return requestExecutorProvider.getExecutor(this);
@@ -558,7 +559,8 @@ public class Request {
     /**
      * Sets @return the {@link RequestExecutorProvider} responsible for executing
      * user's code in {@link HttpHandler#service(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}
-     * and notifying {@link ReadHandler}, {@link WriteHandler} registered by the user.
+     * and notifying {@link org.glassfish.grizzly.ReadHandler},
+     * {@link org.glassfish.grizzly.WriteHandler} registered by the user.
      * 
      * @param requestExecutorProvider {@link RequestExecutorProvider}
      */
@@ -824,7 +826,7 @@ public class Request {
      * @return a String containing the name or path of the HttpHandler being
      * called, as specified in the request URL
      * @throws IllegalStateException if HttpHandler path was not set explicitly
-     *          and attempt to URI-decode {@link RequestURIRef#getDecodedURI()}
+     *          and attempt to URI-decode {@link org.glassfish.grizzly.http.util.RequestURIRef#getDecodedURI()}
      *          failed.
      */
     public String getHttpHandlerPath() {

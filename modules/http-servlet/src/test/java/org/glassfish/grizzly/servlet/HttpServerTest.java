@@ -285,7 +285,8 @@ public class HttpServerTest extends HttpServerAbstractTest {
     }
 
     /**
-     * Tests if {@link Filter} is getting destroyed on {@link HttpServer#stop}.
+     * Tests if {@link Filter} is getting destroyed on
+     * {@link org.glassfish.grizzly.http.server.HttpServer#shutdownNow()}.
      *
      * @throws IOException Couldn't start {@link HttpServer}.
      */

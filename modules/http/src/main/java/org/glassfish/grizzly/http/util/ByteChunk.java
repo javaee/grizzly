@@ -723,7 +723,7 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
     /**
      * Compares the message bytes to the specified byte array.
 
-     * @param b the <code>byte[]</code> to compare
+     * @param bytes the <code>byte[]</code> to compare
      *
      * @return true if the comparison succeeded, false otherwise
      *

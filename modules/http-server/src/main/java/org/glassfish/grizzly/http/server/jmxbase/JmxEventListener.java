@@ -41,8 +41,8 @@
 package org.glassfish.grizzly.http.server.jmxbase;
 
 /**
- * Notify implementations when JMX is enabled on a {@link HttpServer}
- * instance.
+ * Notify implementations when JMX is enabled on a
+ * {@link org.glassfish.grizzly.http.server.HttpServer} instance.
  *
  * @since 2.0
  */

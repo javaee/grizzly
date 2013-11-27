@@ -45,8 +45,8 @@ import org.glassfish.grizzly.threadpool.Threads;
 /**
  * An implementation of this interface will be  responsible for executing
  * user's code in {@link HttpHandler#service(org.glassfish.grizzly.http.server.Request, org.glassfish.grizzly.http.server.Response)}
- * and notifying {@link ReadHandler}, {@link WriteHandler} registered by the
- * user.
+ * and notifying {@link org.glassfish.grizzly.ReadHandler},
+ * {@link org.glassfish.grizzly.WriteHandler} registered by the user.
  *
  * @author Alexey Stashok
  */

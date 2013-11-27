@@ -82,8 +82,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
- * Units test that exercise the {@link Response#suspend() }, {@link Response#resume() }
- * and {@link Response#cancel() } API.
+ * Units test that exercise the {@link Response#suspend() } and {@link Response#resume().
  *
  * @author Jeanfrancois Arcand
  * @author gustav trede

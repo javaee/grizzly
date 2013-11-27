@@ -43,8 +43,9 @@ import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.DirectByteBufferRecord;
 
 /**
- * Input {@link Buffer} to read SSL packets to.
- * This {@link Buffer} has to be used by a Transport to read data.
+ * Input {@link org.glassfish.grizzly.Buffer} to read SSL packets to.
+ * This {@link org.glassfish.grizzly.Buffer} has to be used by a Transport
+ * to read data.
  * 
  * @author Alexey Stashok
  */

@@ -57,9 +57,9 @@ import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
  * or <code>message</code>. In <code>stream</code> mode,
  * <tt>TransportFilter</tt> produces/consumes the socket channel directly.
  *
- * In <code>message</code> mode, <tt>TransportFilter</tt> represents {@link Connection}
- * data as {@link Buffer}, using {@link FilterChainContext#getMessage()}},
- * {@link FilterChainContext#setMessage(Object)}.
+ * In <code>message</code> mode, <tt>TransportFilter</tt> represents
+ * {@link org.glassfish.grizzly.Connection} data as {@link org.glassfish.grizzly.Buffer},
+ * using {@link FilterChainContext#getMessage()}}, {@link FilterChainContext#setMessage(Object)}.
  * 
  * For specific {@link Transport}, one mode could be more preferable than another.
  * For example {@link TCPNIOTransport } works just in

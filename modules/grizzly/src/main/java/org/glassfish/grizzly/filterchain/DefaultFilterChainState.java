@@ -51,8 +51,9 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.filterchain.FilterReg.Key;
 
 /**
- * Default {@link FilterChainState} implementation, which holds a {@link Connection}
- * status associated with a {@link FilterChain}.
+ * Default {@link FilterChainState} implementation, which holds a
+ * {@link org.glassfish.grizzly.Connection} status associated with a
+ * {@link FilterChain}.
  */
 public class DefaultFilterChainState implements FilterChainState {
     // predefined holders to keep READ state of 2 filters before using the stateMap

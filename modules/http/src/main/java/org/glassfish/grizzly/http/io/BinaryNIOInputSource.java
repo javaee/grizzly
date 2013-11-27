@@ -43,7 +43,7 @@ import org.glassfish.grizzly.InputSource;
 import org.glassfish.grizzly.Buffer;
 
 /**
- * Adds the ability for binary based {@link NIOInputSource}s to obtain the
+ * Adds the ability for binary based {@link InputSource}s to obtain the
  * incoming {@link org.glassfish.grizzly.Buffer} directly without having to
  * use intermediate objects to copy the data to.
  *

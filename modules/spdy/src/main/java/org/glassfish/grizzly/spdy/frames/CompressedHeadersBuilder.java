@@ -165,7 +165,7 @@ public final class CompressedHeadersBuilder {
      * request header (e.g. "www.google.com:1234").
      * This header is the same as the HTTP 'Host' header.
      *
-     * @param host the hostport.
+     * @param host the host/port.
      */
     public final CompressedHeadersBuilder host(String host) {
         return header(":host", host);
@@ -174,7 +174,7 @@ public final class CompressedHeadersBuilder {
     /**
      * Set the scheme portion of the URL for this request header (e.g. "https").
      *
-     * @param path the path of this header.
+     * @param scheme the scheme of this request
      */
     public final CompressedHeadersBuilder scheme(String scheme) {
         return header(":scheme", scheme);
@@ -183,7 +183,7 @@ public final class CompressedHeadersBuilder {
     /**
      * Set the HTTP response status code (e.g. 200 or 404).
      *
-     * @param path the path of this header.
+     * @param status the status code of the response.
      */
     public final CompressedHeadersBuilder status(int status) {
         return status(String.valueOf(status));
@@ -192,7 +192,8 @@ public final class CompressedHeadersBuilder {
     /**
      * Set the HTTP response status code (e.g. "200" or "200 OK")
      *
-     * @param path the path of this header.
+     * @param status the status code of the response represented by
+     *               the specified {@link HttpStatus}.
      */
     public final CompressedHeadersBuilder status(HttpStatus status) {
         final StringBuilder sb = new StringBuilder();
@@ -206,7 +207,7 @@ public final class CompressedHeadersBuilder {
     /**
      * Set the HTTP response status code (e.g. "200" or "200 OK")
      *
-     * @param path the path of this header.
+     * @param status status code of the response.
      */
     public final CompressedHeadersBuilder status(final String status) {
         return header(":status", status);

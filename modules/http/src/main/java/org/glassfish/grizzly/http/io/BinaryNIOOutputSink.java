@@ -80,7 +80,7 @@ import java.io.IOException;/*
 
 
 /**
- * Adds the ability for binary based {@link NIOOutputSink}s to write a 
+ * Adds the ability for binary based {@link OutputSink}s to write a
  * {@link Buffer} instead of having to convert to those types supported by
  * {@link java.io.OutputStream}.
  *
