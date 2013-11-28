@@ -155,7 +155,7 @@ public class FileCacheFilter extends BaseFilter {
      */
     private void prepareResponse(final FileCacheEntry entry,
             final HttpResponsePacket response) throws IOException {
-        response.setContentType(entry.contentType);
+        response.setContentType(entry.contentType.prepare());
 
         if (entry.server != null) {
             response.addHeader(Header.Server, entry.server);

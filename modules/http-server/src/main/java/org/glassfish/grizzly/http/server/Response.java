@@ -104,6 +104,7 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 
 import static org.glassfish.grizzly.http.util.Constants.*;
+import org.glassfish.grizzly.http.util.ContentType;
 
 /**
  * Wrapper object for the Coyote response.
@@ -731,7 +732,7 @@ public class Response {
         }
         response.setCharacterEncoding(null);
         response.setStatus(null);
-        response.setContentType(null);
+        response.setContentType((String) null);
         response.setLocale(null);
         outputBuffer.reset();
         usingWriter = false;
@@ -854,7 +855,29 @@ public class Response {
 
     }
 
+    /**
+     * Set the content type for this Response.
+     *
+     * @param type The new content type
+     */
+    public void setContentType(final ContentType type) {
+        checkResponse();
+        if (isCommitted())
+            return;
 
+        if (type == null) {
+            response.setContentType((String) null);
+            return;
+        }
+        
+        if (!usingWriter) {
+            response.setContentType(type);
+        } else {
+            // Ignore charset if getWriter() has already been called
+            response.setContentType(type.getMimeType());
+        }
+    }
+    
     /**
      * Set the Locale that is appropriate for this response, including
      * setting the appropriate character encoding.
@@ -1248,7 +1271,7 @@ public class Response {
         response.setContentLengthLong(-1L);
         response.setChunked(false);
         response.setCharacterEncoding(null);
-        response.setContentType(null);
+        response.setContentType((String) null);
         response.setLocale(null);
         outputBuffer.reset();
         usingWriter = false;

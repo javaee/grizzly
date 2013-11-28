@@ -69,7 +69,7 @@ import org.glassfish.grizzly.utils.ChunkingFilter;
 import junit.framework.TestCase;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -566,30 +566,30 @@ public class HttpSemanticsTest extends TestCase {
         result.addHeader("!Transfer-Encoding", "chunked");
         result.addHeader("Content-Length", "0");
         result.setStatusMessage("ok");
-        Field field = HttpServerFilter.class.getDeclaredField("defaultResponseContentType");
-        field.setAccessible(true);
+        Method method = HttpServerFilter.class.getDeclaredMethod("setDefaultResponseContentType", String.class);
+        method.setAccessible(true);
         result.addHeader("!Content-Type", "text/html;charset=Big5");
-        field.set(httpServerFilter, null);
+        method.invoke(httpServerFilter, new Object[] {null});
         doTest(createHttpRequest(), result, serverResponseFilter);
         
         result.addHeader("Content-Type", "text/html;charset=Big5");
-        field.set(httpServerFilter, "text/html");
+        method.invoke(httpServerFilter, "text/html");
         doTest(createHttpRequest(), result, serverResponseFilter);
 
         result.addHeader("Content-Type", "text/html;charset=Big5");
-        field.set(httpServerFilter, "text/html; charset=iso-8859-1");
+        method.invoke(httpServerFilter, "text/html; charset=iso-8859-1");
         doTest(createHttpRequest(), result, serverResponseFilter);
         
         result.addHeader("Content-Type", "text/html;a=b;c=d;charset=Big5");
-        field.set(httpServerFilter, "text/html; charset=iso-8859-1;a=b;c=d");
+        method.invoke(httpServerFilter, "text/html; charset=iso-8859-1;a=b;c=d");
         doTest(createHttpRequest(), result, serverResponseFilter);
         
         result.addHeader("Content-Type", "text/html;a=b;c=d;charset=Big5");
-        field.set(httpServerFilter, "text/html;a=b;charset=iso-8859-1;c=d");
+        method.invoke(httpServerFilter, "text/html;a=b;charset=iso-8859-1;c=d");
         doTest(createHttpRequest(), result, serverResponseFilter);
         
         result.addHeader("Content-Type", "text/html;a=b;c=d;charset=Big5");
-        field.set(httpServerFilter, "text/html;a=b;c=d;charset=iso-8859-1");
+        method.invoke(httpServerFilter, "text/html;a=b;c=d;charset=iso-8859-1");
         doTest(createHttpRequest(), result, serverResponseFilter);
     }
         

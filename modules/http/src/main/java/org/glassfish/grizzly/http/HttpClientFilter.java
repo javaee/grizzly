@@ -531,10 +531,9 @@ public class HttpClientFilter extends HttpCodecFilter {
         }
         
         /**
-         * Char encoding parsed flag.
+         * content type parsed flag.
          */
-        private boolean charEncodingParsed = false;
-        private boolean contentTypeParsed;
+       private boolean contentTypeParsed;
         
         private boolean isHeaderParsed;
         private final HttpCodecFilter.HeaderParsingState headerParsingState;
@@ -556,31 +555,32 @@ public class HttpClientFilter extends HttpCodecFilter {
 
         @Override
         public String getCharacterEncoding() {
-            if (characterEncoding != null || charEncodingParsed) {
-                return characterEncoding;
+            if (!contentTypeParsed) {
+                parseContentTypeHeader();
             }
 
-            getContentType(); // charEncoding is set as a side-effect of this call
-            charEncodingParsed = true;
-
-            return characterEncoding;
+            return super.getCharacterEncoding();
         }
 
         @Override
         public String getContentType() {
             if (!contentTypeParsed) {
-                contentTypeParsed = true;
-
-                if (contentType == null) {
-                    final DataChunk dc = headers.getValue(Header.ContentType);
-
-                    if (dc != null && !dc.isNull()) {
-                        setContentType(dc.toString());
-                    }
-                }
+                parseContentTypeHeader();
             }
             
             return super.getContentType();
+        }
+
+        private void parseContentTypeHeader() {
+            contentTypeParsed = true;
+            
+            if (!contentType.isSet()) {
+                final DataChunk dc = headers.getValue(Header.ContentType);
+                
+                if (dc != null && !dc.isNull()) {
+                    setContentType(dc.toString());
+                }
+            }
         }
         
         @Override
@@ -613,7 +613,6 @@ public class HttpClientFilter extends HttpCodecFilter {
          */
         @Override
         protected void reset() {
-            charEncodingParsed = false;
             contentTypeParsed = false;
             isHeaderParsed = false;
             headerParsingState.recycle();
