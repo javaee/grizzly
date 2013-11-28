@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http;
 
+import org.glassfish.grizzly.http.util.ContentType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +51,7 @@ import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.http.util.Constants;
+import org.glassfish.grizzly.http.util.ContentType.SettableContentType;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpUtils;
@@ -83,16 +85,7 @@ public abstract class HttpHeader extends HttpPacket
     
     protected long contentLength = -1;
 
-    protected String characterEncoding;
-    protected String quotedCharsetValue;
-    /**
-     * Has the charset been explicitly set.
-     */
-    protected boolean charsetSet = false;
-
-//    private String defaultContentType;
-
-    protected String contentType;
+    protected final SettableContentType contentType = ContentType.newSettableContentType();
 
     protected boolean isExpectContent = true;
 
@@ -464,7 +457,7 @@ public abstract class HttpHeader extends HttpPacket
      * @return the character encoding of this HTTP message.
      */
     public String getCharacterEncoding() {
-        return characterEncoding;
+        return contentType.getCharacterEncoding();
     }
 
     /**
@@ -476,18 +469,8 @@ public abstract class HttpHeader extends HttpPacket
 
         if (isCommitted())
             return;
-        if (charset == null) {
-            characterEncoding = null;
-            quotedCharsetValue = null;
-            charsetSet = false;
-            return;
-        }
-
-        characterEncoding = charset;
-        // START SJSAS 6316254
-        quotedCharsetValue = charset;
-        // END SJSAS 6316254
-        charsetSet = true;
+        
+        contentType.setCharacterEncoding(charset);
     }
 
     /**
@@ -512,54 +495,11 @@ public abstract class HttpHeader extends HttpPacket
     }
 
     /**
-     * Serializes Content-Type header into passed Buffer
-     */
-//    protected final Buffer serializeContentType(final MemoryManager memoryManager,
-//            Buffer buffer) {
-//
-//        final int idx = headers.indexOf(Header.ContentType, 0);
-//        final DataChunk value;
-//        if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
-//            if (contentType == null) {
-//                contentType = value.toString();
-//            }
-//            
-//            headers.getAndSetSerialized(idx, true);
-//        }
-//
-//        if (contentType != null) {
-//            buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
-//            buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
-//            buffer = put(memoryManager, buffer, contentType);
-//
-//            if (quotedCharsetValue != null && charsetSet) {
-//                buffer = put(memoryManager, buffer, ";charset=");
-//                buffer = put(memoryManager, buffer, quotedCharsetValue);
-//            }
-//            
-//            buffer = put(memoryManager, buffer, HttpCodecFilter.CRLF_BYTES);
-//        } else {
-//            final String defaultType = getDefaultContentType();
-//            if (defaultType != null) {
-//                buffer = put(memoryManager, buffer, Header.ContentType.getBytes());
-//                buffer = put(memoryManager, buffer, HttpCodecFilter.COLON_BYTES);
-//                buffer = put(memoryManager, buffer, defaultType);
-//                buffer = put(memoryManager, buffer, HttpCodecFilter.CRLF_BYTES);
-//            }
-//        }
-//        
-//        return buffer;
-//    }
-
-    /**
      * @return <code>true</code> if a content type has been set.
      */
     public boolean isContentTypeSet() {
-
-        return (contentType != null
-                    || characterEncoding != null
-                    || headers.getValue(Header.ContentType) != null);
-
+        return contentType.isSet() ||
+                headers.getValue(Header.ContentType) != null;
     }
 
 
@@ -567,17 +507,7 @@ public abstract class HttpHeader extends HttpPacket
      * @return the content type of this HTTP message.
      */
     public String getContentType() {
-        String ret = contentType;
-
-        if (ret != null
-                && quotedCharsetValue != null
-                && charsetSet) {
-            final StringBuilder sb =
-                    new StringBuilder(ret.length() + quotedCharsetValue.length() + 9);
-            ret = sb.append(ret).append(";charset=").append(quotedCharsetValue).toString();
-        }
-
-        return ret;
+        return contentType.get();
     }
 
     /**
@@ -587,72 +517,33 @@ public abstract class HttpHeader extends HttpPacket
      * been set via a call to request/response.setContentType(),
      * request/response.setLocale(), or request/response.setCharacterEncoding().
      *
-     * @param type the content type
+     * @param contentType the content type
      */
-    public void setContentType(final String type) {
-
-        if (type == null) {
-            contentType = null;
-            return;
-        }
-
-        /*
-         * Remove the charset param (if any) from the Content-Type, and use it
-         * to set the response encoding.
-         * The most recent response encoding setting will be appended to the
-         * response's Content-Type (as its charset param) by getContentType();
-         */
-        boolean hasCharset = false;
-        int semicolonIndex = -1;
-        int index = type.indexOf(';');
-        while (index != -1) {
-            int len = type.length();
-            semicolonIndex = index;
-            index++;
-            while (index < len && type.charAt(index) == ' ') {
-                index++;
-            }
-            if (index+8 < len
-                    && type.charAt(index) == 'c'
-                    && type.charAt(index+1) == 'h'
-                    && type.charAt(index+2) == 'a'
-                    && type.charAt(index+3) == 'r'
-                    && type.charAt(index+4) == 's'
-                    && type.charAt(index+5) == 'e'
-                    && type.charAt(index+6) == 't'
-                    && type.charAt(index+7) == '=') {
-                hasCharset = true;
-                break;
-            }
-            index = type.indexOf(';', index);
-        }
-
-        if (!hasCharset) {
-            contentType = type;
-            return;
-        }
-
-        contentType = type.substring(0, semicolonIndex);
-        String tail = type.substring(index+8);
-        int nextParam = tail.indexOf(';');
-        String charsetValue;
-        if (nextParam != -1) {
-            contentType += tail.substring(nextParam);
-            charsetValue = tail.substring(0, nextParam);
-        } else {
-            charsetValue = tail;
-        }
-
-        // The charset value may be quoted, but must not contain any quotes.
-        if (charsetValue != null && charsetValue.length() > 0) {
-            charsetSet=true;
-            // START SJSAS 6316254
-            quotedCharsetValue = charsetValue;
-            // END SJSAS 6316254
-            characterEncoding = charsetValue.replace('"', ' ').trim();
-        }
+    public void setContentType(final String contentType) {
+        this.contentType.set(contentType);
     }
     
+    /**
+     * Sets the content type.
+     *
+     * This method must preserve any charset that may already have
+     * been set via a call to request/response.setContentType(),
+     * request/response.setLocale(), or request/response.setCharacterEncoding().
+     * 
+     * This method copies the passed contentType state into this <tt>ContentType</tt>.
+     *
+     * @param contentType the content type
+     */
+    public void setContentType(final ContentType contentType) {
+        this.contentType.set(contentType);
+    }
+    
+    /**
+     * @return {@link ContentType} holder
+     */
+    protected ContentType getContentTypeHolder() {
+        return contentType;
+    }
 
     // -------------------- Headers --------------------
 
@@ -875,11 +766,7 @@ public abstract class HttpHeader extends HttpPacket
         isCommitted = false;
         isChunked = false;
         contentLength = -1;
-        characterEncoding = null;
-//        defaultContentType = null;
-        quotedCharsetValue = null;
-        charsetSet = false;
-        contentType = null;
+        contentType.reset();
         chunkingAllowed = false;
         transferEncoding = null;
         isExpectContent = true;
@@ -1034,14 +921,6 @@ public abstract class HttpHeader extends HttpPacket
         }
     }
     
-//    protected String getDefaultContentType() {
-//        return defaultContentType;
-//    }
-//
-//    protected void setDefaultContentType(String defaultContentType) {
-//        this.defaultContentType = defaultContentType;
-//    }
-
     /**
      * <tt>HttpHeader</tt> message builder.
      */

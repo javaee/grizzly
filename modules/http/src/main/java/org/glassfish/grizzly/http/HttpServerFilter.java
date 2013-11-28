@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http;
 
+import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.Buffer;
@@ -59,7 +60,6 @@ import org.glassfish.grizzly.utils.DelayedExecutor;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http.util.HttpUtils;
 
 import static org.glassfish.grizzly.http.Method.PayloadExpectation;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
@@ -121,8 +121,11 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     private final KeepAlive keepAlive;
 
-    private final boolean processKeepAlive;
     private String defaultResponseContentType;
+    private byte[] defaultResponseContentTypeBytes;
+    private byte[] defaultResponseContentTypeBytesNoCharset;
+    
+    private final boolean processKeepAlive;
     private int maxRequestHeaders;
     private int maxResponseHeaders;
     
@@ -237,7 +240,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         this.processKeepAlive = keepAlive != null;
 
         if (defaultResponseContentType != null && !defaultResponseContentType.isEmpty()) {
-            this.defaultResponseContentType = defaultResponseContentType;
+            setDefaultResponseContentType(defaultResponseContentType);
         }
         this.maxRequestHeaders = maxRequestHeaders;
         this.maxResponseHeaders = maxResponseHeaders;
@@ -250,8 +253,16 @@ public class HttpServerFilter extends HttpCodecFilter {
         return defaultResponseContentType;
     }
 
-    public void setDefaultResponseContentType(String defaultResponseContentType) {
-        this.defaultResponseContentType = defaultResponseContentType;
+    public final void setDefaultResponseContentType(final String contentType) {
+        this.defaultResponseContentType = contentType;
+        if (contentType != null) {
+            defaultResponseContentTypeBytes = ContentType.toByteArray(contentType);
+            defaultResponseContentTypeBytesNoCharset =
+                    ContentType.removeCharset(defaultResponseContentTypeBytes);
+        } else {
+            defaultResponseContentTypeBytes =
+                    defaultResponseContentTypeBytesNoCharset = null;
+        }
     }
     
     // ----------------------------------------------------------- Parsing
@@ -914,18 +925,24 @@ public class HttpServerFilter extends HttpCodecFilter {
                 headers.setValue(Header.ContentLanguage).setString(contentLanguage);
             }
             
-            String contentType = response.getContentType();
-            if (contentType != null) {
-                final DataChunk contenTypeValue = headers.setValue(Header.ContentType);
-                if (contenTypeValue.isNull()) {
-                    contenTypeValue.setString(contentType);
+            // Optimize content-type serialization depending on its state
+            final ContentType contentType = response.getContentTypeHolder();
+            if (contentType.isMimeTypeSet()) {
+                final DataChunk contentTypeValue = headers.setValue(Header.ContentType);
+                if (contentTypeValue.isNull()) {
+                    contentType.serializeToDataChunk(contentTypeValue);
                 }
             } else if (defaultResponseContentType != null) {
                 final DataChunk contenTypeValue = headers.setValue(Header.ContentType);
                 if (contenTypeValue.isNull()) {
-                    contenTypeValue.setString(HttpUtils.composeContentType(
-                            defaultResponseContentType,
-                            response.getCharacterEncoding()));
+                    final String ce = response.getCharacterEncoding();
+                    if (ce == null) {
+                        contenTypeValue.setBytes(defaultResponseContentTypeBytes);
+                    } else {
+                        final byte[] array = ContentType.compose(
+                                defaultResponseContentTypeBytesNoCharset, ce);
+                        contenTypeValue.setBytes(array);
+                    }
                 }
             }
         }
@@ -1241,7 +1258,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         /**
          * Char encoding parsed flag.
          */
-        private boolean charEncodingParsed = false;
         private boolean contentTypeParsed;
         
         private boolean isHeaderParsed;
@@ -1274,33 +1290,34 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         @Override
         public String getCharacterEncoding() {
-            if (characterEncoding != null || charEncodingParsed) {
-                return characterEncoding;
+            if (!contentTypeParsed) {
+                parseContentTypeHeader();
             }
 
-            getContentType(); // charEncoding is set as a side-effect of this call
-            charEncodingParsed = true;
-
-            return characterEncoding;
+            return super.getCharacterEncoding();
         }
 
         @Override
         public String getContentType() {
             if (!contentTypeParsed) {
-                contentTypeParsed = true;
-
-                if (contentType == null) {
-                    final DataChunk dc = headers.getValue(Header.ContentType);
-
-                    if (dc != null && !dc.isNull()) {
-                        setContentType(dc.toString());
-                    }
-                }
+                parseContentTypeHeader();
             }
             
             return super.getContentType();
         }
 
+        private void parseContentTypeHeader() {
+            contentTypeParsed = true;
+            
+            if (!contentType.isSet()) {
+                final DataChunk dc = headers.getValue(Header.ContentType);
+                
+                if (dc != null && !dc.isNull()) {
+                    setContentType(dc.toString());
+                }
+            }
+        }
+        
         @Override
         public ProcessingState getProcessingState() {
             return processingState;
@@ -1335,7 +1352,6 @@ public class HttpServerFilter extends HttpCodecFilter {
          */
         @Override
         protected void reset() {
-            charEncodingParsed = false;
             contentTypeParsed = false;
             isHeaderParsed = false;
             headerParsingState.recycle();

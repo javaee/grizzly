@@ -464,6 +464,18 @@ public class HttpCodecUtils {
         return (b == Constants.SP || b == Constants.HT);
     }
     
+    /**
+     * Returns <tt>true</tt> if the passed symbol code represents a non-printable
+     * US-ASCII symbol in range [Integer.MIN_VALUE; 9) U (9; 31] U [127; Integer.MAX_VALUE].
+     * 
+     * @param ub the symbol code to check
+     * @return <tt>true</tt> if the passed symbol code represents a non-printable
+     *         US-ASCII symbol in range [Integer.MIN_VALUE; 9) U (9; 31] U [127; Integer.MAX_VALUE]
+     */
+    public static boolean isNonPrintableUsAscii(final int ub) {
+        return ((ub <= 31 && ub != 9) || ub >= 127);
+    }
+    
     private static void fastAsciiEncode(final String s,
                                         byte[] tempBuffer,
                                         final Buffer dstBuffer) {
@@ -481,10 +493,6 @@ public class HttpCodecUtils {
             }
             dstBuffer.put(tempBuffer, 0, len);
         }
-    }
-
-    private static boolean isNonPrintableUsAscii(int ub) {
-        return ((ub <= 31 && ub != 9) || ub >= 127);
     }
 
     private static int checkCRLF(HttpCodecFilter.HeaderParsingState parsingState, byte b1, byte b2) {

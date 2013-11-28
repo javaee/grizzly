@@ -69,6 +69,7 @@ import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
 import org.glassfish.grizzly.http.CompressionConfig;
 import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
@@ -266,7 +267,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         entry.requestURI = requestURI;
 
         entry.lastModified = lastModified;
-        entry.contentType = contentType;
+        entry.contentType = ContentType.newContentType(contentType);
         entry.xPoweredBy = headers.getHeader(Header.XPoweredBy);
         entry.date = headers.getHeader(Header.Date);
         entry.lastModifiedHeader = headers.getHeader(Header.LastModified);

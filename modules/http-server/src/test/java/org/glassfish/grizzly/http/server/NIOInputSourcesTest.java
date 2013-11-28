@@ -81,6 +81,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
@@ -1012,7 +1013,7 @@ public class NIOInputSourcesTest extends TestCase {
 
         private final FutureImpl<String> testResult;
         private final int readSize;
-        private final String encoding;
+        private final ContentType contentType;
 
         private final StringBuffer echoedString = new StringBuffer();
 
@@ -1026,7 +1027,9 @@ public class NIOInputSourcesTest extends TestCase {
 
             this.testResult = testResult;
             this.readSize = readSize;
-            this.encoding = encoding;
+            this.contentType = encoding != null
+                    ? ContentType.newContentType("text/plain;charset=" + encoding)
+                    : null;
 
         }
 
@@ -1039,9 +1042,7 @@ public class NIOInputSourcesTest extends TestCase {
                 throws Exception {
 
             try {
-                if (encoding != null) {
-                    res.setContentType("text/plain;charset=" + encoding);
-                }
+                res.setContentType(contentType);
                 final NIOReader reader = req.getNIOReader();
                 int available = reader.readyData();
                 if (available > 0) {

@@ -49,6 +49,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.CompressionConfig;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.util.ContentType;
 
 /**
  * The entry value in the file cache map.
@@ -63,7 +64,7 @@ public final class FileCacheEntry implements Runnable {
     public String host;
     public String requestURI;
     public long lastModified = -1;
-    public String contentType;
+    public ContentType contentType;
     ByteBuffer bb;
     // The reference to the plain file to be served
     File plainFile;

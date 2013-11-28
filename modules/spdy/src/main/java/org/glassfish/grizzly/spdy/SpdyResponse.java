@@ -69,7 +69,6 @@ class SpdyResponse extends HttpResponsePacket implements SpdyHeader {
     /**
      * Char encoding parsed flag.
      */
-    private boolean charEncodingParsed;
     private boolean contentTypeParsed;
 
     @Override
@@ -84,31 +83,32 @@ class SpdyResponse extends HttpResponsePacket implements SpdyHeader {
     
     @Override
     public String getCharacterEncoding() {
-        if (characterEncoding != null || charEncodingParsed) {
-            return characterEncoding;
+        if (!contentTypeParsed) {
+            parseContentTypeHeader();
         }
 
-        getContentType(); // charEncoding is set as a side-effect of this call
-        charEncodingParsed = true;
-
-        return characterEncoding;
+        return super.getCharacterEncoding();
     }
 
     @Override
     public String getContentType() {
         if (!contentTypeParsed) {
-            contentTypeParsed = true;
-
-            if (contentType == null) {
-                final DataChunk dc = headers.getValue(Header.ContentType);
-
-                if (dc != null && !dc.isNull()) {
-                    setContentType(dc.toString());
-                }
-            }
+            parseContentTypeHeader();
         }
 
         return super.getContentType();
+    }
+
+    private void parseContentTypeHeader() {
+        contentTypeParsed = true;
+
+        if (!contentType.isSet()) {
+            final DataChunk dc = headers.getValue(Header.ContentType);
+
+            if (dc != null && !dc.isNull()) {
+                setContentType(dc.toString());
+            }
+        }
     }
     
     @Override
@@ -118,7 +118,6 @@ class SpdyResponse extends HttpResponsePacket implements SpdyHeader {
     
     @Override
     protected void reset() {
-        charEncodingParsed = false;
         contentTypeParsed = false;
         
         processingState.recycle();

@@ -1059,10 +1059,12 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
 
     public static int  indexOf( byte bytes[], int off, int end, char qq ) {
         // Works only for UTF
-        while( off < end ) {
-            byte b=bytes[off];
-            if( b==qq )
-            return off;
+        while (off < end) {
+            byte b = bytes[off];
+            if (b == qq) {
+                return off;
+            }
+            
             off++;
         }
         return -1;
