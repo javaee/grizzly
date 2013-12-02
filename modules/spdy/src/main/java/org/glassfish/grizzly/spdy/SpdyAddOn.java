@@ -42,7 +42,6 @@ package org.glassfish.grizzly.spdy;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.TransportProbe;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
@@ -57,7 +56,6 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 import static org.glassfish.grizzly.spdy.Constants.*;
 
@@ -84,22 +82,32 @@ public class SpdyAddOn implements AddOn {
     private int maxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
     private int initialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     private int maxFrameLength = DEFAULT_MAX_FRAME_SIZE;
+
+    private SpdyFramingFilter spdyFramingFilter;
+    private SpdyHandlerFilter spdyHandlerFilter;
     
+    @SuppressWarnings("UnusedDeclaration")
     public SpdyAddOn() {
         this(SpdyMode.NPN);
     }
 
     public SpdyAddOn(final SpdyMode mode) {
         this.mode = mode;
-    }    
-    
+    }
+
     // ------------------------------------------------------ Methods From AddOn
 
 
     @Override
     public void setup(NetworkListener networkListener, FilterChain chain) {
-        final TCPNIOTransport transport = networkListener.getTransport();
-        
+
+        spdyFramingFilter = new SpdyFramingFilter();
+        spdyFramingFilter.setMaxFrameLength(getMaxFrameLength());
+
+        spdyHandlerFilter = new SpdyHandlerFilter(mode);
+        spdyHandlerFilter.setInitialWindowSize(getInitialWindowSize());
+        spdyHandlerFilter.setMaxConcurrentStreams(getMaxConcurrentStreams());
+
         if (mode == SpdyMode.NPN) {
             if (!networkListener.isSecure()) {
                 LOGGER.warning("Can not configure NPN (Next Protocol Negotiation) mode on non-secured NetworkListener. SPDY support will not be enabled.");
@@ -111,12 +119,12 @@ public class SpdyAddOn implements AddOn {
                 return;
             }
             
-            configureNpn(chain);
-
-            transport.getMonitoringConfig().addProbes(getConfigProbe());
+            configureNpn(networkListener.getTransport(), chain);
         } else {
-            updateFilterChain(mode, chain);
+            updateFilterChain(chain);
         }
+
+
     }
 
     // ------------------------------------------------------ Getters / Setters
@@ -168,79 +176,49 @@ public class SpdyAddOn implements AddOn {
     
     // ------------------------------------------------------- Protected Methods
 
-    protected TransportProbe getConfigProbe() {
-        return new SpdyNpnConfigProbe();
-    }
 
-    protected void configureNpn(FilterChain chain) {
+    protected void configureNpn(final Transport transport,
+                                final FilterChain chain) {
         final SSLBaseFilter sslFilter = chain.getByType(SSLBaseFilter.class);
         
         NextProtoNegSupport.getInstance().configure(sslFilter);
+        NextProtoNegSupport.getInstance().setServerSideNegotiator(
+                        transport,
+                        new ProtocolNegotiator());
     }
 
 
     // ----------------------------------------------------- Private Methods
 
 
-    protected void updateFilterChain(final SpdyMode mode, final FilterChain chain) {
+    protected void updateFilterChain(final FilterChain chain) {
         final String addAfterFilterName = removeHttpServerCodecFilter(chain);
-        insertSpdyFilters(mode, chain, addAfterFilterName);
+        insertSpdyFilters(chain, addAfterFilterName);
     }
     
     private static String removeHttpServerCodecFilter(FilterChain chain) {
-        final FilterReg reg = chain.getRegByType(org.glassfish.grizzly.http.HttpServerFilter.class);
+        final FilterReg reg = chain.getRegByType(
+                org.glassfish.grizzly.http.HttpServerFilter.class);
         chain.remove(reg.name());
 
         return reg.prev().name();
     }
 
-    private void insertSpdyFilters(final SpdyMode mode,
-            final FilterChain chain, final String addAfterFilterName) {
-        
-        final SpdyFramingFilter spdyFramingFilter = new SpdyFramingFilter();
-        spdyFramingFilter.setMaxFrameLength(getMaxFrameLength());
-        
-        final SpdyHandlerFilter spdyHandlerFilter = new SpdyHandlerFilter(mode);
-        spdyHandlerFilter.setInitialWindowSize(getInitialWindowSize());
-        spdyHandlerFilter.setMaxConcurrentStreams(getMaxConcurrentStreams());
+    private void insertSpdyFilters(final FilterChain chain, final String addAfterFilterName) {
         
         chain.addAfter(addAfterFilterName, spdyFramingFilter, spdyHandlerFilter);
     }
 
     // ---------------------------------------------------------- Nested Classes
 
-    private final class SpdyNpnConfigProbe extends TransportProbe.Adapter {
 
-
-        // ----------------------------------------- Methods from TransportProbe
-
-
-        @Override
-        public void onBeforeStartEvent(final Transport transport) {
-            final FilterChain newFilterChain = transport.getFilterChain().copy();
-            updateFilterChain(SpdyMode.NPN, newFilterChain);
-            NextProtoNegSupport.getInstance().setServerSideNegotiator(transport,
-                    new ProtocolNegotiator(newFilterChain));
-        }
-
-    } // END SpdyTransportProbe
-
-
-    protected static final class ProtocolNegotiator implements ServerSideNegotiator {
+    protected final class ProtocolNegotiator implements ServerSideNegotiator {
 
         private static final String HTTP11 = "http/1.1";
         private static final String SPDY3 = "spdy/3";
 
         private final LinkedHashSet<String> supportedProtocols =
                 new LinkedHashSet<String>(Arrays.asList(SPDY3, HTTP11));
-        private final FilterChain spdyFilterChain;
-
-        // ---------------------------------------------------- Constructors
-
-
-        public ProtocolNegotiator(final FilterChain filterChain) {
-            spdyFilterChain = filterChain;
-        }
 
 
         // ------------------------------- Methods from ServerSideNegotiator
@@ -267,9 +245,18 @@ public class SpdyAddOn implements AddOn {
             // If SPDY is supported, set the spdyFilterChain on the connection.
             // If HTTP/1.1 is negotiated, then use the transport FilterChain.
             if (SPDY3.equals(protocol)) {
+                FilterChain fc = connection.getFilterChain();
+                if (fc == null) {
+                    fc = connection.getTransport().getFilterChain();
+                }
+                assert (fc != null);
+
                 SSLConnectionContext sslCtx =
                         SSLUtils.getSslConnectionContext(connection);
-                sslCtx.setNewConnectionFilterChain(spdyFilterChain);
+                final SpdyAddOn spdyAddOn = SpdyAddOn.this;
+                final FilterChain copy = fc.copy();
+                spdyAddOn.updateFilterChain(copy);
+                sslCtx.setNewConnectionFilterChain(copy);
             }
         }
 
