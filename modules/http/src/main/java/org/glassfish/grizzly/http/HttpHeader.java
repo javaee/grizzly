@@ -54,6 +54,7 @@ import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.ContentType.SettableContentType;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.http.util.HttpUtils;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.utils.Charsets;
@@ -560,7 +561,7 @@ public abstract class HttpHeader extends HttpPacket
      * {@inheritDoc}
      */
     @Override
-    public String getHeader(String name) {
+    public String getHeader(final String name) {
         if (name == null) {
             return null;
         }
@@ -585,7 +586,7 @@ public abstract class HttpHeader extends HttpPacket
      * {@inheritDoc}
      */
     @Override
-    public void setHeader(String name, String value) {
+    public void setHeader(final String name, final String value) {
         if (name == null || value == null) {
             return;
         }
@@ -598,12 +599,24 @@ public abstract class HttpHeader extends HttpPacket
      * {@inheritDoc}
      */
     @Override
-    public void setHeader(Header header, String value) {
+    public void setHeader(final String name, final HeaderValue value) {
+        if (name == null || value == null || !value.isSet()) {
+            return;
+        }
+        if (handleSetSpecialHeaders(name, value)) return;
+
+        value.serializeToDataChunk(headers.setValue(name));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setHeader(final Header header, final String value) {
         if (header == null || value == null) {
             return;
         }
-        final String name = header.toString();
-        if (handleSetSpecialHeaders(name, value)) {
+        if (handleSetSpecialHeaders(header, value)) {
             return;
         }
 
@@ -614,7 +627,22 @@ public abstract class HttpHeader extends HttpPacket
      * {@inheritDoc}
      */
     @Override
-    public void addHeader(String name, String value) {
+    public void setHeader(final Header header, final HeaderValue value) {
+        if (header == null || value == null || !value.isSet()) {
+            return;
+        }
+        if (handleSetSpecialHeaders(header, value)) {
+            return;
+        }
+
+        value.serializeToDataChunk(headers.setValue(header));
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addHeader(final String name, final String value) {
         if (name == null || value == null) {
             return;
         }
@@ -629,7 +657,22 @@ public abstract class HttpHeader extends HttpPacket
      * {@inheritDoc}
      */
     @Override
-    public void addHeader(Header header, String value) {
+    public void addHeader(final String name, final HeaderValue value) {
+        if (name == null || value == null || !value.isSet()) {
+            return;
+        }
+        if (handleSetSpecialHeaders(name, value)) {
+            return;
+        }
+        
+        value.serializeToDataChunk(headers.setValue(name));
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addHeader(final Header header, final String value) {
         if (header == null || value == null) {
             return;
         }
@@ -644,7 +687,22 @@ public abstract class HttpHeader extends HttpPacket
      * {@inheritDoc}
      */
     @Override
-    public boolean containsHeader(String name) {
+    public void addHeader(final Header header, final HeaderValue value) {
+        if (header == null || value == null || !value.isSet()) {
+            return;
+        }
+        if (handleSetSpecialHeaders(header, value)) {
+            return;
+        }
+
+        value.serializeToDataChunk(headers.setValue(header));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean containsHeader(final String name) {
         if (name == null) {
             return false;
         }
@@ -797,10 +855,18 @@ public abstract class HttpHeader extends HttpPacket
         return isSpecialHeader(name) && setValueBasedOnHeader(name, value);
     }
 
+    protected final boolean handleSetSpecialHeaders(final String name, final HeaderValue value) {
+        return isSpecialHeader(name) && setValueBasedOnHeader(name, value.get());
+    }
+    
     protected final boolean handleSetSpecialHeaders(final Header header, final String value) {
         return isSpecialHeader(header.toString()) && setValueBasedOnHeader(header, value);
     }
 
+    protected final boolean handleSetSpecialHeaders(final Header header, final HeaderValue value) {
+        return isSpecialHeader(header.toString()) && setValueBasedOnHeader(header, value.get());
+    }
+    
     protected static boolean isSpecialHeader(final String name) {
         final char c = name.charAt(0);
         return (c == 'C' || c == 'c' || c == 'U' || c == 'u');

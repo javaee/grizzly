@@ -60,6 +60,7 @@ import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.io.NIOReader;
 import org.glassfish.grizzly.http.io.NIOWriter;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -202,6 +203,8 @@ public class NonBlockingHttpHandlerSample {
         // ------------------------------------------------------ Nested Classes
 
         private static final class ClientFilter extends BaseFilter {
+            private static final HeaderValue HOST_HEADER_VALUE =
+                    HeaderValue.newHeaderValue(HOST + ':' + PORT).prepare();
 
             private static final String[] CONTENT = {
                 "contentA-",
@@ -295,7 +298,7 @@ public class NonBlockingHttpHandlerSample {
                 builder.uri("/echo");
                 builder.chunked(true);
                 HttpRequestPacket packet = builder.build();
-                packet.addHeader(Header.Host, HOST + ':' + PORT);
+                packet.addHeader(Header.Host, HOST_HEADER_VALUE);
                 return packet;
 
             }

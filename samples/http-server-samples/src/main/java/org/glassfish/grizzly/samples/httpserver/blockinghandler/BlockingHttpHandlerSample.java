@@ -56,6 +56,7 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -196,6 +197,8 @@ public class BlockingHttpHandlerSample {
         // ------------------------------------------------------ Nested Classes
 
         private static final class ClientFilter extends BaseFilter {
+            private static final HeaderValue HOST_HEADER_VALUE =
+                    HeaderValue.newHeaderValue(HOST + ':' + PORT).prepare();
 
             private static final String[] CONTENT = {
                 "contentA-",
@@ -226,7 +229,7 @@ public class BlockingHttpHandlerSample {
 
                 HttpRequestPacket.Builder builder = createRequest();
                 HttpRequestPacket request = builder.build();
-                request.addHeader(Header.Host, HOST + ':' + PORT);
+                request.addHeader(Header.Host, HOST_HEADER_VALUE);
                 System.out.println("Writing request:\n");
                 System.out.println(request.toString());
                 ctx.write(request); // write the request

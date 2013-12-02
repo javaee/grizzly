@@ -74,6 +74,7 @@ import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.DelayFilter;
 import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.http.util.HeaderValue;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -1362,6 +1363,8 @@ public class HttpInputStreamsTest extends TestCase {
         private final BlockingQueue<Future<Boolean>> testResultQueue;
         private final ReadStrategy strategy;
 
+        private static final HeaderValue OK_HEADER_VALUE = HeaderValue.newHeaderValue("OK").prepare();
+        private static final HeaderValue FAILED_HEADER_VALUE = HeaderValue.newHeaderValue("Failed").prepare();
 
         // -------------------------------------------------------- Constructors
 
@@ -1384,7 +1387,7 @@ public class HttpInputStreamsTest extends TestCase {
             res.setContentLength(0);
             try {
                 if (strategy.doRead(req)) {
-                    res.addHeader("Status", "OK");
+                    res.addHeader("Status", OK_HEADER_VALUE);
                     return;
                 }
             } catch (Throwable e) {
@@ -1394,7 +1397,7 @@ public class HttpInputStreamsTest extends TestCase {
             final Throwable error = t != null ? t : new IllegalStateException("Strategy returned false");
             //noinspection ThrowableInstanceNeverThrown
             testResultQueue.add(Futures.<Boolean>createReadyFuture(error));
-            res.addHeader("Status", "Failed");
+            res.addHeader("Status", FAILED_HEADER_VALUE);
         }
 
     } // END SimpleResponseHttpHandler

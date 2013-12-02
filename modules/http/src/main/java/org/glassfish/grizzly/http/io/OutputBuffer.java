@@ -75,6 +75,7 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -594,10 +595,6 @@ public class OutputBuffer {
         // clear the internal buffers; sendfile content is exclusive
         reset();
 
-//        if (committed) {
-//            throw new IllegalStateException("Unable to transfer file using sendfile.  Response has already been committed.");
-//        }
-
         // additional precondition validation performed by FileTransfer
         // constructor
         final FileTransfer f = new FileTransfer(file, offset, length);
@@ -610,7 +607,7 @@ public class OutputBuffer {
             outputHeader.setContentType(MimeType.getByFilename(file.getName()));
         }
         // set Content-Encoding to identity to prevent compression
-        outputHeader.setHeader(Header.ContentEncoding, "identity");
+        outputHeader.setHeader(Header.ContentEncoding, HeaderValue.IDENTITY);
 
         try {
             flush(); // commit the headers, then send the file
