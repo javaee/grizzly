@@ -1081,7 +1081,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     private void setDefaultResponseContentType(final String contentType) {
         this.defaultResponseContentType = contentType;
         if (contentType != null) {
-            defaultResponseContentTypeBytes = ContentType.toByteArray(contentType);
+            defaultResponseContentTypeBytes = toCheckedByteArray(contentType);
             defaultResponseContentTypeBytesNoCharset =
                     ContentType.removeCharset(defaultResponseContentTypeBytes);
         } else {

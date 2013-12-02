@@ -105,6 +105,7 @@ import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 
 import static org.glassfish.grizzly.http.util.Constants.*;
 import org.glassfish.grizzly.http.util.ContentType;
+import org.glassfish.grizzly.http.util.HeaderValue;
 
 /**
  * Wrapper object for the Coyote response.
@@ -762,7 +763,7 @@ public class Response {
      * @exception IllegalStateException if the response has already
      *  been committed
      */
-    public void resetBuffer(boolean resetWriterStreamFlags) {
+    public void resetBuffer(final boolean resetWriterStreamFlags) {
 
         if (isCommitted())
             throw new IllegalStateException("Cannot reset buffer after response has been committed.");
@@ -785,7 +786,7 @@ public class Response {
      * @exception IllegalStateException if this method is called after
      *  output has been committed for this response
      */
-    public void setBufferSize(int size) {
+    public void setBufferSize(final int size) {
 
         if (isCommitted()) {
             throw new IllegalStateException("Unable to change buffer size as the response has been committed"); 
@@ -884,7 +885,7 @@ public class Response {
      *
      * @param locale The new locale
      */
-    public void setLocale(Locale locale) {
+    public void setLocale(final Locale locale) {
         checkResponse();
         if (isCommitted())
             return;
@@ -946,7 +947,7 @@ public class Response {
      *
      * @param name Header name to look up
      */
-    public String[] getHeaderValues(String name) {
+    public String[] getHeaderValues(final String name) {
         checkResponse();
         final Collection<String> result = new LinkedList<String>();
         for (final String headerValue : response.getHeaders().values(name)) {
@@ -983,7 +984,7 @@ public class Response {
      * @exception IllegalStateException if this response has already been
      *  committed
      */
-    public void reset(int status, String message) {
+    public void reset(final int status, final String message) {
         reset();
         setStatus(status, message);
     }
@@ -1087,7 +1088,7 @@ public class Response {
      * @param name Name of the header to set
      * @param value Date value to be set
      */
-    public void addDateHeader(String name, long value) {
+    public void addDateHeader(final String name, final long value) {
 
         if (isCommitted())
             return;
@@ -1110,7 +1111,7 @@ public class Response {
      *
      * @since 2.1.2
      */
-    public void addDateHeader(final Header header, long value) {
+    public void addDateHeader(final Header header, final long value) {
 
         if (isCommitted())
             return;
@@ -1132,13 +1133,28 @@ public class Response {
      * @param name Name of the header to set
      * @param value Value to be set
      */
-    public void addHeader(String name, String value) {
+    public void addHeader(final String name, final String value) {
         checkResponse();
         if (isCommitted())
             return;
 
         response.addHeader(name, value);
+    }
 
+    /**
+     * Add the specified header to the specified value.
+     *
+     * @param name Name of the header to set
+     * @param value Value to be set
+     * 
+     * @since 2.3.8
+     */
+    public void addHeader(final String name, final HeaderValue value) {
+        checkResponse();
+        if (isCommitted())
+            return;
+
+        response.addHeader(name, value);
     }
 
     /**
@@ -1155,9 +1171,23 @@ public class Response {
             return;
 
         response.addHeader(header, value);
-
     }
 
+    /**
+     * Add the specified header to the specified value.
+     *
+     * @param header the {@link Header} to set
+     * @param value Value to be set
+     *
+     * @since 2.3.8
+     */
+    public void addHeader(final Header header, final HeaderValue value) {
+        checkResponse();
+        if (isCommitted())
+            return;
+
+        response.addHeader(header, value);
+    }
 
     /**
      * Add the specified integer header to the specified value.
@@ -1165,7 +1195,7 @@ public class Response {
      * @param name Name of the header to set
      * @param value Integer value to be set
      */
-    public void addIntHeader(String name, int value) {
+    public void addIntHeader(final String name, final int value) {
 
         if (isCommitted())
             return;
@@ -1182,7 +1212,7 @@ public class Response {
      *
      * @since 2.1.2
      */
-    public void addIntHeader(final Header header, int value) {
+    public void addIntHeader(final Header header, final int value) {
 
         if (isCommitted())
             return;
@@ -1197,7 +1227,7 @@ public class Response {
      *
      * @param name Name of the header to check
      */
-    public boolean containsHeader(String name) {
+    public boolean containsHeader(final String name) {
         checkResponse();
         return response.containsHeader(name);
     }
@@ -1410,15 +1440,30 @@ public class Response {
      * @param name Name of the header to set
      * @param value Value to be set
      */
-    public void setHeader(String name, String value) {
+    public void setHeader(final String name, final String value) {
         checkResponse();
         if (isCommitted())
             return;
 
         response.setHeader(name, value);
-
     }
 
+    /**
+     * Set the specified header to the specified value.
+     *
+     * @param name Name of the header to set
+     * @param value Value to be set
+     * 
+     * @since 2.3.8
+     */
+    public void setHeader(final String name, final HeaderValue value) {
+        checkResponse();
+        if (isCommitted())
+            return;
+
+        response.setHeader(name, value);
+    }
+    
     /**
      * Set the specified header to the specified value.
      *
@@ -1433,9 +1478,23 @@ public class Response {
             return;
 
         response.setHeader(header, value);
-
     }
 
+    /**
+     * Set the specified header to the specified value.
+     *
+     * @param header the {@link Header} to set
+     * @param value Value to be set
+     *
+     * @since 2.3.8
+     */
+    public void setHeader(final Header header, final HeaderValue value) {
+        checkResponse();
+        if (isCommitted())
+            return;
+
+        response.setHeader(header, value);
+    }
 
     /**
      * Set the specified integer header to the specified value.

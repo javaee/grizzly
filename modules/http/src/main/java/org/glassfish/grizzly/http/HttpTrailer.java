@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
 /**
@@ -119,7 +120,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      * {@inheritDoc}
      */
     @Override
-    public String getHeader(String name) {
+    public String getHeader(final String name) {
         return headers.getHeader(name);
     }
 
@@ -135,13 +136,22 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      * {@inheritDoc}
      */
     @Override
-    public void setHeader(String name, String value) {
-        final Header h = Header.find(name);
-        if (h != null) {
-            setHeader(h, value);
-        } else {
-            headers.setValue(name).setString(value);
+    public void setHeader(final String name, final String value) {
+        if (name == null || value == null) {
+            return;
         }
+        headers.setValue(name).setString(value);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setHeader(final String name, final HeaderValue value) {
+        if (name == null || value == null || !value.isSet()) {
+            return;
+        }
+        value.serializeToDataChunk(headers.setValue(name));
     }
 
     /**
@@ -149,6 +159,9 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     public void setHeader(final Header header, final String value) {
+        if (header == null || value == null) {
+            return;
+        }
         headers.setValue(header).setString(value);
     }
 
@@ -156,20 +169,43 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      * {@inheritDoc}
      */
     @Override
-    public void addHeader(String name, String value) {
-        final Header h = Header.find(name);
-        if (h != null) {
-            addHeader(h, value);
-        } else {
-            headers.addValue(name).setString(value);
+    public void setHeader(final Header header, final HeaderValue value) {
+        if (header == null || value == null || !value.isSet()) {
+            return;
         }
+        value.serializeToDataChunk(headers.setValue(header));
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addHeader(final String name, final String value) {
+        if (name == null || value == null) {
+            return;
+        }
+        headers.addValue(name).setString(value);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
+    public void addHeader(final String name, final HeaderValue value) {
+        if (name == null || value == null || !value.isSet()) {
+            return;
+        }
+        value.serializeToDataChunk(headers.setValue(name));
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void addHeader(final Header header, final String value) {
+        if (header == null || value == null) {
+            return;
+        }
         headers.addValue(header).setString(value);
     }
 
@@ -177,8 +213,19 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      * {@inheritDoc}
      */
     @Override
-    public boolean containsHeader(String name) {
-        return headers.getHeader(name) != null;
+    public void addHeader(final Header header, final HeaderValue value) {
+        if (header == null || value == null || !value.isSet()) {
+            return;
+        }
+        value.serializeToDataChunk(headers.setValue(header));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean containsHeader(final String name) {
+        return headers.contains(name);
     }
 
     /**
@@ -186,14 +233,14 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     public boolean containsHeader(final Header header) {
-        return (headers.getHeader(header) != null);
+        return headers.contains(header);
     }
 
     /**
      * Set the mime headers.
      * @param mimeHeaders {@link MimeHeaders}.
      */
-    protected void setHeaders(MimeHeaders mimeHeaders) {
+    protected void setHeaders(final MimeHeaders mimeHeaders) {
         this.headers = mimeHeaders;
     }
 

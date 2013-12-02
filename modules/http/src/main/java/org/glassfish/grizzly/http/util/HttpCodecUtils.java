@@ -55,6 +55,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
  * @author Alexey Stashok
  */
 public class HttpCodecUtils {
+    static final byte[] EMPTY_ARRAY = new byte[0];
     private static final int[] DEC = HexUtils.getDecBytes();
     
     public static void parseHost(final DataChunk hostDC,
@@ -463,6 +464,54 @@ public class HttpCodecUtils {
 
     public static boolean isSpaceOrTab(final byte b) {
         return (b == Constants.SP || b == Constants.HT);
+    }
+    
+    /**
+     * Converts the a {@link String} to a byte array, eliminating all the
+     * unprintable US-ASCII symbols by replacing them with spaces (' ').
+     * 
+     * @param s {@link String}
+     * @return a converted byte array, where all the string's unprintable
+     *         US-ASCII symbols have been replaced with spaces (' ')
+     */
+    public static byte[] toCheckedByteArray(final String s) {
+        final byte[] array = new byte[s.length()];
+        return toCheckedByteArray(s, array, 0);
+    }
+    
+    /**
+     * Serializes the passed {@link String} into a passed byte array starting
+     * from a given offset.
+     * All the unprintable US-ASCII symbols will be replaced with spaces (' ').
+     * 
+     * @param s {@link String}
+     * @param dstArray the byte array to be used to convert the String into
+     * @param arrayOffs the offset in the byte array, where the serialization
+     *                  will be started
+     * @return the passed dstArray
+     * 
+     * @throws IllegalArgumentException if there is no enough space in the dstArray
+     *         to serialize the String
+     */
+    public static byte[] toCheckedByteArray(final String s,
+            final byte[] dstArray, final int arrayOffs) {
+        if (dstArray == null) {
+            throw new NullPointerException();
+        }
+        
+        final int strLen = s.length();
+        
+        if (arrayOffs + strLen > dstArray.length) {
+            throw new IllegalArgumentException("Not enough space in the array");
+        }
+        
+        for (int i = 0; i < strLen; i++) {
+            final int c = s.charAt(i);
+            dstArray[i + arrayOffs] = isNonPrintableUsAscii(c) ?
+                    Constants.SP : (byte) c;
+        }
+        
+        return dstArray;
     }
     
     /**

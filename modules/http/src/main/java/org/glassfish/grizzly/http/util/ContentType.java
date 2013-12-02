@@ -43,6 +43,8 @@ package org.glassfish.grizzly.http.util;
 import java.util.Arrays;
 import org.glassfish.grizzly.utils.Charsets;
 
+import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
+
 /**
  * This class serves as a Content-Type holder, plus it implements useful
  * utility methods to work with content-type.
@@ -50,8 +52,6 @@ import org.glassfish.grizzly.utils.Charsets;
  * @author Alexey Stashok
  */
 public class ContentType {
-    private static final byte[] EMPTY_ARRAY = new byte[0];
-    
     private static final String CHARSET_STRING = ";charset=";
     private static final byte[] CHARSET_BYTES =
             CHARSET_STRING.getBytes(Charsets.ASCII_CHARSET);
@@ -232,7 +232,7 @@ public class ContentType {
         
         // if there's prepared String - convert it to a byte array
         if (compiledContentType != null) {
-            compiledContentTypeArray = toByteArray(compiledContentType);
+            compiledContentTypeArray = toCheckedByteArray(compiledContentType);
             return compiledContentTypeArray;
         }
         
@@ -240,7 +240,7 @@ public class ContentType {
             // if we have unparsed content-type and no charset set independently -
             // convert the unparsedContentType to a byte array
             if (quotedCharsetValue == null) {
-                compiledContentTypeArray = toByteArray(unparsedContentType);
+                compiledContentTypeArray = toCheckedByteArray(unparsedContentType);
                 return compiledContentTypeArray;
             }
             
@@ -261,14 +261,14 @@ public class ContentType {
             
             array = new byte[mtsz + qcssz + CHARSET_BYTES.length];
 
-            toByteArray(mimeType, array, 0);
+            toCheckedByteArray(mimeType, array, 0);
             System.arraycopy(CHARSET_BYTES, 0, array, mtsz, CHARSET_BYTES.length);
 
             final int offs = mtsz + CHARSET_BYTES.length;
-            toByteArray(quotedCharsetValue, array, offs);
+            toCheckedByteArray(quotedCharsetValue, array, offs);
         } else {
             // otherwise build the array based on mimeType only
-            array = toByteArray(mimeType);
+            array = toCheckedByteArray(mimeType);
         }
 
         compiledContentTypeArray = array;
@@ -276,7 +276,7 @@ public class ContentType {
         return compiledContentTypeArray;
     }
     
-   /**
+    /**
      * @return the content type of this HTTP message.
      */
     public String get() {
@@ -446,56 +446,6 @@ public class ContentType {
     }
 
     /**
-     * Converts the content-type represented by a {@link String} to a byte array,
-     * eliminating all the unprintable US-ASCII symbols by replacing them with
-     * spaces (' ').
-     * 
-     * @param contentType {@link String}
-     * @return the content-type represented by a {@link String} to a byte array,
-     *         eliminating all the unprintable US-ASCII symbols by replacing
-     *         them with spaces (' ')
-     */
-    public static byte[] toByteArray(final String contentType) {
-        final byte[] array = new byte[contentType.length()];
-        return toByteArray(contentType, array, 0);
-    }
-    
-    /**
-     * Serializes the content-type represented by a {@link String} into a passed
-     * byte array starting from a given offset.
-     * All the unprintable US-ASCII symbols will be replaced with spaces (' ').
-     * 
-     * @param contentType {@link String}
-     * @param dstArray the byte array to be used to convert the String into
-     * @param arrayOffs the offset in the byte array, where the serialization
-     *                  will be started
-     * @return the passed dstArray
-     * 
-     * @throws IllegalArgumentException if there is no enough space in the dstArray
-     *         to serialize the String
-     */
-    public static byte[] toByteArray(final String contentType,
-            final byte[] dstArray, final int arrayOffs) {
-        if (dstArray == null) {
-            throw new NullPointerException();
-        }
-        
-        final int strLen = contentType.length();
-        
-        if (arrayOffs + strLen > dstArray.length) {
-            throw new IllegalArgumentException("Not enough space in the array");
-        }
-        
-        for (int i = 0; i < strLen; i++) {
-            final int c = contentType.charAt(i);
-            dstArray[i + arrayOffs] = HttpCodecUtils.isNonPrintableUsAscii(c) ?
-                    Constants.SP : (byte) c;
-        }
-        
-        return dstArray;
-    }
-    
-    /**
      * Parse the character encoding from the specified content type header.
      * If the content type is null, or there is no explicit character encoding,
      * <code>null</code> is returned.
@@ -603,7 +553,7 @@ public class ContentType {
         System.arraycopy(CHARSET_BYTES, 0,
                 contentType, mimeType.length, CHARSET_BYTES.length);
         
-        return toByteArray(charset, contentType,
+        return toCheckedByteArray(charset, contentType,
                 mimeType.length + CHARSET_BYTES.length);
     }
     
