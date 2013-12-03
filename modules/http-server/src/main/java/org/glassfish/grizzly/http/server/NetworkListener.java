@@ -275,7 +275,7 @@ public class NetworkListener {
      */
     public NetworkListener(final String name, final String host, final int port) {
         validateArg("name", name);
-        validateArg("host", name);
+        validateArg("host", host);
         if (port < 0) {
             throw new IllegalArgumentException("Invalid port");
         }
