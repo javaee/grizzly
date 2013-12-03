@@ -420,9 +420,11 @@ public class CookieSerializerUtils {
     
     /**
      * Quotes values using rules that vary depending on Cookie version.
-     * @param version
-     * @param buf
-     * @param value
+     * @param version the cookie version.
+     * @param buf the target buffer to which will contain the encoded value.
+     * @param value the value to encode
+     *
+     * @return the version of the cookie after encoding.
      */
     public static int maybeQuote2(int version, StringBuilder buf, String value,
             boolean versionOneStrictCompliance,
@@ -475,9 +477,11 @@ public class CookieSerializerUtils {
 
     /**
      * Quotes values using rules that vary depending on Cookie version.
-     * @param version
-     * @param buf
-     * @param value
+     * @param version the cookie version.
+     * @param buf the target buffer to which will contain the encoded value.
+     * @param value the value to encode
+     *
+     * @return the version of the cookie after encoding.
      */
     public static int maybeQuote2(int version, Buffer buf, String value,
             boolean versionOneStrictCompliance) {

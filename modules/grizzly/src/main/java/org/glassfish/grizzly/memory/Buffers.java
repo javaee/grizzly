@@ -405,9 +405,11 @@ public class Buffers {
      * and both {@link Buffer}s will be added there. The resulting
      * {@link CompositeBuffer} will be disallowed for disposal.
      * 
-     * @param memoryManager
-     * @param buffer1
-     * @param buffer2
+     * @param memoryManager the {@link MemoryManager} to use if a new {@link Buffer}
+     *                      needs to be allocated in order to perform the requested
+     *                      operation.
+     * @param buffer1 the {@link Buffer} to append to.
+     * @param buffer2 the {@link Buffer} to append.
      * 
      * @return the result of appending of two {@link Buffer}s.
      */
@@ -432,10 +434,13 @@ public class Buffers {
      * {@link CompositeBuffer} will be assigned according to the
      * <code>isCompositeBufferDisposable</code> parameter.
      * 
-     * @param memoryManager
-     * @param buffer1
-     * @param buffer2
-     * @param isCompositeBufferDisposable
+     * @param memoryManager the {@link MemoryManager} to use if a new {@link Buffer}
+     *                      needs to be allocated in order to perform the requested
+     *                      operation.
+     * @param buffer1 the {@link Buffer} to append to.
+     * @param buffer2 the {@link Buffer} to append.
+     * @param isCompositeBufferDisposable flag indicating whether or not the
+     *                                    resulting composite buffer may be disposed.
      * 
      * @return the result of appending of two {@link Buffer}s.
      */

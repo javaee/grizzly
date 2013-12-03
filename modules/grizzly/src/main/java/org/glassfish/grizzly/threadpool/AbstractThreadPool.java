@@ -175,7 +175,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
 
     /**
      * must hold statelock while calling this method.
-     * @param worker
+     * @param worker the {@link Worker} being started.
      */
     protected void startWorker(final Worker worker) {
         final Thread thread = config.getThreadFactory().newThread(worker);
@@ -363,7 +363,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * beginning of this method.
      *
      * @param worker the {@link Worker}, running the the thread t
-     * @param thread
+     * @param thread the thread completing the execution of <tt>r</tt>
      * @param r the runnable that has completed.
      * @param t the exception that caused termination, or null if
      * execution completed normally.
@@ -394,7 +394,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * thread is getting active and ready to process tasks.
      * This method is called from {@link Worker}'s thread.
      *
-     * @param worker
+     * @param worker the {@link Worker} that has been started.
      */
     protected void onWorkerStarted(final Worker worker) {
         if (delayedQueue != null) {
@@ -410,7 +410,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * that ThreadPool's thread will be released. This method is called from
      * {@link Worker}'s thread.
      *
-     * @param worker
+     * @param worker the {@link Worker} that is being removed from service.
      */
     protected void onWorkerExit(Worker worker) {
         synchronized (stateLock) {
@@ -438,7 +438,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * Method is called by a thread pool each time new task has been queued to
      * a task queue.
      *
-     * @param task
+     * @param task the {@link Runnable} task being queued.
      */
     protected void onTaskQueued(Runnable task) {
         ProbeNotifier.notifyTaskQueued(this, task);
@@ -448,7 +448,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * Method is called by a thread pool each time a task has been dequeued from
      * a task queue.
      *
-     * @param task
+     * @param task the {@link Runnable} task being removed from the queue.
      */
     protected void onTaskDequeued(Runnable task) {
         ProbeNotifier.notifyTaskDequeued(this, task);

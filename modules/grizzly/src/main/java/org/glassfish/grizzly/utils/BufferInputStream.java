@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,7 +66,7 @@ public class BufferInputStream extends InputStream {
      * read operation will shift {@link Buffer}'s position by number of bytes,
      * which were read.
      *
-     * @param buffer
+     * @param buffer the {@link Buffer} to write to.
      */
     public BufferInputStream(final Buffer buffer) {
         isMovingPosition = true;
@@ -81,7 +81,9 @@ public class BufferInputStream extends InputStream {
      * the passed {@link Buffer} position, which means the passed {@link Buffer}
      * position will never be changed during <tt>BufferInputStream</tt>
      *
-     * @param buffer
+     * @param buffer the {@link Buffer} to write to.
+     * @param position the starting position within the specified {@link Buffer}.
+     * @param limit the limit of the specified {@link Buffer}.
      */
     public BufferInputStream(final Buffer buffer, final int position,
             final int limit) {

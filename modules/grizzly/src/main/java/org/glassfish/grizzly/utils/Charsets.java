@@ -95,7 +95,7 @@ public final class Charsets {
      * Lookup a {@link Charset} by name.
      * Fixes Charset concurrency issue (http://paul.vox.com/library/post/the-mysteries-of-java-character-set-performance.html)
      *
-     * @param charsetName
+     * @param charsetName the String identifier of the Charset to lookup.
      * @return {@link Charset}
      */
     public static Charset lookupCharset(final String charsetName) {

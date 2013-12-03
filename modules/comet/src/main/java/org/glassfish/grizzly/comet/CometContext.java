@@ -496,7 +496,7 @@ public class CometContext<E> {
      * {@link CometHandler#onInterrupt(CometEvent)} method.
      * If this feature is on - HTTP pipelining can not be used.
      * 
-     * @param isDetectClosedConnections
+     * @param isDetectClosedConnections enable/disable closed connection detection.
      */
     public void setDetectClosedConnections(final boolean isDetectClosedConnections) {
         this.isDetectClosedConnections = isDetectClosedConnections;

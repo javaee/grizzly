@@ -91,7 +91,7 @@ public class AjpHandlerFilter extends BaseFilter {
      * Configure Ajp Filter using properties.
      * We support following properties: request.useSecret, request.secret, tomcatAuthentication.
      *
-     * @param properties
+     * @param properties custom AJP Filter configuration {@link Properties}.
      */
     @SuppressWarnings("UnusedDeclaration")
     public void configure(final Properties properties) {
@@ -418,10 +418,10 @@ public class AjpHandlerFilter extends BaseFilter {
      * Process CPing request message.
      * We send CPong response back as plain Grizzly {@link Buffer}.
      *
-     * @param ctx
-     * @param message
-     * @return
-     * @throws IOException
+     * @param ctx the {@link FilterChainContext} for the current IO event.
+     * @param message the ping message.
+     * @return NextAction.getStopAction
+     * @throws IOException if an error occurs responding to the ping.
      */
     private NextAction processCPing(final FilterChainContext ctx,
             final Buffer message) throws IOException {
@@ -447,10 +447,11 @@ public class AjpHandlerFilter extends BaseFilter {
      * Process Shutdown request message.
      * For now just ignore it.
      *
-     * @param ctx
-     * @param message
-     * @return
-     * @throws IOException
+     * @param ctx the {@link FilterChainContext} for the current IO event.
+     * @param message the shutdown message to be processed.
+     * @return NextAction.getStopAction
+     * @throws java.lang.IllegalStateException if the shutdown message's
+     *  secret doesn't match the server's secret.
      */
     private NextAction processShutdown(final FilterChainContext ctx,
             final Buffer message) {

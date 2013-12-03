@@ -614,7 +614,8 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
     /**
      * Set {@link ByteChunk} content to CharChunk using given {@link Charset}.
-     * @throws java.lang.Exception
+     * @throws java.io.CharConversionException if an error occurs converting
+     *  the specified bytes to the specified Charset.
      */
     public void set(final ByteChunk byteChunk, final Charset encoding)
             throws CharConversionException {
@@ -675,7 +676,8 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
     
     /**
      * Set {@link BufferChunk} content to CharChunk using given {@link Charset}.
-     * @throws java.lang.Exception
+     * @throws java.io.CharConversionException if an error occurs converting
+     *  the specified bytes to the specified Charset.
      */
     public void set(final BufferChunk bufferChunk, final Charset encoding)
             throws CharConversionException {

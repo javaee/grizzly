@@ -63,22 +63,29 @@ public class CompressionEncodingFilter implements EncodingFilter {
     }
     
     /**
-     * 
-     * @param compressionMode
-     * @param compressionMinSize
-     * @param compressableMimeTypes
-     * @param noCompressionUserAgents
-     * @param aliases 
+     * Creates a new CompressionEncodingFilter based on the provided configuration
+     * details.
+     *
+     * @param compressionMode is compression on, off, or forced.
+     * @param compressionMinSize the minimum size, in bytes, the resource must
+     *  be before being considered for compression.
+     * @param compressibleMimeTypes resource mime types that may be compressed.
+     *  if null or zero-length, then there will be no type restriction.
+     * @param noCompressionUserAgents user agents for which compression will
+     *  not be performed.  If null or zero-length, the user agent will not
+     *  be considered.
+     * @param aliases aliases for the compression name as defined in the
+     *  accept-encoding header of the request.
      */
     public CompressionEncodingFilter(CompressionMode compressionMode,
             int compressionMinSize,
-            String[] compressableMimeTypes,
+            String[] compressibleMimeTypes,
             String[] noCompressionUserAgents,
             String[] aliases) {
         
         compressionConfig = new CompressionConfig(compressionMode, compressionMinSize,
                 null, null);
-        compressionConfig.setCompressableMimeTypes(compressableMimeTypes);
+        compressionConfig.setCompressableMimeTypes(compressibleMimeTypes);
         compressionConfig.setNoCompressionUserAgents(noCompressionUserAgents);
         
         this.aliases = Arrays.copyOf(aliases, aliases.length);

@@ -82,7 +82,7 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
     /**
      * Create <tt>HttpHandler</tt>, which will handle requests
      * to the static resources resolved by the given class loader.
-     * @param {@link ClassLoader} to be used to resolve the resources
+     * @param classLoader {@link ClassLoader} to be used to resolve the resources
      * @param docRoots the doc roots (path prefixes), which will be used
      *          to find resources. Effectively each docRoot will be prepended
      *          to a resource path before passing it to {@link ClassLoader#getResource(java.lang.String)}.
@@ -115,7 +115,7 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
      * Effectively each registered docRoot will be prepended to a resource path
      * before passing it to {@link ClassLoader#getResource(java.lang.String)}.
      * 
-     * @param docRoot
+     * @param docRoot the docroot (path prefix) to add.
      * @return <tt>true</tt> if this docroot hasn't been registered before, or <tt>false</tt> otherwise.
      * 
      * @throws IllegalArgumentException if one of the docRoots doesn't end with slash ('/')
@@ -130,7 +130,7 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
     
     /**
      * Removes docRoot from the doc root list.
-     * @param docRoot
+     * @param docRoot the docroot to remove.
      * @return <tt>true</tt> if this docroot was found and removed from the list, or
      *      or <tt>false</tt> if this docroot was not found in the list.
      */

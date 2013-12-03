@@ -86,7 +86,7 @@ public class AjpAddOn implements AddOn {
      * Configure Ajp Filter using properties.
      * We support following properties: request.useSecret, request.secret, tomcatAuthentication.
      *
-     * @param properties
+     * @param properties custom AJP Filter configuration {@link Properties}.
      */
     public void configure(final Properties properties) {
         if (Boolean.parseBoolean(properties.getProperty("request.useSecret"))) {

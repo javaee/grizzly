@@ -109,7 +109,7 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
      *
      * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
      *
-     * @throws {@link IOException}
+     * @throws IOException if an I/O error occurs during the handshake.
      */
     @Override
     public NextAction handleConnect(FilterChainContext ctx) throws IOException {
@@ -138,7 +138,8 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
      *
      * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
      *
-     * @throws {@link IOException}
+     * @throws IOException if an I/O error occurs when attempting to cleanly
+     *  close the websocket.
      */
     @Override
     public NextAction handleClose(FilterChainContext ctx) throws IOException {
@@ -168,7 +169,8 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
      *
      * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
      *
-     * @throws {@link IOException}
+     * @throws IOException if an I/O error occurs during the initial
+     *  handshake.
      */
     @Override
     @SuppressWarnings("unchecked")
@@ -239,7 +241,7 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
      *
      * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
      *
-     * @throws {@link IOException}
+     * @throws IOException if an I/O error occurs writing a frame to the network.
      */
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
@@ -269,7 +271,8 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
      *
      * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
      *
-     * @throws {@link IOException}
+     * @throws IOException if the handshake cannot be completed due to
+     *  an unexpected issue communicating with the peer.
      */
     protected abstract NextAction handleHandshake(FilterChainContext ctx, HttpContent content)
     throws IOException;

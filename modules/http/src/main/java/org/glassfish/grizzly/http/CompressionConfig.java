@@ -185,11 +185,11 @@ public final class CompressionConfig {
      * so further changes made on the source Set will not affect CompressionConfig
      * object state.
      */    
-    public void setCompressableMimeTypes(final String... compressableMimeTypes) {
+    public void setCompressableMimeTypes(final String... compressibleMimeTypes) {
         this.compressableMimeTypes.clear();
         
-        if (compressableMimeTypes.length > 0) {
-            this.compressableMimeTypes.addAll(compressableMimeTypes);
+        if (compressibleMimeTypes.length > 0) {
+            this.compressableMimeTypes.addAll(compressibleMimeTypes);
         }
     }
 
