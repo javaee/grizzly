@@ -948,8 +948,8 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         if (!response.containsHeader(Header.Date)) {
-            final String date = FastHttpDateFormat.getCurrentDate();
-            response.addHeader(Header.Date, date);
+            response.getHeaders().addValue(Header.Date)
+                    .setBytes(FastHttpDateFormat.getCurrentDateBytes());
         }
 
         final ProcessingState state = response.getProcessingState();

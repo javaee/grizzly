@@ -466,33 +466,33 @@ public class HttpCodecUtils {
     }
     
     /**
-     * Converts the a {@link String} to a byte array, eliminating all the
+     * Converts the a {@link CharSequence} to a byte array, eliminating all the
      * unprintable US-ASCII symbols by replacing them with spaces (' ').
      * 
-     * @param s {@link String}
-     * @return a converted byte array, where all the string's unprintable
+     * @param s {@link CharSequence}
+     * @return a converted byte array, where all the char sequence's unprintable
      *         US-ASCII symbols have been replaced with spaces (' ')
      */
-    public static byte[] toCheckedByteArray(final String s) {
+    public static byte[] toCheckedByteArray(final CharSequence s) {
         final byte[] array = new byte[s.length()];
         return toCheckedByteArray(s, array, 0);
     }
     
     /**
-     * Serializes the passed {@link String} into a passed byte array starting
+     * Serializes the passed {@link CharSequence} into a passed byte array starting
      * from a given offset.
      * All the unprintable US-ASCII symbols will be replaced with spaces (' ').
      * 
-     * @param s {@link String}
-     * @param dstArray the byte array to be used to convert the String into
+     * @param s {@link CharSequence}
+     * @param dstArray the byte array to be used to convert the CharSequence into
      * @param arrayOffs the offset in the byte array, where the serialization
      *                  will be started
      * @return the passed dstArray
      * 
      * @throws IllegalArgumentException if there is no enough space in the dstArray
-     *         to serialize the String
+     *         to serialize the CharSequence
      */
-    public static byte[] toCheckedByteArray(final String s,
+    public static byte[] toCheckedByteArray(final CharSequence s,
             final byte[] dstArray, final int arrayOffs) {
         if (dstArray == null) {
             throw new NullPointerException();

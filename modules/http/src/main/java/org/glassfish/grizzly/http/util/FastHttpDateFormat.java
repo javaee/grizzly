@@ -58,14 +58,20 @@
 
 package org.glassfish.grizzly.http.util;
 
+import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
+import java.text.FieldPosition;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.glassfish.grizzly.utils.DataStructures;
+
+import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Utility class to generate HTTP dates.
@@ -75,9 +81,14 @@ import org.glassfish.grizzly.utils.DataStructures;
  */
 public final class FastHttpDateFormat {
 
-    protected static final int CACHE_SIZE = 1000;
+    private static final String ASCII_CHARSET_NAME = Charsets.ASCII_CHARSET.name();
+    
+    private static final int CACHE_SIZE = 1000;
 
-    protected static final TimeZone GMT_TIME_ZONE = TimeZone.getTimeZone("GMT");
+    private static final TimeZone GMT_TIME_ZONE = TimeZone.getTimeZone("GMT");
+
+    private static final SimpleDateFormatter FORMATTER = new SimpleDateFormatter();
+    
     /**
      * HTTP date format.
      */
@@ -92,6 +103,7 @@ public final class FastHttpDateFormat {
     private static final class SimpleDateFormatter {
         private final Date date;
         private final SimpleDateFormat f;
+        private final FieldPosition pos = new FieldPosition(-1);
 
         public SimpleDateFormatter() {
             date = new Date();
@@ -103,13 +115,19 @@ public final class FastHttpDateFormat {
             date.setTime(timeMillis);
             return f.format(date);
         }
+        
+        public final StringBuffer formatTo(final long timeMillis,
+                final StringBuffer buffer) {
+            date.setTime(timeMillis);
+            return f.format(date, buffer, pos);
+        }        
     }
 
     /**
      * ThreadLocal for the set of SimpleDateFormat formats to use in getDateHeader().
      * GMT timezone - all HTTP dates are on GMT
      */
-    protected static final ThreadLocal FORMATS =
+    private static final ThreadLocal FORMATS =
         new ThreadLocal() {
             @Override
             protected Object initialValue() {
@@ -131,26 +149,35 @@ public final class FastHttpDateFormat {
     /**
      * Instant on which the currentDate object was generated.
      */
-    protected static volatile long nextGeneration;
+    private static volatile long nextGeneration;
 
+    private static final AtomicBoolean isGeneratingNow = new AtomicBoolean();
+    
+    private static final StringBuffer currentDateBuffer = new StringBuffer();
+    
+    /**
+     * Current formatted date as byte[].
+     */
+    private static byte[] currentDateBytes;
 
     /**
      * Current formatted date.
      */
-    protected static volatile String currentDate;
+    private static String cachedStringDate;
+    private static volatile byte[] dateBytesForCachedStringDate;
 
-
+    
     /**
      * Formatter cache.
      */
-    protected static final ConcurrentMap<Long, String> formatCache = 
+    private static final ConcurrentMap<Long, String> formatCache = 
         DataStructures.<Long, String>getConcurrentMap(CACHE_SIZE, 0.75f, 64);
 
 
     /**
      * Parser cache.
      */
-    protected static final ConcurrentMap<String, Long> parseCache = 
+    private static final ConcurrentMap<String, Long> parseCache = 
         DataStructures.<String, Long>getConcurrentMap(CACHE_SIZE, 0.75f, 64);
 
 
@@ -161,19 +188,42 @@ public final class FastHttpDateFormat {
      * Get the current date in HTTP format.
      */
     public static String getCurrentDate() {
-        long now = System.currentTimeMillis();
-        if (now > nextGeneration) {
-            synchronized(FORMAT) {
-                if (now > nextGeneration) {
-                    nextGeneration = now + 1000;
-                    currentDate = FORMAT.get().format(now);
-                }
+        final byte[] currentDateBytesNow = getCurrentDateBytes();
+        if (currentDateBytesNow != dateBytesForCachedStringDate) {
+            try {
+                cachedStringDate = new String(currentDateBytesNow, ASCII_CHARSET_NAME);
+                dateBytesForCachedStringDate = currentDateBytesNow;
+            } catch (UnsupportedEncodingException ignored) {
+                // should never reach this line
             }
         }
-        return currentDate;
+        
+        return cachedStringDate;
     }
 
-
+    /**
+     * Get the current date in HTTP format.
+     */
+    public static byte[] getCurrentDateBytes() {
+        final long now = System.currentTimeMillis();
+        final long diff = now - nextGeneration;
+        
+        if (diff > 0 &&
+                (diff > 5000 || isGeneratingNow.compareAndSet(false, true))) {
+            synchronized(FORMAT) {
+                if (now > nextGeneration) {
+                    currentDateBuffer.setLength(0);
+                    FORMATTER.formatTo(now, currentDateBuffer);
+                    currentDateBytes = toCheckedByteArray(currentDateBuffer);
+                    nextGeneration = now + 1000;
+                }
+                
+                isGeneratingNow.set(false);
+            }
+        }
+        return currentDateBytes;
+    }
+    
     /**
      * Get the HTTP format of the specified date.<br>
      * http spec only requre second precision http://tools.ietf.org/html/rfc2616#page-20 <br>
