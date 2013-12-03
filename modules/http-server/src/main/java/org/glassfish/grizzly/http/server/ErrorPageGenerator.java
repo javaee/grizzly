@@ -61,7 +61,8 @@ public interface ErrorPageGenerator {
      * @param reasonPhrase response reason phrase
      * @param description extra description. Might be <tt>null</tt>
      * @param exception {@link Throwable}, that caused the error. Might be <tt>null</tt>
-     * @return 
+     *
+     * @return an HTML error page based on the provided inputs.
      */
     public String generate(final Request request,
             final int status, final String reasonPhrase,

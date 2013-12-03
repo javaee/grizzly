@@ -175,7 +175,7 @@ public class FilterConfigImpl implements FilterConfig {
 
     /**
      * Set the {@link Filter} associated with this object.
-     * @param filter
+     * @param filter the {@link Filter} to set.
      */
     protected void setFilter(Filter filter) {
         this.filter = filter;

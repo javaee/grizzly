@@ -270,10 +270,11 @@ public final class DefaultFilterChain implements FilterChain {
      * @param ctx {@link FilterChainContext} processing context
      * @param executor {@link FilterExecutor}, which will call appropriate
      *          filter operation to process {@link org.glassfish.grizzly.IOEvent}.
-     * @param current
-     * @param end
-     * @return TODO: Update
-     * @throws java.lang.Exception
+     * @param current the Filter to execute.
+     * @param end the last Filter in the chain.
+     * @return the execution state from invoking the current filter.
+     *
+     * @throws java.lang.Exception if an error occurs invoking the filter.
      */
     @SuppressWarnings("unchecked")
     protected final FilterExecution executeChainPart(final FilterChainContext ctx,
@@ -363,13 +364,15 @@ public final class DefaultFilterChain implements FilterChain {
      * Execute the {@link Filter}, using specific {@link FilterExecutor} and
      * {@link FilterChainContext}.
      * 
-     * @param executor
-     * @param currentFilter
-     * @param ctx
+     * @param executor the {@link org.glassfish.grizzly.filterchain.FilterExecutor} responsible
+     *                 for invoking filter.
+     * @param currentFilter the filter to invoke.
+     * @param ctx the {@link FilterChainContext} for the current event.
      *
-     * @return {@link NextAction}.
+     * @return the {@link org.glassfish.grizzly.filterchain.NextAction} to
+     *  be performed.
      * 
-     * @throws IOException
+     * @throws Exception if an error occurs executing the filter.
      */
     protected NextAction executeFilter(final FilterExecutor executor,
             final Filter currentFilter, final FilterChainContext ctx)
@@ -396,11 +399,13 @@ public final class DefaultFilterChain implements FilterChain {
     /**
      * Locates a message remainder in the {@link FilterChain}, associated with the
      * {@link Connection} and prepares the {@link Context} for remainder processing.
-     * @param ctx
-     * @param executor
-     * @param start
-     * @param end
-     * @return 
+     * @param ctx the {@link org.glassfish.grizzly.filterchain.FilterChainContext}
+     *  for the current event.
+     * @param executor the {@link org.glassfish.grizzly.filterchain.FilterExecutor}
+     *  responsible for invoking Filters on this chain.
+     * @param start the first filter to check for remainders.
+     * @param end the last filter to check for remainders.
+     * @return <code>true</code> if a remainder was found, otherwise <code>false</code>.
      */
     protected boolean prepareRemainder(final FilterChainContext ctx,
             final FilterExecutor executor,
@@ -564,7 +569,9 @@ public final class DefaultFilterChain implements FilterChain {
     /**
      * Notify the filters about error.
      * @param ctx {@link FilterChainContext}
-     * @return position of the last executed {@link Filter}
+     * @param executor the {@link org.glassfish.grizzly.filterchain.FilterExecutor}
+     *  responsible for invoking this filter chain.
+     * @param exception the error that triggered this method invocation.
      */
     private void throwChain(final FilterChainContext ctx,
             final FilterExecutor executor, final Throwable exception) {
@@ -758,10 +765,12 @@ public final class DefaultFilterChain implements FilterChain {
     /**
      * Adds Filters after specified afterFilter
      * 
-     * @param afterReg
-     * @param filters
+     * @param afterReg the {@link FilterReg} after which the new filters will
+     *                 be added.
+     * @param filters one or more filters to be added to this chain.
      * @return the {@link FilterReg} of the last filter that has been added as the
      *          result of this invocation.
+     * @throws IllegalArgumentException if no filters are provided.
      */
     FilterReg addFilterRegAfter(final FilterReg afterReg, final Filter... filters) {
         if (filters == null || filters.length == 0) {

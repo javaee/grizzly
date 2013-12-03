@@ -49,7 +49,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.impl.UnsafeFutureImpl;
 
 /**
- * Set of {@Future} utilities.
+ * Set of {@link Future} utilities.
  *
  * @author Alexey Stashok
  */

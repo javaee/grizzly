@@ -93,7 +93,7 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
      * Unlike {@link #takeFromCache(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the
      * object won't be removed from cache.
      *
-     * @param <E>
+     * @param <E> the type of the cached object.
      * @param index the cached object type index.
      * @return cached object.
      */
@@ -106,7 +106,7 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
      * Unlike {@link #getFromCache(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the
      * object will be removed from cache.
      *
-     * @param <E>
+     * @param <E> the type of the cached object.
      * @param index the cached object type index.
      * @return cached object.
      */

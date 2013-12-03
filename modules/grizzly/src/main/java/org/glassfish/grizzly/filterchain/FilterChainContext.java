@@ -1056,7 +1056,7 @@ public final class FilterChainContext implements AttributeStorage {
          * The method is called, when passed {@link FilterChainContext} processing
          * is complete.
          * 
-         * @param context
+         * @param context the {@link FilterChainContext} for the completed event.
          */
         public void onComplete(FilterChainContext context);
     }

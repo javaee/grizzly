@@ -61,7 +61,7 @@ public interface FutureImpl<R> extends GrizzlyFuture<R> {
     /**
      * Notify about the failure, occurred during asynchronous operation execution.
      * 
-     * @param failure
+     * @param failure the cause of this future's failure.
      */
     public abstract void failure(Throwable failure);
 }

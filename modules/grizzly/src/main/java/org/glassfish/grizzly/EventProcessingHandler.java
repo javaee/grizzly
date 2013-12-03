@@ -52,24 +52,24 @@ public interface EventProcessingHandler {
     /**
      * {@link Event} processing suspended.
      *
-     * @param context
-     * @throws IOException
+     * @param context the {@link Context} for the current event.
+     * @throws IOException if an error occurs processing the event.
      */
     public void onSuspend(Context context) throws IOException;
 
     /**
      * {@link Event} processing resumed.
      *
-     * @param context
-     * @throws IOException
+     * @param context the {@link Context} for the current event.
+     * @throws IOException if an error occurs processing the event.
      */
     public void onResume(Context context) throws IOException;
 
     /**
      * {@link Event} processing completed.
      * 
-     * @param context 
-     * @throws IOException
+     * @param context the {@link Context} for the current event.
+     * @throws IOException if an error occurs processing the event.
      */
     public void onComplete(Context context) throws IOException;
 
@@ -77,22 +77,24 @@ public interface EventProcessingHandler {
      * Terminate {@link Event} processing in this thread, but it's going to
      * be continued later.
      *
-     * @param context
-     * @throws IOException
+     * @param context the {@link Context} for the current event.
+     * @throws IOException if an error occurs processing the event.
      */
     public void onTerminate(Context context) throws IOException;
 
     /**
      * Error occurred during {@link Event} processing.
      *
-     * @param context
+     * @param context the {@link Context} for the current event.
+     * @throws IOException if an error occurs processing the event.
      */
     public void onError(Context context, Object description) throws IOException;
 
     /**
      * {@link Event} wasn't processed.
      *
-     * @param context
+     * @param context the {@link Context} for the current event.
+     * @throws IOException if an error occurs processing the event.
      */
     public void onNotRun(Context context) throws IOException;
     

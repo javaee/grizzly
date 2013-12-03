@@ -101,7 +101,8 @@ public interface Filter {
      * @param ctx {@link FilterChainContext}
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.lang.Exception}
+     * @throws java.lang.Exception if an error occurs processing the
+     *  read event.
      */
     public NextAction handleRead(FilterChainContext ctx) throws Exception;
 
@@ -115,7 +116,8 @@ public interface Filter {
      * @param ctx {@link FilterChainContext}
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.lang.Exception}
+     * @throws java.lang.Exception if an error occurs processing the
+     *  write event.
      */
     public NextAction handleWrite(FilterChainContext ctx) throws Exception;
 
@@ -129,7 +131,8 @@ public interface Filter {
      * @param ctx {@link FilterChainContext}
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.lang.Exception}
+     * @throws java.lang.Exception if an error occurs processing the
+     *  connect event.
      */
     public NextAction handleConnect(FilterChainContext ctx) throws Exception;
 
@@ -143,7 +146,8 @@ public interface Filter {
      * @param ctx {@link FilterChainContext}
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.lang.Exception}
+     * @throws java.lang.Exception if an error occurs handling the accept
+     *  event.
      */
     public NextAction handleAccept(FilterChainContext ctx) throws Exception;
 
@@ -154,10 +158,11 @@ public interface Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
      * by returning {@link InvokeAction}.
      * @param ctx {@link FilterChainContext}
-     * @param event
+     * @param event the {@link Event} to handle.
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.lang.Exception}
+     * @throws java.lang.Exception if an error occurs handling the specified
+     *  event.
      */
     public NextAction handleEvent(FilterChainContext ctx,
             Event event) throws Exception;
@@ -172,7 +177,7 @@ public interface Filter {
      * @param ctx {@link FilterChainContext}
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
-     * @throws {@link java.lang.Exception}
+     * @throws java.lang.Exception if an error occurs handling the close event.
      */
     public NextAction handleClose(FilterChainContext ctx) throws Exception;
 

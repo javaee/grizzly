@@ -697,8 +697,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * The method will only notify the {@link Filter}s, which took part in
      * {@link FilterChainContext} processing.
      * 
-     * @param context
-     * @param failure 
+     * @param context the {@link FilterChainContext} for the current event.
+     * @param failure the failure that triggered this method.
      */
     public abstract void fail(FilterChainContext context, Throwable failure);
     

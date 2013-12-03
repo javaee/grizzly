@@ -99,7 +99,7 @@ public abstract class DefaultConcurrentCometHandler<E> implements CometHandler<E
     }
 
     /**
-     * @param messageQueueLimit
+     * @param messageQueueLimit the message queue limit for this handler.
      */
     public DefaultConcurrentCometHandler(int messageQueueLimit) {
         this.messageQueueLimit = messageQueueLimit;

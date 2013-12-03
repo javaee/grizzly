@@ -89,10 +89,8 @@ public class FileTransfer implements WritableMessage {
      * @param len the total number of bytes to transfer.
      *
      * @throws IllegalArgumentException if <code>f</code> is null, does not exist, is
-     *  not readable, or is a directory.
-     * @throws IllegalArgumentException if <code>pos</code> or <code>len</code>
-     *  are negative.
-     * @throws IllegalArgumentException if len exceeds the number of bytes that
+     *  not readable, or is a directory.  Or if <code>pos</code> or <code>len</code>
+     *  are negative. Or if len exceeds the number of bytes that
      *  may be transferred based on the provided offset and file length.
      */
     public FileTransfer(final File f, final long pos, final long len) {
@@ -139,8 +137,8 @@ public class FileTransfer implements WritableMessage {
      * {@link WritableByteChannel}.
      * 
      * @param c the {@link WritableByteChannel}
-     * @return
-     * @throws IOException
+     * @return the amount written.
+     * @throws IOException if an error occurs writing to the channel.
      */
     public long writeTo(final WritableByteChannel c) throws IOException {
         final long written = fileChannel.transferTo(pos, len, c);
