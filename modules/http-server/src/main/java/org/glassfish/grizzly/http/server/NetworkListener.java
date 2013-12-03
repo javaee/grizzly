@@ -297,7 +297,7 @@ public class NetworkListener {
         final String host,
         final PortRange portRange) {
         validateArg("name", name);
-        validateArg("host", name);
+        validateArg("host", host);
 
         this.name = name;
         this.host = host;
