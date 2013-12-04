@@ -478,7 +478,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          * @param shareCount          shared reference to an {@link java.util.concurrent.atomic.AtomicInteger} that enables
          *                             shared buffer book-keeping.
          *
-         * @throws IllegalArgumentException if <tt>underlyinByteBuffer</tt> or <tt>shareCount</tt>
+         * @throws IllegalArgumentException if <tt>underlyingByteBuffer</tt> or <tt>shareCount</tt>
          *                                  are <tt>null</tt>.
          */
         private PoolableByteBufferWrapper(final ByteBuffer underlyingByteBuffer,
@@ -510,7 +510,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         @Override
         public void dispose() {
             free = true;
-            // if shared count is greater than 0, decrement and take no futher
+            // if shared count is greater than 0, decrement and take no further
             // action
             if (shareCount.get() != 0) {
                 shareCount.decrementAndGet();
