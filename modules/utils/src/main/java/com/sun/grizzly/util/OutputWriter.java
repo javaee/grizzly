@@ -112,7 +112,7 @@ public class OutputWriter {
                     nWrite += len;
                 } else {
                     attempts++;
-                    if ( writeSelector == null ){
+                    if (writeSelector == null) {
                         writeSelector = SelectorFactory.getSelector();
                         if ( writeSelector == null){
                             // Continue using the main one.
@@ -120,12 +120,14 @@ public class OutputWriter {
                         }
                         key = channel.register(writeSelector, 
                              SelectionKey.OP_WRITE);
+                    } else {
+                        writeSelector.selectedKeys().clear();
                     }
                     
                     long startTime = System.currentTimeMillis();
                     if (writeSelector.select(writeTimeout) == 0) {
                         elapsedTime += (System.currentTimeMillis() - startTime);
-                        if (attempts > 2 && ( writeTimeout > 0 && elapsedTime >= writeTimeout ) )
+                        if (attempts > 2 && ( writeTimeout > 0 && elapsedTime >= writeTimeout))
                             throw new IOException("Client is busy or timed out");
                     }
                 }
