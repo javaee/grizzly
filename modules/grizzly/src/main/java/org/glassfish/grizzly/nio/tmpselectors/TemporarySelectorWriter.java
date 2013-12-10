@@ -176,6 +176,8 @@ public abstract class TemporarySelectorWriter
                             }
                             key = channel.register(writeSelector,
                                     SelectionKey.OP_WRITE);
+                        } else {
+                            writeSelector.selectedKeys().clear();
                         }
 
                         if (writeSelector.select(writeTimeout) == 0) {
