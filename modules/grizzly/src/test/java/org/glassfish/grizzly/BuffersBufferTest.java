@@ -251,7 +251,7 @@ public class BuffersBufferTest extends AbstractMemoryManagerTest {
 
     @Override
     protected PooledMemoryManager createPooledMemoryManager() {
-        return new PooledMemoryManager(4, 1, .00001f, false);
+        return new PooledMemoryManager(4, 1, .00001f);
     }
 
 

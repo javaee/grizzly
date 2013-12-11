@@ -78,7 +78,7 @@ public class PooledMemoryManagerTest {
     @Test
     public void testCustomizedPoolInitialization() throws Exception {
 
-        PooledMemoryManager mm = new PooledMemoryManager(2048, 1, 0.05f, false);
+        PooledMemoryManager mm = new PooledMemoryManager(2048, 1, 0.05f);
         final long memoryPerPool = (long) (Runtime.getRuntime().maxMemory() * 0.05f);
         PooledMemoryManager.BufferPool[] pools = mm.getBufferPools();
 
@@ -98,7 +98,7 @@ public class PooledMemoryManagerTest {
 
         // invalid buffer size
         try {
-            new PooledMemoryManager(0, 1, PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE, false);
+            new PooledMemoryManager(0, 1, PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE);
             fail();
         } catch (IllegalArgumentException iae) {
             // expected
@@ -108,7 +108,7 @@ public class PooledMemoryManagerTest {
 
         // invalid number of pools
         try {
-            new PooledMemoryManager(1024, 0, PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE, false);
+            new PooledMemoryManager(1024, 0, PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
@@ -117,7 +117,7 @@ public class PooledMemoryManagerTest {
 
         // invalid heap percentage (lower bound)
         try {
-            new PooledMemoryManager(1024, 1, 0, false);
+            new PooledMemoryManager(1024, 1, 0);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
@@ -126,7 +126,7 @@ public class PooledMemoryManagerTest {
 
         // invalid heap percentage (upper bound)
         try {
-            new PooledMemoryManager(1024, 1, 1, false);
+            new PooledMemoryManager(1024, 1, 1);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
@@ -140,8 +140,7 @@ public class PooledMemoryManagerTest {
         PooledMemoryManager mm =
                 new PooledMemoryManager(PooledMemoryManager.DEFAULT_BUFFER_SIZE,
                                         1,
-                                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE,
-                                        false);
+                                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
         PooledMemoryManager.BufferPool[] pools = mm.getBufferPools();
         // size before any allocations
@@ -170,8 +169,7 @@ public class PooledMemoryManagerTest {
         PooledMemoryManager mm =
                 new PooledMemoryManager(PooledMemoryManager.DEFAULT_BUFFER_SIZE,
                         1,
-                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE,
-                        false);
+                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
         PooledMemoryManager.BufferPool[] pools = mm.getBufferPools();
         // size before any allocations
@@ -204,8 +202,7 @@ public class PooledMemoryManagerTest {
         PooledMemoryManager mm =
                 new PooledMemoryManager(PooledMemoryManager.DEFAULT_BUFFER_SIZE,
                         1,
-                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE,
-                        false);
+                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
         // re-allocate request that is smaller than the default buffer size.
         // this should return the same buffer instance with the limit adjusted
@@ -251,8 +248,7 @@ public class PooledMemoryManagerTest {
         PooledMemoryManager mm =
                 new PooledMemoryManager(PooledMemoryManager.DEFAULT_BUFFER_SIZE,
                         1,
-                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE,
-                        false);
+                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
         PooledMemoryManager.BufferPool[] pools = mm.getBufferPools();
         // size before any allocations
@@ -281,8 +277,7 @@ public class PooledMemoryManagerTest {
         PooledMemoryManager mm =
                 new PooledMemoryManager(PooledMemoryManager.DEFAULT_BUFFER_SIZE,
                         1,
-                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE,
-                        false);
+                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
         PooledMemoryManager.BufferPool[] pools = mm.getBufferPools();
         // size before any allocations
@@ -305,8 +300,7 @@ public class PooledMemoryManagerTest {
         PooledMemoryManager mm =
                 new PooledMemoryManager(PooledMemoryManager.DEFAULT_BUFFER_SIZE,
                         1,
-                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE,
-                        false);
+                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
         // allocation request must be greater than zero
         try {
@@ -334,8 +328,7 @@ public class PooledMemoryManagerTest {
         PooledMemoryManager mm =
                 new PooledMemoryManager(PooledMemoryManager.DEFAULT_BUFFER_SIZE,
                         1,
-                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE,
-                        false);
+                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
         // === duplicate ================
         final int unusedPoolSize = mm.getBufferPools()[0].size();
