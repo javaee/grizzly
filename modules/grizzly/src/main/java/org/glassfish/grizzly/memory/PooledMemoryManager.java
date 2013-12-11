@@ -52,9 +52,28 @@ import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 
 /**
- * TODO: Documentation
+ * A {@link MemoryManager} implementation based on a series of shared memory pools containing
+ * multiple fixed-length buffers.
  *
- * @since 2.3
+ * There are several tuning options for this {@link MemoryManager} implementation.
+ * <ul>
+ *     <li>The size of the buffers managed by this manager.</li>
+ *     <li>The number of pools that this manager will stripe allocation requests across.</li>
+ *     <li>The percentage of the heap that this manager will use when populating the pools.</li>
+ * </ul>
+ *
+ * If no explicit configuration is provided, the following defaults will be used:
+ * <ul>
+ *     <li>Buffer size: 4 KiB ({@link #DEFAULT_BUFFER_SIZE}).</li>
+ *     <li>Number of pools: Based on the return value of <code>Runtime.getRuntime().availableProcessors()</code>.</li>
+ *     <li>Percentage of heap: 10% ({@link #DEFAULT_HEAP_USAGE_PERCENTAGE}).</li>
+ * </ul>
+ *
+ * The main advantage of this manager over {@link org.glassfish.grizzly.memory.HeapMemoryManager} or
+ * {@link org.glassfish.grizzly.memory.ByteBufferManager} is that this implementation doesn't use ThreadLocal pools
+ * and as such, doesn't suffer from the memory fragmentation/reallocation cycle that can impact the ThreadLocal versions.
+ *
+ * @since 3.0
  */
 public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware {
 
@@ -78,32 +97,37 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
     private BufferPool[] pools;
     private final int bufferSize;
-    private final boolean direct;
     private final AtomicInteger allocDistributor = new AtomicInteger();
 
 
     // ------------------------------------------------------------ Constructors
 
 
+    /**
+     * Creates a new <code>PooledMemoryManager</code> using the following defaults:
+     * <ul>
+     *     <li>4 KiB buffer size.</li>
+     *     <li>Number of pools based on <code>Runtime.getRuntime().availableProcessors()</code></li>
+     *     <li>The initial allocation will use 10% of the heap.</li>
+     * </ul>
+     */
     public PooledMemoryManager() {
         this(DEFAULT_BUFFER_SIZE,
                 Runtime.getRuntime().availableProcessors(),
-                DEFAULT_HEAP_USAGE_PERCENTAGE,
-                false);
+                DEFAULT_HEAP_USAGE_PERCENTAGE);
     }
 
-    public PooledMemoryManager(final boolean direct) {
-        this(DEFAULT_BUFFER_SIZE,
-                Runtime.getRuntime().availableProcessors(),
-                DEFAULT_HEAP_USAGE_PERCENTAGE,
-                direct);
-    }
 
+    /**
+     * Creates a new <code>PooledMemoryManager</code> using the specified parameters for configuration.
+     *
+     * @param bufferSize the size of the individual buffers within the pool(s).
+     * @param numberOfPools the number of pools to which allocation requests will be striped against.
+     * @param percentOfHeap percentage of the heap that will be used when populating the pools.
+     */
     public PooledMemoryManager(final int bufferSize,
                                final int numberOfPools,
-                               final float percentOfHeap,
-                               final boolean direct) {
-        this.direct = direct;
+                               final float percentOfHeap) {
         if (bufferSize <= 0) {
             throw new IllegalArgumentException("bufferSize must be greater than zero");
         }
@@ -121,7 +145,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         final long memoryPerPool = (long) (heapSize * percentOfHeap / numberOfPools);
         pools = new BufferPool[numberOfPools];
         for (int i = 0; i < numberOfPools; i++) {
-            pools[i] = new BufferPool(memoryPerPool, bufferSize, direct);
+            pools[i] = new BufferPool(memoryPerPool, bufferSize);
         }
     }
 
@@ -167,11 +191,12 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     }
 
     /**
-     * TODO
+     * Reallocates an existing buffer to at least the specified size.
      *
      * @param oldBuffer old {@link Buffer} to be reallocated.
      * @param newSize   new {@link Buffer} required size.
-     * @return
+     *
+     * @return potentially a new buffer of at least the specified size.
      */
     @Override
     public Buffer reallocate(final Buffer oldBuffer, final int newSize) {
@@ -246,7 +271,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
      */
     @Override
     public boolean willAllocateDirect(int size) {
-        return direct;
+        return false;
     }
 
     /**
@@ -363,9 +388,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         // -------------------------------------------------------- Constructors
 
 
-        BufferPool(final long totalPoolSize,
-                   final int bufferSize,
-                   final boolean direct) {
+        BufferPool(final long totalPoolSize, final int bufferSize) {
             pool = new ConcurrentLinkedQueue<PoolableByteBufferWrapper>();
             long mem = 0;
             while (mem < totalPoolSize) {
@@ -408,9 +431,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
         public PoolableByteBufferWrapper allocate() {
             final PoolableByteBufferWrapper buffer = new PoolableByteBufferWrapper(
-                    (direct
-                    ? ByteBuffer.allocateDirect(bufferSize)
-                    : ByteBuffer.allocate(bufferSize)),
+                    ByteBuffer.allocate(bufferSize),
                     this);
             ProbeNotifier.notifyBufferAllocated(monitoringConfig, bufferSize);
             return buffer;
