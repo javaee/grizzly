@@ -993,6 +993,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.setStartIdx(getStartIdx());
         newContext.setEndIdx(getEndIdx());
         newContext.setFilterIdx(getFilterIdx());
+        newContext.customAttributes = getAttributes();
 
         notifyCopy(this, newContext, copyListeners);
         return newContext;        
