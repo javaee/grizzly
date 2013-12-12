@@ -41,15 +41,16 @@ package org.glassfish.grizzly.http.echo;
 
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.http.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOOutputStream;
+import org.glassfish.grizzly.http.io.NIOReader;
+import org.glassfish.grizzly.http.io.NIOWriter;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
-import org.glassfish.grizzly.http.server.io.NIOInputStream;
-import org.glassfish.grizzly.http.server.io.NIOReader;
-import org.glassfish.grizzly.http.server.io.NIOWriter;
 import org.glassfish.grizzly.memory.MemoryProbe;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
@@ -64,7 +65,6 @@ import java.io.Writer;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicLong;
 import org.glassfish.grizzly.ReadHandler;
-import org.glassfish.grizzly.http.server.io.NIOOutputStream;
 
 final class EchoServer {
     private static final String LISTENER_NAME = "NetworkListenerBM";
@@ -117,7 +117,7 @@ final class EchoServer {
     }
 
     public void stop() throws IOException {
-        httpServer.stop();
+        httpServer.shutdownNow();
         if (probe != null) {
             probe.toString();
         }
@@ -135,6 +135,7 @@ final class EchoServer {
                                       : new NonBlockingEchoHandler()),
                                 PATH);
         final Transport transport = httpServer.getListener(LISTENER_NAME).getTransport();
+
         httpServer.getListener(LISTENER_NAME).setMaxPendingBytes(-1);
         if (settings.isMonitoringMemory()) {
             probe = new MemoryStatsProbe();
