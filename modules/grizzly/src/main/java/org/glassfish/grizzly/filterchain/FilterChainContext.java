@@ -919,7 +919,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.setOperation(getOperation());
         
         internalContext.softCopyTo(newContext.internalContext);
-        
+        newContext.customAttributes = getAttributes();
         notifyCopy(this, newContext, copyListeners);
         return newContext;        
     }
