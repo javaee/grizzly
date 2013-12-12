@@ -71,6 +71,8 @@ import org.glassfish.grizzly.localization.LogMessages;
 public final class SelectorRunner implements Runnable {
     private final static Logger logger = Grizzly.logger(SelectorRunner.class);
     
+    private final static String THREAD_MARKER = " SelectorRunner";
+    
     private final NIOTransport transport;
     private final AtomicReference<State> stateHolder;
     
@@ -154,10 +156,12 @@ public final class SelectorRunner implements Runnable {
     }
     
     public void postpone() {
-        final Thread currentThread = Thread.currentThread();
+        final Thread currentThread = selectorRunnerThread;
         if (currentThread instanceof WorkerThread) {
             ((WorkerThread) currentThread).setSelectorThread(false);
         }
+
+        removeThreadNameMarker(currentThread);
         
         runnerThreadActivityCounter.compareAndSet(1, 0);
         selectorRunnerThread = null;
@@ -245,7 +249,7 @@ public final class SelectorRunner implements Runnable {
                 return;
             }
 
-            currentThread.setName(currentThread.getName() + " SelectorRunner");
+            addThreadNameMarker(currentThread);
         }
 
         setRunnerThread(currentThread);
@@ -282,6 +286,8 @@ public final class SelectorRunner implements Runnable {
                 }
             }
 
+            removeThreadNameMarker(currentThread);
+            
             if (isWorkerThread) {
                 ((WorkerThread) currentThread).setSelectorThread(false);
             }
@@ -580,6 +586,21 @@ public final class SelectorRunner implements Runnable {
             if (sr > spinRateThreshold) {
                 workaroundSelectorSpin();
             }
+        }
+    }
+
+    private void addThreadNameMarker(final Thread currentThread) {
+        final String name = currentThread.getName();
+        if (!name.endsWith(THREAD_MARKER)) {
+            currentThread.setName(name + THREAD_MARKER);
+        }
+    }
+    
+    private void removeThreadNameMarker(final Thread currentThread) {
+        final String name = currentThread.getName();
+        if (name.endsWith(THREAD_MARKER)) {
+            currentThread.setName(
+                    name.substring(0, name.length() - THREAD_MARKER.length()));
         }
     }
 }
