@@ -77,6 +77,8 @@ import org.glassfish.grizzly.utils.StateHolder;
 public final class SelectorRunner implements Runnable {
     private final static Logger logger = Grizzly.logger(SelectorRunner.class);
     
+    private final static String THREAD_MARKER = " SelectorRunner";
+    
     private final NIOTransport transport;
     private final AtomicReference<State> stateHolder;
     
@@ -179,6 +181,9 @@ public final class SelectorRunner implements Runnable {
     }
     
     public void postpone() {
+        assert selectorRunnerThread != null;
+        removeThreadNameMarker(selectorRunnerThread);
+        
         Threads.setService(false);
         
         runnerThreadActivityCounter.compareAndSet(1, 0);
@@ -255,7 +260,7 @@ public final class SelectorRunner implements Runnable {
                 return;
             }
 
-            currentThread.setName(currentThread.getName() + " SelectorRunner");
+            addThreadNameMarker(currentThread);
         }
 
         setRunnerThread(currentThread);
@@ -289,6 +294,7 @@ public final class SelectorRunner implements Runnable {
                 }
             }
 
+            removeThreadNameMarker(currentThread);
             Threads.setService(false);
         }
     }
@@ -586,6 +592,21 @@ public final class SelectorRunner implements Runnable {
             if (sr > spinRateThreshold) {
                 workaroundSelectorSpin();
             }
+        }
+    }
+
+    private void addThreadNameMarker(final Thread currentThread) {
+        final String name = currentThread.getName();
+        if (!name.endsWith(THREAD_MARKER)) {
+            currentThread.setName(name + THREAD_MARKER);
+        }
+    }
+    
+    private void removeThreadNameMarker(final Thread currentThread) {
+        final String name = currentThread.getName();
+        if (name.endsWith(THREAD_MARKER)) {
+            currentThread.setName(
+                    name.substring(0, name.length() - THREAD_MARKER.length()));
         }
     }
 }
