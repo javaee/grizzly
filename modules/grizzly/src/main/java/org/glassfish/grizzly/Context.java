@@ -44,7 +44,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 
 /**
  * Object, which is responsible for holding context during I/O event processing.
@@ -115,7 +114,7 @@ public class Context implements AttributeStorage, Cacheable {
     protected boolean isManualIOEventControl;
 
     public Context() {
-        attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+        attributes = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createUnsafeAttributeHolder();
     }
 
     /**

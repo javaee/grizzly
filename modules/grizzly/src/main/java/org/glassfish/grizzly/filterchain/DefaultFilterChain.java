@@ -53,7 +53,6 @@ import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.NullaryFunction;
 

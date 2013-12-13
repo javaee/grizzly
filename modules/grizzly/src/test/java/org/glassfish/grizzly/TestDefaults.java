@@ -53,6 +53,7 @@ import java.nio.channels.SelectionKey;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 
 import static junit.framework.Assert.assertEquals;
+import org.glassfish.grizzly.attributes.AttributeHolder;
 
 public class TestDefaults {
 
@@ -179,6 +180,15 @@ public class TestDefaults {
         public <T> Attribute<T> createAttribute(String name, org.glassfish.grizzly.attributes.NullaryFunction<T> initializer) {
             return null;
         }
+
+        @Override
+        public AttributeHolder createSafeAttributeHolder() {
+            return null;
+        }
         
+        @Override
+        public AttributeHolder createUnsafeAttributeHolder() {
+            return null;
+        }
     } // END TestBuilder
 }

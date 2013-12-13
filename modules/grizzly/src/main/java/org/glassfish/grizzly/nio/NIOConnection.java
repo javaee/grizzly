@@ -58,7 +58,6 @@ import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.AttributeHolder;
-import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
@@ -134,7 +133,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                     }
                 });
         
-        attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
+        attributes = transport.getAttributeBuilder().createSafeAttributeHolder();
     }
 
     @Override

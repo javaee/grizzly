@@ -105,8 +105,6 @@ public interface FilterChain extends Processor<Context>, List<Filter> {
      *
      * @param context processing context
      * @return {@link ProcessorResult}
-     *
-     * @throws IOException
      */
     ProcessorResult execute(FilterChainContext context);
 

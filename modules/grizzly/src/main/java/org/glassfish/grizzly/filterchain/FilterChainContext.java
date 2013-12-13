@@ -132,11 +132,6 @@ public final class FilterChainContext implements AttributeStorage {
     private Operation operation = Operation.NONE;
 
     /**
-     * Custom attribute set, which overrides the {@link #internalContext} attribute set.
-     */
-    private AttributeHolder customAttributes;
-
-    /**
      * {@link CompletionHandler}, which will be notified, when operation will be
      * complete. For WRITE it means the data will be written on wire, for other
      * operations - the last Filter has finished the processing.
@@ -695,7 +690,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.startIdx = 0;
         newContext.filterIdx = 0;
         newContext.endIdx = filterIdx;
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
 
         final ReadResult rr = getFilterChain().read(newContext);
         newContext.completeAndRecycle();
@@ -848,7 +843,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.startIdx = filterIdx - 1;
         newContext.filterIdx = filterIdx - 1;
         newContext.endIdx = -1;
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
 
         ProcessorExecutor.execute(newContext.internalContext);
     }
@@ -864,7 +859,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.startIdx = filterIdx - 1;
         newContext.filterIdx = filterIdx - 1;
         newContext.endIdx = -1;
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
 
         ProcessorExecutor.execute(newContext.internalContext);
     }
@@ -885,7 +880,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.startIdx = filterIdx + 1;
         newContext.filterIdx = filterIdx + 1;
         newContext.endIdx = endIdx;
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
         newContext.operationCompletionHandler = completionHandler;
 
         ProcessorExecutor.execute(newContext.internalContext);
@@ -906,7 +901,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.startIdx =filterIdx - 1;
         newContext.filterIdx = filterIdx - 1;
         newContext.endIdx = -1;
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
         newContext.operationCompletionHandler = completionHandler;
 
         ProcessorExecutor.execute(newContext.internalContext);
@@ -921,11 +916,7 @@ public final class FilterChainContext implements AttributeStorage {
      */
     @Override
     public AttributeHolder getAttributes() {
-        if (customAttributes == null) {
-            return internalContext.getAttributes();
-        }
-        
-        return customAttributes;
+        return internalContext.getAttributes();
     }
 
     /**
@@ -993,7 +984,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.setStartIdx(getStartIdx());
         newContext.setEndIdx(getEndIdx());
         newContext.setFilterIdx(getFilterIdx());
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
 
         notifyCopy(this, newContext, copyListeners);
         return newContext;        
@@ -1011,7 +1002,6 @@ public final class FilterChainContext implements AttributeStorage {
         filterIdx = NO_FILTER_INDEX;
         state = State.RUNNING;
         operationCompletionHandler = null;
-        customAttributes = null;
         operation = Operation.NONE;
         internalContext.reset();
         transportFilterContext.reset();
