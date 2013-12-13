@@ -576,8 +576,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 elem.set(type, messageToStore, appender);
             } else {
                 elem = FilterStateElement.create(type, messageToStore, appender);
+                filtersState.set(operation, filterIdx, elem);
             }
-            filtersState.set(operation, filterIdx, elem);
         }
     }
 
