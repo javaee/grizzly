@@ -60,10 +60,10 @@ public final class DirectByteBufferRecord {
                 ThreadCache.getFromCache(CACHE_IDX);
         if (record != null) {
             return record;
-
         }
-
-        return new DirectByteBufferRecord();
+        final DirectByteBufferRecord recordLocal = new DirectByteBufferRecord();
+        ThreadCache.putToCache(CACHE_IDX, recordLocal);
+        return recordLocal;
     }
     
     
@@ -136,7 +136,6 @@ public final class DirectByteBufferRecord {
         arraySize = 0;
         directBufferSlice = null;
         sliceOffset = 0;
-//        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
     ByteBuffer switchToStrong() {
