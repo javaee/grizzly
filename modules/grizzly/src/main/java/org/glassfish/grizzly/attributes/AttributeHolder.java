@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -110,4 +110,18 @@ public interface AttributeHolder {
      * @return {@link IndexedAttributeAccessor}.
      */
     public IndexedAttributeAccessor getIndexedAttributeAccessor();
+
+    /**
+     * Copies attributes from this <tt>AttributeHolder</tt> to the dstAttributes.
+     * 
+     * @param dstAttributes 
+     */
+    public void copyTo(AttributeHolder dstAttributes);
+
+    /**
+     * Copies attributes from the srcAttributes to this <tt>AttributeHolder</tt>
+     * 
+     * @param srcAttributes 
+     */
+    public void copyFrom(AttributeHolder srcAttributes);
 }

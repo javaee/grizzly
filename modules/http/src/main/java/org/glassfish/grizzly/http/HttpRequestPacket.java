@@ -55,7 +55,6 @@ import java.util.Set;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
-import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 
 /**
  * The {@link HttpHeader} object, which represents HTTP request message.
@@ -109,7 +108,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * and event listeners.
      */
     private final transient AttributeHolder notesHolder =
-            new IndexedAttributeHolder(ATTR_BUILDER);
+            ATTR_BUILDER.createUnsafeAttributeHolder();
 
     /**
      * The attributes associated with this Request, keyed by attribute name.

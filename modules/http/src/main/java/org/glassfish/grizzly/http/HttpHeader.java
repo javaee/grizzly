@@ -48,7 +48,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.ContentType.SettableContentType;
@@ -108,8 +107,8 @@ public abstract class HttpHeader extends HttpPacket
     // <tt>true</tt>, if content encodings for this headers were chosen
     private boolean isContentEncodingsSelected;
 
-    private final AttributeHolder attributes =
-            new IndexedAttributeHolder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
+    private final AttributeHolder attributes = AttributeBuilder
+            .DEFAULT_ATTRIBUTE_BUILDER.createUnsafeAttributeHolder();
     private AttributeHolder activeAttributes;
 
     Buffer headerBuffer;

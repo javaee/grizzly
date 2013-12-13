@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -103,4 +103,18 @@ public interface AttributeBuilder {
      * @return Attribute<T>
      */
     public <T> Attribute<T> createAttribute(String name, NullaryFunction<T> initializer);
+
+    /**
+     * Creates and returns new thread-safe {@link AttributeHolder}
+     * 
+     * @return thread-safe {@link AttributeHolder}
+     */
+    public AttributeHolder createSafeAttributeHolder();
+    
+    /**
+     * Creates and returns new non thread-safe {@link AttributeHolder}
+     * 
+     * @return non thread-safe {@link AttributeHolder}
+     */
+    public AttributeHolder createUnsafeAttributeHolder();
 }

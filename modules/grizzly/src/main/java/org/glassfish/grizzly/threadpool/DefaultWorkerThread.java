@@ -45,7 +45,6 @@ import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.ThreadCache.ObjectCache;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
-import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.memory.ThreadLocalPool;
 
 /**
@@ -69,7 +68,7 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
                                ThreadLocalPool pool,
                                Runnable runTask) {
         super(runTask, name);
-        attributes = new IndexedAttributeHolder(attrBuilder);
+        attributes = attrBuilder.createUnsafeAttributeHolder();
         memoryPool = pool;
 
     }

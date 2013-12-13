@@ -134,11 +134,6 @@ public final class FilterChainContext implements AttributeStorage {
     private Operation operation = Operation.NONE;
 
     /**
-     * Custom attribute set, which overrides the {@link #internalContext} attribute set.
-     */
-    private AttributeHolder customAttributes;
-
-    /**
      * {@link CompletionHandler}, which will be notified, when operation will be
      * complete. For WRITE it means the data will be written on wire, for other
      * operations - the last Filter has finished the processing.
@@ -690,7 +685,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.getInternalContext().setEvent(IOEvent.READ);
         newContext.operation = Operation.READ;
         newContext.transportFilterContext.configureBlocking(true);
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
 
         final ReadResult rr = fc.read(newContext);
         newContext.completeAndRecycle();
@@ -782,7 +777,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.addressHolder = address == null ? addressHolder : Holder.<Object>staticHolder(address);
         newContext.transportFilterContext.completionHandler = completionHandler;
         newContext.transportFilterContext.lifeCycleHandler = lifeCycleHandler;
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
 
         ProcessorExecutor.execute(newContext.internalContext);
     }
@@ -796,7 +791,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.setEvent(TransportFilter.createFlushEvent(completionHandler));
         newContext.transportFilterContext.configureBlocking(transportFilterContext.isBlocking());
         newContext.addressHolder = addressHolder;
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
 
         ProcessorExecutor.execute(newContext.internalContext);
     }
@@ -815,7 +810,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.operation = Operation.UPSTREAM_EVENT;
         newContext.setEvent(event);
         newContext.addressHolder = addressHolder;
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
         newContext.operationCompletionHandler = completionHandler;
 
         ProcessorExecutor.execute(newContext.internalContext);
@@ -835,7 +830,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.operation = Operation.DOWNSTREAM_EVENT;
         newContext.setEvent(event);
         newContext.addressHolder = addressHolder;
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
         newContext.operationCompletionHandler = completionHandler;
 
         ProcessorExecutor.execute(newContext.internalContext);
@@ -850,11 +845,7 @@ public final class FilterChainContext implements AttributeStorage {
      */
     @Override
     public AttributeHolder getAttributes() {
-        if (customAttributes == null) {
-            return internalContext.getAttributes();
-        }
-        
-        return customAttributes;
+        return internalContext.getAttributes();
     }
 
     /**
@@ -919,7 +910,7 @@ public final class FilterChainContext implements AttributeStorage {
         newContext.setOperation(getOperation());
         
         internalContext.softCopyTo(newContext.internalContext);
-        newContext.customAttributes = getAttributes();
+        getAttributes().copyTo(newContext.getAttributes());
         notifyCopy(this, newContext, copyListeners);
         return newContext;        
     }
@@ -935,7 +926,6 @@ public final class FilterChainContext implements AttributeStorage {
         filterReg = startFilterReg = endFilterReg = null;
         state = State.RUNNING;
         operationCompletionHandler = null;
-        customAttributes = null;
         operation = Operation.NONE;
         internalContext.reset();
         transportFilterContext.reset();
