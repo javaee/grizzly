@@ -61,7 +61,6 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
@@ -108,7 +107,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     private volatile int localWindowSize = -1;
     
     private final AttributeHolder attributes =
-            new IndexedAttributeHolder(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER);
+            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createSafeAttributeHolder();
 
     final SpdyInputBuffer inputBuffer;
     final SpdyOutputSink outputSink;

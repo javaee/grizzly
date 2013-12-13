@@ -49,7 +49,6 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.ContentType.SettableContentType;
 import org.glassfish.grizzly.http.util.DataChunk;
@@ -109,7 +108,7 @@ public abstract class HttpHeader extends HttpPacket
     private boolean isContentEncodingsSelected;
 
     private final AttributeHolder attributes =
-            new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createUnsafeAttributeHolder();
     private AttributeHolder activeAttributes;
 
     Buffer headerBuffer;

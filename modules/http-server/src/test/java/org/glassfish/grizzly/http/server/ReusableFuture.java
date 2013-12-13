@@ -51,7 +51,7 @@ import org.glassfish.grizzly.utils.Futures;
  * @author oleksiys
  */
 public final class ReusableFuture<V> implements FutureImpl<V> {
-    private FutureImpl<V> innerFuture;
+    private volatile FutureImpl<V> innerFuture;
 
     public ReusableFuture() {
         reset();
