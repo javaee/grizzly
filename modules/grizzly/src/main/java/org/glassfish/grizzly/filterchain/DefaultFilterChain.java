@@ -324,7 +324,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         final int add = (end - start > 0) ? 1 : -1;
         
         for (int i = end - add; i != start - add; i -= add) {
-            final FilterStateElement element = filtersState.getState(operation, i);
+            final FilterStateElement element = filtersState.get(operation, i);
             if (element != null
                     && element.getType() == FILTER_STATE_TYPE.UNPARSED) {
                 return i;
@@ -533,7 +533,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         final FilterStateElement filterState;
 
         // Check if there is any data stored for the current Filter
-        if (filtersState != null && (filterState = filtersState.clearState(operation, filterIdx)) != null) {
+        if (filtersState != null && (filterState = filtersState.get(operation, filterIdx)) != null &&
+                filterState.isValid) {
             Object storedMessage = filterState.getState();
             final Object currentMessage = ctx.getMessage();
             if (currentMessage != null) {
@@ -544,6 +545,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                     storedMessage = ((Appendable) storedMessage).append(currentMessage);
                 }
             }
+            
+            filterState.reset();
             ctx.setMessage(storedMessage);
         }
     }
@@ -568,8 +571,13 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         if (messageToStore != null) {
             final Operation operation = ctx.getOperation();
 
-            filtersState.setState(operation, filterIdx,
-                    FilterStateElement.create(type, messageToStore, appender));
+            FilterStateElement elem = filtersState.get(operation, filterIdx);
+            if (elem != null) {
+                elem.set(type, messageToStore, appender);
+            } else {
+                elem = FilterStateElement.create(type, messageToStore, appender);
+            }
+            filtersState.set(operation, filterIdx, elem);
         }
     }
 
@@ -606,7 +614,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
     }
 
-    public static final class FiltersState {
+    static final class FiltersState {
         private static final int OPERATIONS_NUM = Operation.values().length;
 
         private final FilterStateElement[][] state;
@@ -615,23 +623,14 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             this.state = new FilterStateElement[OPERATIONS_NUM][filtersNum];
         }
 
-        public FilterStateElement getState(final Operation operation,
+        public FilterStateElement get(final Operation operation,
                 final int filterIndex) {
             return state[operation.ordinal()][filterIndex];
         }
 
-        public void setState(final Operation operation, final int filterIndex,
+        public void set(final Operation operation, final int filterIndex,
                 final FilterStateElement stateElement) {
             state[operation.ordinal()][filterIndex] = stateElement;
-        }
-
-        public FilterStateElement clearState(final Operation operation,
-                final int filterIndex) {
-
-            final int operationIdx = operation.ordinal();
-            final FilterStateElement oldState = state[operationIdx][filterIndex];
-            state[operationIdx][filterIndex] = null;
-            return oldState;
         }
 
         public int indexOf(final Operation operation,
@@ -676,7 +675,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
     }
 
-    public static final class FilterStateElement {
+    static final class FilterStateElement {
 
         public static FilterStateElement create(
                 final FILTER_STATE_TYPE type,
@@ -700,10 +699,11 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             return new FilterStateElement(type, state, appender);
         }
         
-        private final FILTER_STATE_TYPE type;
-        private final Object state;
-        private final Appender appender;
-
+        private FILTER_STATE_TYPE type;
+        private Object state;
+        private Appender appender;
+        private boolean isValid = true;
+        
         private FilterStateElement(FILTER_STATE_TYPE type, Appendable state) {
             this.type = type;
             this.state = state;
@@ -720,6 +720,22 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             return type;
         }
 
+        public void reset() {
+            type = null;
+            state = null;
+            appender = null;
+            isValid = false;
+        }
+        
+        public <E> void set(final FILTER_STATE_TYPE type, final E state,
+                final Appender<E> appender) {
+            this.type = type;
+            this.state = state;
+            this.appender = appender;
+            
+            isValid = true;
+        }
+        
         public Object getState() {
             return state;
         }
