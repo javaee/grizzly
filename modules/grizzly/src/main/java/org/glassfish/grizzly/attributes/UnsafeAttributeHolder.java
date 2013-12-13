@@ -276,7 +276,13 @@ final class UnsafeAttributeHolder implements AttributeHolder {
         }
 
         private Object setAttribute(final Attribute attribute, final Object value) {
-            if (value == null && !isSet) {
+            if (!isSet) {
+                if (value != null) {
+                    // optimized first value set
+                    isSet = true;
+                    h1.set(attribute.index(), value);
+                }
+                
                 return null;
             }
             
