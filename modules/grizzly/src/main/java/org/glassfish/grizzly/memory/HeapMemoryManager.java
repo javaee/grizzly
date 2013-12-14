@@ -337,8 +337,11 @@ public class HeapMemoryManager extends AbstractThreadLocalMemoryManager<HeapBuff
          */
         private byte[] pool;
 
-        private int pos;
-        private int lim;
+        private int leftPos;
+        private int rightPos;
+        
+        private int start;
+        private int end;
 
         private final ByteBuffer[] byteBufferCache;
         private int byteBufferCacheSize = 0;
@@ -356,13 +359,13 @@ public class HeapMemoryManager extends AbstractThreadLocalMemoryManager<HeapBuff
 
         @Override
         public HeapBuffer allocate(final int size) {
-            final HeapBuffer allocated = mm.createTrimAwareBuffer(pool, pos, size);
+            final HeapBuffer allocated = mm.createTrimAwareBuffer(pool, rightPos, size);
             if (byteBufferCacheSize > 0) {
                 allocated.byteBuffer = byteBufferCache[--byteBufferCacheSize];
                 byteBufferCache[byteBufferCacheSize] = null;
             }
 
-            pos += size;
+            rightPos += size;
             return allocated;
         }
 
@@ -373,7 +376,7 @@ public class HeapMemoryManager extends AbstractThreadLocalMemoryManager<HeapBuff
             if (isLastAllocated(heapBuffer)
                     && remaining() >= (diff = (newSize - heapBuffer.cap))) {
 
-                pos += diff;
+                rightPos += diff;
                 heapBuffer.cap = newSize;
                 heapBuffer.lim = newSize;
 
@@ -392,8 +395,19 @@ public class HeapMemoryManager extends AbstractThreadLocalMemoryManager<HeapBuff
             final boolean result;
 
             if (isLastAllocated(heapBuffer)) {
-                pos -= heapBuffer.cap;
+                rightPos -= heapBuffer.cap;
+                
+                if (leftPos == rightPos) {
+                    leftPos = rightPos = start;
+                }
 
+                result = true;
+            } else if (isReleasableLeft(heapBuffer)) {
+                leftPos += heapBuffer.cap;
+                if (leftPos == rightPos) {
+                    leftPos = rightPos = start;
+                }
+                
                 result = true;
             } else if (wantReset(heapBuffer.cap)) {
                 reset(heapBuffer);
@@ -422,8 +436,8 @@ public class HeapMemoryManager extends AbstractThreadLocalMemoryManager<HeapBuff
                 pool = heap;
             }
 
-            pos = offset;
-            lim = offset + capacity;
+            leftPos = rightPos = start = offset;
+            end = offset + capacity;
         }
 
         @Override
@@ -434,35 +448,40 @@ public class HeapMemoryManager extends AbstractThreadLocalMemoryManager<HeapBuff
         @Override
         public boolean isLastAllocated(final HeapBuffer oldHeapBuffer) {
             return oldHeapBuffer.heap == pool &&
-                    (oldHeapBuffer.offset + oldHeapBuffer.cap == pos);
+                    (oldHeapBuffer.offset + oldHeapBuffer.cap == rightPos);
         }
 
+        private boolean isReleasableLeft(final HeapBuffer oldHeapBuffer) {
+            return oldHeapBuffer.heap == pool &&
+                    oldHeapBuffer.offset == leftPos;
+        }
+        
         @Override
         public HeapBuffer reduceLastAllocated(final HeapBuffer heapBuffer) {
             final int newPos = heapBuffer.offset + heapBuffer.cap;
             
-            ProbeNotifier.notifyBufferReleasedToPool(mm.monitoringConfig, pos - newPos);
+            ProbeNotifier.notifyBufferReleasedToPool(mm.monitoringConfig, rightPos - newPos);
 
-            pos = newPos;
+            rightPos = newPos;
 
             return null;
         }
 
         @Override
         public int remaining() {
-            return lim - pos;
+            return end - rightPos;
         }
 
         @Override
         public boolean hasRemaining() {
-            return pos < lim;
+            return rightPos < end;
         }
 
         @Override
         public String toString() {
             return "(pool=" + pool.length +
-                    " pos=" + pos +
-                    " cap=" + lim
+                    " pos=" + rightPos +
+                    " cap=" + end
                     + ')';
         }
 
