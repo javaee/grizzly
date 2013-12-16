@@ -59,6 +59,7 @@
 package org.glassfish.grizzly.http.util;
 
 import org.glassfish.grizzly.Grizzly;
+
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.Writer;
@@ -66,15 +67,16 @@ import java.util.BitSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/** Efficient implementation for encoders.
- *  This class is not thread safe - you need one encoder per thread.
- *  The encoder will save and recycle the internal objects, avoiding
- *  garbage.
+/**
+ * Efficient implementation for encoders.
+ * This class is not thread safe - you need one encoder per thread.
+ * The encoder will save and recycle the internal objects, avoiding
+ * garbage.
+ * <p/>
+ * You can add extra characters that you want preserved, for example
+ * while encoding a URL you can add "/".
  *
- *  You can add extra characters that you want preserved, for example
- *  while encoding a URL you can add "/".
- *
- *  @author Costin Manolache
+ * @author Costin Manolache
  */
 public final class UEncoder {
 
@@ -82,109 +84,122 @@ public final class UEncoder {
 
     // Not static - the set may differ ( it's better than adding
     // an extra check for "/", "+", etc
-    private BitSet safeChars=null;
-    private C2BConverter c2b=null;
-    private ByteChunk bb=null;
+    private BitSet safeChars = null;
+    private C2BConverter c2b = null;
+    private ByteChunk bb = null;
 
-    private String encoding="UTF8";
-    private static final int debug=0;
+    private String encoding = "UTF8";
+    private static final int debug = 0;
 
     public UEncoder() {
-	initSafeChars();
+        initSafeChars();
     }
 
-    public void setEncoding( String s ) {
-	encoding=s;
+    public void setEncoding(String s) {
+        encoding = s;
     }
 
-    public void addSafeCharacter( char c ) {
-	safeChars.set( c );
+    public void addSafeCharacter(char c) {
+        safeChars.set(c);
     }
 
-    /** URL Encode string, using a specified encoding.
-     *  @param buf the {@link Writer} to write the encoded result to.
-     *  @param s the String to encode.
+    /**
+     * URL Encode string, using a specified encoding.
+     *
+     * @param buf the {@link Writer} to write the encoded result to.
+     * @param s   the String to encode.
      */
-    public void urlEncode( Writer buf, String s )
-	        throws IOException {
+    public void urlEncode(Writer buf, String s)
+            throws IOException {
         urlEncode(buf, s, false);
     }
 
-    /** URL Encode string, using a specified encoding.
-     *  @param buf the {@link Writer} to write the encoded result to.
-     *  @param s the String to encode.
-     *  @param toHexUpperCase the hex string will be in upper case
+    /**
+     * URL Encode string, using a specified encoding.
+     *
+     * @param buf            the {@link Writer} to write the encoded result to.
+     * @param s              the String to encode.
+     * @param toHexUpperCase the hex string will be in upper case
      */
-    public void urlEncode( Writer buf, String s, boolean toHexUpperCase )
-	throws IOException
-    {
-	if( c2b==null ) {
-	    bb=new ByteChunk(16); // small enough.
-	    c2b=C2BConverter.getInstance( bb, encoding );
-	}
+    public void urlEncode(Writer buf, String s, boolean toHexUpperCase)
+            throws IOException {
+        if (c2b == null) {
+            bb = new ByteChunk(16); // small enough.
+            c2b = C2BConverter.getInstance(bb, encoding);
+        }
 
-	for (int i = 0; i < s.length(); i++) {
-	    int c = (int) s.charAt(i);
-	    if( safeChars.get( c ) ) {
-		if( debug > 0 ) log("Safe: " + (char)c);
-		buf.write((char)c);
-	    } else {
-		if( debug > 0 ) log("Unsafe:  " + (char)c);
-		c2b.convert( (char)c );
+        for (int i = 0; i < s.length(); i++) {
+            int c = (int) s.charAt(i);
+            if (safeChars.get(c)) {
+                if (debug > 0) {
+                    log("Safe: " + (char) c);
+                }
+                buf.write((char) c);
+            } else {
+                if (debug > 0) {
+                    log("Unsafe:  " + (char) c);
+                }
+                c2b.convert((char) c);
 
-		// "surrogate" - UTF is _not_ 16 bit, but 21 !!!!
-		// ( while UCS is 31 ). Amazing...
-		if (c >= 0xD800 && c <= 0xDBFF) {
-		    if ( (i+1) < s.length()) {
-			int d = (int) s.charAt(i+1);
-			if (d >= 0xDC00 && d <= 0xDFFF) {
-			    if( debug > 0 ) log("Unsafe:  " + c);
-			    c2b.convert( (char)d);
-			    i++;
-			}
-		    }
-		}
+                // "surrogate" - UTF is _not_ 16 bit, but 21 !!!!
+                // ( while UCS is 31 ). Amazing...
+                if (c >= 0xD800 && c <= 0xDBFF) {
+                    if ((i + 1) < s.length()) {
+                        int d = (int) s.charAt(i + 1);
+                        if (d >= 0xDC00 && d <= 0xDFFF) {
+                            if (debug > 0) {
+                                log("Unsafe:  " + c);
+                            }
+                            c2b.convert((char) d);
+                            i++;
+                        }
+                    }
+                }
 
-		urlEncode( buf, bb.getBuffer(), bb.getStart(),
-			   bb.getLength(), toHexUpperCase );
-		bb.recycle();
-	    }
-	}
+                urlEncode(buf, bb.getBuffer(), bb.getStart(),
+                          bb.getLength(), toHexUpperCase);
+                bb.recycle();
+            }
+        }
     }
 
     /**
      */
-    public void urlEncode( Writer buf, byte bytes[], int off, int len)
-	        throws IOException {
+    public void urlEncode(Writer buf, byte bytes[], int off, int len)
+            throws IOException {
         urlEncode(buf, bytes, off, len, false);
     }
 
     /**
      */
-    public void urlEncode( Writer buf, byte bytes[], int off, int len, boolean toHexUpperCase )
-	throws IOException
-    {
-	for( int j=off; j< len; j++ ) {
-	    buf.write( '%' );
-	    char ch = Character.forDigit((bytes[j] >> 4) & 0xF, 16);
-        if (toHexUpperCase) {
-            ch = Character.toUpperCase(ch);
+    public void urlEncode(Writer buf, byte bytes[], int off, int len, boolean toHexUpperCase)
+            throws IOException {
+        for (int j = off; j < len; j++) {
+            buf.write('%');
+            char ch = Character.forDigit((bytes[j] >> 4) & 0xF, 16);
+            if (toHexUpperCase) {
+                ch = Character.toUpperCase(ch);
+            }
+            if (debug > 0) {
+                log("Encode:  " + ch);
+            }
+            buf.write(ch);
+            ch = Character.forDigit(bytes[j] & 0xF, 16);
+            if (toHexUpperCase) {
+                ch = Character.toUpperCase(ch);
+            }
+            if (debug > 0) {
+                log("Encode:  " + ch);
+            }
+            buf.write(ch);
         }
-	    if( debug > 0 ) log("Encode:  " + ch);
-	    buf.write(ch);
-	    ch = Character.forDigit(bytes[j] & 0xF, 16);
-        if (toHexUpperCase) {
-            ch = Character.toUpperCase(ch);
-        }
-	    if( debug > 0 ) log("Encode:  " + ch);
-	    buf.write(ch);
-	}
     }
 
     /**
      * Utility funtion to re-encode the URL.
      * Still has problems with charset, since UEncoder mostly
      * ignores it.
+     *
      * @param url
      */
     public String encodeURL(String url) {
@@ -195,56 +210,57 @@ public final class UEncoder {
      * Utility function to re-encode the URL.
      * Still has problems with charset, since UEncoder mostly
      * ignores it.
-     * @param uri the URI to encode.
+     *
+     * @param uri            the URI to encode.
      * @param toHexUpperCase the hex string will be in upper case
      */
     public String encodeURL(String uri, boolean toHexUpperCase) {
-	String outUri=null;
-	try {
-	    // XXX optimize - recycle, etc
-	    CharArrayWriter out = new CharArrayWriter();
-	    urlEncode(out, uri, toHexUpperCase);
-	    outUri=out.toString();
-	} catch (IOException ignore) {
-	}
-	return outUri;
+        String outUri = null;
+        try {
+            // XXX optimize - recycle, etc
+            CharArrayWriter out = new CharArrayWriter();
+            urlEncode(out, uri, toHexUpperCase);
+            outUri = out.toString();
+        } catch (IOException ignore) {
+        }
+        return outUri;
     }
 
 
     // -------------------- Internal implementation --------------------
 
     private void initSafeChars() {
-	safeChars=new BitSet(128);
-	int i;
-	for (i = 'a'; i <= 'z'; i++) {
-	    safeChars.set(i);
-	}
-	for (i = 'A'; i <= 'Z'; i++) {
-	    safeChars.set(i);
-	}
-	for (i = '0'; i <= '9'; i++) {
-	    safeChars.set(i);
-	}
-	//safe
-	safeChars.set('$');
-	safeChars.set('-');
-	safeChars.set('_');
-	safeChars.set('.');
+        safeChars = new BitSet(128);
+        int i;
+        for (i = 'a'; i <= 'z'; i++) {
+            safeChars.set(i);
+        }
+        for (i = 'A'; i <= 'Z'; i++) {
+            safeChars.set(i);
+        }
+        for (i = '0'; i <= '9'; i++) {
+            safeChars.set(i);
+        }
+        //safe
+        safeChars.set('$');
+        safeChars.set('-');
+        safeChars.set('_');
+        safeChars.set('.');
 
-	// Dangerous: someone may treat this as " "
-	// RFC1738 does allow it, it's not reserved
-	//    safeChars.set('+');
-	//extra
-	safeChars.set('!');
-	safeChars.set('*');
-	safeChars.set('\'');
-	safeChars.set('(');
-	safeChars.set(')');
-	safeChars.set(',');
+        // Dangerous: someone may treat this as " "
+        // RFC1738 does allow it, it's not reserved
+        //    safeChars.set('+');
+        //extra
+        safeChars.set('!');
+        safeChars.set('*');
+        safeChars.set('\'');
+        safeChars.set('(');
+        safeChars.set(')');
+        safeChars.set(',');
     }
 
-    private static void log( String s ) {
-        if (logger.isLoggable(Level.FINE)){
+    private static void log(String s) {
+        if (logger.isLoggable(Level.FINE)) {
             logger.fine(s);
         }
     }
