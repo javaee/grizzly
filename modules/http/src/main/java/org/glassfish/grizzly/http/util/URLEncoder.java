@@ -81,18 +81,23 @@ import java.util.logging.Logger;
 public final class URLEncoder {
 
     private final static Logger logger = Grizzly.logger(URLEncoder.class);
+    
+    private static BitSet initialSafeChars = new BitSet();
+    static {
+        initSafeChars();
+    }
 
     // Not static - the set may differ ( it's better than adding
     // an extra check for "/", "+", etc
-    private BitSet safeChars = null;
-    private C2BConverter c2b = null;
-    private ByteChunk bb = null;
+    private BitSet safeChars;
+    private C2BConverter c2b;
+    private ByteChunk bb;
 
     private String encoding = "UTF8";
     private static final int debug = 0;
 
     public URLEncoder() {
-        initSafeChars();
+        safeChars = (BitSet) initialSafeChars.clone();
     }
 
     public void setEncoding(String s) {
@@ -196,7 +201,7 @@ public final class URLEncoder {
     }
 
     /**
-     * Utility funtion to re-encode the URL.
+     * Utility function to re-encode the URL.
      * Still has problems with charset, since UEncoder mostly
      * ignores it.
      *
@@ -229,34 +234,34 @@ public final class URLEncoder {
 
     // -------------------- Internal implementation --------------------
 
-    private void initSafeChars() {
-        safeChars = new BitSet(128);
+    private static void initSafeChars() {
+        initialSafeChars = new BitSet(128);
         int i;
         for (i = 'a'; i <= 'z'; i++) {
-            safeChars.set(i);
+            initialSafeChars.set(i);
         }
         for (i = 'A'; i <= 'Z'; i++) {
-            safeChars.set(i);
+            initialSafeChars.set(i);
         }
         for (i = '0'; i <= '9'; i++) {
-            safeChars.set(i);
+            initialSafeChars.set(i);
         }
         //safe
-        safeChars.set('$');
-        safeChars.set('-');
-        safeChars.set('_');
-        safeChars.set('.');
+        initialSafeChars.set('$');
+        initialSafeChars.set('-');
+        initialSafeChars.set('_');
+        initialSafeChars.set('.');
 
         // Dangerous: someone may treat this as " "
         // RFC1738 does allow it, it's not reserved
-        //    safeChars.set('+');
+        //    initialSafeChars.set('+');
         //extra
-        safeChars.set('!');
-        safeChars.set('*');
-        safeChars.set('\'');
-        safeChars.set('(');
-        safeChars.set(')');
-        safeChars.set(',');
+        initialSafeChars.set('!');
+        initialSafeChars.set('*');
+        initialSafeChars.set('\'');
+        initialSafeChars.set('(');
+        initialSafeChars.set(')');
+        initialSafeChars.set(',');
     }
 
     private static void log(String s) {
