@@ -72,6 +72,7 @@
                     <instructions>
                         <Import-Package>
                             org.glassfish.grizzly*;version=${project.version},
+                            javax.servlet*;version="[3.0,3.2)",
                             *,
                         </Import-Package>
                         <Export-Package>
@@ -124,7 +125,6 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-server</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
