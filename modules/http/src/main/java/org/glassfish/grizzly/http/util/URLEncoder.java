@@ -82,7 +82,7 @@ public final class URLEncoder {
 
     private final static Logger logger = Grizzly.logger(URLEncoder.class);
     
-    private static BitSet initialSafeChars = new BitSet();
+    private final static BitSet initialSafeChars = new BitSet(128);
     static {
         initSafeChars();
     }
@@ -235,7 +235,6 @@ public final class URLEncoder {
     // -------------------- Internal implementation --------------------
 
     private static void initSafeChars() {
-        initialSafeChars = new BitSet(128);
         int i;
         for (i = 'a'; i <= 'z'; i++) {
             initialSafeChars.set(i);
