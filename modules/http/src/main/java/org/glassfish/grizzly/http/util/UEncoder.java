@@ -81,18 +81,23 @@ import java.util.logging.Logger;
 public final class UEncoder {
 
     private final static Logger logger = Grizzly.logger(UEncoder.class);
+    
+    private static final BitSet initialSafeChars = new BitSet(128);
+    static {
+        initSafeChars();
+    }
 
     // Not static - the set may differ ( it's better than adding
     // an extra check for "/", "+", etc
-    private BitSet safeChars = null;
-    private C2BConverter c2b = null;
-    private ByteChunk bb = null;
+    private BitSet safeChars;
+    private C2BConverter c2b;
+    private ByteChunk bb;
 
     private String encoding = "UTF8";
     private static final int debug = 0;
 
     public UEncoder() {
-        initSafeChars();
+        safeChars = (BitSet) initialSafeChars.clone();
     }
 
     public void setEncoding(String s) {
@@ -229,34 +234,33 @@ public final class UEncoder {
 
     // -------------------- Internal implementation --------------------
 
-    private void initSafeChars() {
-        safeChars = new BitSet(128);
+    private static void initSafeChars() {
         int i;
         for (i = 'a'; i <= 'z'; i++) {
-            safeChars.set(i);
+            initialSafeChars.set(i);
         }
         for (i = 'A'; i <= 'Z'; i++) {
-            safeChars.set(i);
+            initialSafeChars.set(i);
         }
         for (i = '0'; i <= '9'; i++) {
-            safeChars.set(i);
+            initialSafeChars.set(i);
         }
         //safe
-        safeChars.set('$');
-        safeChars.set('-');
-        safeChars.set('_');
-        safeChars.set('.');
+        initialSafeChars.set('$');
+        initialSafeChars.set('-');
+        initialSafeChars.set('_');
+        initialSafeChars.set('.');
 
         // Dangerous: someone may treat this as " "
         // RFC1738 does allow it, it's not reserved
-        //    safeChars.set('+');
+        //    initialSafeChars.set('+');
         //extra
-        safeChars.set('!');
-        safeChars.set('*');
-        safeChars.set('\'');
-        safeChars.set('(');
-        safeChars.set(')');
-        safeChars.set(',');
+        initialSafeChars.set('!');
+        initialSafeChars.set('*');
+        initialSafeChars.set('\'');
+        initialSafeChars.set('(');
+        initialSafeChars.set(')');
+        initialSafeChars.set(',');
     }
 
     private static void log(String s) {
