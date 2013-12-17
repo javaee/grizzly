@@ -196,7 +196,8 @@ public interface Writer<L> {
                     }
                 };
 
-        private static volatile int maxWriteReentrants = 10;
+        private static final int maxWriteReentrants = Integer.getInteger(
+                "org.glassfish.grizzly.Writer.max-write-reentrants", 10);
 
         /**
          * Returns the maximum number of write() method reentrants a thread is
@@ -210,20 +211,6 @@ public interface Writer<L> {
          */
         public static int getMaxReentrants() {
             return maxWriteReentrants;
-        }
-
-        /**
-         * Sets the maximum number of write() method reentrants a thread is
-         * allowed to made. This is related to possible
-         * write()->onComplete()->write()->... chain, which may grow infinitely
-         * and cause StackOverflow. Using maxWriteReentrants value it's possible
-         * to limit such a chain.
-         *
-         * @param maxWriteReentrants the maximum number of write() method calls
-         *                           a thread is allowed to make.
-         */
-        public static void setMaxReentrants(int maxWriteReentrants) {
-            Reentrant.maxWriteReentrants = maxWriteReentrants;
         }
 
         /**

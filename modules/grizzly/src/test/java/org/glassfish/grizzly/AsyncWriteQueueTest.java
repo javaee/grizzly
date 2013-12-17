@@ -503,12 +503,10 @@ public class AsyncWriteQueueTest {
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
 
-            final int maxAllowedReentrants = 10;
+            final int maxAllowedReentrants = Writer.Reentrant.getMaxReentrants();
             final int reentrantsToTest = maxAllowedReentrants * 3;
             
             final AtomicInteger maxReentrantsNoticed = new AtomicInteger();
-
-            Writer.Reentrant.setMaxReentrants(maxAllowedReentrants);
 
             final AtomicInteger packetCounter = new AtomicInteger();
 
