@@ -380,7 +380,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         return ((valueToCheck & (valueToCheck - 1)) == 0);
     }
 
-    public class BufferPool implements Iterable<PoolableByteBufferWrapper> {
+    public class BufferPool {
 
         private final ConcurrentLinkedQueue<PoolableByteBufferWrapper> pool;
 
@@ -437,12 +437,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             return buffer;
         }
         
-        @Override
-        public Iterator<PoolableByteBufferWrapper> iterator() {
-            return pool.iterator();
-        }
-
-
     } // END BufferPool
 
 

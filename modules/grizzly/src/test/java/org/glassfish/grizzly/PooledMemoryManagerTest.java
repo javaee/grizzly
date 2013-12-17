@@ -65,7 +65,7 @@ public class PooledMemoryManagerTest {
         assertEquals(numProcessors, pools.length);
         long consumedMemory = 0;
         for (int i = 0, len = pools.length; i < len; i++) {
-            consumedMemory += pools[i].size() * 4096;
+            consumedMemory += (long) pools[i].size() * 4096;
         }
 
         assertTrue(consumedMemory >= totalMemory);
@@ -190,9 +190,13 @@ public class PooledMemoryManagerTest {
         assertEquals(size, pools[0].size());
 
         // validate all buffers at this stage are of the expected capacity
-        for (final PooledMemoryManager.PoolableByteBufferWrapper bb : mm.getBufferPools()[0]) {
-            assertEquals(4096, bb.capacity());
-        }
+        final PooledMemoryManager.BufferPool pool = mm.getBufferPools()[0];
+        PooledMemoryManager.PoolableByteBufferWrapper first = pool.poll();
+        PooledMemoryManager.PoolableByteBufferWrapper buffer = first;
+        do {
+            assertEquals(4096, buffer.capacity());
+            pool.offer(buffer);
+        } while ((buffer = pool.poll()) != first);
 
     }
 
@@ -401,9 +405,14 @@ public class PooledMemoryManagerTest {
         // buffer is replaced by the first half of the split result.  We need
         // to make sure that the returned result is the that first half, but
         // the full 4096.
-        for (final PooledMemoryManager.PoolableByteBufferWrapper bb : mm.getBufferPools()[0]) {
-            assertEquals(4096, bb.capacity());
-        }
+        PooledMemoryManager.BufferPool pool = mm.getBufferPools()[0];
+        PooledMemoryManager.PoolableByteBufferWrapper first = pool.poll();
+        PooledMemoryManager.PoolableByteBufferWrapper buffer = first;
+        do {
+            assertEquals(4096, buffer.capacity());
+            pool.offer(buffer);
+        } while ((buffer = pool.poll()) != first);
+        pool.offer(buffer);
 
         // = time to mix it up a bit ====
         b = (PooledMemoryManager.PoolableByteBufferWrapper) mm.allocate(4096);
@@ -427,9 +436,12 @@ public class PooledMemoryManagerTest {
 
         // split was performed at some point, make sure all buffers have
         // the expected capacities within the pool
-        for (final PooledMemoryManager.PoolableByteBufferWrapper bb : mm.getBufferPools()[0]) {
-            assertEquals(4096, bb.capacity());
-        }
+        pool = mm.getBufferPools()[0];
+        buffer = first = pool.poll();
+        do {
+            assertEquals(4096, buffer.capacity());
+            pool.offer(buffer);
+        } while ((buffer = pool.poll()) != first);
     }
 
 }
