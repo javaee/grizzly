@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,49 +38,26 @@
  * holder.
  */
 
-package org.glassfish.grizzly.nio.transport;
+package org.glassfish.grizzly.asyncqueue;
 
-import java.io.IOException;
-import java.net.SocketAddress;
-import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
-import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
-import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueReader;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.ReadResult;
 
 /**
- * The UDP transport {@link AsyncQueueReader} implementation, based on
- * the Java NIO
+ * Read result associated with a {@link AsyncWriteQueueRecord}.
  *
  * @author Alexey Stashok
  */
-public final class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
-    public UDPNIOAsyncQueueReader(NIOTransport transport) {
-        super(transport);
-    }
+final class RecordReadResult<K, L> extends ReadResult<K, L> {
 
     @Override
-    protected int read0(Connection connection, Buffer buffer,
-            ReadResult<Buffer, SocketAddress> currentResult) throws IOException {
-        return ((UDPNIOTransport) transport).read((UDPNIOConnection) connection,
-                buffer, currentResult);
+    protected void set(final Connection connection, final K message,
+            final L srcAddress, final int readSize) {
+        super.set(connection, message, srcAddress, readSize);
     }
-
-    protected void addRecord(Connection connection,
-            Buffer buffer,
-            CompletionHandler completionHandler,
-            Interceptor<ReadResult> interceptor) {
-        
-        final AsyncReadQueueRecord record = AsyncReadQueueRecord.create(
-                connection, buffer,
-                completionHandler, interceptor);
-        ((UDPNIOConnection) connection).getAsyncReadQueue().offer(record);
-    }
-
+    
     @Override
-    protected void onReadyToRead(Connection connection) throws IOException {
-        final NIOConnection nioConnection = (NIOConnection) connection;
-        nioConnection.enableIOEvent(IOEvent.READ);
+    public void recycle() {
+        reset();
     }
 }

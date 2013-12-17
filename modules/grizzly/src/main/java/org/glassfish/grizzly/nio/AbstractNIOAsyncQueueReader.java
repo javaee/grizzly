@@ -103,15 +103,13 @@ public abstract class AbstractNIOAsyncQueueReader
                 ((NIOConnection) connection).getAsyncReadQueue();
 
 
-        final ReadResult<Buffer, SocketAddress> currentResult =
-                ReadResult.create(connection,
-                        buffer, null, 0);
-
         // create and initialize the read queue record
         final AsyncReadQueueRecord queueRecord = AsyncReadQueueRecord.create(
-                connection, buffer, currentResult,
-                completionHandler, interceptor);
+                connection, buffer, completionHandler, interceptor);
 
+        final ReadResult<Buffer, SocketAddress> currentResult =
+                queueRecord.getCurrentResult();
+        
         final boolean isCurrent = (connectionQueue.reserveSpace(1) == 1);
 
         try {

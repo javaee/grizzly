@@ -374,8 +374,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         }
 
         public CompositeQueueRecord(final Connection connection) {
-            super(connection, null, null, null,
-                    null, null, false);
+            super(connection, null, null, null, null, false);
         }
 
         public void append(final AsyncWriteQueueRecord queueRecord) {
@@ -392,11 +391,6 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         public boolean isFinished() {
             return size == 0;
         }
-
-//        @Override
-//        public boolean isChecked() {
-//            return true;
-//        }
 
         @Override
         public boolean canBeAggregated() {

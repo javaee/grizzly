@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,34 +54,32 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
     
     public static AsyncReadQueueRecord create(final Connection connection,
             final Buffer message,
-            final ReadResult currentResult, CompletionHandler completionHandler,
+            final CompletionHandler completionHandler,
             final Interceptor<ReadResult> interceptor) {
 
         final AsyncReadQueueRecord asyncReadQueueRecord =
                 ThreadCache.takeFromCache(CACHE_IDX);
         
         if (asyncReadQueueRecord != null) {
+            asyncReadQueueRecord.set(connection, message,
+                    completionHandler, interceptor);
             asyncReadQueueRecord.isRecycled = false;
-            asyncReadQueueRecord.interceptor = interceptor;
-            asyncReadQueueRecord.set(connection, message, currentResult,
-                    completionHandler);
             return asyncReadQueueRecord;
         }
 
         return new AsyncReadQueueRecord(connection, message,
-                currentResult, completionHandler, interceptor);
+                completionHandler, interceptor);
     }
 
     protected Interceptor interceptor;
+    private final RecordReadResult readResult = new RecordReadResult();
     
     private AsyncReadQueueRecord(final Connection connection,
             final Buffer message,
-            final ReadResult currentResult,
             final CompletionHandler completionHandler,
             final Interceptor<ReadResult> interceptor) {
         
-        super(connection, message, currentResult, completionHandler);
-        this.interceptor = interceptor;
+        set(connection, message, completionHandler, interceptor);
     }
 
     public final Interceptor getInterceptor() {
@@ -92,17 +90,32 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
     @SuppressWarnings("unchecked")
     public final void notifyComplete() {
         if (completionHandler != null) {
-            completionHandler.completed(currentResult);
+            completionHandler.completed(readResult);
         }
     }
     
     public boolean isFinished() {
-        return currentResult.getReadSize() > 0
+        return readResult.getReadSize() > 0
                 || !((Buffer) message).hasRemaining();
+    }
+
+    @Override
+    public ReadResult getCurrentResult() {
+        return readResult;
+    }
+    
+    protected final void set(final Connection connection,
+            final Object message, final CompletionHandler completionHandler,
+            final Interceptor interceptor) {
+        set(connection, message, completionHandler);
+        this.interceptor = interceptor;
+        
+        readResult.set(connection, message, null, 0);
     }
     
     protected final void reset() {
-        set(null, null, null, null);
+        set(null, null, null);
+        readResult.recycle(); // reset the ReadResult
         interceptor = null;
     }
 

@@ -195,12 +195,9 @@ public abstract class AbstractNIOAsyncQueueWriter
 
         final NIOConnection nioConnection = (NIOConnection) connection;
 
-        final WriteResult<WritableMessage, SocketAddress> currentResult =
-                WriteResult.create(nioConnection, message, dstAddress, 0);
-
         // create and initialize the write queue record
         final AsyncWriteQueueRecord queueRecord = createRecord(
-                nioConnection, message, currentResult, completionHandler,
+                nioConnection, message, completionHandler,
                 dstAddress, pushBackHandler,
                 !message.hasRemaining() || message.isExternal());
 
@@ -542,14 +539,12 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     protected AsyncWriteQueueRecord createRecord(final Connection connection,
             final WritableMessage message,
-            final WriteResult<WritableMessage, SocketAddress> currentResult,
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final SocketAddress dstAddress,
             final PushBackHandler pushBackHandler,
             final boolean isEmptyRecord) {
         return AsyncWriteQueueRecord.create(connection, message,
-                currentResult, completionHandler, dstAddress, pushBackHandler,
-                isEmptyRecord);
+                completionHandler, dstAddress, pushBackHandler, isEmptyRecord);
     }
     
     /**
