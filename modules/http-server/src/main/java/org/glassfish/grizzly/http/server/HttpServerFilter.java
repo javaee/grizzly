@@ -64,6 +64,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 
 import org.glassfish.grizzly.http.util.Header;
 
@@ -410,28 +412,31 @@ public class HttpServerFilter extends BaseFilter
      * The {@link CompletionHandler} to be used to make sure the response data
      * have been flushed.
      */
-    private class FlushResponseHandler
+    private final class FlushResponseHandler
             extends EmptyCompletionHandler<Object>
             implements AfterServiceListener{
 
+        private final FilterChainEvent event = TransportFilter.createFlushEvent(this);
+        
         @Override
         public void cancelled() {
             onRequestCompleteAndResponseFlushed();
         }
 
         @Override
-        public void failed(Throwable throwable) {
+        public void failed(final Throwable throwable) {
             onRequestCompleteAndResponseFlushed();
         }
 
         @Override
-        public void completed(Object result) {
+        public void completed(final Object result) {
             onRequestCompleteAndResponseFlushed();
         }
 
         @Override
-        public void onAfterService(Request request) {
-            request.getContext().flush(this);
+        public void onAfterService(final Request request) {
+            // same as request.getContext().flush(this), but less garbage
+            request.getContext().notifyDownstream(event);
         }
     }
 }
