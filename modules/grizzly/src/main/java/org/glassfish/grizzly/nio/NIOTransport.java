@@ -694,22 +694,7 @@ public abstract class NIOTransport extends AbstractTransport
     protected boolean processOpRead(final NIOConnection nioConnection)
             throws IOException {
         return strategy.executeIOEvent(nioConnection, IOEvent.READ,
-                new IOStrategy.DecisionListener() {
-
-            @Override
-            public EventProcessingHandler goSync(Connection connection,
-                    IOEvent ioEvent) {
-                return ENABLED_READ_PROCESSING_HANDLER;
-            }
-
-            @Override
-            public EventProcessingHandler goAsync(Connection connection,
-                    IOEvent ioEvent) throws IOException {
-                ((NIOConnection) connection).deregisterKeyInterest(
-                        SelectionKey.OP_READ);
-                return DISABLED_READ_PROCESSING_HANDLER;
-            }
-        });
+                DECISION_LISTENER);
     }
 
     protected boolean processOpWrite(final NIOConnection connection)
@@ -763,6 +748,9 @@ public abstract class NIOTransport extends AbstractTransport
     private static final EventProcessingHandler DISABLED_READ_PROCESSING_HANDLER =
             new DisabledReadProcessingHandler();
     
+    private static final IOStrategy.DecisionListener DECISION_LISTENER =
+            new TransportDecisionListener();
+    
     private final static class EnabledReadProcessingHandler
             extends EventProcessingHandler.Adapter {
 
@@ -793,6 +781,24 @@ public abstract class NIOTransport extends AbstractTransport
         }
     }
     
+    private final static class TransportDecisionListener
+                                implements IOStrategy.DecisionListener {
+            
+            @Override
+            public EventProcessingHandler goSync(Connection connection,
+                    IOEvent ioEvent) {
+                return ENABLED_READ_PROCESSING_HANDLER;
+            }
+
+            @Override
+            public EventProcessingHandler goAsync(Connection connection,
+                    IOEvent ioEvent) throws IOException {
+                ((NIOConnection) connection).deregisterKeyInterest(
+                        SelectionKey.OP_READ);
+                return DISABLED_READ_PROCESSING_HANDLER;
+            }
+        };
+
     protected int getDefaultSelectorRunnersCount() {
         return Runtime.getRuntime().availableProcessors();
     }
