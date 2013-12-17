@@ -89,16 +89,31 @@ public class HttpContent extends HttpPacket
     }
 
     public static HttpContent create(final HttpHeader httpHeader) {
+        return create(httpHeader, false);
+    }
+
+    public static HttpContent create(final HttpHeader httpHeader,
+            final boolean isLast) {
+        return create(httpHeader, isLast, Buffers.EMPTY_BUFFER);
+    }
+    
+    public static HttpContent create(final HttpHeader httpHeader,
+            final boolean isLast, Buffer content) {
+        content = content != null ? content : Buffers.EMPTY_BUFFER;
+        
         final HttpContent httpContent =
                 ThreadCache.takeFromCache(CACHE_IDX);
         if (httpContent != null) {
             httpContent.httpHeader = httpHeader;
+            httpContent.isLast = isLast;
+            httpContent.content = content;
+            
             return httpContent;
         }
 
-        return new HttpContent(httpHeader);
+        return new HttpContent(httpHeader, isLast, content);
     }
-
+    
     /**
      * Returns {@link HttpContent} builder.
      * 
@@ -119,10 +134,17 @@ public class HttpContent extends HttpPacket
         this(null);
     }
 
-    protected HttpContent(HttpHeader httpHeader) {
+    protected HttpContent(final HttpHeader httpHeader) {
         this.httpHeader = httpHeader;
     }
 
+    protected HttpContent(final HttpHeader httpHeader, final boolean isLast,
+            final Buffer content) {
+        this.httpHeader = httpHeader;
+        this.isLast = isLast;
+        this.content = content;
+    }
+    
     /**
      * Get the HTTP message content {@link Buffer}.
      *

@@ -558,8 +558,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             // We expect more content
             if (!wasHeaderParsed) { // If HTTP header was just parsed
                 // create empty message, which contains headers
-                final HttpContent emptyContent =
-                        HttpContent.builder(httpHeader).last(false).build();
+                final HttpContent emptyContent = HttpContent.create(httpHeader);
 
                 HttpProbeNotifier.notifyContentChunkParse(this,
                         connection, emptyContent);
@@ -572,7 +571,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         } else { // We don't expect content
             // process headers
             onHttpPacketParsed(httpHeader, ctx);
-            final HttpContent emptyContent = HttpContent.builder(httpHeader).last(true).build();
+            final HttpContent emptyContent = HttpContent.create(httpHeader, true);
 
             HttpProbeNotifier.notifyContentChunkParse(this,
                     connection, emptyContent);
@@ -1181,7 +1180,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                 // Instruct filterchain to continue the processing.
                 return ctx.getInvokeAction(hasRemainder ? remainderBuffer : null);
             } else if (hasRemainder) {
-                final HttpContent emptyContent = HttpContent.builder(httpHeader).last(isLast).build();
+                final HttpContent emptyContent = HttpContent.create(httpHeader, isLast);
+                
                 HttpProbeNotifier.notifyContentChunkParse(this, connection, emptyContent);
                 // Instruct filterchain to continue the processing.
                 ctx.setMessage(emptyContent);
@@ -1190,7 +1190,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         }
 
         if (!wasHeaderParsed || isLast) {
-            final HttpContent emptyContent = HttpContent.builder(httpHeader).last(isLast).build();
+            final HttpContent emptyContent = HttpContent.create(httpHeader, isLast);
             HttpProbeNotifier.notifyContentChunkParse(this, connection, emptyContent);
             ctx.setMessage(emptyContent);
             return ctx.getInvokeAction(hasRemainder ? remainderBuffer : null);
