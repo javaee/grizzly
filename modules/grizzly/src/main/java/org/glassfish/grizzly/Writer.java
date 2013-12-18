@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -168,13 +168,14 @@ public interface Writer<L> {
         private static final ThreadLocal<Reentrant> REENTRANTS_COUNTER =
                 new ThreadLocal<Reentrant>() {
 
-            @Override
-            protected Reentrant initialValue() {
-                return new Reentrant();
-            }
-        };
-        
-        private static volatile int maxWriteReentrants = 10;
+                    @Override
+                    protected Reentrant initialValue() {
+                        return new Reentrant();
+                    }
+                };
+
+        private static final int maxWriteReentrants = Integer.getInteger(
+                "org.glassfish.grizzly.Writer.max-write-reentrants", 10);
 
         /**
          * Returns the maximum number of write() method reentrants a thread is
@@ -188,20 +189,6 @@ public interface Writer<L> {
          */
         public static int getMaxReentrants() {
             return maxWriteReentrants;
-        }
-
-        /**
-         * Sets the maximum number of write() method reentrants a thread is
-         * allowed to made. This is related to possible
-         * write()->onComplete()->write()->... chain, which may grow infinitely
-         * and cause StackOverflow. Using maxWriteReentrants value it's possible
-         * to limit such a chain.
-         *
-         * @param maxWriteReentrants the maximum number of write() method calls
-         * a thread is allowed to make.
-         */
-        public static void setMaxReentrants(int maxWriteReentrants) {
-            Reentrant.maxWriteReentrants = maxWriteReentrants;
         }
 
         /**
