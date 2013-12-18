@@ -44,7 +44,6 @@ import org.glassfish.grizzly.Buffer;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
@@ -207,7 +206,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         BuffersBuffer newBuffer;
         boolean appendable = false;
         final int pos = oldBuffer.position();
-        if (oldBuffer instanceof PoolableByteBufferWrapper) {
+        if (oldBuffer instanceof PoolBuffer) {
             newBuffer = BuffersBuffer.create(this);
             oldBuffer.position(0);
             final int cap = oldBuffer.capacity();
@@ -232,7 +231,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         final int totalBufferCount = estimateBufferArraySize(newSize);
         int bufferDiffCount = totalBufferCount - newBuffer.buffersSize;
         if (bufferDiffCount == 0) {
-            PoolableByteBufferWrapper p = (PoolableByteBufferWrapper)
+            PoolBuffer p = (PoolBuffer)
                     newBuffer.buffers[newBuffer.buffersSize - 1];
             p.limit(bufferSize - (((totalBufferCount * bufferSize)) - newSize));
             newBuffer.limit(newSize);
@@ -240,7 +239,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         } else {
             BufferPool pool = getPool();
             for (int i = 0; i < bufferDiffCount; i++) {
-                PoolableByteBufferWrapper p = pool.poll();
+                PoolBuffer p = pool.poll();
                 if (p == null) {
                     p = pool.allocate();
                 }
@@ -347,7 +346,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
     private Buffer allocateSingle() {
         final BufferPool pool = getPool();
-        PoolableByteBufferWrapper p = pool.poll();
+        PoolBuffer p = pool.poll();
         if (p == null) {
             p = pool.allocate();
         }
@@ -360,7 +359,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         Buffer[] buffers = new Buffer[estimateBufferArraySize(size)];
         BufferPool pool = getPool();
         for (int i = 0, len = buffers.length; i < len; i++) {
-            PoolableByteBufferWrapper p = pool.poll();
+            PoolBuffer p = pool.poll();
             if (p == null) {
                 p = pool.allocate();
             }
@@ -382,17 +381,17 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
     public class BufferPool {
 
-        private final ConcurrentLinkedQueue<PoolableByteBufferWrapper> pool;
+        private final ConcurrentLinkedQueue<PoolBuffer> pool;
 
 
         // -------------------------------------------------------- Constructors
 
 
         BufferPool(final long totalPoolSize, final int bufferSize) {
-            pool = new ConcurrentLinkedQueue<PoolableByteBufferWrapper>();
+            pool = new ConcurrentLinkedQueue<PoolBuffer>();
             long mem = 0;
             while (mem < totalPoolSize) {
-                PoolableByteBufferWrapper b = allocate();
+                PoolBuffer b = allocate();
                 b.allowBufferDispose(true);
                 pool.offer(b);
                 mem += bufferSize;
@@ -403,8 +402,8 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         // --------------------------------------------- Package Private Methods
 
 
-        public final PoolableByteBufferWrapper poll() {
-            final PoolableByteBufferWrapper buffer = pool.poll();
+        public final PoolBuffer poll() {
+            final PoolBuffer buffer = pool.poll();
             if (buffer != null) {
                 ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig, bufferSize);
             }
@@ -412,7 +411,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             return buffer;
         }
 
-        public final boolean offer(final PoolableByteBufferWrapper b) {
+        public final boolean offer(final PoolBuffer b) {
             if (pool.offer(b)) {
                 ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig, bufferSize);
                 return true;
@@ -429,8 +428,8 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             pool.clear();
         }
 
-        public PoolableByteBufferWrapper allocate() {
-            final PoolableByteBufferWrapper buffer = new PoolableByteBufferWrapper(
+        public PoolBuffer allocate() {
+            final PoolBuffer buffer = new PoolBuffer(
                     ByteBuffer.allocate(bufferSize),
                     this);
             ProbeNotifier.notifyBufferAllocated(monitoringConfig, bufferSize);
@@ -440,7 +439,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     } // END BufferPool
 
 
-    public static class PoolableByteBufferWrapper extends ByteBufferWrapper {
+    public static class PoolBuffer extends ByteBufferWrapper {
 
         // The pool to which this Buffer instance will be returned.
         private final BufferPool owner;
@@ -456,7 +455,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
         // represents the original buffer from the pool.  This value will be
         // non-null in any 'child' buffers created from the original.
-        protected final PoolableByteBufferWrapper source;
+        protected final PoolBuffer source;
 
         // Used for the special case of the split() method.  This maintains
         // the original wrapper from the pool which must ultimately be returned.
@@ -468,27 +467,27 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
 
         /**
-         * Creates a new PoolableByteBufferWrapper instance wrapping the specified
+         * Creates a new PoolBuffer instance wrapping the specified
          * {@link java.nio.ByteBuffer}.
          *
          * @param underlyingByteBuffer the {@link java.nio.ByteBuffer} instance to wrap.
          * @param owner the {@link org.glassfish.grizzly.memory.PooledMemoryManager.BufferPool} that owns
-         *              this <tt>PoolableByteBufferWrapper</tt> instance.
+         *              this <tt>PoolBuffer</tt> instance.
          */
-        PoolableByteBufferWrapper(final ByteBuffer underlyingByteBuffer,
-                                  final BufferPool owner) {
+        PoolBuffer(final ByteBuffer underlyingByteBuffer,
+                   final BufferPool owner) {
             this(underlyingByteBuffer, owner, null, new AtomicInteger());
         }
 
         /**
-         * Creates a new PoolableByteBufferWrapper instance wrapping the specified
+         * Creates a new PoolBuffer instance wrapping the specified
          * {@link java.nio.ByteBuffer}.
          *
          * @param underlyingByteBuffer the {@link java.nio.ByteBuffer} instance to wrap.
          * @param owner                the {@link org.glassfish.grizzly.memory.PooledMemoryManager.BufferPool} that owns
-         *                             this <tt>PoolableByteBufferWrapper</tt> instance.
+         *                             this <tt>PoolBuffer</tt> instance.
          *                             May be <tt>null</tt>.
-         * @param source               the <tt>PoolableByteBufferWrapper</tt> that is the
+         * @param source               the <tt>PoolBuffer</tt> that is the
          *                             'parent' of this new buffer instance.  May be <tt>null</tt>.
          * @param shareCount          shared reference to an {@link java.util.concurrent.atomic.AtomicInteger} that enables
          *                             shared buffer book-keeping.
@@ -496,10 +495,10 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          * @throws IllegalArgumentException if <tt>underlyingByteBuffer</tt> or <tt>shareCount</tt>
          *                                  are <tt>null</tt>.
          */
-        private PoolableByteBufferWrapper(final ByteBuffer underlyingByteBuffer,
-                                          final BufferPool owner,
-                                          final PoolableByteBufferWrapper source,
-                                          final AtomicInteger shareCount) {
+        private PoolBuffer(final ByteBuffer underlyingByteBuffer,
+                           final BufferPool owner,
+                           final PoolBuffer source,
+                           final AtomicInteger shareCount) {
             super(underlyingByteBuffer);
             if (underlyingByteBuffer == null) {
                 throw new IllegalArgumentException("underlyingByteBuffer cannot be null.");
@@ -571,7 +570,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         protected final void checkDispose() {
             if (free) {
                 throw new IllegalStateException(
-                        "PoolableByteBufferWrapper has already been disposed",
+                        "PoolBuffer has already been disposed",
                         disposeStackTrace);
             }
         }
@@ -645,8 +644,8 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
 
         private ByteBufferWrapper wrap(ByteBuffer buffer) {
-            final PoolableByteBufferWrapper b =
-                    new PoolableByteBufferWrapper(buffer,
+            final PoolBuffer b =
+                    new PoolBuffer(buffer,
                             null, // don't keep track of the owner for child buffers
                             ((source == null) ? this : source), // pass the 'parent' buffer along
                             shareCount); // pass the shareCount
@@ -656,5 +655,5 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             return b;
         }
 
-    } // END PoolableByteBufferWrapper
+    } // END PoolBuffer
 }

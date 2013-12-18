@@ -191,8 +191,8 @@ public class PooledMemoryManagerTest {
 
         // validate all buffers at this stage are of the expected capacity
         final PooledMemoryManager.BufferPool pool = mm.getBufferPools()[0];
-        PooledMemoryManager.PoolableByteBufferWrapper first = pool.poll();
-        PooledMemoryManager.PoolableByteBufferWrapper buffer = first;
+        PooledMemoryManager.PoolBuffer first = pool.poll();
+        PooledMemoryManager.PoolBuffer buffer = first;
         do {
             assertEquals(4096, buffer.capacity());
             pool.offer(buffer);
@@ -336,7 +336,7 @@ public class PooledMemoryManagerTest {
 
         // === duplicate ================
         final int unusedPoolSize = mm.getBufferPools()[0].size();
-        PooledMemoryManager.PoolableByteBufferWrapper b = (PooledMemoryManager.PoolableByteBufferWrapper)
+        PooledMemoryManager.PoolBuffer b = (PooledMemoryManager.PoolBuffer)
                 mm.allocate(4096); // allocate a single buffer
         assertEquals(unusedPoolSize - 1, mm.getBufferPools()[0].size());
         Buffer duplicate = b.duplicate();
@@ -353,7 +353,7 @@ public class PooledMemoryManagerTest {
         assertEquals(unusedPoolSize, mm.getBufferPools()[0].size());
 
         // === read-only ================
-        b = (PooledMemoryManager.PoolableByteBufferWrapper) mm.allocate(4096);
+        b = (PooledMemoryManager.PoolBuffer) mm.allocate(4096);
         assertEquals(unusedPoolSize - 1, mm.getBufferPools()[0].size());
         Buffer readOnlyBuffer = b.asReadOnlyBuffer();
         // pool size remains constant after duplicate
@@ -369,7 +369,7 @@ public class PooledMemoryManagerTest {
         assertEquals(unusedPoolSize, mm.getBufferPools()[0].size());
 
         // === slice ====================
-        b = (PooledMemoryManager.PoolableByteBufferWrapper) mm.allocate(4096);
+        b = (PooledMemoryManager.PoolBuffer) mm.allocate(4096);
         assertEquals(unusedPoolSize - 1, mm.getBufferPools()[0].size());
         b.position(10);
         Buffer slicedBuffer = b.asReadOnlyBuffer();
@@ -386,7 +386,7 @@ public class PooledMemoryManagerTest {
         assertEquals(unusedPoolSize, mm.getBufferPools()[0].size());
 
         // === split ====================
-        b = (PooledMemoryManager.PoolableByteBufferWrapper) mm.allocate(4096);
+        b = (PooledMemoryManager.PoolBuffer) mm.allocate(4096);
         assertEquals(unusedPoolSize - 1, mm.getBufferPools()[0].size());
         Buffer splitBuffer = b.split(2048);
         // pool size remains constant after duplicate
@@ -406,8 +406,8 @@ public class PooledMemoryManagerTest {
         // to make sure that the returned result is the that first half, but
         // the full 4096.
         PooledMemoryManager.BufferPool pool = mm.getBufferPools()[0];
-        PooledMemoryManager.PoolableByteBufferWrapper first = pool.poll();
-        PooledMemoryManager.PoolableByteBufferWrapper buffer = first;
+        PooledMemoryManager.PoolBuffer first = pool.poll();
+        PooledMemoryManager.PoolBuffer buffer = first;
         do {
             assertEquals(4096, buffer.capacity());
             pool.offer(buffer);
@@ -415,7 +415,7 @@ public class PooledMemoryManagerTest {
         pool.offer(buffer);
 
         // = time to mix it up a bit ====
-        b = (PooledMemoryManager.PoolableByteBufferWrapper) mm.allocate(4096);
+        b = (PooledMemoryManager.PoolBuffer) mm.allocate(4096);
         assertEquals(unusedPoolSize - 1, mm.getBufferPools()[0].size());
         duplicate = b.duplicate();
         splitBuffer = duplicate.split(2048);
