@@ -41,6 +41,7 @@ package org.glassfish.grizzly.utils;
 
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Copyable;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -49,7 +50,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.impl.UnsafeFutureImpl;
 
 /**
- * Set of {@Future} utilities.
+ * Set of {@link Future} utilities.
  *
  * @author Alexey Stashok
  */
@@ -236,7 +237,11 @@ public class Futures {
         }
 
         @Override
-        public void completed(final E result) {
+        @SuppressWarnings("unchecked")
+        public void completed(E result) {
+            if (result instanceof Copyable) {
+                result = (E) ((Copyable) result).copy();
+            }
             future.result(result);
         }
 

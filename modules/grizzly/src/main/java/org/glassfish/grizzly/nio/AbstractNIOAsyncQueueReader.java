@@ -82,7 +82,7 @@ public abstract class AbstractNIOAsyncQueueReader
      */
     @Override
     public void read(
-            final Connection connection, Buffer buffer,
+            final Connection<SocketAddress> connection, Buffer buffer,
             final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
             final Interceptor<ReadResult> interceptor) {
 

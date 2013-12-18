@@ -70,7 +70,7 @@ public abstract class TemporarySelectorWriter
      * {@inheritDoc}
      */
     @Override
-    public void write(final Connection connection,
+    public void write(final Connection<SocketAddress> connection,
             final SocketAddress dstAddress, final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final MessageCloner<WritableMessage> messageCloner) {
@@ -88,7 +88,7 @@ public abstract class TemporarySelectorWriter
     @Deprecated
     @Override
     public void write(
-            Connection connection, SocketAddress dstAddress,
+            Connection<SocketAddress> connection, SocketAddress dstAddress,
             WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler) {
@@ -109,7 +109,7 @@ public abstract class TemporarySelectorWriter
      *        which will get notified, when write will be completed
      */
     public void write(
-            Connection connection, SocketAddress dstAddress, WritableMessage message,
+            Connection<SocketAddress> connection, SocketAddress dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             long timeout, TimeUnit timeunit) {
         write(connection, dstAddress, message, completionHandler, null, timeout, timeunit);
@@ -126,7 +126,7 @@ public abstract class TemporarySelectorWriter
      *        which will get notified, when write will be completed
      */
     public void write(
-            Connection connection, SocketAddress dstAddress, WritableMessage message,
+            Connection<SocketAddress> connection, SocketAddress dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler,
             long timeout, TimeUnit timeunit) {

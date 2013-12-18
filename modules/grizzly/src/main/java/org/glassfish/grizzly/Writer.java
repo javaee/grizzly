@@ -53,6 +53,8 @@ import org.glassfish.grizzly.asyncqueue.WritableMessage;
  * {@link org.glassfish.grizzly.asyncqueue.AsyncQueueWriter},
  * {@link org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter}.
  *
+ * @param <L> the writer address type
+ * 
  * @author Alexey Stashok
  */
 @SuppressWarnings("deprecation")
@@ -66,7 +68,7 @@ public interface Writer<L> {
      * @return {@link Future}, using which it's possible to check the
      *         result
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
+    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection<L> connection,
             WritableMessage message) throws IOException;
 
     /**
@@ -78,7 +80,7 @@ public interface Writer<L> {
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      */
-    public void write(Connection connection,
+    public void write(Connection<L> connection,
             WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
 
@@ -93,7 +95,7 @@ public interface Writer<L> {
      * @return {@link Future}, using which it's possible to check the
      *         result
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection connection,
+    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection<L> connection,
             L dstAddress, WritableMessage message);
 
     /**
@@ -107,7 +109,7 @@ public interface Writer<L> {
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      */
-    public void write(Connection connection,
+    public void write(Connection<L> connection,
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
     
@@ -126,7 +128,7 @@ public interface Writer<L> {
      * @deprecated push back logic is deprecated
      */
     public void write(
-            Connection connection,
+            Connection<L> connection,
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
             org.glassfish.grizzly.asyncqueue.PushBackHandler pushBackHandler);
@@ -146,7 +148,7 @@ public interface Writer<L> {
      *          current thread.
      */
     public void write(
-            Connection connection,
+            Connection<L> connection,
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
             MessageCloner<WritableMessage> messageCloner);

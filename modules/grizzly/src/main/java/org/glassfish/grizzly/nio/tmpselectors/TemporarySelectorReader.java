@@ -69,7 +69,7 @@ public abstract class TemporarySelectorReader
 
     @Override
     public void read(
-            Connection connection, Buffer message,
+            Connection<SocketAddress> connection, Buffer message,
             CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
             Interceptor<ReadResult> interceptor) {
         read(connection, message, completionHandler,
@@ -92,7 +92,7 @@ public abstract class TemporarySelectorReader
      * @throws java.io.IOException
      */
     public void read(
-            final Connection connection, final Buffer message,
+            final Connection<SocketAddress> connection, final Buffer message,
             final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
             final Interceptor<ReadResult> interceptor,
             final long timeout, final TimeUnit timeunit) {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ public abstract class AbstractReader<L> implements Reader<L> {
      */
     @Override
     public final GrizzlyFuture<ReadResult<Buffer, L>> read(
-            final Connection connection) {
+            final Connection<L> connection) {
         return read(connection, null);
     }
 
@@ -64,7 +64,7 @@ public abstract class AbstractReader<L> implements Reader<L> {
      */
     @Override
     public final GrizzlyFuture<ReadResult<Buffer, L>> read(
-            final Connection connection,
+            final Connection<L> connection,
             final Buffer buffer) {
         final FutureImpl<ReadResult<Buffer, L>> future =
                 Futures.<ReadResult<Buffer, L>>createSafeFuture();
@@ -77,7 +77,7 @@ public abstract class AbstractReader<L> implements Reader<L> {
      * {@inheritDoc}
      */
     @Override
-    public final void read(final Connection connection, final Buffer buffer,
+    public final void read(final Connection<L> connection, final Buffer buffer,
             final CompletionHandler<ReadResult<Buffer, L>> completionHandler) {
         read(connection, buffer, completionHandler, null);
     }

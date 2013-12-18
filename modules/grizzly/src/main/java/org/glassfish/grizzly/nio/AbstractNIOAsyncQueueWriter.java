@@ -94,12 +94,13 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Deprecated
     @Override
-    public boolean canWrite(final Connection connection, final int size) {
+    public boolean canWrite(final Connection<SocketAddress> connection,
+            final int size) {
         return canWrite(connection);
     }
 
     @Override
-    public boolean canWrite(final Connection connection) {
+    public boolean canWrite(final Connection<SocketAddress> connection) {
         final NIOConnection nioConnection = (NIOConnection) connection;
         final int connectionMaxPendingBytes = nioConnection.getMaxAsyncWriteQueueSize();
         
@@ -119,13 +120,14 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Deprecated
     @Override
-    public void notifyWritePossible(final Connection connection,
+    public void notifyWritePossible(final Connection<SocketAddress> connection,
             final WriteHandler writeHandler, final int size) {
         notifyWritePossible(connection, writeHandler);
     }
     
     @Override
-    public void notifyWritePossible(Connection connection, WriteHandler writeHandler) {
+    public void notifyWritePossible(final Connection<SocketAddress> connection,
+            final WriteHandler writeHandler) {
         ((NIOConnection) connection).getAsyncWriteQueue()
                 .notifyWritePossible(writeHandler);
     }
@@ -161,7 +163,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     }
 
     @Override
-    public void write(final Connection connection,
+    public void write(final Connection<SocketAddress> connection,
             final SocketAddress dstAddress, final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final MessageCloner<WritableMessage> cloner) {
@@ -172,7 +174,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     @Override
     @Deprecated
     public void write(
-            final Connection connection, SocketAddress dstAddress,
+            final Connection<SocketAddress> connection, SocketAddress dstAddress,
             final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final PushBackHandler pushBackHandler) {
@@ -186,7 +188,8 @@ public abstract class AbstractNIOAsyncQueueWriter
     @Override
     @Deprecated
     public void write(
-            final Connection connection, final SocketAddress dstAddress,
+            final Connection<SocketAddress> connection,
+            final SocketAddress dstAddress,
             final WritableMessage message,
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final PushBackHandler pushBackHandler,

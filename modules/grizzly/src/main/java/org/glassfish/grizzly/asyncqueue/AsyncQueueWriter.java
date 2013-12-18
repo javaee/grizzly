@@ -40,13 +40,14 @@
 
 package org.glassfish.grizzly.asyncqueue;
 
-import java.net.SocketAddress;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
  * The {@link AsyncQueue}, which implements asynchronous write queue.
  *
+ * @param <L> the destination address type
+ * 
  * @author Alexey Stashok
  * @author Ryan Lubke
  */
@@ -86,19 +87,12 @@ public interface AsyncQueueWriter<L>
      * @deprecated push back logic is deprecated
      */
     public void write(
-            Connection connection, SocketAddress dstAddress, WritableMessage message,
-            CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
+            Connection<L> connection, L dstAddress,
+            WritableMessage message,
+            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
             PushBackHandler pushBackHandler,
             MessageCloner<WritableMessage> cloner);
 
-    /**
-     * @param connection the {@link Connection} to test whether or not it's ready
-     *  to accept more bytes to write.
-     * @return <code>true</code> if the queue has not exceeded it's maximum
-     *  size in bytes of pending writes, otherwise <code>false</code>
-     * @since 2.3
-     */
-    boolean canWrite(final Connection connection);
     
     /**
      * @param connection the {@link Connection} to test whether or not the
@@ -110,7 +104,7 @@ public interface AsyncQueueWriter<L>
      * @since 2.2
      * @deprecated the size parameter will be ignored, use {@link #canWrite(org.glassfish.grizzly.Connection)} instead.
      */
-    boolean canWrite(final Connection connection, int size);
+    boolean canWrite(final Connection<L> connection, int size);
 
     /**
      * Registers {@link WriteHandler}, which will be notified ones the
@@ -127,20 +121,9 @@ public interface AsyncQueueWriter<L>
      * @since 2.2
      * @deprecated the size parameter will be ignored, use {@link #notifyWritePossible(org.glassfish.grizzly.Connection, org.glassfish.grizzly.WriteHandler) instead.
      */
-    void notifyWritePossible(final Connection connection,
+    void notifyWritePossible(final Connection<L> connection,
             final WriteHandler writeHandler, final int size);
-    
-    /**
-     * Registers {@link WriteHandler}, which will be notified ones the
-     * {@link Connection} is able to accept more bytes to be written.
-     * 
-     * @param connection {@link Connection}
-     * @param writeHandler {@link WriteHandler} to be notified.
-     * 
-     * @since 2.3
-     */
-    void notifyWritePossible(final Connection connection,
-            final WriteHandler writeHandler);
+
 
     /**
      * Configures the maximum number of bytes pending to be written

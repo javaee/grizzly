@@ -38,26 +38,13 @@
  * holder.
  */
 
-package org.glassfish.grizzly.asyncqueue;
-
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.ReadResult;
+package org.glassfish.grizzly;
 
 /**
- * Read result associated with a {@link AsyncWriteQueueRecord}.
- *
+ * General interface for the objects, that could be copied/cloned.
+ * 
  * @author Alexey Stashok
  */
-final class RecordReadResult<K, L> extends ReadResult<K, L> {
-
-    @Override
-    protected void set(final Connection<L> connection, final K message,
-            final L srcAddress, final int readSize) {
-        super.set(connection, message, srcAddress, readSize);
-    }
-    
-    @Override
-    public void recycle() {
-        reset();
-    }
+public interface Copyable {
+    public Object copy();
 }

@@ -57,7 +57,7 @@ final class RecordWriteResult<K, L> extends WriteResult<K, L> {
     private final SettableHolder<L> dstAddressHolder = new SettableHolder<L>();
     
     @Override
-    protected void set(final Connection connection, final K message,
+    protected void set(final Connection<L> connection, final K message,
             final L dstAddress, final long writtenSize) {
         super.set(connection, message, dstAddress, writtenSize);
     }
