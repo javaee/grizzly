@@ -40,18 +40,14 @@
 
 package org.glassfish.grizzly.asyncqueue;
 
-import org.glassfish.grizzly.WritableMessage;
-
-import java.net.SocketAddress;
-
-import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
  * The {@link AsyncQueue}, which implements asynchronous write queue.
+ * 
+ * @param <L> the destination address type
  *
  * @author Alexey Stashok
  * @author Ryan Lubke
@@ -71,22 +67,6 @@ public interface AsyncQueueWriter<L> extends Writer<L>, AsyncQueue {
      */
     public static final int AUTO_SIZE = -2;
 
-    /**
-     * Method writes the {@link org.glassfish.grizzly.Buffer} to the specific address.
-     *
-     * @param connection        the {@link org.glassfish.grizzly.Connection} to write to
-     * @param dstAddress        the destination address the {@link WritableMessage} will be
-     *                          sent to
-     * @param message           the {@link WritableMessage}, from which the data will be written
-     * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
-     *                          which will get notified, when write will be completed
-     * @param lifeCycleHandler  {@link LifeCycleHandler}, which gives developer
-     *                          finer control over message write process.
-     */
-    public void write(
-            Connection<L> connection, SocketAddress dstAddress, WritableMessage message,
-            CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
-            LifeCycleHandler lifeCycleHandler);
 
     /**
      * Configures the maximum number of bytes pending to be written

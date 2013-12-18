@@ -51,7 +51,9 @@ import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
  * There are two basic Writer implementations in Grizzly:
  * {@link org.glassfish.grizzly.asyncqueue.AsyncQueueWriter},
  * {@link org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter}.
- *
+ * 
+ * @param <L> the writer address type
+ * 
  * @author Alexey Stashok
  */
 public interface Writer<L> {

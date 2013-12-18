@@ -237,6 +237,7 @@ public class Futures {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public void completed(E result) {
             if (result instanceof Copyable) {
                 result = (E) ((Copyable) result).copy();

@@ -63,6 +63,7 @@ final class RecordWriteResult<K, L> extends WriteResult<K, L> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected Holder<L> createAddrHolder(final L dstAddress) {
         dstAddressHolder.set(dstAddress);
         return dstAddressHolder;
