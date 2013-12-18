@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,12 +50,11 @@ import org.glassfish.grizzly.utils.DebugPoint;
  */
 public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private static final ThreadCache.CachedTypeIndex<AsyncWriteQueueRecord> CACHE_IDX =
-            ThreadCache.obtainIndex(AsyncWriteQueueRecord.class, 2);
+            ThreadCache.obtainIndex(AsyncWriteQueueRecord.class, Writer.Reentrant.getMaxReentrants());
 
     public static AsyncWriteQueueRecord create(
             final Connection connection,
             final WritableMessage message,
-            final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final LifeCycleHandler lifeCycleHandler,
@@ -67,15 +66,14 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         if (asyncWriteQueueRecord != null) {
             asyncWriteQueueRecord.isRecycled = false;
             asyncWriteQueueRecord.isStarted = false;
-            asyncWriteQueueRecord.set(connection, message, currentResult,
+            asyncWriteQueueRecord.set(connection, message,
                     completionHandler, dstAddress, lifeCycleHandler, isEmptyRecord);
             
             return asyncWriteQueueRecord;
         }
 
         return new AsyncWriteQueueRecord(connection, message,
-                currentResult, completionHandler, dstAddress, lifeCycleHandler,
-                isEmptyRecord);
+                completionHandler, dstAddress, lifeCycleHandler, isEmptyRecord);
     }
     
     private long initialMessageSize;
@@ -84,32 +82,32 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private LifeCycleHandler lifeCycleHandler;
     private boolean isStarted;
 
+    private final RecordWriteResult writeResult = new RecordWriteResult();
+    
     protected AsyncWriteQueueRecord(final Connection connection,
             final WritableMessage message,
-            final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final LifeCycleHandler lifeCycleHandler,
             final boolean isEmptyRecord) {
 
-        super(connection, message, currentResult, completionHandler);
-        this.dstAddress = dstAddress;
-        this.isEmptyRecord = isEmptyRecord;
-        this.initialMessageSize = message != null ? message.remaining() : 0;
-        this.lifeCycleHandler = lifeCycleHandler;
+        set(connection, message, completionHandler, dstAddress,
+                lifeCycleHandler, isEmptyRecord);
     }
 
     protected void set(final Connection connection, final WritableMessage message,
-            final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final LifeCycleHandler lifeCycleHandler,
             final boolean isEmptyRecord) {
-        super.set(connection, message, currentResult, completionHandler);
+        super.set(connection, message, completionHandler);
+        
         this.dstAddress = dstAddress;
         this.isEmptyRecord = isEmptyRecord;
         this.initialMessageSize = message != null ? message.remaining() : 0;
         this.lifeCycleHandler = lifeCycleHandler;
+        
+        writeResult.set(connection, message, dstAddress, 0);
     }
 
     public final Object getDstAddress() {
@@ -141,6 +139,11 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         return lifeCycleHandler;
     }
     
+    @Override
+    public WriteResult getCurrentResult() {
+        return writeResult;
+    }
+    
     public boolean canBeAggregated() {
         return !getWritableMessage().isExternal();
     }
@@ -148,19 +151,16 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     @SuppressWarnings("unchecked")
     public void notifyCompleteAndRecycle() {
 
-        final WriteResult currentResultLocal = currentResult;
         final CompletionHandler<WriteResult> completionHandlerLocal =
                 completionHandler;
 
         final WritableMessage messageLocal = getWritableMessage();
 
-        recycle();
-
         if (completionHandlerLocal != null) {
-            completionHandlerLocal.completed(currentResultLocal);
-        } else {
-            currentResultLocal.recycle();
+            completionHandlerLocal.completed(writeResult);
         }
+        
+        recycle();
 
         // try to dispose originalBuffer (if allowed)
         messageLocal.release();
@@ -189,7 +189,8 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
 
     protected final void reset() {
-        set(null, null, null, null, null, null, false);
+        set(null, null, null, null, null, false);
+        writeResult.recycle(); // reset the write result
     }
 
     @Override

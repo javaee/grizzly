@@ -380,8 +380,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         }
 
         public CompositeQueueRecord(final Connection connection) {
-            super(connection, null, null, null,
-                    null, null, false);
+            super(connection, null, null, null, null, false);
         }
 
         public void append(final AsyncWriteQueueRecord queueRecord) {

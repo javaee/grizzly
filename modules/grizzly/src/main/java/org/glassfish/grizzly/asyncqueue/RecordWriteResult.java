@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,46 +38,54 @@
  * holder.
  */
 
-package org.glassfish.grizzly;
+package org.glassfish.grizzly.asyncqueue;
+
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.utils.Holder;
 
 /**
- * Interface, which will be used by Grizzly to notify about asynchronous I/O
- * operations status updates.
- * 
- * @param <E> the type of the result
- * 
+ * Write result associated with a {@link AsyncWriteQueueRecord}.
+ *
  * @author Alexey Stashok
  */
-public interface CompletionHandler<E> {
-    /**
-     * The operation was cancelled.
-     */
-    void cancelled();
+final class RecordWriteResult<K, L> extends WriteResult<K, L> {
 
     /**
-     * The operation was failed.
-     * @param throwable error, which occurred during operation execution
+     *  Settable destination address
      */
-    void failed(Throwable throwable);
+    private final SettableHolder<L> dstAddressHolder = new SettableHolder<L>();
+    
+    @Override
+    protected void set(final Connection<L> connection, final K message,
+            final L dstAddress, final long writtenSize) {
+        super.set(connection, message, dstAddress, writtenSize);
+    }
 
-    /**
-     * The operation was completed.
-     * @param result the operation result
-     * 
-     * Please note, for performance reasons the result object might be recycled
-     * after returning from the completed method. So it's not guaranteed that
-     * using of the result object is safe outside this method's scope.
-     */
-    void completed(E result);
-
-    /**
-     * The callback method may be called, when there is some progress in
-     * operation execution, but it is still not completed
-     * @param result the current result
-     * 
-     * Please note, for performance reasons the result object might be recycled
-     * after returning from the updated method. So it's not guaranteed that
-     * using of the result object is safe outside this method's scope.
-     */
-    void updated(E result);
+    @Override
+    protected Holder<L> createAddrHolder(final L dstAddress) {
+        dstAddressHolder.set(dstAddress);
+        return dstAddressHolder;
+    }
+    
+    
+    @Override
+    public void recycle() {
+        reset();
+        dstAddressHolder.obj = null;
+    }
+    
+    private static class SettableHolder<L> extends Holder<L> {
+        private L obj;
+                
+        @Override
+        protected void set(final L obj) {
+            this.obj = obj;
+        }
+        
+        @Override
+        public L get() {
+            return obj;
+        }
+    }
 }

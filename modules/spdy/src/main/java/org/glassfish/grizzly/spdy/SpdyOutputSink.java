@@ -913,7 +913,7 @@ final class SpdyOutputSink {
                 final FlushCompletionHandler completionHandler,
                 final AggregatingLifeCycleHandler lifeCycleHandler,
                 final boolean isLast, final boolean isAtomic) {
-            super(null, null, null, null);
+            super(null, null, null);
             
             this.resource = resource;
             this.aggrCompletionHandler = completionHandler;
@@ -966,6 +966,11 @@ final class SpdyOutputSink {
         
         @Override
         public void recycle() {
+        }
+
+        @Override
+        public WriteResult getCurrentResult() {
+            return null;
         }
     }    
     

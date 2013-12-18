@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,9 +45,12 @@ import org.glassfish.grizzly.utils.Holder;
 /**
  * Result of write operation, returned by {@link Writable}.
  *
+ * @param <K> type of the message
+ * @param <L> type of the address
+ * 
  * @author Alexey Stashok
  */
-public final class WriteResult<K, L> implements Result, Cacheable {
+public class WriteResult<K, L> implements Result, Cacheable {
     private static final ThreadCache.CachedTypeIndex<WriteResult> CACHE_IDX =
             ThreadCache.obtainIndex(WriteResult.class, 4);
 
@@ -64,14 +67,11 @@ public final class WriteResult<K, L> implements Result, Cacheable {
         return new WriteResult<K, L>(connection);
     }
 
-    public static <K, L> WriteResult<K, L> create(Connection<L> connection,
-            K message, L dstAddress, int writeSize) {
+    public static <K, L> WriteResult<K, L> create(final Connection<L> connection,
+            final K message, final L dstAddress, final long writeSize) {
         final WriteResult<K, L> writeResult = takeFromCache();
         if (writeResult != null) {
-            writeResult.connection = connection;
-            writeResult.message = message;
-            writeResult.dstAddressHolder = Holder.<L>staticHolder(dstAddress);
-            writeResult.writtenSize = writeSize;
+            writeResult.set(connection, message, dstAddress, writeSize);
             writeResult.isRecycled = false;
 
             return writeResult;
@@ -107,16 +107,16 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      */
     private long writtenSize;
 
-    private WriteResult(Connection<L> connection) {
+    protected WriteResult() {
+    }
+    
+    private WriteResult(final Connection<L> connection) {
         this(connection, null, null, 0);
     }
 
     private WriteResult(Connection<L> connection, K message, L dstAddress,
             long writeSize) {
-        this.connection = connection;
-        this.message = message;
-        this.dstAddressHolder = Holder.<L>staticHolder(dstAddress);
-        this.writtenSize = writeSize;
+        set(connection, message, dstAddress, writeSize);
     }
 
     /**
@@ -175,9 +175,9 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      *
      * @param dstAddress the destination address, the message was written to.
      */
-    public final void setDstAddress(L dstAddress) {
+    public final void setDstAddress(final L dstAddress) {
         checkRecycled();
-        this.dstAddressHolder = Holder.<L>staticHolder(dstAddress);
+        this.dstAddressHolder = createAddrHolder(dstAddress);
     }
 
     /**
@@ -185,7 +185,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      *
      * @param dstAddressHolder the destination address, the message was written to.
      */
-    public final void setDstAddressHolder(Holder<L> dstAddressHolder) {
+    public final void setDstAddressHolder(final Holder<L> dstAddressHolder) {
         checkRecycled();
         this.dstAddressHolder = dstAddressHolder;
     }
@@ -215,7 +215,33 @@ public final class WriteResult<K, L> implements Result, Cacheable {
             throw new IllegalStateException("ReadResult has been recycled!");
     }
 
-    private void reset() {
+    /**
+     * One method to set all the WriteResult properties.
+     * 
+     * @param connection
+     * @param message
+     * @param dstAddress
+     * @param writtenSize 
+     */
+    protected void set(final Connection<L> connection, final K message,
+            final L dstAddress, final long writtenSize) {
+        this.connection = connection;
+        this.message = message;
+        this.dstAddressHolder = createAddrHolder(dstAddress);
+        this.writtenSize = writtenSize;
+    }
+    
+    /**
+     * Create an address holder.
+     * 
+     * @param dstAddress
+     * @return 
+     */
+    protected Holder<L> createAddrHolder(final L dstAddress) {
+        return Holder.<L>staticHolder(dstAddress);
+    }
+    
+    protected void reset() {
         connection = null;
         message = null;
         dstAddressHolder = null;
@@ -227,5 +253,11 @@ public final class WriteResult<K, L> implements Result, Cacheable {
         reset();
         isRecycled = true;
         ThreadCache.putToCache(CACHE_IDX, this);
+    }
+
+    @Override
+    public Object copy() {
+        return WriteResult.<K, L>create(getConnection(), getMessage(),
+                getDstAddress(), getWrittenSize());
     }
 }

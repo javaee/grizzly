@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,43 +41,10 @@
 package org.glassfish.grizzly;
 
 /**
- * Interface, which will be used by Grizzly to notify about asynchronous I/O
- * operations status updates.
- * 
- * @param <E> the type of the result
+ * General interface for the objects, that could be copied/cloned.
  * 
  * @author Alexey Stashok
  */
-public interface CompletionHandler<E> {
-    /**
-     * The operation was cancelled.
-     */
-    void cancelled();
-
-    /**
-     * The operation was failed.
-     * @param throwable error, which occurred during operation execution
-     */
-    void failed(Throwable throwable);
-
-    /**
-     * The operation was completed.
-     * @param result the operation result
-     * 
-     * Please note, for performance reasons the result object might be recycled
-     * after returning from the completed method. So it's not guaranteed that
-     * using of the result object is safe outside this method's scope.
-     */
-    void completed(E result);
-
-    /**
-     * The callback method may be called, when there is some progress in
-     * operation execution, but it is still not completed
-     * @param result the current result
-     * 
-     * Please note, for performance reasons the result object might be recycled
-     * after returning from the updated method. So it's not guaranteed that
-     * using of the result object is safe outside this method's scope.
-     */
-    void updated(E result);
+public interface Copyable {
+    public Object copy();
 }
