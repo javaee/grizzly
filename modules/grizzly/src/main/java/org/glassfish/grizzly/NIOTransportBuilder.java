@@ -437,12 +437,13 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     /**
      * @see Transport#setReadTimeout(long, java.util.concurrent.TimeUnit)
      */
-    public void setReadTimeout(final long timeout, final TimeUnit timeUnit) {
+    public T setReadTimeout(final long timeout, final TimeUnit timeUnit) {
         if (timeout <= 0) {
             readTimeout = -1;
         } else {
             readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
         }
+        return getThis();
     }
 
     /**
@@ -459,12 +460,13 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     /**
      * @see Transport#setWriteTimeout(long, java.util.concurrent.TimeUnit)
      */
-    public void setWriteTimeout(final long timeout, final TimeUnit timeUnit) {
+    public T setWriteTimeout(final long timeout, final TimeUnit timeUnit) {
         if (timeout <= 0) {
             writeTimeout = -1;
         } else {
             writeTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
         }
+        return getThis();
     }
 
 
