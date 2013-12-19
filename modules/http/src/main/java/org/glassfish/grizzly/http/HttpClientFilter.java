@@ -170,12 +170,11 @@ public class HttpClientFilter extends HttpCodecFilter {
         final HttpRequestPacket request = response.getRequest();
         final int statusCode = response.getStatus();
 
-        if ((statusCode == 204) || (statusCode == 205)
-                || (statusCode == 304)
-                || ((request != null) && request.isHeadRequest())) {
-            // No entity body
-            response.setExpectContent(false);
-        }
+        final boolean noContent = 
+                ((statusCode == 204) || (statusCode == 205) || (statusCode == 304)
+                || ((request != null) && request.isHeadRequest()));
+        
+        response.setExpectContent(!noContent);
         
         return false;
     }
