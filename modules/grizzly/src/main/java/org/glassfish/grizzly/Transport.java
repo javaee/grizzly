@@ -575,9 +575,9 @@ public interface Transport extends MonitoringAware<TransportProbe> {
     void notifyTransportError(Throwable error);
 
     /**
-     * Returns the current value for the read timeout converted to the provided
-     * {@link TimeUnit} specification.  If this value hasn't been explicitly
-     * set, it will default to {@value #DEFAULT_READ_TIMEOUT} seconds.
+     * Returns the current value for the blocking read timeout converted to the
+     * provided {@link TimeUnit} specification.  If this value hasn't been
+     * explicitly set, it will default to {@value #DEFAULT_READ_TIMEOUT} seconds.
      *
      * @param timeUnit the {@link TimeUnit} to convert the returned result to.
      *
@@ -586,7 +586,8 @@ public interface Transport extends MonitoringAware<TransportProbe> {
     long getReadTimeout(TimeUnit timeUnit);
 
     /**
-     * Specifies the timeout for reads.  This may be overridden on a per-connection basis.
+     * Specifies the timeout for the blocking reads.  This may be overridden on
+     * a per-connection basis.
      * A value of zero or less effectively disables the timeout.
      *
      * @param timeout the new timeout value
@@ -599,9 +600,9 @@ public interface Transport extends MonitoringAware<TransportProbe> {
     void setReadTimeout(long timeout, TimeUnit timeUnit);
 
     /**
-     * Returns the current value for the write timeout converted to the provided
-     * {@link TimeUnit} specification.  If this value hasn't been explicitly
-     * set, it will default to {@value #DEFAULT_WRITE_TIMEOUT} seconds.
+     * Returns the current value for the blocking write timeout converted to the
+     * provided {@link TimeUnit} specification.  If this value hasn't been
+     * explicitly set, it will default to {@value #DEFAULT_WRITE_TIMEOUT} seconds.
      *
      * @param timeUnit the {@link TimeUnit} to convert the returned result to.
      *
@@ -610,7 +611,8 @@ public interface Transport extends MonitoringAware<TransportProbe> {
     long getWriteTimeout(TimeUnit timeUnit);
 
     /**
-     * Specifies the timeout for writes.  This may be overridden on a per-connection basis.
+     * Specifies the timeout for the blocking writes.  This may be overridden on
+     * a per-connection basis.
      * A value of zero or less effectively disables the timeout.
      *
      * @param timeout  the new timeout value

@@ -41,6 +41,7 @@
 package org.glassfish.grizzly;
 
 import java.nio.channels.spi.SelectorProvider;
+import java.util.concurrent.TimeUnit;
 
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
@@ -92,6 +93,8 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     protected int maxPendingBytesPerConnection = AsyncQueueWriter.AUTO_SIZE;
     protected boolean optimizedForMultiplexing = NIOTransport.DEFAULT_OPTIMIZED_FOR_MULTIPLEXING;
 
+    protected long readTimeout = TimeUnit.MILLISECONDS.convert(Transport.DEFAULT_READ_TIMEOUT, TimeUnit.SECONDS);
+    protected long writeTimeout = TimeUnit.MILLISECONDS.convert(Transport.DEFAULT_WRITE_TIMEOUT, TimeUnit.SECONDS);
 
     // ------------------------------------------------------------ Constructors
 
@@ -421,6 +424,51 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     }
 
     /**
+     * @see Transport#getReadTimeout(java.util.concurrent.TimeUnit)
+     */
+    public long getReadTimeout(final TimeUnit timeUnit) {
+        if (readTimeout <= 0) {
+            return -1;
+        } else {
+            return timeUnit.convert(readTimeout, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    /**
+     * @see Transport#setReadTimeout(long, java.util.concurrent.TimeUnit)
+     */
+    public void setReadTimeout(final long timeout, final TimeUnit timeUnit) {
+        if (timeout <= 0) {
+            readTimeout = -1;
+        } else {
+            readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+        }
+    }
+
+    /**
+     * @see Transport#getWriteTimeout(java.util.concurrent.TimeUnit)
+     */
+    public long getWriteTimeout(final TimeUnit timeUnit) {
+        if (writeTimeout <= 0) {
+            return -1;
+        } else {
+            return timeUnit.convert(writeTimeout, TimeUnit.MILLISECONDS);
+        }        
+    }
+
+    /**
+     * @see Transport#setWriteTimeout(long, java.util.concurrent.TimeUnit)
+     */
+    public void setWriteTimeout(final long timeout, final TimeUnit timeUnit) {
+        if (timeout <= 0) {
+            writeTimeout = -1;
+        } else {
+            writeTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+        }
+    }
+
+
+    /**
      * @see org.glassfish.grizzly.nio.transport.TCPNIOTransport#isReuseAddress()
      */
     public boolean isReuseAddress() {
@@ -498,6 +546,10 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         transport.setNIOChannelDistributor(nioChannelDistributor);
         transport.setProcessor(processor);
         transport.setProcessorSelector(processorSelector);
+        transport.setClientSocketSoTimeout(clientSocketSoTimeout);
+        transport.setConnectionTimeout(connectionTimeout);
+        transport.setReadTimeout(readTimeout, TimeUnit.MILLISECONDS);
+        transport.setWriteTimeout(writeTimeout, TimeUnit.MILLISECONDS);
         transport.setReadBufferSize(readBufferSize);
         transport.setWriteBufferSize(writeBufferSize);
         transport.setReuseAddress(reuseAddress);

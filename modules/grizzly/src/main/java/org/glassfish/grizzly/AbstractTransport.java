@@ -505,7 +505,7 @@ public abstract class AbstractTransport implements Transport {
         if (timeout <= 0) {
             readTimeout = -1;
         } else {
-             readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+            readTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
         }
     }
     

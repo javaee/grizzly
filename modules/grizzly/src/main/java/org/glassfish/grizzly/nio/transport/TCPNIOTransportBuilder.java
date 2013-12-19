@@ -136,7 +136,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
      * @return this <code>TCPNIOTransportBuilder</code>
      */
     public TCPNIOTransportBuilder setServerSocketSoTimeout(int serverSocketSoTimeout) {
-        this.serverConnectionBackLog = serverSocketSoTimeout;
+        this.serverSocketSoTimeout = serverSocketSoTimeout;
         return getThis();
     }
 
@@ -167,6 +167,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
         transport.setLinger(linger);
         transport.setServerConnectionBackLog(serverConnectionBackLog);
         transport.setTcpNoDelay(tcpNoDelay);
+        transport.setServerSocketSoTimeout(serverSocketSoTimeout);
         return transport;
     }
 
