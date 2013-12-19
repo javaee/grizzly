@@ -41,6 +41,8 @@
 package org.glassfish.grizzly.nio;
 
 import java.nio.channels.spi.SelectorProvider;
+import java.util.concurrent.TimeUnit;
+
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
@@ -86,6 +88,8 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     protected int maxPendingBytesPerConnection = AsyncQueueWriter.AUTO_SIZE;
     protected boolean optimizedForMultiplexing = NIOTransport.DEFAULT_OPTIMIZED_FOR_MULTIPLEXING;
 
+    protected long blockingReadTimeout = TimeUnit.MILLISECONDS.convert(Transport.DEFAULT_READ_TIMEOUT, TimeUnit.SECONDS);
+    protected long blockingWriteTimeout = TimeUnit.MILLISECONDS.convert(Transport.DEFAULT_WRITE_TIMEOUT, TimeUnit.SECONDS);
 
     // ------------------------------------------------------------ Constructors
 
@@ -259,6 +263,30 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     }
 
     /**
+     * @see Transport#setBlockingReadTimeout(long, java.util.concurrent.TimeUnit)
+     */
+    public T blockingReadTimeout(final long timeout, final TimeUnit timeUnit) {
+        if (timeout <= 0) {
+            blockingReadTimeout = -1;
+        } else {
+            blockingReadTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+        }
+        return getThis();
+    }
+
+    /**
+     * @see Transport#setBlockingWriteTimeout(long, java.util.concurrent.TimeUnit)
+     */
+    public T blockingWriteTimeout(final long timeout, final TimeUnit timeUnit) {
+        if (timeout <= 0) {
+            blockingWriteTimeout = -1;
+        } else {
+            blockingWriteTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+        }
+        return getThis();
+    }
+
+    /**
      * @return this <code>TCPNIOTransportBuilder</code>
      * @see org.glassfish.grizzly.nio.transport.TCPNIOTransport#setReuseAddress(boolean)
      */
@@ -301,6 +329,10 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         transport.setSelectorRunnersCount(selectorRunnerCount);
         transport.setNIOChannelDistributor(nioChannelDistributor);
         transport.setFilterChain(filterChain != null ? filterChain : new DefaultFilterChain());
+        transport.setClientSocketSoTimeout(clientSocketSoTimeout);
+        transport.setConnectionTimeout(connectionTimeout);
+        transport.setBlockingReadTimeout(blockingReadTimeout, TimeUnit.MILLISECONDS);
+        transport.setBlockingWriteTimeout(blockingWriteTimeout, TimeUnit.MILLISECONDS);
         transport.setReadBufferSize(readBufferSize);
         transport.setWriteBufferSize(writeBufferSize);
         transport.setReuseAddress(reuseAddress);

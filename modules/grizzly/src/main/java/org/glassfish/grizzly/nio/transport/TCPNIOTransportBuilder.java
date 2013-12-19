@@ -129,7 +129,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
         transport.setLinger(linger);
         transport.setServerConnectionBackLog(serverConnectionBackLog);
         transport.setTcpNoDelay(tcpNoDelay);
-        transport.setOptimizedForMultiplexing(optimizedForMultiplexing);
+        transport.setServerSocketSoTimeout(serverSocketSoTimeout);
         return transport;
     }
 
