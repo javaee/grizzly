@@ -77,7 +77,7 @@ final class RecordWriteResult<K, L> extends WriteResult<K, L> {
     private static class SettableHolder<L> extends Holder<L> {
         private L obj;
                 
-        public SettableHolder set(final L obj) {
+        public SettableHolder<L> set(final L obj) {
             this.obj = obj;
             return this;
         }

@@ -157,7 +157,7 @@ public class NetworkListenerTest extends AbstractSpdyTest {
                 }
             }            
         } finally {
-            clientTransport.stop();
+            clientTransport.shutdownNow();
             server.shutdownNow();
         }
     }    
