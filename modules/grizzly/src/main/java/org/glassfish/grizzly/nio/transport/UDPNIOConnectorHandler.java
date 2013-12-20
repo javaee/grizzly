@@ -45,7 +45,6 @@ import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
@@ -219,7 +218,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection CONNECT
-    private static class EnableReadHandler extends EventProcessingHandler.Adapter {
+    private static class EnableReadHandler extends EventLifeCycleListener.Adapter {
 
         private final CompletionHandler<Connection> completionHandler;
 

@@ -457,12 +457,12 @@ public abstract class AbstractTransport implements Transport {
     @Override
     public void fireEvent(final Event event,
             final Connection connection,
-            final EventProcessingHandler processingHandler) {
+            final EventLifeCycleListener lifeCycleListener) {
 
         final FilterChain conFilterChain = connection.getFilterChain();
 
         ProcessorExecutor.execute(Context.create(connection,
-                conFilterChain, event, processingHandler));
+                conFilterChain, event, lifeCycleListener));
     }
 
     @Override

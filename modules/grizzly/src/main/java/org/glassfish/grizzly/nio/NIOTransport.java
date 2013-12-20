@@ -58,11 +58,11 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.AbstractTransport;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.EventProcessingHandler;
 import org.glassfish.grizzly.GracefulShutdownListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.EventLifeCycleListener;
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.SocketBinder;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -742,17 +742,17 @@ public abstract class NIOTransport extends AbstractTransport
     
     protected abstract AbstractNIOAsyncQueueWriter getAsyncQueueWriter();
     
-    private static final EventProcessingHandler ENABLED_READ_PROCESSING_HANDLER =
+    private static final EventLifeCycleListener ENABLED_READ_LIFECYCLE_LISTENER =
             new EnabledReadProcessingHandler();
     
-    private static final EventProcessingHandler DISABLED_READ_PROCESSING_HANDLER =
+    private static final EventLifeCycleListener DISABLED_READ_LIFECYCLE_LISTENER =
             new DisabledReadProcessingHandler();
     
     private static final IOStrategy.DecisionListener DECISION_LISTENER =
             new TransportDecisionListener();
     
     private final static class EnabledReadProcessingHandler
-            extends EventProcessingHandler.Adapter {
+            extends EventLifeCycleListener.Adapter {
 
         @Override
         public void onComplete(final Context context) throws IOException {
@@ -772,7 +772,7 @@ public abstract class NIOTransport extends AbstractTransport
     }
     
     private final static class DisabledReadProcessingHandler
-            extends EventProcessingHandler.Adapter {
+            extends EventLifeCycleListener.Adapter {
 
         @Override
         public void onComplete(final Context context) throws IOException {
@@ -785,17 +785,17 @@ public abstract class NIOTransport extends AbstractTransport
                                 implements IOStrategy.DecisionListener {
             
             @Override
-            public EventProcessingHandler goSync(Connection connection,
+            public EventLifeCycleListener goSync(Connection connection,
                     IOEvent ioEvent) {
-                return ENABLED_READ_PROCESSING_HANDLER;
+                return ENABLED_READ_LIFECYCLE_LISTENER;
             }
 
             @Override
-            public EventProcessingHandler goAsync(Connection connection,
+            public EventLifeCycleListener goAsync(Connection connection,
                     IOEvent ioEvent) throws IOException {
                 ((NIOConnection) connection).deregisterKeyInterest(
                         SelectionKey.OP_READ);
-                return DISABLED_READ_PROCESSING_HANDLER;
+                return DISABLED_READ_LIFECYCLE_LISTENER;
             }
         };
 

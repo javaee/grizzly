@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,9 +43,9 @@ package org.glassfish.grizzly.strategies;
 import java.io.IOException;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.EventLifeCycleListener;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
@@ -102,36 +102,38 @@ public final class SimpleDynamicNIOStrategy extends AbstractIOStrategy {
     @Override
     public boolean executeIOEvent(final Connection connection,
             final IOEvent ioEvent,
-            final EventProcessingHandler processingHandler) {
+            final EventLifeCycleListener lifeCycleListener) {
         
         final int lastSelectedKeysCount = getLastSelectedKeysCount(connection);
 
-        return executeIOEvent(connection, ioEvent, processingHandler,
+        return executeIOEvent(connection, ioEvent, lifeCycleListener,
                 lastSelectedKeysCount > WORKER_THREAD_THRESHOLD);
     }
 
     @Override
     public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
             DecisionListener listener) throws IOException {
-        EventProcessingHandler processingHandler = null;
+        EventLifeCycleListener lifeCycleListener = null;
         final boolean isRunAsync =
                 getLastSelectedKeysCount(connection) > WORKER_THREAD_THRESHOLD;
         if (listener != null) {
-            processingHandler = isRunAsync ?
+            lifeCycleListener = isRunAsync ?
                     listener.goAsync(connection, ioEvent) :
                     listener.goSync(connection, ioEvent);
         }
         
-        return executeIOEvent(connection, ioEvent, processingHandler, isRunAsync);
+        return executeIOEvent(connection, ioEvent, lifeCycleListener, isRunAsync);
     }
 
 
     @Override
-    protected boolean executeIOEvent(Connection connection, IOEvent ioEvent,
-            EventProcessingHandler processingHandler, boolean isRunAsync) {
+    protected boolean executeIOEvent(final Connection connection,
+            final IOEvent ioEvent,
+            final EventLifeCycleListener lifeCycleListener,
+            final boolean isRunAsync) {
         return isRunAsync
-                ? workerThreadStrategy.executeIOEvent(connection, ioEvent, processingHandler)
-                : sameThreadStrategy.executeIOEvent(connection, ioEvent, processingHandler);
+                ? workerThreadStrategy.executeIOEvent(connection, ioEvent, lifeCycleListener)
+                : sameThreadStrategy.executeIOEvent(connection, ioEvent, lifeCycleListener);
     }
 
     @Override

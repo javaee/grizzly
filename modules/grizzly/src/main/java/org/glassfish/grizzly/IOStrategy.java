@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -80,7 +80,7 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      *  {@link IOEvent} occurred.
      * @param ioEvent the {@link IOEvent} that triggered execution of this
      *  <code>strategy</code>
-     * @param processingHandler I/O event processing handler.
+     * @param lifeCycleListener I/O event life-cycle listener.
      *
      * @return <tt>true</tt>, if this thread should keep processing IOEvents on
      * the current and other Connections, or <tt>false</tt> if this thread
@@ -89,7 +89,7 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      * processing (possibly starting new thread, which will handle IOEvents).
      */
     boolean executeIOEvent(final Connection connection, final IOEvent ioEvent,
-            final EventProcessingHandler processingHandler) throws IOException;
+            final EventLifeCycleListener lifeCycleListener) throws IOException;
 
     /**
      * The {@link org.glassfish.grizzly.nio.SelectorRunner} will invoke this
@@ -117,7 +117,7 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      * in the current thread or asynchronously in the worker thread.
      */
     public interface DecisionListener {
-        public EventProcessingHandler goSync(final Connection connection, final IOEvent ioEvent) throws IOException;
-        public EventProcessingHandler goAsync(final Connection connection, final IOEvent ioEvent) throws IOException;
+        public EventLifeCycleListener goSync(final Connection connection, final IOEvent ioEvent) throws IOException;
+        public EventLifeCycleListener goAsync(final Connection connection, final IOEvent ioEvent) throws IOException;
     }
 }

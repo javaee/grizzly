@@ -61,10 +61,10 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Event;
-import org.glassfish.grizzly.EventProcessingHandler;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.EventLifeCycleListener;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.WritableMessage;
@@ -831,8 +831,8 @@ public class SSLBaseFilter extends BaseFilter {
 
         newFilterChainContext.setAddressHolder(ctx.getAddressHolder());
         newFilterChainContext.setMessage(ctx.getMessage());
-        newFilterChainContext.getInternalContext().setEvent(
-                IOEvent.READ,
+        newFilterChainContext.getInternalContext().setEvent(IOEvent.READ);
+        newFilterChainContext.getInternalContext().addLifeCycleListener(
                 new InternalProcessingHandler(ctx));
 
         return newFilterChainContext;
@@ -939,7 +939,7 @@ public class SSLBaseFilter extends BaseFilter {
 
     } // END CertificateEvent
 
-    private class InternalProcessingHandler extends EventProcessingHandler.Adapter {
+    private class InternalProcessingHandler extends EventLifeCycleListener.Adapter {
         private final FilterChainContext parentContext;
 
         private InternalProcessingHandler(final FilterChainContext parentContext) {

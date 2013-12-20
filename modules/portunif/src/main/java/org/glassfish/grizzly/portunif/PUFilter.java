@@ -45,9 +45,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.EventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.EventLifeCycleListener;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -261,9 +261,9 @@ public class PUFilter extends BaseFilter {
         
         newFilterChainContext.setAddressHolder(ctx.getAddressHolder());
         newFilterChainContext.setMessage(ctx.getMessage());
-        newFilterChainContext.getInternalContext().setEvent(
-                IOEvent.READ,
-                new InternalProcessingHandler(ctx, puContext.isSticky()));
+        newFilterChainContext.getInternalContext().setEvent(IOEvent.READ);
+        newFilterChainContext.getInternalContext().addLifeCycleListener(
+                new InternalLifeCycleListener(ctx, puContext.isSticky()));
 
         return newFilterChainContext;
     }
@@ -296,11 +296,11 @@ public class PUFilter extends BaseFilter {
         }
     }
 
-    private class InternalProcessingHandler extends EventProcessingHandler.Adapter {
+    private class InternalLifeCycleListener extends EventLifeCycleListener.Adapter {
         private final FilterChainContext parentContext;
         private final boolean isSticky;
         
-        private InternalProcessingHandler(final FilterChainContext parentContext,
+        private InternalLifeCycleListener(final FilterChainContext parentContext,
                 final boolean isSticky) {
             this.parentContext = parentContext;
             this.isSticky = isSticky;

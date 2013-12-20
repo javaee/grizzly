@@ -75,12 +75,15 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 
 
     @Override
-    public boolean executeIOEvent(Connection connection, IOEvent ioEvent) throws IOException {
-        return executeIOEvent(connection, ioEvent, (EventProcessingHandler) null);
+    public boolean executeIOEvent(final Connection connection,
+            final IOEvent ioEvent) throws IOException {
+        return executeIOEvent(connection, ioEvent, (EventLifeCycleListener) null);
     }
 
-    protected abstract boolean executeIOEvent(Connection connection, IOEvent ioEvent,
-            EventProcessingHandler processingHandler, boolean isRunAsync) throws IOException;
+    protected abstract boolean executeIOEvent(final Connection connection,
+            final IOEvent ioEvent,
+            final EventLifeCycleListener listener,
+            final boolean isRunAsync) throws IOException;
 
     // ------------------------------------------------------- Protected Methods
 
@@ -91,10 +94,10 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 
     protected static void fireEvent(final Connection connection,
                                       final IOEvent event,
-                                      final EventProcessingHandler ph,
+                                      final EventLifeCycleListener listener,
                                       final Logger logger) {
         try {
-            connection.getTransport().fireEvent(event, connection, ph);
+            connection.getTransport().fireEvent(event, connection, listener);
         } catch (Exception e) {
             logger.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_IOSTRATEGY_UNCAUGHT_EXCEPTION(), e);
             connection.closeSilently();

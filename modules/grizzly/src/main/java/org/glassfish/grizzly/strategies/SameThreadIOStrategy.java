@@ -43,7 +43,7 @@ package org.glassfish.grizzly.strategies;
 import java.io.IOException;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EventProcessingHandler;
+import org.glassfish.grizzly.EventLifeCycleListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.Transport;
@@ -84,29 +84,33 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     // ------------------------------------------------- Methods from IOStrategy
 
     @Override
-    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
-            DecisionListener listener) throws IOException {
+    public boolean executeIOEvent(final Connection connection,
+            final IOEvent ioEvent, final DecisionListener listener)
+            throws IOException {
         
-        EventProcessingHandler processingHandler = null;
+        EventLifeCycleListener lifeCycleListener = null;
         
         if (listener != null) {
-            processingHandler = listener.goSync(connection, ioEvent);
+            lifeCycleListener = listener.goSync(connection, ioEvent);
         }
         
-        return executeIOEvent(connection, ioEvent, processingHandler, false);
+        return executeIOEvent(connection, ioEvent, lifeCycleListener, false);
     }
 
     @Override
-    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
-            EventProcessingHandler processingHandler) {
-        return executeIOEvent(connection, ioEvent, processingHandler, false);
+    public boolean executeIOEvent(final Connection connection,
+            final IOEvent ioEvent,
+            final EventLifeCycleListener lifeCycleListener) {
+        return executeIOEvent(connection, ioEvent, lifeCycleListener, false);
     }
 
     @Override
-    protected boolean executeIOEvent(Connection connection, IOEvent event,
-            EventProcessingHandler processingHandler, boolean isRunAsync) {
+    protected boolean executeIOEvent(final Connection connection,
+            final IOEvent event,
+            final EventLifeCycleListener lifeCycleListener,
+            final boolean isRunAsync) {
         
-        fireEvent(connection, event, processingHandler, logger);
+        fireEvent(connection, event, lifeCycleListener, logger);
         return true;
     }
 

@@ -54,17 +54,16 @@ public final class ProcessorExecutor {
 
     public static void execute(final Connection connection,
             final Event event, final Processor processor,
-            final EventProcessingHandler processingHandler) {
+            final EventLifeCycleListener lifeCycleListener) {
 
-        execute(Context.create(connection, processor, event,
-                processingHandler));
+        execute(Context.create(connection, processor, event, lifeCycleListener));
     }
    
     @SuppressWarnings("unchecked")
     public static void execute(Context context) {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST,
-                    "executing connection ({0}). ServiceEvent={1} processor={2}",
+                    "executing connection ({0}). event={1} processor={2}",
                     new Object[]{context.getConnection(), context.getEvent(),
                     context.getProcessor()});
         }
@@ -97,7 +96,7 @@ public final class ProcessorExecutor {
                 LOGGER.log(Level.WARNING,
                         "Error during Processor execution. "
                         + "Connection=" + context.getConnection()
-                        + " ioEvent=" + context.getEvent()
+                        + " event=" + context.getEvent()
                         + " processor=" + context.getProcessor(),
                         t);
             }
@@ -116,46 +115,46 @@ public final class ProcessorExecutor {
     private static void complete(final Context context, final Context newContext)
             throws IOException {
 
-        final EventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-        
         final Context processingContext = newContext == null ? context : newContext;
         
-        if (processingHandler != null) {
-            processingHandler.onComplete(processingContext);
+        final int sz = context.lifeCycleListeners.size();
+        final EventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
+        try {
+            for (int i = 0; i < sz; i++) {
+                listeners[i].onComplete(processingContext);
+            }
+        } finally {
+            processingContext.recycle();
         }
-        
-        processingContext.recycle();
     }
 
     private static void terminate(final Context context) throws IOException {
-        final EventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-
-        if (processingHandler != null) {
-            processingHandler.onTerminate(context);
+        final int sz = context.lifeCycleListeners.size();
+        final EventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
+        for (int i = 0; i < sz; i++) {
+            listeners[i].onTerminate(context);
         }
     }
 
     private static void error(final Context context, final Object description)
             throws IOException {
-        final EventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-        
-        if (processingHandler != null) {
-            processingHandler.onError(context, description);
+        final int sz = context.lifeCycleListeners.size();
+        final EventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
+        for (int i = 0; i < sz; i++) {
+            listeners[i].onError(context, description);
         }
     }
 
     private static void notRun(final Context context) throws IOException {
-        final EventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-
-        if (processingHandler != null) {
-            processingHandler.onNotRun(context);
+        final int sz = context.lifeCycleListeners.size();
+        final EventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
+        try {
+            for (int i = 0; i < sz; i++) {
+                listeners[i].onNotRun(context);
+            }
+        } finally {
+            context.recycle();
         }
-        
-        context.recycle();
     }
 
 }

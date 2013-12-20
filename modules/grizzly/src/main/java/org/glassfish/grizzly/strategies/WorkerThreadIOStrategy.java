@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,9 +43,9 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.EventLifeCycleListener;
 import org.glassfish.grizzly.Processor;
 
 /**
@@ -80,37 +80,41 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
 
     @Override
-    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
-            EventProcessingHandler processingHandler) {
-        return executeIOEvent(connection, ioEvent, processingHandler,
+    public boolean executeIOEvent(final Connection connection,
+            final IOEvent ioEvent,
+            final EventLifeCycleListener lifeCycleListener) {
+        return executeIOEvent(connection, ioEvent, lifeCycleListener,
                 WORKER_THREAD_EVENT_SET.contains(ioEvent));
     }
 
     @Override
-    public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
-            DecisionListener listener) throws IOException {
-        EventProcessingHandler processingHandler = null;
+    public boolean executeIOEvent(final Connection connection,
+            final IOEvent ioEvent,
+            final DecisionListener listener) throws IOException {
+        EventLifeCycleListener lifeCycleListener = null;
         
         final boolean isRunAsync = WORKER_THREAD_EVENT_SET.contains(ioEvent);
         if (listener != null) {
-            processingHandler = isRunAsync ?
+            lifeCycleListener = isRunAsync ?
                     listener.goAsync(connection, ioEvent) :
                     listener.goSync(connection, ioEvent);
         }
     
-        return executeIOEvent(connection, ioEvent, processingHandler, isRunAsync);
+        return executeIOEvent(connection, ioEvent, lifeCycleListener, isRunAsync);
     }
 
     @Override
-    protected boolean executeIOEvent(Connection connection, IOEvent ioEvent,
-            EventProcessingHandler processingHandler, boolean isRunAsync) {
+    protected boolean executeIOEvent(final Connection connection,
+            final IOEvent ioEvent,
+            final EventLifeCycleListener lifeCycleListener,
+            final boolean isRunAsync) {
         
         if (isRunAsync) {
             getWorkerThreadPool(connection).execute(
                     new WorkerThreadRunnable(connection, ioEvent,
-                    processingHandler));
+                    lifeCycleListener));
         } else {
-            fireEvent(connection, ioEvent, processingHandler, logger);
+            fireEvent(connection, ioEvent, lifeCycleListener, logger);
         }
         
         return true;
@@ -126,20 +130,20 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
     private static final class WorkerThreadRunnable implements Runnable {
         final Connection connection;
         final IOEvent event;
-        final EventProcessingHandler processingHandler;
+        final EventLifeCycleListener lifeCycleListener;
         
         private WorkerThreadRunnable(final Connection connection,
                 final IOEvent event,
-                final EventProcessingHandler processingHandler) {
+                final EventLifeCycleListener lifeCycleListener) {
             this.connection = connection;
             this.event = event;
-            this.processingHandler = processingHandler;
+            this.lifeCycleListener = lifeCycleListener;
             
         }
 
         @Override
         public void run() {
-            fireEvent(connection, event, processingHandler, logger);
+            fireEvent(connection, event, lifeCycleListener, logger);
         }        
     }
 

@@ -40,6 +40,8 @@
 package org.glassfish.grizzly;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -65,8 +67,8 @@ public class Context implements AttributeStorage, Cacheable {
         context.setConnection(connection);
         return context;
     }
-
-    public static Context create(final Connection connection,
+    
+   public static Context create(final Connection connection,
             final Processor processor, final Event event) {
         assert processor != null;
         
@@ -74,16 +76,21 @@ public class Context implements AttributeStorage, Cacheable {
         context.setEvent(event);
 
         return context;
-    }
+    }    
 
     public static Context create(final Connection connection,
             final Processor processor, final Event event,
-            final EventProcessingHandler processingHandler) {
+            final EventLifeCycleListener lifeCycleListener) {
         
         final Context context = create(connection, processor, event);
-        context.setProcessingHandler(processingHandler);
+        
+        if (lifeCycleListener != null) {
+            context.addLifeCycleListener(lifeCycleListener);
+        }
+        
         return context;
     }
+
     /**
      * Processing Connection
      */
@@ -104,14 +111,15 @@ public class Context implements AttributeStorage, Cacheable {
      * EventProcessingHandler is called to notify about Event processing
      * life-cycle events like suspend, resume, complete.
      */
-    protected EventProcessingHandler eventProcessingHandler;
+    protected final MinimalisticArrayList<EventLifeCycleListener> lifeCycleListeners =
+            new MinimalisticArrayList<EventLifeCycleListener>(EventLifeCycleListener.class, 2);
     /**
      * <tt>true</tt> if this Event processing was suspended during its processing,
      * or <tt>false</tt> otherwise.
      */
     protected boolean wasSuspended;
 
-    public Context() {
+   public Context() {
         attributes = AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createUnsafeAttributeHolder();
     }
 
@@ -119,13 +127,14 @@ public class Context implements AttributeStorage, Cacheable {
      * Notify Context its processing will be suspended in the current thread.
      */
     public void suspend() {
-        final EventProcessingHandler processingHandlerLocal = this.eventProcessingHandler;
-        if (processingHandlerLocal != null) {
-            try {
-                processingHandlerLocal.onSuspend(this);
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
+        try {
+            final int sz = lifeCycleListeners.size;
+            final EventLifeCycleListener[] array = lifeCycleListeners.array;
+            for (int i = 0; i < sz; i++) {
+                array[i].onSuspend(this);
             }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
         
         wasSuspended = true;
@@ -135,13 +144,14 @@ public class Context implements AttributeStorage, Cacheable {
      * Notify Context its processing will be resumed in the current thread.
      */
     public void resume() {
-        final EventProcessingHandler processingHandlerLocal = this.eventProcessingHandler;
-        if (processingHandlerLocal != null) {
-            try {
-                processingHandlerLocal.onResume(this);
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
+        try {
+            final int sz = lifeCycleListeners.size;
+            final EventLifeCycleListener[] array = lifeCycleListeners.array;
+            for (int i = 0; i < sz; i++) {
+                array[i].onResume(this);
             }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 
@@ -167,20 +177,8 @@ public class Context implements AttributeStorage, Cacheable {
      *
      * @param event the processing {@link Event}.
      */
-    public void setEvent(Event event) {
-        setEvent(event, null);
-    }
-
-    /**
-     * Set the processing {@link Event}.
-     *
-     * @param event the processing {@link Event}.
-     * @param handler the {@link EventProcessingHandler} to handle context's life-cycle events.
-     */
-    public void setEvent(final Event event,
-            final EventProcessingHandler handler) {
+    public void setEvent(final Event event) {
         this.event = event;
-        this.eventProcessingHandler = handler;
     }
 
     /**
@@ -197,7 +195,7 @@ public class Context implements AttributeStorage, Cacheable {
      *
      * @param connection the processing {@link Connection}.
      */
-    protected void setConnection(Connection connection) {
+    protected void setConnection(final Connection connection) {
         this.connection = connection;
     }
 
@@ -223,18 +221,20 @@ public class Context implements AttributeStorage, Cacheable {
         this.processor = processor;
     }
 
-    /**
-     * Returns the {@link EventProcessingHandler} to handle context's life-cycle events.
-     */
-    protected EventProcessingHandler getProcessingHandler() {
-        return eventProcessingHandler;
+    public boolean hasLifeCycleListener(final EventLifeCycleListener listener) {
+        return lifeCycleListeners.contains(listener);
     }
-
-    /**
-     * Sets the {@link EventProcessingHandler} to handle context's life-cycle events.
-     */
-    protected void setProcessingHandler(final EventProcessingHandler processingHandler) {
-        this.eventProcessingHandler = processingHandler;
+    
+    public void addLifeCycleListener(final EventLifeCycleListener listener) {
+        lifeCycleListeners.add(listener);
+    }
+    
+    public boolean removeLifeCycleListener(final EventLifeCycleListener listener) {
+        return lifeCycleListeners.remove(listener);
+    }
+    
+    public void removeAllLifeCycleListener() {
+        lifeCycleListeners.clear();
     }
 
     /**
@@ -260,7 +260,7 @@ public class Context implements AttributeStorage, Cacheable {
         attributes.recycle();
 
         processor = null;
-        eventProcessingHandler = null;
+        lifeCycleListeners.clear();
         connection = null;
         event = Event.NULL;
         wasSuspended = false;
@@ -273,5 +273,85 @@ public class Context implements AttributeStorage, Cacheable {
     public void recycle() {
         reset();
         ThreadCache.putToCache(CACHE_IDX, this);
+    }
+    
+    protected final class MinimalisticArrayList<E> {
+
+        private E[] array;
+        private int size;
+
+        private MinimalisticArrayList(final Class<E> clazz,
+                final int initialCapacity) {
+            array = (E[]) Array.newInstance(clazz, initialCapacity);
+        }
+
+        public void add(final E listener) {
+            ensureCapacity();
+            array[size++] = listener;
+        }
+
+        public boolean contains(final E listener) {
+            return indexOf(listener) != -1;
+        }
+
+        private boolean remove(final E listener) {
+            final int idx = indexOf(listener);
+            if (idx == -1) {
+                return false;
+            }
+            
+            if (idx < size - 1) {
+                System.arraycopy(array, idx + 1, array, idx, size - idx - 1);
+            }
+            
+            array[--size] = null;
+            return true;
+        }
+        
+
+        public void copyFrom(final MinimalisticArrayList<E> list) {
+            if (list.size > array.length) {
+                array = Arrays.copyOf(list.array, list.size);
+                size = list.size;
+            } else {
+                System.arraycopy(list.array, 0, array, 0, list.size);
+                for (int i = list.size; i < size; i++) {
+                    array[i] = null;
+                }
+                
+                size = list.size;
+            }
+        }
+        
+        public int size() {
+            return size;
+        }
+        
+        public E[] array() {
+            return array;
+        }
+        
+        public void clear() {
+            for (int i = 0; i < size; i++) {
+                array[i] = null;
+            }
+            
+            size = 0;
+        }
+
+        private int indexOf(final E listener) {
+            for (int i = 0; i < size; i++) {
+                if (array[i].equals(listener)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private void ensureCapacity() {
+            if (size == array.length) {
+                array = Arrays.copyOf(array, size + 2);
+            }
+        }
     }
 }

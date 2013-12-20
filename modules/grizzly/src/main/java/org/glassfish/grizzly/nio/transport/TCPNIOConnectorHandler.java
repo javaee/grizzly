@@ -44,7 +44,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.AbstractSocketConnectorHandler;
@@ -52,9 +51,9 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.EventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.EventLifeCycleListener;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
@@ -273,9 +272,9 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         }
     }
     
-    // Post processor, which supposed to enable OP_READ interest, once Processor
-    // is notified about Connection CONNECT
-    private static final class EnableReadHandler extends EventProcessingHandler.Adapter {
+    // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
+    // about Connection CONNECT
+    private static final class EnableReadHandler extends EventLifeCycleListener.Adapter {
 
         private final CompletionHandler<Connection> completionHandler;
 
