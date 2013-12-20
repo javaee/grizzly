@@ -50,7 +50,8 @@ import org.glassfish.grizzly.ThreadCache;
 public final class BufferArray extends AbstractBufferArray<Buffer> {
 
     private static final ThreadCache.CachedTypeIndex<BufferArray> CACHE_IDX =
-            ThreadCache.obtainIndex(BufferArray.class, 4);
+            ThreadCache.obtainIndex(BufferArray.class,
+                    Integer.getInteger(BufferArray.class.getName() + "ba-cache-size", 4));
 
     public static BufferArray create() {
         final BufferArray array = ThreadCache.takeFromCache(CACHE_IDX);

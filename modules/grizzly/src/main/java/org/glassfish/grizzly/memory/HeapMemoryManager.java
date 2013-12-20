@@ -60,10 +60,12 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
 public class HeapMemoryManager extends AbstractThreadLocalMemoryManager<HeapBuffer> implements WrapperAware {
 
     private static final ThreadCache.CachedTypeIndex<TrimmableHeapBuffer> CACHE_IDX =
-            ThreadCache.obtainIndex(TrimmableHeapBuffer.class, 8);
+            ThreadCache.obtainIndex(TrimmableHeapBuffer.class,
+                    Integer.getInteger(HeapMemoryManager.class.getName() + ".thb-cache-size", 8));
 
     private static final ThreadCache.CachedTypeIndex<RecyclableByteBufferWrapper> BBW_CACHE_IDX =
-            ThreadCache.obtainIndex(RecyclableByteBufferWrapper.class, 2);
+            ThreadCache.obtainIndex(RecyclableByteBufferWrapper.class,
+                    Integer.getInteger(HeapMemoryManager.class.getName() + ".rbbw-cache-size", 2));
 
     public HeapMemoryManager() {
         super();
