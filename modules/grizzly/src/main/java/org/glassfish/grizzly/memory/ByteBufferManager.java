@@ -69,11 +69,13 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
     public static final int DEFAULT_SMALL_BUFFER_SIZE = 32;
 
     private static final ThreadCache.CachedTypeIndex<TrimAwareWrapper> CACHE_IDX =
-            ThreadCache.obtainIndex(TrimAwareWrapper.class, 2);
-
+            ThreadCache.obtainIndex(TrimAwareWrapper.class,
+                    Integer.getInteger(ByteBufferManager.class.getName() + ".taw-cache-size", 2));
+                    
     private final ThreadCache.CachedTypeIndex<SmallByteBufferWrapper> SMALL_BUFFER_CACHE_IDX =
             ThreadCache.obtainIndex(SmallByteBufferWrapper.class.getName() + '.' +
-            System.identityHashCode(this), SmallByteBufferWrapper.class, 16);
+            System.identityHashCode(this), SmallByteBufferWrapper.class,
+            Integer.getInteger(ByteBufferManager.class.getName() + ".sbbw-cache-size", 16));
 
     /**
      * Is direct ByteBuffer should be used?
