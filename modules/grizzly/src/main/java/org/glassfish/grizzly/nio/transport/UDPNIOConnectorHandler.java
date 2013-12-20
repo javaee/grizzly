@@ -261,7 +261,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection CONNECT
-    private static class EnableReadHandler extends EmptyIOEventProcessingHandler {
+    private static class EnableReadHandler extends IOEventLifeCycleListener.Adapter {
 
         private final CompletionHandler<Connection> completionHandler;
 

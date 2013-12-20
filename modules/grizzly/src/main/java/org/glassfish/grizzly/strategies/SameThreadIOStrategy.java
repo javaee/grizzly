@@ -45,10 +45,9 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOEventProcessingHandler;
+import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.asyncqueue.AsyncQueue;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
@@ -65,11 +64,11 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     private static final Logger logger = Grizzly.logger(SameThreadIOStrategy.class);
 
 
-    private static final InterestProcessingHandlerWhenIoEnabled PROCESSING_HANDLER_WHEN_IO_ENABLED =
-            new InterestProcessingHandlerWhenIoEnabled();
+    private static final InterestLifeCycleListenerWhenIoEnabled LIFECYCLE_LISTENER_WHEN_IO_ENABLED =
+            new InterestLifeCycleListenerWhenIoEnabled();
 
-    private static final InterestProcessingHandlerWhenIoDisabled PROCESSING_HANDLER_WHEN_IO_DISABLED =
-            new InterestProcessingHandlerWhenIoDisabled();
+    private static final InterestLifeCycleListenerWhenIoDisabled LIFECYCLE_LISTENER_WHEN_IO_DISABLED =
+            new InterestLifeCycleListenerWhenIoDisabled();
     
     // ------------------------------------------------------------ Constructors
 
@@ -93,14 +92,14 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
             final IOEvent ioEvent, final boolean isIoEventEnabled)
             throws IOException {
         
-        IOEventProcessingHandler ph = null;
+        IOEventLifeCycleListener listener = null;
         if (isReadWrite(ioEvent)) {
-            ph = isIoEventEnabled
-                    ? PROCESSING_HANDLER_WHEN_IO_ENABLED
-                    : PROCESSING_HANDLER_WHEN_IO_DISABLED;
+            listener = isIoEventEnabled
+                    ? LIFECYCLE_LISTENER_WHEN_IO_ENABLED
+                    : LIFECYCLE_LISTENER_WHEN_IO_DISABLED;
         }
 
-        fireIOEvent(connection, ioEvent, ph, logger);
+        fireIOEvent(connection, ioEvent, listener, logger);
 
         return true;
     }
@@ -119,8 +118,8 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static final class InterestProcessingHandlerWhenIoEnabled
-            extends EmptyIOEventProcessingHandler {
+    private static final class InterestLifeCycleListenerWhenIoEnabled
+            extends IOEventLifeCycleListener.Adapter {
 
         @Override
         public void onReregister(final Context context) throws IOException {
@@ -167,8 +166,8 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
 
     }
     
-    private static final class InterestProcessingHandlerWhenIoDisabled
-            extends EmptyIOEventProcessingHandler {
+    private static final class InterestLifeCycleListenerWhenIoDisabled
+            extends IOEventLifeCycleListener.Adapter {
 
         @Override
         public void onReregister(final Context context) throws IOException {

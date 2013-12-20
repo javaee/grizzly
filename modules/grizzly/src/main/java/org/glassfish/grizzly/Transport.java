@@ -496,10 +496,10 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      *
      * @param ioEvent I/O event
      * @param connection {@link Connection}, on which we fire the event.
-     * @param processingHandler I/O event processing handler.
+     * @param listener I/O event life-cycle listener.
      */
     void fireIOEvent(IOEvent ioEvent, Connection connection,
-            IOEventProcessingHandler processingHandler);
+            IOEventLifeCycleListener listener);
 
     /**
      * Returns <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,

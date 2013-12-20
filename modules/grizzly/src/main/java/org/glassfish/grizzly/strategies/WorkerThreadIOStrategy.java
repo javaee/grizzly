@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,7 @@ import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOEventProcessingHandler;
+import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.Processor;
 import java.util.logging.Logger;
 
@@ -83,22 +83,22 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
         final boolean isReadOrWriteEvent = isReadWrite(ioEvent);
 
-        final IOEventProcessingHandler pp;
+        final IOEventLifeCycleListener listener;
         if (isReadOrWriteEvent) {
             if (isIoEventEnabled) {
                 connection.disableIOEvent(ioEvent);
             }
             
-            pp = ENABLE_INTEREST_PROCESSING_HANDLER;
+            listener = ENABLE_INTEREST_LIFECYCLE_LISTENER;
         } else {
-            pp = null;
+            listener = null;
         }
 
         if (isExecuteInWorkerThread(ioEvent)) {
             getWorkerThreadPool(connection).execute(
-                    new WorkerThreadRunnable(connection, ioEvent, pp));
+                    new WorkerThreadRunnable(connection, ioEvent, listener));
         } else {
-            run0(connection, ioEvent, pp);
+            run0(connection, ioEvent, listener);
         }
 
         return true;
@@ -110,29 +110,29 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
     private static void run0(final Connection connection,
                              final IOEvent ioEvent,
-                             final IOEventProcessingHandler processingHandler) {
+                             final IOEventLifeCycleListener lifeCycleListener) {
 
-        fireIOEvent(connection, ioEvent, processingHandler, logger);
+        fireIOEvent(connection, ioEvent, lifeCycleListener, logger);
 
     }
     
     private static final class WorkerThreadRunnable implements Runnable {
         final Connection connection;
         final IOEvent ioEvent;
-        final IOEventProcessingHandler processingHandler;
+        final IOEventLifeCycleListener lifeCycleListener;
         
         private WorkerThreadRunnable(final Connection connection,
                 final IOEvent ioEvent,
-                final IOEventProcessingHandler processingHandler) {
+                final IOEventLifeCycleListener lifeCycleListener) {
             this.connection = connection;
             this.ioEvent = ioEvent;
-            this.processingHandler = processingHandler;
+            this.lifeCycleListener = lifeCycleListener;
             
         }
 
         @Override
         public void run() {
-            run0(connection, ioEvent, processingHandler);
+            run0(connection, ioEvent, lifeCycleListener);
         }        
     }
 

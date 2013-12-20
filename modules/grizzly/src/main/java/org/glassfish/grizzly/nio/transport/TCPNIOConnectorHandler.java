@@ -314,7 +314,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection CONNECT
-    private static final class EnableReadHandler extends EmptyIOEventProcessingHandler {
+    private static final class EnableReadHandler extends IOEventLifeCycleListener.Adapter {
 
         private final CompletionHandler<Connection> completionHandler;
 

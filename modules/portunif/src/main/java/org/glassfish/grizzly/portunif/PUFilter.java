@@ -47,9 +47,9 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.EmptyIOEventProcessingHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
@@ -259,7 +259,7 @@ public class PUFilter extends BaseFilter {
                 filterChain.obtainFilterChainContext(connection);
         final Context context = filterChainContext.getInternalContext();
         context.setIoEvent(IOEvent.READ);
-        context.setProcessingHandler(new InternalProcessingHandler(ctx));
+        context.addLifeCycleListener(new InternalProcessingHandler(ctx));
         filterChainContext.setAddressHolder(ctx.getAddressHolder());
         filterChainContext.setMessage(ctx.getMessage());
         return filterChainContext;
@@ -333,7 +333,7 @@ public class PUFilter extends BaseFilter {
     }
 
 
-    private class InternalProcessingHandler extends EmptyIOEventProcessingHandler {
+    private class InternalProcessingHandler extends IOEventLifeCycleListener.Adapter {
         private final FilterChainContext parentContext;
         
         private InternalProcessingHandler(final FilterChainContext parentContext) {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,7 +46,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOEventProcessingHandler;
+import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
 
@@ -86,24 +86,24 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
             final IOEvent ioEvent, final boolean isIoEventEnabled) throws IOException {
 
         final NIOConnection nioConnection = (NIOConnection) connection;
-        IOEventProcessingHandler ph = null;
+        IOEventLifeCycleListener listener = null;
         if (isReadWrite(ioEvent)) {
             if (isIoEventEnabled) {
                 connection.disableIOEvent(ioEvent);
             }
             
-            ph = ENABLE_INTEREST_PROCESSING_HANDLER;
+            listener = ENABLE_INTEREST_LIFECYCLE_LISTENER;
         }
 
         if (isExecuteInWorkerThread(ioEvent)) {
             final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
             getWorkerThreadPool(connection).execute(runner);
-            fireIOEvent(connection, ioEvent, ph, logger);
+            fireIOEvent(connection, ioEvent, listener, logger);
 
             return false;
         } else {
-            fireIOEvent(connection, ioEvent, ph, logger);
+            fireIOEvent(connection, ioEvent, listener, logger);
             return true;
         }
     }

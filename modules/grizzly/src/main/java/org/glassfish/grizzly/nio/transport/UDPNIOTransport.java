@@ -409,12 +409,12 @@ public final class UDPNIOTransport extends NIOTransport
     @Override
     public void fireIOEvent(final IOEvent ioEvent,
             final Connection connection,
-            final IOEventProcessingHandler processingHandler) {
+            final IOEventLifeCycleListener listener) {
 
         final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
         ProcessorExecutor.execute(Context.create(connection,
-                    conProcessor, ioEvent, processingHandler));
+                    conProcessor, ioEvent, listener));
     }
 
     /**

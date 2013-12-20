@@ -61,8 +61,8 @@ public abstract class AbstractIOStrategy implements IOStrategy {
     private final static EnumSet<IOEvent> WORKER_THREAD_EVENT_SET =
             EnumSet.of(IOEvent.READ, IOEvent.CLOSED);
     
-    protected final static IOEventProcessingHandler ENABLE_INTEREST_PROCESSING_HANDLER =
-            new EnableInterestProcessingHandler();
+    protected final static IOEventLifeCycleListener ENABLE_INTEREST_LIFECYCLE_LISTENER =
+            new EnableInterestLifeCycleListener();
 
 
     // ----------------------------- Methods from WorkerThreadPoolConfigProducer
@@ -107,10 +107,10 @@ public abstract class AbstractIOStrategy implements IOStrategy {
 
     protected static void fireIOEvent(final Connection connection,
                                       final IOEvent ioEvent,
-                                      final IOEventProcessingHandler ph,
+                                      final IOEventLifeCycleListener listener,
                                       final Logger logger) {
         try {
-            connection.getTransport().fireIOEvent(ioEvent, connection, ph);
+            connection.getTransport().fireIOEvent(ioEvent, connection, listener);
         } catch (Exception e) {
             logger.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_IOSTRATEGY_UNCAUGHT_EXCEPTION(), e);
             connection.closeSilently();
@@ -122,8 +122,8 @@ public abstract class AbstractIOStrategy implements IOStrategy {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private final static class EnableInterestProcessingHandler
-            extends EmptyIOEventProcessingHandler {
+    private final static class EnableInterestLifeCycleListener
+            extends IOEventLifeCycleListener.Adapter {
         
         @Override
         public void onReregister(final Context context) throws IOException {

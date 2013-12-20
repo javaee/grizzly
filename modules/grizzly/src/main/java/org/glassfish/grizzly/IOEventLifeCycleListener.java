@@ -43,12 +43,12 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 
 /**
- * The {@link IOEvent} processing handler, which will be notified about changes
+ * The {@link IOEvent} life-cycle listener, which will be notified about changes
  * in {@link IOEvent} processing statuses.
  * 
  * @author Alexey Stashok
  */
-public interface IOEventProcessingHandler {
+public interface IOEventLifeCycleListener {
     /**
      * {@link IOEvent} processing suspended.
      *
@@ -134,9 +134,9 @@ public interface IOEventProcessingHandler {
     public void onNotRun(Context context) throws IOException;
 
     /**
-     * Empty {@link IOEventProcessingHandler} implementation.
+     * Empty {@link IOEventLifeCycleListener} implementation.
      */
-    public class Adapter implements IOEventProcessingHandler {
+    public class Adapter implements IOEventLifeCycleListener {
 
         /**
          * {@inheritDoc}

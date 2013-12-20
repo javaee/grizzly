@@ -54,7 +54,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOEventProcessingHandler;
+import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
@@ -520,8 +520,9 @@ public final class SpdySession {
                                      final HttpPacket message,
                                      final FilterChainContext upstreamContext) {
 
-        upstreamContext.getInternalContext().setIoEvent(IOEvent.READ,
-                new IOEventProcessingHandler.Adapter() {
+        upstreamContext.getInternalContext().setIoEvent(IOEvent.READ);
+        upstreamContext.getInternalContext().addLifeCycleListener(
+                new IOEventLifeCycleListener.Adapter() {
                     @Override
                     public void onReregister(final Context context) throws IOException {
                         spdyStream.inputBuffer.onReadEventComplete();

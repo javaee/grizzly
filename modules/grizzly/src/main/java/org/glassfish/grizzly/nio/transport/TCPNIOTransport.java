@@ -520,32 +520,34 @@ public final class TCPNIOTransport extends NIOTransport implements
     @Override
     public void fireIOEvent(final IOEvent ioEvent,
             final Connection connection,
-            final IOEventProcessingHandler processingHandler) {
+            final IOEventLifeCycleListener listener) {
 
-            if (ioEvent == IOEvent.SERVER_ACCEPT) {
-                try {
-                    ((TCPNIOServerConnection) connection).onAccept();
-                } catch (IOException e) {
-                    failProcessingHandler(ioEvent, connection,
-                            processingHandler, e);
-                }
-                
-                return;
-            } else if (ioEvent == IOEvent.CLIENT_CONNECTED) {
-                try {
-                    ((TCPNIOConnection) connection).onConnect();
-                } catch (IOException e) {
-                    failProcessingHandler(ioEvent, connection,
-                            processingHandler, e);
-                }
-                
-                return;
+        if (ioEvent == IOEvent.SERVER_ACCEPT) {
+            try {
+                ((TCPNIOServerConnection) connection).onAccept();
+            } catch (IOException e) {
+                failProcessingHandler(ioEvent, connection,
+                        listener, e);
             }
-            
-            final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
-            ProcessorExecutor.execute(Context.create(connection,
-                    conProcessor, ioEvent, processingHandler));
+            return;
+        } else if (ioEvent == IOEvent.CLIENT_CONNECTED) {
+            try {
+                ((TCPNIOConnection) connection).onConnect();
+            } catch (IOException e) {
+                failProcessingHandler(ioEvent, connection,
+                        listener, e);
+            }
+
+            return;
+        }
+
+        ProcessorExecutor.execute(
+                Context.create(
+                        connection,
+                        connection.obtainProcessor(ioEvent),
+                        ioEvent,
+                        listener));
     }
     
     /**
@@ -917,7 +919,7 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     private static void failProcessingHandler(final IOEvent ioEvent,
             final Connection connection,
-            final IOEventProcessingHandler processingHandler,
+            final IOEventLifeCycleListener processingHandler,
             final IOException e) {
         if (processingHandler != null) {
             try {

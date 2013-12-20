@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,10 +54,9 @@ public final class ProcessorExecutor {
 
     public static void execute(final Connection connection,
             final IOEvent ioEvent, final Processor processor,
-            final IOEventProcessingHandler processingHandler) {
+            final IOEventLifeCycleListener lifeCycleListener) {
 
-        execute(Context.create(connection, processor, ioEvent,
-                processingHandler));
+        execute(Context.create(connection, processor, ioEvent, lifeCycleListener));
     }
    
     @SuppressWarnings("unchecked")
@@ -109,12 +108,11 @@ public final class ProcessorExecutor {
     private static void complete(final Context context, final Object data)
             throws IOException {
 
-        final IOEventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-        
+        final int sz = context.lifeCycleListeners.size();
+        final IOEventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
         try {
-            if (processingHandler != null) {
-                processingHandler.onComplete(context, data);
+            for (int i = 0; i < sz; i++) {
+                listeners[i].onComplete(context, data);
             }
         } finally {
             context.recycle();
@@ -122,12 +120,11 @@ public final class ProcessorExecutor {
     }
 
     private static void leave(final Context context) throws IOException {
-        final IOEventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-
+        final int sz = context.lifeCycleListeners.size();
+        final IOEventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
         try {
-            if (processingHandler != null) {
-                processingHandler.onLeave(context);
+            for (int i = 0; i < sz; i++) {
+                listeners[i].onLeave(context);
             }
         } finally {
             context.recycle();
@@ -140,59 +137,47 @@ public final class ProcessorExecutor {
         // "Context context" was suspended, so we reregister with its copy
         // which is passed as "Object data"
         final Context realContext = (Context) data;
-        final IOEventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-
+        
+        final int sz = context.lifeCycleListeners.size();
+        final IOEventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
         try {
-            if (processingHandler != null) {
-                processingHandler.onReregister(realContext);
+            for (int i = 0; i < sz; i++) {
+                listeners[i].onReregister(realContext);
             }
         } finally {
             realContext.recycle();
         }
     }
 
-//    private static void terminate(final Context context) throws IOException {
-//        final IOEventProcessingHandler processingHandler =
-//                context.getProcessingHandler();
-//
-//        if (processingHandler != null) {
-//            processingHandler.onTerminate(context);
-//        }
-//    }
-
     private static void rerun(final Context context, final Context newContext)
             throws IOException {
         
-        final IOEventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-
-        if (processingHandler != null) {
-            processingHandler.onRerun(context, newContext);
+        final int sz = context.lifeCycleListeners.size();
+        final IOEventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
+        for (int i = 0; i < sz; i++) {
+            listeners[i].onRerun(context, newContext);
         }
     }
 
     private static void error(final Context context, final Object description)
             throws IOException {
-        final IOEventProcessingHandler processingHandler =
-                context.getProcessingHandler();
-        
-        if (processingHandler != null) {
-            processingHandler.onError(context, description);
+        final int sz = context.lifeCycleListeners.size();
+        final IOEventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
+        for (int i = 0; i < sz; i++) {
+            listeners[i].onError(context, description);
         }
     }
 
     private static void notRun(final Context context) throws IOException {
-        final IOEventProcessingHandler processingHandler =
-                context.getProcessingHandler();
+        final int sz = context.lifeCycleListeners.size();
+        final IOEventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
         try {
-            if (processingHandler != null) {
-                processingHandler.onNotRun(context);
+            for (int i = 0; i < sz; i++) {
+                listeners[i].onNotRun(context);
             }
         } finally {
             context.recycle();
         }
-
     }
 
     static void complete(final Context context,
