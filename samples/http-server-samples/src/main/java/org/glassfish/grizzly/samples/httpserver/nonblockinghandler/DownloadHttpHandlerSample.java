@@ -168,7 +168,7 @@ public class DownloadHttpHandlerSample {
             output.notifyWritePossible(new WriteHandler() {
                 
                 // keep the remaining size
-                private volatile long size = file.length();
+                private long size = file.length();
                 
                 @Override
                 public void onWritePossible() throws Exception {
