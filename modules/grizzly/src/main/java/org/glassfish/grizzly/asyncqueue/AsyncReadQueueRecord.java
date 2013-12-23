@@ -61,9 +61,10 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
                 ThreadCache.takeFromCache(CACHE_IDX);
         
         if (asyncReadQueueRecord != null) {
+            asyncReadQueueRecord.isRecycled = false;
+            
             asyncReadQueueRecord.set(connection, message,
                     completionHandler, interceptor);
-            asyncReadQueueRecord.isRecycled = false;
             return asyncReadQueueRecord;
         }
 
