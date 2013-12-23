@@ -1586,19 +1586,19 @@ public class Response {
      *  thrown when converting the relative URL to an absolute one
      */
     @SuppressWarnings({"unchecked"})
-    protected String toAbsolute(String location, boolean normalize) {
+    protected String toAbsolute(final String location, final boolean normalize) {
 
         if (location == null)
-            return (location);
+            return location;
 
-        boolean leadingSlash = location.startsWith("/");
+        final boolean leadingSlash = location.startsWith("/");
 
         if (leadingSlash || (!location.contains("://"))) {
 
-            String scheme = request.getScheme();
+            final String scheme = request.getScheme();
 
-            String name = request.getServerName();
-            int port = request.getServerPort();
+            final String name = request.getServerName();
+            final int port = request.getServerPort();
             
             redirectURLCC.recycle();
             final CharChunk cc = redirectURLCC;
@@ -1608,29 +1608,28 @@ public class Response {
                 cc.append("://", 0, 3);
                 cc.append(name, 0, name.length());
                 if ((scheme.equals("http") && port != 80)
-                    || (scheme.equals("https") && port != 443)) {
+                        || (scheme.equals("https") && port != 443)) {
                     cc.append(':');
                     String portS = port + "";
                     cc.append(portS, 0, portS.length());
                 }
                 if (!leadingSlash) {
                     String relativePath = request.getDecodedRequestURI();
-                    int pos = relativePath.lastIndexOf('/');
+                    final int pos = relativePath.lastIndexOf('/');
                     relativePath = relativePath.substring(0, pos);
 
-                    String encodedURI;
-                    final String frelativePath = relativePath;
-
-                     if (System.getSecurityManager() != null ){
-                        try{
+                    final String encodedURI;
+                    if (System.getSecurityManager() != null) {
+                        try {
+                            final String frelativePath = relativePath;
                             encodedURI = AccessController.doPrivileged(
-                                new PrivilegedExceptionAction<String>() {
-                                @Override
-                                    public String run() throws IOException{
-                                        return urlEncoder.encodeURL(frelativePath);
-                                    }
-                           });
-                        } catch (PrivilegedActionException pae){
+                                    new PrivilegedExceptionAction<String>() {
+                                        @Override
+                                        public String run() throws IOException {
+                                            return urlEncoder.encodeURL(frelativePath);
+                                        }
+                                    });
+                        } catch (PrivilegedActionException pae) {
                             throw new IllegalArgumentException(location, pae.getCause());
                         }
                     } else {
@@ -1652,11 +1651,8 @@ public class Response {
             return cc.toString();
 
         } else {
-
-            return (location);
-
+            return location;
         }
-
     }
 
 
