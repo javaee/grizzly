@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,18 +42,6 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import static org.junit.Assert.*;
 
 public class PooledMemoryManagerTest {
@@ -69,7 +57,7 @@ public class PooledMemoryManagerTest {
         final long memoryPerPool = (long) (Runtime.getRuntime().maxMemory()
                 * PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE
                     / numProcessors);
-        final long totalMemory = (memoryPerPool / 4096) * numProcessors;
+        final long totalMemory = memoryPerPool * numProcessors;
 
         // the total consumed memory should be equal to or greater than 'totalMemory'
         PooledMemoryManager mm = new PooledMemoryManager();
@@ -80,7 +68,7 @@ public class PooledMemoryManagerTest {
             consumedMemory += (long) pools[i].size() * 4096;
         }
 
-        assertTrue("Expected consumed memory to be at least " + totalMemory + ", but was " + consumedMemory, consumedMemory >= totalMemory);
+        assertTrue(consumedMemory >= totalMemory);
 
         // finally, confirm the default buffer size is 4096
         assertEquals(4096, pools[0].poll().capacity());
@@ -98,7 +86,7 @@ public class PooledMemoryManagerTest {
         assertEquals(1, pools.length);
 
         // consumed memory should be greater than or equal to 5% of the heap
-        assertTrue(pools[0].size() * 2048 >= memoryPerPool / 2048);
+        assertTrue(pools[0].size() * 2048 >= memoryPerPool);
 
         // buffer size should be 2048
         assertEquals(2048, pools[0].poll().capacity());
@@ -181,7 +169,7 @@ public class PooledMemoryManagerTest {
         PooledMemoryManager mm =
                 new PooledMemoryManager(PooledMemoryManager.DEFAULT_BUFFER_SIZE,
                         1,
-                        .00001f);
+                        PooledMemoryManager.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
         PooledMemoryManager.BufferPool[] pools = mm.getBufferPools();
         // size before any allocations
@@ -448,103 +436,12 @@ public class PooledMemoryManagerTest {
 
         // split was performed at some point, make sure all buffers have
         // the expected capacities within the pool
-        first = pool.poll();
-        buffer = first;
+        pool = mm.getBufferPools()[0];
+        buffer = first = pool.poll();
         do {
             assertEquals(4096, buffer.capacity());
             pool.offer(buffer);
         } while ((buffer = pool.poll()) != first);
-    }
-
-
-    @Test
-    public void circularityBoundaryTest() {
-        final PooledMemoryManager mm = new PooledMemoryManager(128, 1, .0000001f);
-        final PooledMemoryManager.BufferPool pool = mm.getBufferPools()[0];
-        final int poolSize = pool.size();
-        final ArrayList<PooledMemoryManager.PoolBuffer> tempStorage =
-                new ArrayList<PooledMemoryManager.PoolBuffer>();
-        for (int i = 0; i < poolSize; i++) {
-            tempStorage.add(pool.poll());
-        }
-        assertNull(pool.poll());
-        assertEquals(0, pool.size());
-        pool.offer(tempStorage.get(0));
-        pool.offer(tempStorage.get(1));
-        assertEquals(2, pool.size());
-        tempStorage.add(pool.poll());
-        tempStorage.add(pool.poll());
-        assertEquals(0, pool.size());
-        assertNull(pool.poll());
-        System.out.println(pool.size());
-    }
-
-
-    @Test
-    public void stressTest() {
-        final int numTestThreads =
-                Runtime.getRuntime().availableProcessors() * 8;
-        final PooledMemoryManager mm = new PooledMemoryManager();
-        ExecutorService service =
-                Executors.newFixedThreadPool(numTestThreads,
-                                             new ThreadFactory() {
-                                                 final AtomicInteger i =
-                                                         new AtomicInteger();
-                                                 @Override
-                                                 public Thread newThread(Runnable r) {
-                                                     final Thread t =
-                                                             new Thread(r);
-                                                     t.setName("Stress-" + i.incrementAndGet());
-                                                     t.setDaemon(true);
-                                                     return t;
-                                                 }
-                                             });
-        final CountDownLatch latch = new CountDownLatch(numTestThreads);
-        final Throwable[] errors = new Throwable[numTestThreads];
-        final AtomicBoolean errorsSeen = new AtomicBoolean();
-        for (int i = 0; i < numTestThreads; i++) {
-            final int thread = i;
-            service.submit(new Runnable() {
-                final Random random = new Random(hashCode());
-
-                @Override
-                public void run() {
-                    for (int i = 0; i < 100000; i++) {
-                        try {
-                            Buffer b = mm.allocate(random.nextInt(9000));
-                            Buffer b1 = mm.allocate(random.nextInt(19000));
-                            b.tryDispose();
-                            b1.tryDispose();
-                        } catch (Throwable t) {
-                            errorsSeen.set(true);
-                            System.out.println("Failed at iteration: " + i);
-                            t.printStackTrace();
-                            errors[thread] = t;
-                            break;
-                        }
-                    }
-                    latch.countDown();
-                }
-            });
-        }
-
-        try {
-            latch.await(10, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        if (errorsSeen.get()) {
-            for (int i = 0, len = errors.length; i < len; i++) {
-                if (errors[i] != null) {
-                    Logger.getAnonymousLogger().log(Level.SEVERE,
-                                                    "Error in test thread " + (i + 1) + ": " + errors[i]
-                                                            .getMessage(),
-                                                    errors[i]);
-                }
-            }
-            fail("Test failed!  See log for details.");
-        }
     }
 
 }
