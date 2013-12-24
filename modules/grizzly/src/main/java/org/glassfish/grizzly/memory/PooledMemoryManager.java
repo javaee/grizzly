@@ -484,7 +484,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 if (write.compareAndSet(idx, nextIndex)) {
                     // unmask the current write value to the actual array index.
                     if (!pool.compareAndSet(unmask(idx), null, b)) {
-                        return false;
+                        continue;
                     }
                     size++;
                     ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
