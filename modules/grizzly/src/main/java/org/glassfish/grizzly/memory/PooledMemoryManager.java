@@ -554,6 +554,19 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             return val >> WRITE_MIRROR_BIT & 1;
         }
 
+        @Override
+        public String toString() {
+            final int ridx = read.get();
+            final int widx = write.get();
+            return "BufferPool[" + Integer.toHexString(hashCode()) + "] {" +
+                    "read index=" + unmask(ridx) +
+                    ", read wrap bit=" + getReadBit(widx) +
+                    ", write index=" + unmask(widx) +
+                    ", write wrap bit=" + getWriteBit(widx) +
+                    ", maxPoolSize=" + poolSize +
+                    ", current size=" + size +
+                    '}';
+        }
     } // END BufferPool
 
 
