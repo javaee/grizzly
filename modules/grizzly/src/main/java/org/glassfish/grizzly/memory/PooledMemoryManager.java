@@ -457,7 +457,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                     PoolBuffer pb = pool.getAndSet(unmask(idx), null);
                     if (pb == null) {
                         // lost the cas race
-                        continue;
+                        return null;
                     }
                     assert (pb.free) : Thread.currentThread().getName() + " : Buffer at idx " + idx + " is not free.";
                     size--;

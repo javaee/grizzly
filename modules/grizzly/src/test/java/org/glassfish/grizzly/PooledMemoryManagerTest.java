@@ -475,6 +475,7 @@ public class PooledMemoryManagerTest {
         tempStorage.add(pool.poll());
         tempStorage.add(pool.poll());
         assertEquals(0, pool.size());
+        assertNull(pool.poll());
         System.out.println(pool.size());
     }
 
