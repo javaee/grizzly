@@ -44,8 +44,10 @@ import org.glassfish.grizzly.Buffer;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
@@ -96,7 +98,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
     private BufferPool[] pools;
     private final int bufferSize;
-    private final AtomicInteger allocDistributor = new AtomicInteger();
+    //private final AtomicInteger allocDistributor = new AtomicInteger();
 
 
     // ------------------------------------------------------------ Constructors
@@ -335,8 +337,9 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
     @SuppressWarnings("unchecked")
     private BufferPool getPool() {
-        final int idx = ((allocDistributor.getAndIncrement() & 0x7fffffff) % pools.length);
-        return pools[idx];
+        //final int idx = ((allocDistributor.getAndIncrement() & 0x7fffffff) % pools.length);
+        //return pools[idx];
+        return pools[ThreadLocalRandom.current().nextInt(0, pools.length)];
     }
 
     private int estimateBufferArraySize(final int allocationRequest) {
@@ -381,21 +384,59 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
     public class BufferPool {
 
-        private final ConcurrentLinkedQueue<PoolBuffer> pool;
+        // This array backed by this pool can only support
+        // 2^30-1 elements instead of the usual 2^32-1.
+        // This is because we use bits 30 and 31 to store
+        // information about the read and write pointer
+        // 'wrapping' status.  Without these bits, it's difficult
+        // to tell if the array is full or empty whe both read and
+        // write pointers are equal.
+        // The pool is considered full when read and write pointers
+        // refer to the same index and the aforementioned bits are equal.
+        // The same logic is applied to determine if the pool is empty, except
+        // the bits are not equal.
+        private static final int MASK = 0x3FFFFFFF;
+        private static final int READ_MIRROR_BIT = 30;
+        private static final int WRITE_MIRROR_BIT = 31;
+
+        // Using an AtomicReferenceArray to ensure proper visibility of items
+        // within the pool which while be shared across threads.
+        private final AtomicReferenceArray<PoolBuffer> pool;
+
+        // Maintain two different pointers for reading/writing to reduce
+        // contention.
+        private final AtomicInteger read = new AtomicInteger(0);
+        private final AtomicInteger write = new AtomicInteger(0);
+
+        // not concerned with this value being accurate 100% of the time as
+        // it's used by testing only.
+        private int size;
+
+        // The max size of the pool.
+        private final int poolSize;
 
 
         // -------------------------------------------------------- Constructors
 
 
         BufferPool(final long totalPoolSize, final int bufferSize) {
-            pool = new ConcurrentLinkedQueue<PoolBuffer>();
-            long mem = 0;
-            while (mem < totalPoolSize) {
+
+            poolSize = (int) (totalPoolSize / ((long) bufferSize));
+            pool = new AtomicReferenceArray<PoolBuffer>(poolSize);
+            size = poolSize;
+
+            // can't support more than 2^30-1 elements due to bits 30 and
+            // 31 being reserved.
+            if (poolSize > (Math.pow(2, 30) - 1)) {
+                throw new IllegalStateException("Cannot manage a pool larger than 2^30-1");
+            }
+            for (int i = 0; i < poolSize; i++) {
                 PoolBuffer b = allocate();
                 b.allowBufferDispose(true);
-                pool.offer(b);
-                mem += bufferSize;
+                b.free = true;
+                pool.set(i, b);
             }
+
         }
 
 
@@ -403,29 +444,64 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
 
         public final PoolBuffer poll() {
-            final PoolBuffer buffer = pool.poll();
-            if (buffer != null) {
-                ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig, bufferSize);
+            for (;;) {
+                int idx = read.get();
+                int widx = write.get();
+                if (isEmpty(idx, widx)) {
+                    return null;
+                }
+                int nextIdx = nextReadIndex(idx);
+
+                if (read.compareAndSet(idx, nextIdx)) {
+                    // unmask the current read value to the actual array index.
+                    PoolBuffer pb = pool.getAndSet(unmask(idx), null);
+                    if (pb == null) {
+                        // lost the cas race
+                        continue;
+                    }
+                    assert (pb.free) : Thread.currentThread().getName() + " : Buffer at idx " + idx + " is not free.";
+                    size--;
+                    ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
+                                                                bufferSize);
+                    return pb;
+                }
             }
-            
-            return buffer;
         }
 
         public final boolean offer(final PoolBuffer b) {
-            if (pool.offer(b)) {
-                ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig, bufferSize);
-                return true;
+            assert(b.free) : Thread.currentThread().getName() + " : Buffer being released [" + b + "] is not free";
+            if (b.owner != this) {
+                assert(b.owner == this) : "Illegal attempt to return offer buffer to incorrect pool";
+                return false;
             }
-            
-            return false;
+            for (;;) {
+                int idx = write.get();
+                int ridx = read.get();
+                if (isFull(ridx, idx)) {
+                    return false;
+                }
+                int nextIndex = nextWriteIndex(idx);
+                if (write.compareAndSet(idx, nextIndex)) {
+                    // unmask the current write value to the actual array index.
+                    if (!pool.compareAndSet(unmask(idx), null, b)) {
+                        return false;
+                    }
+                    size++;
+                    ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
+                                                             bufferSize);
+                    break;
+                }
+            }
+            return true;
         }
 
         public final int size() {
-            return pool.size();
+            return size;
         }
 
         public void clear() {
-            pool.clear();
+            //noinspection StatementWithEmptyBody
+            while (poll() != null) ;
         }
 
         public PoolBuffer allocate() {
@@ -435,7 +511,49 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             ProbeNotifier.notifyBufferAllocated(monitoringConfig, bufferSize);
             return buffer;
         }
-        
+
+        private boolean isFull(final int readIdx, final int writeIdx) {
+            return ((unmask(readIdx) == unmask(writeIdx))
+                        && (getReadBit(readIdx) == getWriteBit(writeIdx)));
+        }
+
+        private boolean isEmpty(final int readIdx, final int writeIdx) {
+            return ((unmask(readIdx) == unmask(writeIdx))
+                    && (getReadBit(readIdx) != getWriteBit(writeIdx)));
+        }
+
+        private int nextWriteIndex(int currentIdx) {
+            int idx = unmask(currentIdx) + 1;
+            if (idx == poolSize) {
+                // reset the pointer and flip the tracking bit
+                idx = 0;
+                idx ^= 1 << WRITE_MIRROR_BIT;
+            }
+            return idx;
+        }
+
+        private int nextReadIndex(int currentIdx) {
+            int idx = unmask(currentIdx) + 1;
+            if (idx == poolSize) {
+                // reset the pointer and flip the tracking bit
+                idx = 0;
+                idx ^= 1 << READ_MIRROR_BIT;
+            }
+            return idx;
+        }
+
+        private int unmask(final int val) {
+            return val & MASK;
+        }
+
+        private int getReadBit(final int val) {
+            return val >> READ_MIRROR_BIT & 1;
+        }
+
+        private int getWriteBit(final int val) {
+            return val >> WRITE_MIRROR_BIT & 1;
+        }
+
     } // END BufferPool
 
 
@@ -460,7 +578,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         // Used for the special case of the split() method.  This maintains
         // the original wrapper from the pool which must ultimately be returned.
         private ByteBuffer origVisible;
-
 
 
         // ------------------------------------------------------------ Constructors
@@ -523,6 +640,9 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          */
         @Override
         public void dispose() {
+            if (free) {
+                return;
+            }
             free = true;
             // if shared count is greater than 0, decrement and take no further
             // action
