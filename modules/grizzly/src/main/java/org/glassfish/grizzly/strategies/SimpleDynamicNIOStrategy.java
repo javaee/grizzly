@@ -42,10 +42,12 @@ package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
 import java.util.logging.Logger;
+import java.util.concurrent.Executor;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.EventLifeCycleListener;
+import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
@@ -100,40 +102,39 @@ public final class SimpleDynamicNIOStrategy extends AbstractIOStrategy {
     // ------------------------------------------------- Methods from IOStrategy
 
     @Override
-    public boolean executeIOEvent(final Connection connection,
-            final IOEvent ioEvent,
-            final EventLifeCycleListener lifeCycleListener) {
-        
+    public Executor getThreadPoolFor(final Connection connection,
+            final IOEvent ioEvent) {
         final int lastSelectedKeysCount = getLastSelectedKeysCount(connection);
 
-        return executeIOEvent(connection, ioEvent, lifeCycleListener,
-                lastSelectedKeysCount > WORKER_THREAD_THRESHOLD);
+        return lastSelectedKeysCount <= WORKER_THREAD_THRESHOLD ?
+                     sameThreadStrategy.getThreadPoolFor(connection, ioEvent) :
+                     workerThreadStrategy.getThreadPoolFor(connection, ioEvent);
+    }
+    
+    @Override
+    public boolean executeIOEvent(final Connection connection,
+            final IOEvent ioEvent,
+            final EventLifeCycleListener lifeCycleListener) throws IOException {
+        
+        return getSubStrategyFor(connection).
+                executeIOEvent(connection, ioEvent, lifeCycleListener);
     }
 
     @Override
     public boolean executeIOEvent(Connection connection, IOEvent ioEvent,
             DecisionListener listener) throws IOException {
+        final IOStrategy subStrategy = getSubStrategyFor(connection);
+        final boolean isGoAsync =
+                subStrategy.getThreadPoolFor(connection, ioEvent) != null;
+        
         EventLifeCycleListener lifeCycleListener = null;
-        final boolean isRunAsync =
-                getLastSelectedKeysCount(connection) > WORKER_THREAD_THRESHOLD;
         if (listener != null) {
-            lifeCycleListener = isRunAsync ?
+            lifeCycleListener = isGoAsync ?
                     listener.goAsync(connection, ioEvent) :
                     listener.goSync(connection, ioEvent);
         }
         
-        return executeIOEvent(connection, ioEvent, lifeCycleListener, isRunAsync);
-    }
-
-
-    @Override
-    protected boolean executeIOEvent(final Connection connection,
-            final IOEvent ioEvent,
-            final EventLifeCycleListener lifeCycleListener,
-            final boolean isRunAsync) {
-        return isRunAsync
-                ? workerThreadStrategy.executeIOEvent(connection, ioEvent, lifeCycleListener)
-                : sameThreadStrategy.executeIOEvent(connection, ioEvent, lifeCycleListener);
+        return subStrategy.executeIOEvent(connection, ioEvent, lifeCycleListener);
     }
 
     @Override
@@ -156,8 +157,11 @@ public final class SimpleDynamicNIOStrategy extends AbstractIOStrategy {
         return ((NIOConnection) c).getSelectorRunner().getLastSelectedKeysCount();
     }
 
-    @Override
-    protected Logger getLogger() {
-        return logger;
+    private IOStrategy getSubStrategyFor(final Connection connection) {
+        final int lastSelectedKeysCount = getLastSelectedKeysCount(connection);
+
+        return lastSelectedKeysCount <= WORKER_THREAD_THRESHOLD ?
+                     sameThreadStrategy :
+                     workerThreadStrategy;
     }
 }

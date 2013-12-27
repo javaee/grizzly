@@ -42,6 +42,7 @@ package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -82,42 +83,51 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
     }
 
     @Override
+    public Executor getThreadPoolFor(final Connection connection,
+            final IOEvent ioEvent) {
+        return WORKER_THREAD_EVENT_SET.contains(ioEvent) ?
+                getWorkerThreadPool(connection) :
+                null;
+    }
+    
+    @Override
     public boolean executeIOEvent(final Connection connection,
             final IOEvent ioEvent,
             final EventLifeCycleListener lifeCycleListener) {
         return executeIOEvent(connection, ioEvent, lifeCycleListener,
-                WORKER_THREAD_EVENT_SET.contains(ioEvent));
+                getThreadPoolFor(connection, ioEvent));
     }
 
     @Override
     public boolean executeIOEvent(final Connection connection,
             final IOEvent ioEvent,
             final DecisionListener listener) throws IOException {
+        
+        final Executor executor = getThreadPoolFor(connection, ioEvent);
+
         EventLifeCycleListener lifeCycleListener = null;
         
-        final boolean isRunAsync = WORKER_THREAD_EVENT_SET.contains(ioEvent);
         if (listener != null) {
-            lifeCycleListener = isRunAsync ?
+            lifeCycleListener = executor != null ?
                     listener.goAsync(connection, ioEvent) :
                     listener.goSync(connection, ioEvent);
         }
     
-        return executeIOEvent(connection, ioEvent, lifeCycleListener, isRunAsync);
+        return executeIOEvent(connection, ioEvent, lifeCycleListener, executor);
     }
 
 
-    @Override
     protected boolean executeIOEvent(final Connection connection,
             final IOEvent ioEvent,
             final EventLifeCycleListener lifeCycleListener,
-            final boolean isRunAsync) {
+            final Executor executor) {
         
         final NIOConnection nioConnection = (NIOConnection) connection;
-        if (isRunAsync) {
+        if (executor != null) {
             
             final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
-            getWorkerThreadPool(connection).execute(runner);
+            executor.execute(runner);
             fireEvent(connection, ioEvent, lifeCycleListener, logger);
 
             return false;
@@ -127,9 +137,4 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
             return true;
         }
     }
-
-    @Override
-    protected Logger getLogger() {
-        return logger;
-    }    
 }

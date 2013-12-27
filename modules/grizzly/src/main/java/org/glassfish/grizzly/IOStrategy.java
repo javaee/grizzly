@@ -42,6 +42,7 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import org.glassfish.grizzly.strategies.WorkerThreadPoolConfigProducer;
+import java.util.concurrent.Executor;
 
 /**
  * <tt>strategy</tt> is responsible for making decision how
@@ -68,7 +69,7 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      * which means IOStrategy is becoming responsible for continuing IOEvent
      * processing (possibly starting new thread, which will handle IOEvents).
      */
-    boolean executeIOEvent(final Connection connection, final IOEvent ioEvent)
+    boolean executeIOEvent(Connection connection, IOEvent ioEvent)
             throws IOException;
     
     /**
@@ -88,8 +89,8 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      * which means IOStrategy is becoming responsible for continuing IOEvent
      * processing (possibly starting new thread, which will handle IOEvents).
      */
-    boolean executeIOEvent(final Connection connection, final IOEvent ioEvent,
-            final EventLifeCycleListener lifeCycleListener) throws IOException;
+    boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            EventLifeCycleListener lifeCycleListener) throws IOException;
 
     /**
      * The {@link org.glassfish.grizzly.nio.SelectorRunner} will invoke this
@@ -108,8 +109,8 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      * which means IOStrategy is becoming responsible for continuing IOEvent
      * processing (possibly starting new thread, which will handle IOEvents).
      */
-    boolean executeIOEvent(final Connection connection, final IOEvent ioEvent,
-            final DecisionListener listener) throws IOException;
+    boolean executeIOEvent(Connection connection, IOEvent ioEvent,
+            DecisionListener listener) throws IOException;
     
     /**
      * Listener, which would be called by {@link IOStrategy} implementation
@@ -117,7 +118,19 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      * in the current thread or asynchronously in the worker thread.
      */
     public interface DecisionListener {
-        public EventLifeCycleListener goSync(final Connection connection, final IOEvent ioEvent) throws IOException;
-        public EventLifeCycleListener goAsync(final Connection connection, final IOEvent ioEvent) throws IOException;
+        public EventLifeCycleListener goSync(Connection connection, IOEvent ioEvent) throws IOException;
+        public EventLifeCycleListener goAsync(Connection connection, IOEvent ioEvent) throws IOException;
     }
+
+    /**
+     * Returns an {@link Executor} to be used to run given <tt>ioEvent</tt>
+     * processing for the given <tt>connection</tt>. A <tt>null</tt> value will
+     * be returned if the <tt>ioEvent</tt> should be executed in the kernel thread.
+     * 
+     * @param connection
+     * @param ioEvent
+     * @return an {@link Executor} to be used to run given <tt>ioEvent</tt>
+     * processing for the given <tt>connection</tt>
+     */
+    Executor getThreadPoolFor(Connection connection, IOEvent ioEvent);
 }

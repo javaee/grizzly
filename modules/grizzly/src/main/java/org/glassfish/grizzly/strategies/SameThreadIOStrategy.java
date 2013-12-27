@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
+import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EventLifeCycleListener;
@@ -94,32 +95,24 @@ public final class SameThreadIOStrategy extends AbstractIOStrategy {
             lifeCycleListener = listener.goSync(connection, ioEvent);
         }
         
-        return executeIOEvent(connection, ioEvent, lifeCycleListener, false);
+        fireEvent(connection, ioEvent, lifeCycleListener, logger);
+        return true;
     }
 
     @Override
     public boolean executeIOEvent(final Connection connection,
             final IOEvent ioEvent,
             final EventLifeCycleListener lifeCycleListener) {
-        return executeIOEvent(connection, ioEvent, lifeCycleListener, false);
-    }
-
-    @Override
-    protected boolean executeIOEvent(final Connection connection,
-            final IOEvent event,
-            final EventLifeCycleListener lifeCycleListener,
-            final boolean isRunAsync) {
         
-        fireEvent(connection, event, lifeCycleListener, logger);
+        fireEvent(connection, ioEvent, lifeCycleListener, logger);
         return true;
     }
 
-    
     @Override
-    protected Logger getLogger() {
-        return logger;
+    public Executor getThreadPoolFor(final Connection connection,
+            final IOEvent ioEvent) {
+        return null;
     }
-
 
     // ----------------------------------- Methods from WorkerThreadPoolConfigProducer
 

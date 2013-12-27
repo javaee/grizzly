@@ -53,8 +53,6 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
  */
 public abstract class AbstractIOStrategy implements IOStrategy {
 
-    protected abstract Logger getLogger();
-
     // ----------------------------- Methods from WorkerThreadPoolConfigProducer
 
 
@@ -80,13 +78,7 @@ public abstract class AbstractIOStrategy implements IOStrategy {
         return executeIOEvent(connection, ioEvent, (EventLifeCycleListener) null);
     }
 
-    protected abstract boolean executeIOEvent(final Connection connection,
-            final IOEvent ioEvent,
-            final EventLifeCycleListener listener,
-            final boolean isRunAsync) throws IOException;
-
     // ------------------------------------------------------- Protected Methods
-
 
     protected static Executor getWorkerThreadPool(final Connection c) {
         return c.getTransport().getWorkerThreadPool();
