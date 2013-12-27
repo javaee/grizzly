@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,8 +44,11 @@ import org.glassfish.grizzly.Buffer;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.LockSupport;
+
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
@@ -74,7 +77,7 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
  *
  * @since 3.0
  */
-public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware {
+public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAware {
 
     public static final int DEFAULT_BUFFER_SIZE = 4 * 1024;
     public static final float DEFAULT_HEAP_USAGE_PERCENTAGE = 0.1f;
@@ -96,7 +99,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
     private BufferPool[] pools;
     private final int bufferSize;
-    private final AtomicInteger allocDistributor = new AtomicInteger();
+    //private final AtomicInteger allocDistributor = new AtomicInteger();
 
 
     // ------------------------------------------------------------ Constructors
@@ -110,7 +113,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
      *     <li>The initial allocation will use 10% of the heap.</li>
      * </ul>
      */
-    public PooledMemoryManager() {
+    public PooledMemoryManagerAlt() {
         this(DEFAULT_BUFFER_SIZE,
                 Runtime.getRuntime().availableProcessors(),
                 DEFAULT_HEAP_USAGE_PERCENTAGE);
@@ -124,7 +127,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
      * @param numberOfPools the number of pools to which allocation requests will be striped against.
      * @param percentOfHeap percentage of the heap that will be used when populating the pools.
      */
-    public PooledMemoryManager(final int bufferSize,
+    public PooledMemoryManagerAlt(final int bufferSize,
                                final int numberOfPools,
                                final float percentOfHeap) {
         if (bufferSize <= 0) {
@@ -335,8 +338,9 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
     @SuppressWarnings("unchecked")
     private BufferPool getPool() {
-        final int idx = ((allocDistributor.getAndIncrement() & 0x7fffffff) % pools.length);
-        return pools[idx];
+        //final int idx = ((allocDistributor.getAndIncrement() & 0x7fffffff) % pools.length);
+        //return pools[idx];
+        return pools[ThreadLocalRandom.current().nextInt(0, pools.length)];
     }
 
     private int estimateBufferArraySize(final int allocationRequest) {
@@ -381,53 +385,136 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         return ((valueToCheck & (valueToCheck - 1)) == 0);
     }
 
+    /*
+     *   This array backed by this pool can only support
+     *   2^30-1 elements instead of the usual 2^32-1.
+     *   This is because we use bits 30 and 31 to store
+     *   information about the read and write pointer
+     *   'wrapping' status.  Without these bits, it's difficult
+     *   to tell if the array is full or empty when both read and
+     *   write pointers are equal.
+     *   The pool is considered full when read and write pointers
+     *   refer to the same index and the aforementioned bits are equal.
+     *   The same logic is applied to determine if the pool is empty, except
+     *   the bits are not equal.
+     */
     public class BufferPool {
 
-        private final ConcurrentLinkedQueue<PoolBuffer> pool;
+        // Apply this mask to obtain the first 30 bits of an integer
+        // less the bits for wrap bits.
+        private static final int MASK = 0x3FFFFFFF;
+
+        // Apply this mask to obtain both wrap status bits.
+        private static final int WRAP_BITS_MASK = 0xC0000000;
+
+        // Bit position for the poll wrapping status bit.
+        private static final int POLL_WRAP_BIT = 30;
+
+        // Bit position for the offer wrapping status bit.
+        private static final int OFFER_WRAP_BIT = 31;
+
+        // Using an AtomicReferenceArray to ensure proper visibility of items
+        // within the pool which while be shared across threads.
+        private final AtomicReferenceArray<PoolBuffer> pool;
+
+        // Maintain two different pointers for reading/writing to reduce
+        // contention.
+        private final AtomicInteger pollIdx = new AtomicInteger(0);
+        private final AtomicInteger offerIdx = new AtomicInteger(0);
+
+        // The max size of the pool.
+        private final int maxPoolSize;
 
 
         // -------------------------------------------------------- Constructors
 
 
         BufferPool(final long totalPoolSize, final int bufferSize) {
-            pool = new ConcurrentLinkedQueue<PoolBuffer>();
-            long mem = 0;
-            while (mem < totalPoolSize) {
+
+            maxPoolSize = (int) (totalPoolSize / ((long) bufferSize));
+
+            // poolSize must be less than or equal to 2^30 - 1.
+            if (((maxPoolSize & WRAP_BITS_MASK) >> 30 != 0)) {
+                throw new IllegalStateException(
+                        "Cannot manage a pool larger than 2^30-1");
+            }
+            pool = new AtomicReferenceArray<PoolBuffer>(maxPoolSize);
+            for (int i = 0; i < maxPoolSize; i++) {
                 PoolBuffer b = allocate();
                 b.allowBufferDispose(true);
-                pool.offer(b);
-                mem += bufferSize;
+                b.free = true;
+                pool.set(i, b);
             }
+
         }
 
 
-        // --------------------------------------------- Package Private Methods
+        // ------------------------------------------------------ Public Methods
 
 
         public final PoolBuffer poll() {
-            final PoolBuffer buffer = pool.poll();
-            if (buffer != null) {
-                ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig, bufferSize);
+            for (;;) {
+                int pollIdx = this.pollIdx.get();
+                int offerIdx = this.offerIdx.get();
+                if (isEmpty(pollIdx, offerIdx)) {
+                    return null;
+                }
+                int nextPollIdx = nextPollIndex(pollIdx);
+                if (this.pollIdx.compareAndSet(pollIdx, nextPollIdx)) {
+                    // unmask the current read value to the actual array index.
+                    PoolBuffer pb = pool.getAndSet(unmask(pollIdx), null);
+                    if (pb == null) {
+                        return null;
+                    }
+                    ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
+                                                                bufferSize);
+                    return pb;
+                } else {
+                    LockSupport.parkNanos(1);
+                }
             }
-            
-            return buffer;
         }
 
         public final boolean offer(final PoolBuffer b) {
-            if (pool.offer(b)) {
-                ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig, bufferSize);
-                return true;
+            if (b.owner != this) {
+                return false;
             }
-            
-            return false;
+            for (;;) {
+                int offerIdx = this.offerIdx.get();
+                int pollIdx = this.pollIdx.get();
+                if (isFull(pollIdx, offerIdx)) {
+                    return false;
+                }
+                int nextOfferIndex = nextOfferIndex(offerIdx);
+                if (this.offerIdx.compareAndSet(offerIdx, nextOfferIndex)) {
+                    // unmask the current write value to the actual array index.
+                    if (!pool.compareAndSet(unmask(offerIdx), null, b)) {
+                        // lost the cas race, so we have to start over
+                        LockSupport.parkNanos(1);
+                        continue;
+                    }
+                    ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
+                                                             bufferSize);
+                    break;
+                } else {
+                    LockSupport.parkNanos(1);
+                }
+            }
+            return true;
         }
 
         public final int size() {
-            return pool.size();
+            final int curPoll = pollIdx.get();
+            final int curOffer = offerIdx.get();
+            return ((getPollWrappingBit(curPoll) != getOfferWrappingBit(
+                    curOffer))
+                    ? (unmask(curOffer) - unmask(curPoll))
+                    : maxPoolSize - (unmask(curPoll) - unmask(curOffer)));
         }
 
         public void clear() {
-            pool.clear();
+            //noinspection StatementWithEmptyBody
+            while (poll() != null) ;
         }
 
         public PoolBuffer allocate() {
@@ -437,7 +524,73 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             ProbeNotifier.notifyBufferAllocated(monitoringConfig, bufferSize);
             return buffer;
         }
-        
+
+
+        // ----------------------------------------------------- Private Methods
+
+
+        private boolean isFull(final int pollIdx, final int offerIdx) {
+            return ((unmask(pollIdx) == unmask(offerIdx))
+                        && (getPollWrappingBit(pollIdx) == getOfferWrappingBit(
+                    offerIdx)));
+        }
+
+        private boolean isEmpty(final int pollIdx, final int offerIdx) {
+            return ((unmask(pollIdx) == unmask(offerIdx))
+                    && (getPollWrappingBit(pollIdx) != getOfferWrappingBit(
+                    offerIdx)));
+        }
+
+        private int nextOfferIndex(final int currentIdx) {
+            return nextIndex(currentIdx, OFFER_WRAP_BIT);
+        }
+
+        private int nextPollIndex(final int currentIdx) {
+            return nextIndex(currentIdx, POLL_WRAP_BIT);
+        }
+
+        private int nextIndex(final int currentIdx,
+                              final int wrapBitPosition) {
+            int idx = unmask(currentIdx) + 1;
+            if (idx == maxPoolSize) {
+                // set lower 30 bits to 0.
+                idx = (currentIdx & WRAP_BITS_MASK);
+                // invert current bit at specified position
+                idx ^= 1 << wrapBitPosition;
+                return idx;
+            }
+            // apply the current values for bits 30/31 to the new value
+            idx |= (currentIdx & WRAP_BITS_MASK);
+            return idx;
+        }
+
+        private int unmask(final int val) {
+            return val & MASK;
+        }
+
+        private int getPollWrappingBit(final int val) {
+            return val >> POLL_WRAP_BIT & 1;
+        }
+
+        private int getOfferWrappingBit(final int val) {
+            return val >> OFFER_WRAP_BIT & 1;
+        }
+
+        @Override
+        public String toString() {
+            return toString(pollIdx.get(), offerIdx.get());
+        }
+
+        private String toString(final int ridx, final int widx) {
+            return "BufferPool[" + Integer.toHexString(hashCode()) + "] {" +
+                                "offer index=" + unmask(widx) +
+                                ", offer wrap bit=" + getOfferWrappingBit(widx) +
+                                ", poll index=" + unmask(ridx) +
+                                ", poll wrap bit=" + getPollWrappingBit(ridx) +
+                                ", maxPoolSize=" + maxPoolSize +
+                                '}';
+        }
+
     } // END BufferPool
 
 
@@ -462,7 +615,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         // Used for the special case of the split() method.  This maintains
         // the original wrapper from the pool which must ultimately be returned.
         private ByteBuffer origVisible;
-
 
 
         // ------------------------------------------------------------ Constructors
@@ -525,6 +677,9 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          */
         @Override
         public void dispose() {
+            if (free) {
+                return;
+            }
             free = true;
             // if shared count is greater than 0, decrement and take no further
             // action
@@ -658,4 +813,17 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         }
 
     } // END PoolBuffer
+
+
+    public static void main(String[] args) {
+        int i = 3;
+        System.out.println(i);
+        i ^= 1 << 31;
+        System.out.println(i);
+        i &= 0xC0000000;
+        System.out.println(i);
+        i &= 0x7fffffff;
+        System.out.println(i);
+    }
+
 }
