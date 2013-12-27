@@ -88,21 +88,20 @@ public abstract class AbstractIOStrategy implements IOStrategy {
             final IOEvent ioEvent) throws IOException {
         return executeIoEvent(connection, ioEvent, true);
     }
-    
+
+    @Override
+    public Executor getThreadPoolFor(final Connection connection,
+            final IOEvent ioEvent) {
+        return WORKER_THREAD_EVENT_SET.contains(ioEvent) ?
+                connection.getTransport().getWorkerThreadPool() :
+                null;
+    }
 
     // ------------------------------------------------------- Protected Methods
 
 
     protected static boolean isReadWrite(final IOEvent ioEvent) {
         return READ_WRITE_EVENT_SET.contains(ioEvent);
-    }
-
-    protected static boolean isExecuteInWorkerThread(final IOEvent ioEvent) {
-        return WORKER_THREAD_EVENT_SET.contains(ioEvent);
-    }
-
-    protected static Executor getWorkerThreadPool(final Connection c) {
-        return c.getTransport().getWorkerThreadPool();
     }
 
     protected static void fireIOEvent(final Connection connection,

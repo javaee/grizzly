@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
+import java.util.concurrent.Executor;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOStrategy;
@@ -102,6 +103,16 @@ public final class SimpleDynamicNIOStrategy implements IOStrategy {
 
     // ------------------------------------------------- Methods from IOStrategy
 
+
+    @Override
+    public Executor getThreadPoolFor(final Connection connection,
+            final IOEvent ioEvent) {
+        final int lastSelectedKeysCount = getLastSelectedKeysCount(connection);
+
+        return lastSelectedKeysCount <= WORKER_THREAD_THRESHOLD ?
+                     sameThreadStrategy.getThreadPoolFor(connection, ioEvent) :
+                     workerThreadStrategy.getThreadPoolFor(connection, ioEvent);
+    }
 
     @Override
     public boolean executeIoEvent(final Connection connection,

@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
+import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Connection;
@@ -95,10 +96,11 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
             listener = ENABLE_INTEREST_LIFECYCLE_LISTENER;
         }
 
-        if (isExecuteInWorkerThread(ioEvent)) {
+        final Executor threadPool = getThreadPoolFor(connection, ioEvent);
+        if (threadPool != null) {
             final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
-            getWorkerThreadPool(connection).execute(runner);
+            threadPool.execute(runner);
             fireIOEvent(connection, ioEvent, listener, logger);
 
             return false;

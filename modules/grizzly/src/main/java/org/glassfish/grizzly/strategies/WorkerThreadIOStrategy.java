@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.strategies;
 
 import java.io.IOException;
+import java.util.concurrent.Executor;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
@@ -94,8 +95,9 @@ public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
             listener = null;
         }
 
-        if (isExecuteInWorkerThread(ioEvent)) {
-            getWorkerThreadPool(connection).execute(
+        final Executor threadPool = getThreadPoolFor(connection, ioEvent);
+        if (threadPool != null) {
+            threadPool.execute(
                     new WorkerThreadRunnable(connection, ioEvent, listener));
         } else {
             run0(connection, ioEvent, listener);

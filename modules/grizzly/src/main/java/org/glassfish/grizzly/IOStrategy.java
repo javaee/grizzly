@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,6 +43,7 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.strategies.WorkerThreadPoolConfigProducer;
 
 import java.io.IOException;
+import java.util.concurrent.Executor;
 
 /**
  * <tt>strategy</tt> is responsible for making decision how
@@ -72,7 +73,7 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      *
      * @throws IOException if an error occurs processing the {@link IOEvent}.
      */
-    boolean executeIoEvent(final Connection connection, final IOEvent ioEvent)
+    boolean executeIoEvent(Connection connection, IOEvent ioEvent)
     throws IOException;
 
     /**
@@ -96,7 +97,18 @@ public interface IOStrategy extends WorkerThreadPoolConfigProducer {
      *
      * @throws IOException if an error occurs processing the {@link IOEvent}.
      */
-    boolean executeIoEvent(final Connection connection, final IOEvent ioEvent,
-            final boolean isIoEventEnabled) throws IOException;
+    boolean executeIoEvent(Connection connection, IOEvent ioEvent,
+            boolean isIoEventEnabled) throws IOException;
     
+    /**
+     * Returns an {@link Executor} to be used to run given <tt>ioEvent</tt>
+     * processing for the given <tt>connection</tt>. A <tt>null</tt> value will
+     * be returned if the <tt>ioEvent</tt> should be executed in the kernel thread.
+     * 
+     * @param connection
+     * @param ioEvent
+     * @return an {@link Executor} to be used to run given <tt>ioEvent</tt>
+     * processing for the given <tt>connection</tt>
+     */
+    Executor getThreadPoolFor(Connection connection, IOEvent ioEvent);
 }
