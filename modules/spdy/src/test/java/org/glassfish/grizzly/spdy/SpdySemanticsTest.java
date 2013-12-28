@@ -810,6 +810,109 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
     }
 
     /**
+     * Test the SpdyStream reaction, when other side terminated a connection
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testConnectionTerminated() throws Exception {
+        final CountDownLatch closeLatch = new CountDownLatch(1);
+        final FutureImpl<CloseType> resultFuture = Futures.createSafeFuture();
+        
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        final HttpServer server = createServer(
+                HttpHandlerRegistration.of(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                final FutureImpl<CloseType> f = Futures.createSafeFuture();
+                try {
+                    final SpdyStream spdyStream
+                            = (SpdyStream) request.getAttribute(SpdyStream.SPDY_STREAM_ATTRIBUTE);
+                    spdyStream.addCloseListener(new CloseListener<SpdyStream, CloseType>() {
+
+                        @Override
+                        public void onClosed(SpdyStream closable, CloseType type) throws IOException {
+                            f.result(type);
+                        }
+                    });
+
+                    assertFalse(f.isDone());
+                    
+                    response.setContentLength(1024);
+                    response.getOutputStream().flush();
+                    closeLatch.await(5, TimeUnit.SECONDS);
+                    Thread.sleep(50);
+                    assertFalse(f.isDone());
+                    request.getInputStream().read();
+                    assertTrue(f.isDone());
+                } catch (AssertionError error) {
+                    resultFuture.failure(error);
+                } finally {
+                    try {
+                        resultFuture.result(f.get(10, TimeUnit.SECONDS));
+                    } catch (Throwable t) {
+                        resultFuture.failure(t);
+                    }
+                }
+            }
+        }, "/test"));
+        
+        try {
+            final BlockingQueue<SpdyFrame> clientQueue =
+                    new LinkedTransferQueue<SpdyFrame>();
+            
+            server.start();
+            final FilterChainBuilder builder = createRawClientFilterChainAsBuilder();
+            
+            builder.add(new RawClientFilter(clientQueue));
+            
+            clientTransport.setProcessor(builder.build());
+
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+
+                final Deflater deflater =
+                        CompressedHeadersBuilder.createSpdyDeflater();
+                
+                final SynStreamFrame synStream = SynStreamFrame.builder()
+                        .streamId(1)
+                        .compressedHeaders(CompressedHeadersBuilder.newInstance()
+                                .method(Method.POST)
+                                .scheme("https")
+                                .host("localhost:" + PORT)
+                                .path("/test")
+                                .version(Protocol.HTTP_1_1)
+                                .contentLength(10)
+                                .build(deflater))
+                        .last(false)
+                        .build();
+
+                connection.write(synStream);
+
+                assertTrue(clientQueue.poll(10, TimeUnit.SECONDS) instanceof SettingsFrame);
+                assertTrue(clientQueue.poll(10, TimeUnit.SECONDS) instanceof SynReplyFrame);
+                
+                connection.close();
+                closeLatch.countDown();
+            } finally {
+                resultFuture.get(30, TimeUnit.SECONDS);
+                
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+        } finally {
+            clientTransport.shutdownNow();
+            server.shutdownNow();
+        }
+    }
+    
+    /**
      * Test RST reply from endpoint, when we try to send any frame on the
      * unidirectional stream.
      */

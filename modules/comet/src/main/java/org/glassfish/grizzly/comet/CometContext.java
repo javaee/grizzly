@@ -104,7 +104,7 @@ public class CometContext<E> {
     protected final static String ALREADY_REMOVED = "CometHandler already been removed or invalid.";
     private final static String COMET_NOT_ENABLED = "Make sure you have enabled Comet or make sure the thread"
         + " invoking that method is the same as the Servlet.service() thread.";
-    protected final static Logger logger = Logger.getLogger(CometContext.class.getName());
+    protected final static Logger LOGGER = Logger.getLogger(CometContext.class.getName());
     private final Map<Object,Object> attributes;
       
     protected final static ThreadLocal<Request> REQUEST_LOCAL = new ThreadLocal<Request>();
@@ -515,7 +515,7 @@ public class CometContext<E> {
         try {
             handler.onEvent(new CometEvent(CometEvent.Type.READ));
         } catch (IOException e) {
-            logger.log(Level.FINE, e.getMessage());
+            LOGGER.log(Level.FINE, e.getMessage());
         }
     }
 
@@ -536,7 +536,7 @@ public class CometContext<E> {
             try {
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
-                throw new RuntimeException(e.getMessage(), e);
+                LOGGER.log(Level.FINE, "CometCompletionHandler.failed", e.getMessage());
             }
         }
 
@@ -545,7 +545,7 @@ public class CometContext<E> {
             try {
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
-                throw new RuntimeException(e.getMessage(), e);
+                LOGGER.log(Level.FINE, "CometCompletionHandler.completed", e.getMessage());
             }
         }
 
@@ -573,7 +573,7 @@ public class CometContext<E> {
             try {
                 handler.onInterrupt(eventInterrupt);
             } catch (IOException e) {
-                logger.log(Level.SEVERE, e.getMessage());
+                LOGGER.log(Level.SEVERE, e.getMessage());
                 throw new RuntimeException(e.getMessage(), e);
             }
             return true;

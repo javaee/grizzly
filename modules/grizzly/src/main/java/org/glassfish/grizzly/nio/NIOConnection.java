@@ -445,16 +445,16 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public final void closeSilently() {
-        close(null);
-    }
-    
-    @Override
     public void close(final CompletionHandler<Closeable> completionHandler) {
         close0(completionHandler, CloseReason.LOCALLY_CLOSED_REASON);
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public final void closeSilently() {
+        close0(null, CloseReason.LOCALLY_CLOSED_REASON);
+    }
+    
     @Override
     public void closeWithReason(final CloseReason closeReason) {
         close0(null, closeReason);

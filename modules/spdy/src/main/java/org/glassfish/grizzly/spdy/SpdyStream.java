@@ -364,18 +364,16 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
      * Notifies the SpdyStream that it's been closed remotely.
      */
     void closedRemotely() {
-        if (closeTypeFlag.compareAndSet(null, CloseType.REMOTELY)) {
-            // Schedule (add to the stream's input queue) the Termination,
-            // which will be invoked once read by the user code.
-            // This way we simulate Java Socket behavior
-            inputBuffer.close(
-                    new Termination(TerminationType.PEER_CLOSE, CLOSED_BY_PEER_STRING) {
-                @Override
-                public void doTask() {
-                    close(null, false);
-                }
-            });
-        }
+        // Schedule (add to the stream's input queue) the Termination,
+        // which will be invoked once read by the user code.
+        // This way we simulate Java Socket behavior
+        inputBuffer.close(
+                new Termination(TerminationType.PEER_CLOSE, CLOSED_BY_PEER_STRING) {
+            @Override
+            public void doTask() {
+                close(null, false);
+            }
+        });
     }
     
     /**

@@ -311,12 +311,54 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      */
     public void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize);
     
+    /**
+     * Returns the current value for the blocking read timeout converted to the
+     * provided {@link TimeUnit} specification.  If this value hasn't been
+     * explicitly set, it will default to {@value #DEFAULT_READ_TIMEOUT} seconds.
+     *
+     * @param timeUnit the {@link TimeUnit} to convert the returned result to.
+     *
+     * @since 2.3
+     */
     long getReadTimeout(TimeUnit timeUnit);
 
+    /**
+     * Specifies the timeout for the blocking reads.  This may be overridden on
+     * a per-connection basis.
+     * A value of zero or less effectively disables the timeout.
+     *
+     * @param timeout the new timeout value
+     * @param timeUnit the {@TimeUnit} specification of the provided value.
+     *
+     * @see Connection#setReadTimeout(long, java.util.concurrent.TimeUnit)
+     *
+     * @since 2.3
+     */
     void setReadTimeout(long timeout, TimeUnit timeUnit);
 
+    /**
+     * Returns the current value for the blocking write timeout converted to the
+     * provided {@link TimeUnit} specification.  If this value hasn't been
+     * explicitly set, it will default to {@value #DEFAULT_WRITE_TIMEOUT} seconds.
+     *
+     * @param timeUnit the {@link TimeUnit} to convert the returned result to.
+     *
+     * @since 2.3
+     */
     long getWriteTimeout(TimeUnit timeUnit);
 
+    /**
+     * Specifies the timeout for the blocking writes.  This may be overridden on
+     * a per-connection basis.
+     * A value of zero or less effectively disables the timeout.
+     *
+     * @param timeout  the new timeout value
+     * @param timeUnit the {@TimeUnit} specification of the provided value.
+     *
+     * @see Connection#setWriteTimeout(long, java.util.concurrent.TimeUnit)
+     *
+     * @since 2.3
+     */
     void setWriteTimeout(long timeout, TimeUnit timeUnit);
 
     public void simulateIOEvent(final IOEvent ioEvent) throws IOException;
