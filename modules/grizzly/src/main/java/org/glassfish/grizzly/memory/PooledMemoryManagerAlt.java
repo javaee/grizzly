@@ -147,7 +147,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         final long memoryPerPool = (long) (heapSize * percentOfHeap / numberOfPools);
         pools = new BufferPool[numberOfPools];
         for (int i = 0; i < numberOfPools; i++) {
-            pools[i] = new BufferPool(memoryPerPool, bufferSize);
+            pools[i] = new BufferPool(memoryPerPool, bufferSize, monitoringConfig);
         }
     }
 
@@ -300,7 +300,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
     @Override
     public Buffer wrap(String s) {
-        return wrap(s.getBytes());
+        return wrap(s.getBytes(Charset.defaultCharset()));
     }
 
     @Override
@@ -398,7 +398,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
      *   The same logic is applied to determine if the pool is empty, except
      *   the bits are not equal.
      */
-    public class BufferPool {
+    public static class BufferPool {
 
         // Apply this mask to obtain the first 30 bits of an integer
         // less the bits for wrap bits.
@@ -425,12 +425,22 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         // The max size of the pool.
         private final int maxPoolSize;
 
+        // individual buffer size.
+        private final int bufferSize;
+
+        // MemoryProbe configuration.
+        private final DefaultMonitoringConfig<MemoryProbe> monitoringConfig;
+
 
         // -------------------------------------------------------- Constructors
 
 
-        BufferPool(final long totalPoolSize, final int bufferSize) {
+        BufferPool(final long totalPoolSize,
+                   final int bufferSize,
+                   final DefaultMonitoringConfig<MemoryProbe> monitoringConfig) {
 
+            this.bufferSize = bufferSize;
+            this.monitoringConfig = monitoringConfig;
             maxPoolSize = (int) (totalPoolSize / ((long) bufferSize));
 
             // poolSize must be less than or equal to 2^30 - 1.
@@ -529,13 +539,13 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         // ----------------------------------------------------- Private Methods
 
 
-        private boolean isFull(final int pollIdx, final int offerIdx) {
+        private static boolean isFull(final int pollIdx, final int offerIdx) {
             return ((unmask(pollIdx) == unmask(offerIdx))
                         && (getPollWrappingBit(pollIdx) == getOfferWrappingBit(
                     offerIdx)));
         }
 
-        private boolean isEmpty(final int pollIdx, final int offerIdx) {
+        private static boolean isEmpty(final int pollIdx, final int offerIdx) {
             return ((unmask(pollIdx) == unmask(offerIdx))
                     && (getPollWrappingBit(pollIdx) != getOfferWrappingBit(
                     offerIdx)));
@@ -549,8 +559,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             return nextIndex(currentIdx, POLL_WRAP_BIT);
         }
 
-        private int nextIndex(final int currentIdx,
-                              final int wrapBitPosition) {
+        private int nextIndex(final int currentIdx, final int wrapBitPosition) {
             int idx = unmask(currentIdx) + 1;
             if (idx == maxPoolSize) {
                 // set lower 30 bits to 0.
@@ -564,15 +573,15 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             return idx;
         }
 
-        private int unmask(final int val) {
+        private static int unmask(final int val) {
             return val & MASK;
         }
 
-        private int getPollWrappingBit(final int val) {
+        private static int getPollWrappingBit(final int val) {
             return val >> POLL_WRAP_BIT & 1;
         }
 
-        private int getOfferWrappingBit(final int val) {
+        private static int getOfferWrappingBit(final int val) {
             return val >> OFFER_WRAP_BIT & 1;
         }
 
@@ -797,7 +806,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         }
 
 
-        // --------------------------------------------------------- Private Methods
+        // ----------------------------------------------------- Private Methods
 
 
         private ByteBufferWrapper wrap(ByteBuffer buffer) {
@@ -813,17 +822,5 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         }
 
     } // END PoolBuffer
-
-
-    public static void main(String[] args) {
-        int i = 3;
-        System.out.println(i);
-        i ^= 1 << 31;
-        System.out.println(i);
-        i &= 0xC0000000;
-        System.out.println(i);
-        i &= 0x7fffffff;
-        System.out.println(i);
-    }
 
 }
