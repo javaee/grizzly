@@ -422,7 +422,7 @@ public class NIOOutputSinksTest extends TestCase {
                             throws IOException {
                         final Buffer buffer = ctx.getMessage();
                         if (counter.addAndGet(buffer.remaining()) > LENGTH * 8) {
-                            throw new CustomException();
+                            throw new CustomIOException();
                         }
                         
                         return ctx.getInvokeAction();
@@ -480,13 +480,8 @@ public class NIOOutputSinksTest extends TestCase {
                     try {
                         out.write(c);
                         out.flush();
-                    } catch (IOException e) {
-                        if (e.getCause() instanceof CustomException) {
-                            parseResult.result(Boolean.TRUE);
-                        } else {
-                            System.out.println("NOT CUSTOM");
-                            parseResult.failure(e);
-                        }
+                    } catch (CustomIOException e) {
+                        parseResult.result(Boolean.TRUE);
                         break;
                     } catch (Exception e) {
                         System.out.println("NOT CUSTOM");
@@ -1283,7 +1278,7 @@ public class NIOOutputSinksTest extends TestCase {
         }
     }
     
-    private static final class CustomException extends IOException {
+    private static final class CustomIOException extends IOException {
         private static final long serialVersionUID = 1L;
     }    
 }

@@ -143,15 +143,6 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
         return spaceInBytes.get();
     }
 
-//    /**
-//     * Get refused bytes counter.
-//     * 
-//     * @deprecated bytes must never be refused.
-//     */
-//    public AtomicInteger getRefusedBytes() {
-//        return refusedBytes;
-//    }
-
     /**
      * Get the current processing task, if the current in not set, take the
      * task from the queue.
@@ -206,8 +197,6 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
             return;
         }
         
-//        final WriteHandler record =
-//                new WriteHandlerQueueRecord(writeHandler, size);
         offerWriteHandler(writeHandler);
         
         if (spaceInBytes() < maxQueueSize && removeWriteHandler(writeHandler)) {
@@ -342,43 +331,6 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
     }
     
     //----------------------------------------------------------- Nested Classes
-    
-//    private static final class WriteHandlerQueueRecord {
-//        private final int size;
-//        private final WriteHandler writeHandler;
-//
-//        public WriteHandlerQueueRecord(final WriteHandler writeHandler,
-//                final int size) {
-//            this.writeHandler = writeHandler;
-//            this.size = size;
-//        }
-//
-//        @Override
-//        public boolean equals(Object obj) {
-//            if (obj == null) {
-//                return false;
-//            }
-//            if (getClass() != obj.getClass()) {
-//                return false;
-//            }
-//            final WriteHandlerQueueRecord other = (WriteHandlerQueueRecord) obj;
-//            if (this.writeHandler != other.writeHandler &&
-//                    (this.writeHandler == null || !this.writeHandler.equals(other.writeHandler))) {
-//                return false;
-//            }
-//            return true;
-//        }
-//
-//        @Override
-//        public int hashCode() {
-//            int hash = 7;
-//            hash = 31 * hash + 
-//                    (this.writeHandler != null ?
-//                    this.writeHandler.hashCode() :
-//                    0);
-//            return hash;
-//        }
-//    }
     
     public interface MutableMaxQueueSize {
         public int getMaxQueueSize();

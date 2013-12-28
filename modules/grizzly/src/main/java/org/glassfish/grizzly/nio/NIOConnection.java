@@ -48,6 +48,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -98,8 +99,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             new AtomicReference<Object>();
     
     // closeTypeFlag, "null" value means the connection is open.
-    protected final AtomicReference<org.glassfish.grizzly.CloseType> closeTypeFlag =
-            new AtomicReference<org.glassfish.grizzly.CloseType>();
+    protected final AtomicReference<CloseReason> closeReasonAtomic =
+            new AtomicReference<CloseReason>();
     
     protected volatile boolean isBlocking;
     protected volatile boolean isStandalone;
@@ -119,8 +120,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected final DefaultMonitoringConfig<ConnectionProbe> monitoringConfig =
         new DefaultMonitoringConfig<ConnectionProbe>(ConnectionProbe.class);
 
-    Exception closeStackTrace;
-    
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
         asyncReadQueue = TaskQueue.createTaskQueue(null);
@@ -311,6 +310,25 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             final NullaryFunction<E> factory) {
         return processorStateStorage.getState(processor, factory);
     }
+
+    @Override
+    public void executeInEventThread(final IOEvent event, final Runnable runnable) {
+        final Executor threadPool = transport.getIOStrategy()
+                .getThreadPoolFor(this, event);
+        if (threadPool == null) {
+            transport.getSelectorHandler().enque(selectorRunner,
+                    new SelectorHandler.Task() {
+
+                        @Override
+                        public boolean run() throws Exception {
+                            runnable.run();
+                            return true;
+                        }
+                    }, null);
+        } else {
+            threadPool.execute(runnable);
+        }
+    }
     
     public TaskQueue<AsyncReadQueueRecord> getAsyncReadQueue() {
         return asyncReadQueue;
@@ -389,8 +407,33 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     @Override
     public boolean isOpen() {
-        return channel != null && channel.isOpen() && closeTypeFlag.get() == null;
+        return channel != null && channel.isOpen() && closeReasonAtomic.get() == null;
     }
+    
+    @Override
+    public void assertOpen() throws IOException {
+        final CloseReason reason = getCloseReason();
+        if (reason != null) {
+            throw reason.getCause();
+        }
+    }
+
+    public boolean isClosed() {
+        return !isOpen();
+    }
+
+    @Override
+    public CloseReason getCloseReason() {
+        final CloseReason closeReason = closeReasonAtomic.get();
+        if (closeReason != null) {
+            return closeReason;
+        } else if (channel == null || !channel.isOpen()) {
+            return CloseReason.LOCALLY_CLOSED_REASON;
+        }
+        
+        return null;
+    }
+    
 
     @Override
     public GrizzlyFuture<Closeable> close() {
@@ -402,30 +445,35 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public void close(final CompletionHandler<Closeable> completionHandler) {
-        close0(completionHandler, true);
-    }
-        
-    @Override
     @SuppressWarnings("unchecked")
     public final void closeSilently() {
         close(null);
     }
     
+    @Override
+    public void close(final CompletionHandler<Closeable> completionHandler) {
+        close0(completionHandler, CloseReason.LOCALLY_CLOSED_REASON);
+    }
+
+    @Override
+    public void closeWithReason(final CloseReason closeReason) {
+        close0(null, closeReason);
+    }
+    
     protected void close0(final CompletionHandler<Closeable> completionHandler,
-            final boolean isClosedLocally) {
+            final CloseReason closeReason) {
         
-        if (closeTypeFlag.compareAndSet(null,
-                isClosedLocally
-                        ? org.glassfish.grizzly.CloseType.LOCALLY
-                        : org.glassfish.grizzly.CloseType.REMOTELY)) {
+        if (closeReasonAtomic.compareAndSet(null, closeReason)) {
             
             if (LOGGER.isLoggable(Level.FINEST)) {
-                closeStackTrace = new Exception("Close stack trace");
+                // replace close reason: clone the original value and add stacktrace
+                closeReasonAtomic.set(new CloseReason(closeReason.getType(),
+                        new IOException("Connection is closed at",
+                                closeReason.getCause())));
             }
             
             preClose();
-            notifyCloseListeners();
+            notifyCloseListeners(closeReason);
             notifyProbesClose(this);
 
             transport.getSelectorHandler().execute(
@@ -469,20 +517,20 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     @Override
     public void addCloseListener(final org.glassfish.grizzly.CloseListener closeListener) {
-        org.glassfish.grizzly.CloseType closeType = closeTypeFlag.get();
+        CloseReason reason = closeReasonAtomic.get();
         
         // check if connection is still open
-        if (closeType == null) {
+        if (reason == null) {
             // add close listener
             closeListeners.add(closeListener);
             // check the connection state again
-            closeType = closeTypeFlag.get();
-            if (closeType != null && closeListeners.remove(closeListener)) {
+            reason = closeReasonAtomic.get();
+            if (reason != null && closeListeners.remove(closeListener)) {
                 // if connection was closed during the method call - notify the listener
-                invokeCloseListener(closeListener, closeType);
+                invokeCloseListener(closeListener, reason.getType());
             }
         } else { // if connection is closed - notify the listener
-            invokeCloseListener(closeListener, closeType);
+            invokeCloseListener(closeListener, reason.getType());
         }
     }
 
@@ -679,8 +727,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     /**
      * Notify all close listeners
      */
-    private void notifyCloseListeners() {
-        final org.glassfish.grizzly.CloseType closeType = closeTypeFlag.get();
+    private void notifyCloseListeners(final CloseReason closeReason) {
+        final org.glassfish.grizzly.CloseType closeType =
+                closeReason.getType();
         
         org.glassfish.grizzly.CloseListener closeListener;
         while ((closeListener = closeListeners.poll()) != null) {
