@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly;
 
+import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.attributes.AttributeStorage;
@@ -52,6 +53,8 @@ import org.glassfish.grizzly.monitoring.MonitoringConfig;
 
 /**
  * Common interface, which represents any kind of connection.
+ * 
+ * @param <L> the Connection address type
  * 
  * @author Alexey Stashok
  */
@@ -74,6 +77,25 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
      */
     boolean isOpen();
 
+    /**
+     * Checks if this <tt>Connection</tt> is open and ready to be used.
+     * If this <tt>Connection</tt> is closed - this method throws
+     * {@link IOException} giving the reason why this <tt>Connection</tt>
+     * was closed.
+     * 
+     * @throws IOException 
+     */
+    void assertOpen() throws IOException;
+    
+    /**
+     * Returns {@link CloseReason} if this <tt>Connection</tt> has been closed,
+     * or <tt>null</tt> otherwise.
+     * 
+     * @return {@link CloseReason} if this <tt>Connection</tt> has been closed,
+     * or <tt>null</tt> otherwise
+     */
+    CloseReason getCloseReason();
+    
     /**
      * Sets the {@link Connection} mode.
      *
@@ -120,6 +142,17 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
     void setFilterChain(FilterChain filterChain);
     
     /**
+     * Executes the {@link Runnable} in the thread, responsible for running
+     * the given type of event on this <tt>Connection</tt>.
+     * The thread will be chosen based on {@link #getTransport() Transport}
+     * settings, especially current I/O strategy.
+     * 
+     * @param event
+     * @param runnable 
+     */
+    void executeInEventThread(IOEvent event, Runnable runnable);
+    
+    /**
      * Get the connection peer address
      * @return the connection peer address
      */
@@ -131,14 +164,56 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
      */
     L getLocalAddress();
 
+    /**
+     * Returns the current value for the blocking read timeout converted to the
+     * provided {@link TimeUnit} specification.  If this value hasn't been
+     * explicitly set, it will default to {@value #DEFAULT_READ_TIMEOUT} seconds.
+     *
+     * @param timeUnit the {@link TimeUnit} to convert the returned result to.
+     *
+     * @since 3.0
+     */
     long getBlockingReadTimeout(TimeUnit timeUnit);
 
+    /**
+     * Specifies the timeout for the blocking reads.  This may be overridden on
+     * a per-connection basis.
+     * A value of zero or less effectively disables the timeout.
+     *
+     * @param timeout the new timeout value
+     * @param timeUnit the {@TimeUnit} specification of the provided value.
+     *
+     * @see Connection#setBlockingReadTimeout(long, java.util.concurrent.TimeUnit)
+     *
+     * @since 3.0
+     */
     void setBlockingReadTimeout(long timeout, TimeUnit timeUnit);
 
+    /**
+     * Returns the current value for the blocking write timeout converted to the
+     * provided {@link TimeUnit} specification.  If this value hasn't been
+     * explicitly set, it will default to {@value #DEFAULT_WRITE_TIMEOUT} seconds.
+     *
+     * @param timeUnit the {@link TimeUnit} to convert the returned result to.
+     *
+     * @since 3.0
+     */
     long getBlockingWriteTimeout(TimeUnit timeUnit);
 
+    /**
+     * Specifies the timeout for the blocking writes.  This may be overridden on
+     * a per-connection basis.
+     * A value of zero or less effectively disables the timeout.
+     *
+     * @param timeout  the new timeout value
+     * @param timeUnit the {@TimeUnit} specification of the provided value.
+     *
+     * @see Connection#setBlockingWriteTimeout(long, java.util.concurrent.TimeUnit)
+     *
+     * @since 3.0
+     */
     void setBlockingWriteTimeout(long timeout, TimeUnit timeUnit);
-
+    
     /**
      * Close the {@link Connection}
      *
@@ -163,6 +238,16 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
      */
     void closeSilently();
 
+    /**
+     * Closes the <tt>Connection</tt> and provides the reason description.
+     * 
+     * This method is similar to {@link #closeSilently()}, but additionally
+     * provides the reason why the <tt>Connection</tt> will be closed.
+     * 
+     * @param closeReason 
+     */
+    void closeWithReason(CloseReason closeReason);
+    
     /**
      * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>
      * will be closed.

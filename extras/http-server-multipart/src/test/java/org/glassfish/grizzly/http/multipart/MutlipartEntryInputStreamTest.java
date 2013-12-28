@@ -75,7 +75,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CloseListener;
-import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.io.NIOInputStream;
@@ -371,9 +371,9 @@ public class MutlipartEntryInputStreamTest {
             connection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Closeable closeable, CloseType type)
+                public void onClosed(Closeable closeable, CloseReason reason)
                         throws IOException {
-                    localFuture.failure(new IOException());
+                    localFuture.failure(reason.getCause());
                 }
             });
             return localFuture;

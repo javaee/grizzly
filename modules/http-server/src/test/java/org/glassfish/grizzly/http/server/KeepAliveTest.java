@@ -66,6 +66,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
@@ -351,7 +352,7 @@ public class KeepAliveTest extends TestCase {
             clientConnection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Closeable closeable, CloseType type) throws IOException {
+                public void onClosed(Closeable closeable, CloseReason reason) throws IOException {
                     latch.countDown();
                 }
             });
@@ -398,7 +399,7 @@ public class KeepAliveTest extends TestCase {
             clientConnection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Closeable closeable, CloseType type) throws IOException {
+                public void onClosed(Closeable closeable, CloseReason reason) throws IOException {
                     latch.countDown();
                 }
             });
@@ -448,7 +449,7 @@ public class KeepAliveTest extends TestCase {
             clientConnection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Closeable closeable, CloseType type) throws IOException {
+                public void onClosed(Closeable closeable, CloseReason reason) throws IOException {
                     latch.countDown();
                 }
             });
@@ -495,7 +496,7 @@ public class KeepAliveTest extends TestCase {
             clientConnection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Closeable closeable, CloseType type) throws IOException {
+                public void onClosed(Closeable closeable, CloseReason reason) throws IOException {
                     latch.countDown();
                 }
             });
@@ -572,8 +573,8 @@ public class KeepAliveTest extends TestCase {
 
                 @Override
                 public void onClosed(final Closeable closeable,
-                        final CloseType closeType) throws IOException {
-                    localFuture.failure(new IOException());
+                        final CloseReason reason) throws IOException {
+                    localFuture.failure(reason.getCause());
                 }
             });
             return localFuture;

@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.CloseListener;
-import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
@@ -982,7 +982,7 @@ public class SingleEndpointPool<E> {
             implements CloseListener {
 
         @Override
-        public void onClosed(final Closeable closeable, final CloseType type)
+        public void onClosed(final Closeable closeable, final CloseReason reason)
                 throws IOException {
             synchronized (poolSync) {
                 assert closeable instanceof Connection;

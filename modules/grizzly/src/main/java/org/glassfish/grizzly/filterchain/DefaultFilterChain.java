@@ -53,6 +53,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.Appender;
+import org.glassfish.grizzly.CloseReason;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
@@ -254,7 +256,9 @@ public final class DefaultFilterChain implements FilterChain {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_FILTERCHAIN_EXCEPTION(), e);
             throwChain(ctx, executor, e);
-            ctx.getConnection().closeSilently();
+            ctx.getConnection().closeWithReason(
+                    new CloseReason(CloseType.LOCALLY,
+                            Exceptions.makeIOException(e)));
 
             return ProcessorResult.createError(e);
         }

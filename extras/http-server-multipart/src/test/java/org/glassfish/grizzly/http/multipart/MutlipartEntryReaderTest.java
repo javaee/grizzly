@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http.multipart;
 
-import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.http.io.NIOWriter;
 import org.glassfish.grizzly.http.io.NIOReader;
 import java.util.concurrent.TimeUnit;
@@ -76,6 +75,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import java.io.IOException;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.utils.DelayFilter;
@@ -387,9 +387,9 @@ public class MutlipartEntryReaderTest {
             connection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Closeable closeable, CloseType type)
+                public void onClosed(Closeable closeable, CloseReason reason)
                         throws IOException {
-                    localFuture.failure(new IOException());
+                    localFuture.failure(reason.getCause());
                 }
             });
             return localFuture;

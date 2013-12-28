@@ -315,7 +315,7 @@ final class SpdyInputBuffer {
      * Marks the input buffer as closed by adding Termination input element to the input queue.
      */
     void close() {
-        close(spdyStream.closeTypeFlag.get() == CloseType.REMOTELY ?
+        close(spdyStream.closeReasonFlag.get().getType() == CloseType.REMOTELY ?
                 PEER_CLOSE_TERMINATION :
                 LOCAL_CLOSE_TERMINATION);
     }

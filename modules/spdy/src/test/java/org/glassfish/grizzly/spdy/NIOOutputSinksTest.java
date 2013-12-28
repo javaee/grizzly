@@ -691,15 +691,11 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                         out.write(c);
                         out.flush();
                         Thread.yield();
-                    } catch (IOException e) {
-                        if (e.getCause() instanceof CustomException) {
-                            parseResult.result(Boolean.TRUE);
-                        } else {
-                            System.out.println("NOT CUSTOM");
-                            parseResult.failure(e);
-                        }
+                    } catch (CustomIOException e) {
+                        parseResult.result(Boolean.TRUE);
                         break;
                     } catch (Exception e) {
+                        System.out.println("NOT CUSTOM");
                         parseResult.failure(e);
                         break;
                     }
@@ -724,7 +720,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                             throws IOException {
                         final Buffer buffer = ctx.getMessage();
                         if (counter.addAndGet(buffer.remaining()) > size * 8) {
-                            throw new CustomException();
+                            throw new CustomIOException();
                         }
                         
                         return ctx.getInvokeAction();
@@ -1196,7 +1192,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         spdyHandlerFilter.setInitialWindowSize(windowSize);
     }
 
-    private static final class CustomException extends IOException {
+    private static final class CustomIOException extends IOException {
         private static final long serialVersionUID = 1L;
     }
 }

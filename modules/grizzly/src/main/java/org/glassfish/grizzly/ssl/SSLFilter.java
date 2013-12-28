@@ -48,6 +48,7 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
@@ -417,7 +418,7 @@ public class SSLFilter extends SSLBaseFilter {
      */
     private final class ConnectionCloseListener implements CloseListener {
         @Override
-        public void onClosed(final Closeable closeable, final CloseType type)
+        public void onClosed(final Closeable closeable, final CloseReason reason)
                 throws IOException {
             final Connection connection = (Connection) closeable;
             final SSLHandshakeContext handshakeContext =

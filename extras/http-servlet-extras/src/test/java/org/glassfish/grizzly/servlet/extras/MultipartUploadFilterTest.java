@@ -83,7 +83,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CloseListener;
-import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.servlet.FilterRegistration;
 import org.glassfish.grizzly.servlet.ServletRegistration;
 import org.glassfish.grizzly.servlet.WebappContext;
@@ -300,9 +300,9 @@ public class MultipartUploadFilterTest extends TestCase {
             connection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Closeable closeable, CloseType type)
+                public void onClosed(Closeable closeable, CloseReason reason)
                         throws IOException {
-                    localFuture.failure(new IOException());
+                    localFuture.failure(reason.getCause());
                 }
             });
             return localFuture;

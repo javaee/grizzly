@@ -43,16 +43,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
-import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
@@ -89,7 +86,7 @@ public class WebSocketEngine {
     private final HashMap<String, List<WebSocketApplication>> contextApplications =
             new HashMap<String, List<WebSocketApplication>>();
 
-    private HttpResponsePacket.Builder unsupportedVersionsResponseBuilder;
+    private final HttpResponsePacket.Builder unsupportedVersionsResponseBuilder;
 
     private Mapper mapper = new Mapper();
 
@@ -177,7 +174,7 @@ public class WebSocketEngine {
                 request.getConnection().addCloseListener(new CloseListener() {
                     @Override
                     public void onClosed(final Closeable closeable,
-                            final CloseType type) throws IOException {
+                            final CloseReason reason) throws IOException {
                         
                         final WebSocket webSocket = WebSocketHolder.getWebSocket(connection);
                         webSocket.close();

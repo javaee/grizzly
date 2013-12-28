@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.portunif;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.BlockingQueue;
@@ -314,7 +313,7 @@ public class FilterChainReadTest extends TestCase {
             final Exception e = (Exception) intermResultQueue.poll(10, TimeUnit.SECONDS);
 
             assertTrue("Unexpected response. Exception: " + e.getClass() + ": " + e.getMessage(),
-                    e instanceof EOFException);
+                    e instanceof IOException);
         } finally {
             if (connection != null) {
                 connection.closeSilently();

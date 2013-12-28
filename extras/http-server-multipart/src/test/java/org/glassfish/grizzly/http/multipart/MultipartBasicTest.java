@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CloseListener;
-import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -489,9 +489,9 @@ public class MultipartBasicTest {
             connection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Closeable closeable, CloseType type)
+                public void onClosed(Closeable closeable, CloseReason reason)
                         throws IOException {
-                    localFuture.failure(new IOException());
+                    localFuture.failure(reason.getCause());
                 }
             });
             return localFuture;

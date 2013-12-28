@@ -256,16 +256,16 @@ public class TCPNIOTransportTest {
             connectedConnection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Closeable closeable, CloseType type) throws IOException {
-                    connectedCloseFuture.result(type == CloseType.LOCALLY);
+                public void onClosed(Closeable closeable, CloseReason reason) throws IOException {
+                    connectedCloseFuture.result(reason.getType() == CloseType.LOCALLY);
                 }
             });
             
             acceptedConnection.addCloseListener(new CloseListener() {
 
                 @Override
-                public void onClosed(Closeable closeable, CloseType type) throws IOException {
-                    acceptedCloseFuture.result(type == CloseType.REMOTELY);
+                public void onClosed(Closeable closeable, CloseReason reason) throws IOException {
+                    acceptedCloseFuture.result(reason.getType() == CloseType.REMOTELY);
                 }
             });
 

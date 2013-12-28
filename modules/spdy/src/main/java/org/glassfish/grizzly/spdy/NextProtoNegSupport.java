@@ -49,7 +49,7 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 
 import org.glassfish.grizzly.CloseListener;
-import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -145,7 +145,7 @@ public class NextProtoNegSupport {
                     // negotiator associated with this SSLEngine
                     connection.addCloseListener(new CloseListener() {
                         @Override
-                        public void onClosed(Closeable closeable, CloseType type) throws IOException {
+                        public void onClosed(Closeable closeable, CloseReason reason) throws IOException {
                             NegotiationSupport.removeClientNegotiator(sslEngine);
                         }
                     });
@@ -171,7 +171,7 @@ public class NextProtoNegSupport {
                     // negotiator associated with this SSLEngine
                     connection.addCloseListener(new CloseListener() {
                         @Override
-                        public void onClosed(Closeable closeable, CloseType type) throws IOException {
+                        public void onClosed(Closeable closeable, CloseReason reason) throws IOException {
                             NegotiationSupport.removeServerNegotiator(sslEngine);
                         }
                     });

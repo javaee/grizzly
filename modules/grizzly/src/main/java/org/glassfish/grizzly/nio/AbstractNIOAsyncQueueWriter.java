@@ -171,7 +171,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         if (!connection.isOpen()) {
             onWriteFailure(connection, queueRecord,
                     new IOException("Connection is closed",
-                    ((NIOConnection) connection).closeStackTrace));
+                    connection.getCloseReason().getCause()));
             return;
         }
         
@@ -463,7 +463,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 (NIOConnection) connection;
         final TaskQueue<AsyncWriteQueueRecord> writeQueue =
                 nioConnection.getAsyncWriteQueue();
-        writeQueue.onClose(nioConnection.closeStackTrace);
+        writeQueue.onClose(nioConnection.getCloseReason().getCause());
     }
     
     /**

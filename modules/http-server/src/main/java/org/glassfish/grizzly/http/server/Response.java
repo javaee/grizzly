@@ -76,7 +76,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.CloseListener;
-import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Grizzly;
@@ -84,7 +84,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.Cookies;
-import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.io.NIOOutputStream;
@@ -2020,7 +2019,7 @@ public class Response {
 
             @Override
             public void onClosed(final Closeable closeable,
-                    final CloseType closeType) throws IOException {
+                    final CloseReason closeReason) throws IOException {
                 checkResponse();
 
                 if (suspendedContext.markFailed(expectedModCount,

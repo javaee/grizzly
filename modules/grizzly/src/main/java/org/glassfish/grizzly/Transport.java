@@ -421,7 +421,7 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      *
      * @param timeUnit the {@link TimeUnit} to convert the returned result to.
      *
-     * @since 2.3
+     * @since 3.0
      */
     long getBlockingReadTimeout(TimeUnit timeUnit);
 
@@ -460,7 +460,7 @@ public interface Transport extends MonitoringAware<TransportProbe> {
      *
      * @see Connection#setBlockingWriteTimeout(long, java.util.concurrent.TimeUnit)
      *
-     * @since 2.3
+     * @since 3.0
      */
     void setBlockingWriteTimeout(long timeout, TimeUnit timeUnit);
 

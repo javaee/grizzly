@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.Deflater;
 import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
@@ -90,6 +91,15 @@ public final class SpdySession {
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             SpdySession.class.getName());
     
+    public static final CloseReason GO_AWAY_REASON;
+    
+    static {
+        final IOException e = new IOException("Peer sent GoAway");
+        e.setStackTrace(new StackTraceElement[0]);
+        
+        GO_AWAY_REASON = new CloseReason(CloseType.REMOTELY, e);
+    }
+
     private final boolean isServer;
     private final Connection<?> connection;
     
@@ -115,7 +125,7 @@ public final class SpdySession {
     
     private final Object sessionLock = new Object();
     
-    private CloseType closeFlag;
+    private CloseReason closeReason;
     
     private int peerInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     private volatile int localInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
@@ -435,7 +445,7 @@ public final class SpdySession {
                 return -1;
             }
             
-            closeFlag = CloseType.LOCALLY;
+            closeReason = CloseReason.LOCALLY_CLOSED_REASON;
             return lastPeerStreamId > 0 ? lastPeerStreamId : 0;
         }
     }
@@ -446,7 +456,7 @@ public final class SpdySession {
     void setGoAwayByPeer(final int lastGoodStreamId) {
         synchronized (sessionLock) {
             // @TODO Notify pending SYNC_STREAMS if streams were aborted
-            closeFlag = CloseType.REMOTELY;
+            closeReason = GO_AWAY_REASON;
         }
     }
     
@@ -479,7 +489,7 @@ public final class SpdySession {
     }
 
     private boolean isClosed() {
-        return closeFlag != null;
+        return closeReason != null;
     }
 
     void sendMessageUpstreamWithParseNotify(final SpdyStream spdyStream,
@@ -822,14 +832,14 @@ public final class SpdySession {
     private final class ConnectionCloseListener implements CloseListener {
 
         @Override
-        public void onClosed(final Closeable closeable, final CloseType type)
+        public void onClosed(final Closeable closeable, final CloseReason reason)
                 throws IOException {
             
             final boolean isClosing;
             synchronized (sessionLock) {
                 isClosing = !isClosed();
                 if (isClosing) {
-                    closeFlag = type;
+                    closeReason = reason;
                 }
             }
             

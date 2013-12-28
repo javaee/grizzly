@@ -48,6 +48,8 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseReason;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.WritableMessage;
@@ -112,7 +114,8 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 ((TCPNIOConnection) connection).onWrite(buffer, written);
             } catch (IOException e) {
                 // Mark connection as closed remotely.
-                ((TCPNIOConnection) connection).close(null, false);
+                ((TCPNIOConnection) connection).close(null,
+                        new CloseReason(CloseType.REMOTELY, e));
                 throw e;
             }
         } else if (message instanceof FileTransfer) {
@@ -161,7 +164,8 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             return update(queueRecord, written);
         } catch (IOException e) {
             // Mark connection as closed remotely.
-            ((TCPNIOConnection) connection).close(null, false);
+            ((TCPNIOConnection) connection).close(null,
+                    new CloseReason(CloseType.REMOTELY, e));
             throw e;
         } finally {
             directByteBufferRecord.release();

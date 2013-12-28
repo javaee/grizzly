@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
@@ -87,6 +88,15 @@ import static org.glassfish.grizzly.spdy.Constants.*;
 public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     public static final String SPDY_STREAM_ATTRIBUTE = SpdyStream.class.getName();
 
+    public static final CloseReason RST_REASON;
+    
+    static {
+        final IOException e = new IOException("Reset by peer");
+        e.setStackTrace(new StackTraceElement[0]);
+        
+        RST_REASON = new CloseReason(CloseType.REMOTELY, e);
+    }
+
     private enum CompletionUnit {
         Input, Output, Complete
     }
@@ -112,9 +122,9 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     final SpdyInputBuffer inputBuffer;
     final SpdyOutputSink outputSink;
     
-    // closeTypeFlag, "null" value means the connection is open.
-    final AtomicReference<CloseType> closeTypeFlag =
-            new AtomicReference<CloseType>();
+    // closeReasonFlag, "null" value means the connection is open.
+    final AtomicReference<CloseReason> closeReasonFlag =
+            new AtomicReference<CloseReason>();
     private final Queue<CloseListener> closeListeners =
             new ConcurrentLinkedQueue<CloseListener>();
     private final AtomicInteger completeFinalizationCounter = new AtomicInteger();
@@ -321,17 +331,17 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
 
     @Override
     public void close(final CompletionHandler<Closeable> completionHandler) {
-        close(completionHandler, true);
+        close(completionHandler, CloseReason.LOCALLY_CLOSED_REASON);
     }
 
     void close(
             final CompletionHandler<Closeable> completionHandler,
-            final boolean isClosedLocally) {
+            final CloseReason closeReason) {
         
-        if (closeTypeFlag.compareAndSet(null,
-                isClosedLocally ? CloseType.LOCALLY : CloseType.REMOTELY)) {
+        if (closeReasonFlag.compareAndSet(null, closeReason)) {
             
-            final Termination termination = isClosedLocally ?
+            final Termination termination =
+                    closeReason.getType() == CloseType.LOCALLY ?
                     LOCAL_CLOSE_TERMINATION : 
                     PEER_CLOSE_TERMINATION;
             
@@ -352,25 +362,23 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
      * Notifies the SpdyStream that it's been closed remotely.
      */
     void closedRemotely() {
-        if (closeTypeFlag.compareAndSet(null, CloseType.REMOTELY)) {
-            // Schedule (add to the stream's input queue) the Termination,
-            // which will be invoked once read by the user code.
-            // This way we simulate Java Socket behavior
-            inputBuffer.close(
-                    new Termination(TerminationType.PEER_CLOSE, CLOSED_BY_PEER_STRING) {
-                @Override
-                public void doTask() {
-                    close(null, false);
-                }
-            });
-        }
+        // Schedule (add to the stream's input queue) the Termination,
+        // which will be invoked once read by the user code.
+        // This way we simulate Java Socket behavior
+        inputBuffer.close(
+                new Termination(TerminationType.PEER_CLOSE, CLOSED_BY_PEER_STRING) {
+                    @Override
+                    public void doTask() {
+                        close(null, CloseReason.REMOTELY_CLOSED_REASON);
+                    }
+                });
     }
     
     /**
      * Notify the SpdyStream that peer sent RST_FRAME.
      */
     void resetRemotely() {
-        if (closeTypeFlag.compareAndSet(null, CloseType.REMOTELY)) {
+        if (closeReasonFlag.compareAndSet(null, RST_REASON)) {
             // initiat graceful shutdown for input, so user is able to read
             // the bufferred data
             inputBuffer.close(RESET_TERMINATION);
@@ -384,10 +392,9 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     
     void onProcessingComplete() {
         isProcessingComplete = true;
-        if (closeTypeFlag.compareAndSet(null, CloseType.LOCALLY)) {
+        if (closeReasonFlag.compareAndSet(null, CloseReason.LOCALLY_CLOSED_REASON)) {
             
-            final Termination termination = 
-                    LOCAL_CLOSE_TERMINATION;
+            final Termination termination = LOCAL_CLOSE_TERMINATION;
             
             inputBuffer.terminate(termination);
             outputSink.close();
@@ -399,24 +406,24 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     @Override
     @SuppressWarnings("unchecked")
     public void addCloseListener(CloseListener closeListener) {
-        CloseType closeType = closeTypeFlag.get();
+        CloseReason closeReason = closeReasonFlag.get();
         
         // check if connection is still open
-        if (closeType == null) {
+        if (closeReason == null) {
             // add close listener
             closeListeners.add(closeListener);
             // check the connection state again
-            closeType = closeTypeFlag.get();
-            if (closeType != null && closeListeners.remove(closeListener)) {
+            closeReason = closeReasonFlag.get();
+            if (closeReason != null && closeListeners.remove(closeListener)) {
                 // if connection was closed during the method call - notify the listener
                 try {
-                    closeListener.onClosed(this, closeType);
+                    closeListener.onClosed(this, closeReason);
                 } catch (IOException ignored) {
                 }
             }
         } else { // if connection is closed - notify the listener
             try {
-                closeListener.onClosed(this, closeType);
+                closeListener.onClosed(this, closeReason);
             } catch (IOException ignored) {
             }
         }
@@ -475,7 +482,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     void offerInputData(final Buffer data, final boolean isLast)
             throws SpdyStreamException {
         if (!isSynFrameRcv) {
-            close(null, true);
+            close(null, CloseReason.LOCALLY_CLOSED_REASON);
             
             throw new SpdyStreamException(getStreamId(),
                     RstStreamFrame.PROTOCOL_ERROR, "DataFrame came before SynReply");
@@ -575,12 +582,12 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
      */
     @SuppressWarnings("unchecked")
     private void notifyCloseListeners() {
-        final CloseType closeType = closeTypeFlag.get();
+        final CloseReason closeReason = closeReasonFlag.get();
         
         CloseListener closeListener;
         while ((closeListener = closeListeners.poll()) != null) {
             try {
-                closeListener.onClosed(this, closeType);
+                closeListener.onClosed(this, closeReason);
             } catch (IOException ignored) {
             }
         }

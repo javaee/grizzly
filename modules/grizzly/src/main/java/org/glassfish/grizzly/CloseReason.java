@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,13 +37,56 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly;
 
 import java.io.IOException;
 
 /**
- * The listener, which is used to be notified, when <tt>Closeable</tt> gets closed.
+ * An object, describing the reason why {@link Connection} was closed.
+ * 
+ * @author Alexey Stashok
  */
-public interface CloseListener {
-    void onClosed(Closeable closable, CloseReason reason) throws IOException;
+public class CloseReason {
+    public static final IOException DEFAULT_CAUSE;
+    
+    static {
+        DEFAULT_CAUSE = new IOException();
+        DEFAULT_CAUSE.setStackTrace(new StackTraceElement[0]);
+    }
+    
+    public static final CloseReason LOCALLY_CLOSED_REASON =
+            new CloseReason(org.glassfish.grizzly.CloseType.LOCALLY, DEFAULT_CAUSE);
+    public static final CloseReason REMOTELY_CLOSED_REASON =
+            new CloseReason(org.glassfish.grizzly.CloseType.REMOTELY, DEFAULT_CAUSE);
+    
+    private final CloseType type;
+    private final IOException cause;
+
+    public CloseReason(final CloseType type, final IOException cause) {
+        this.type = type;
+        this.cause = cause != null ? cause : DEFAULT_CAUSE;
+    }
+
+    /**
+     * Return information whether {@link Connection} was closed locally or remotely.
+     * 
+     * @return information whether {@link Connection} was closed locally or remotely
+     */
+    public CloseType getType() {
+        return type;
+    }
+
+    /**
+     * Returns information about an error, that caused the {@link Connection} to
+     * be closed.
+     * 
+     * If the cause wasn't specified by user - the default value {@link #DEFAULT_CAUSE} will be returned.
+     * 
+     * @return information about an error, that caused the {@link Connection} to
+     * be closed
+     */
+    public IOException getCause() {
+        return cause;
+    }
 }

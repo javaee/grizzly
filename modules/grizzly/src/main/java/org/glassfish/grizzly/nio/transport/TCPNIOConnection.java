@@ -288,8 +288,8 @@ public class TCPNIOConnection extends NIOConnection {
     @Override
     protected void close(
             final CompletionHandler<Closeable> completionHandler,
-            final boolean isClosedLocally) {
-        super.close(completionHandler, isClosedLocally);
+            final CloseReason closeReason) {
+        super.close(completionHandler, closeReason);
     }
 
     /**

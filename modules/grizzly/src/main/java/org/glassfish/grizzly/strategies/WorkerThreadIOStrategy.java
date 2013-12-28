@@ -57,7 +57,7 @@ import org.glassfish.grizzly.Processor;
 public final class WorkerThreadIOStrategy extends AbstractIOStrategy {
 
     private final static EnumSet<IOEvent> WORKER_THREAD_EVENT_SET =
-            EnumSet.<IOEvent>of(IOEvent.READ, IOEvent.CLOSED);
+            EnumSet.<IOEvent>of(IOEvent.READ, IOEvent.WRITE, IOEvent.CLOSED);
     
     private static final WorkerThreadIOStrategy INSTANCE = new WorkerThreadIOStrategy();
 

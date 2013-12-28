@@ -58,6 +58,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseReason;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
@@ -717,9 +719,11 @@ public class TCPNIOTransport extends NIOTransport {
             if (read == 0) {
                 buffer = null;
             } else if (read < 0) {
+                final IOException e = new EOFException();
                 // Mark connection as closed remotely.
-                tcpConnection.close(null, false);
-                throw new EOFException();
+                tcpConnection.close(null,
+                        new CloseReason(CloseType.REMOTELY, e));
+                throw e;
             }
         } else {
             if (buffer.hasRemaining()) {
@@ -735,9 +739,11 @@ public class TCPNIOTransport extends NIOTransport {
                 tcpConnection.onRead(buffer, read);
                 
                 if (read < 0) {
+                    final IOException e = new EOFException();
                     // Mark connection as closed remotely.
-                    tcpConnection.close(null, false);
-                    throw new EOFException();
+                    tcpConnection.close(null,
+                            new CloseReason(CloseType.REMOTELY, e));
+                    throw e;
                 }
             }
         }
@@ -784,7 +790,8 @@ public class TCPNIOTransport extends NIOTransport {
                 }
             } catch (IOException e) {
                 // Mark connection as closed remotely.
-                connection.close(null, false);
+                connection.close(null,
+                        new CloseReason(CloseType.REMOTELY, e));
                 throw e;
             }
         } else if (message instanceof FileTransfer) {

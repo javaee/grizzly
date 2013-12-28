@@ -63,7 +63,7 @@ public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
     private static final Logger logger = Grizzly.logger(LeaderFollowerNIOStrategy.class);
     
     private final static EnumSet<IOEvent> WORKER_THREAD_EVENT_SET =
-            EnumSet.<IOEvent>of(IOEvent.READ, IOEvent.CLOSED);
+            EnumSet.<IOEvent>of(IOEvent.READ, IOEvent.WRITE, IOEvent.CLOSED);
 
 
 
