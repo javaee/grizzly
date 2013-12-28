@@ -76,7 +76,7 @@
                         <Import-Package>*</Import-Package>
                         <Export-Package>org.glassfish.grizzly.*</Export-Package>
                         <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
-                        <Main-Class>org.glassfish.grizzly.http.echo.EchoServer</Main-Class>
+                        <Main-Class>org.glassfish.grizzly.http.get.GetServer</Main-Class>
                     </instructions>
                 </configuration>
             </plugin>

@@ -38,7 +38,7 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.echo;
+package org.glassfish.grizzly.http.get;
 
 import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
