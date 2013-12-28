@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -80,7 +80,11 @@ public final class ThreadCache {
     }
 
     public static <E> boolean putToCache(final CachedTypeIndex<E> index, final E o) {
-        final Thread currentThread = Thread.currentThread();
+        return putToCache(Thread.currentThread(), index, o);
+    }
+    
+    public static <E> boolean putToCache(final Thread currentThread,
+            final CachedTypeIndex<E> index, final E o) {
         if (currentThread instanceof DefaultWorkerThread) {
             return ((DefaultWorkerThread) currentThread).putToCache(index, o);
         } else {
@@ -104,7 +108,23 @@ public final class ThreadCache {
      * @return cached object.
      */
     public static <E> E getFromCache(final CachedTypeIndex<E> index) {
-        final Thread currentThread = Thread.currentThread();
+        return getFromCache(Thread.currentThread(), index);
+    }
+    
+    /**
+     * Get the cached object with the given type index from cache.
+     * Unlike {@link #takeFromCache(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the
+     * object won't be removed from cache.
+     *
+     * @param <E>
+     * @param currentThread current {@link Thread}
+     * @param index the cached object type index.
+     * @return cached object.
+     */
+    public static <E> E getFromCache(final Thread currentThread,
+            final CachedTypeIndex<E> index) {
+        assert currentThread == Thread.currentThread();
+        
         if (currentThread instanceof DefaultWorkerThread) {
             return ((DefaultWorkerThread) currentThread).getFromCache(index);
         } else {
@@ -123,11 +143,25 @@ public final class ThreadCache {
      * object will be removed from cache.
      *
      * @param <E>
-     * @param index the cached object type index.
-     * @return cached object.
+     * @param index the cached object type index
+     * @return cached object
      */
     public static <E> E takeFromCache(final CachedTypeIndex<E> index) {
-        final Thread currentThread = Thread.currentThread();
+        return takeFromCache(Thread.currentThread(), index);
+    }
+    
+    /**
+     * Take the cached object with the given type index from cache.
+     * Unlike {@link #getFromCache(org.glassfish.grizzly.ThreadCache.CachedTypeIndex)}, the
+     * object will be removed from cache.
+     *
+     * @param <E>
+     * @param currentThread current {@link Thread}
+     * @param index the cached object type index
+     * @return cached object
+     */
+    public static <E> E takeFromCache(final Thread currentThread,
+            final CachedTypeIndex<E> index) {
         if (currentThread instanceof DefaultWorkerThread) {
             return ((DefaultWorkerThread) currentThread).takeFromCache(index);
         } else {
