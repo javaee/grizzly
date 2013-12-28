@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,41 +40,66 @@
 
 package org.glassfish.grizzly.http.server;
 
+import org.glassfish.grizzly.ThreadCache;
+
 /**
- *
- * @author oleksiys
+ * The request/response suspend status bound to a specific thread.
+ * 
+ * @author Alexey Stashok
  */
 public final class SuspendStatus {
+    private static final ThreadCache.CachedTypeIndex<SuspendStatus> CACHE_IDX =
+            ThreadCache.obtainIndex(SuspendStatus.class, 4);
+
+    public static SuspendStatus create() {
+        SuspendStatus status = ThreadCache.takeFromCache(CACHE_IDX);
+        if (status == null) {
+            status = new SuspendStatus();
+        }
+        
+        assert status.initThread == Thread.currentThread();
+        
+        status.state = State.NOT_SUSPENDED;
+
+        return status;
+    }
+    
     private static enum State {
         NOT_SUSPENDED, SUSPENDED, INVALIDATED;
     }
     
-    private State state = State.NOT_SUSPENDED;
+    private State state;
     
-    private Thread initThread;
+    private final Thread initThread;
 
-    public SuspendStatus() {
+    private SuspendStatus() {
         initThread = Thread.currentThread();
     }
     
     public void suspend() {
+        assert Thread.currentThread() == initThread;
+
         if (state != State.NOT_SUSPENDED) {
             throw new IllegalStateException("Can not suspend. Expected suspend state='" + State.NOT_SUSPENDED + "' but was '" + state +"'");
-        } else if (initThread != Thread.currentThread()) {
-            throw new IllegalStateException("Can not suspend. Processing can be suspended in the HttpHandler.service() thread only.");
         }
         
         state = State.SUSPENDED;
     }
     
-    public boolean getAndInvalidate() {
+    boolean getAndInvalidate() {
+        assert Thread.currentThread() == initThread;
+        
         final boolean wasSuspended = (state == State.SUSPENDED);
         state = State.INVALIDATED;
-        initThread = null;
+        
+        ThreadCache.putToCache(initThread, CACHE_IDX, this);
+        
         return wasSuspended;
     }
     
     public void reset() {
+        assert Thread.currentThread() == initThread;
+        
         state = State.NOT_SUSPENDED;
     }
 }

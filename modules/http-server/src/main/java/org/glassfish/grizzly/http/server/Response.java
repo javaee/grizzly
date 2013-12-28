@@ -271,7 +271,7 @@ public class Response {
     }
 
     SuspendStatus initSuspendStatus() {
-        suspendStatus = new SuspendStatus();
+        suspendStatus = SuspendStatus.create();
         return suspendStatus;
     }
 
