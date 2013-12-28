@@ -209,8 +209,10 @@ public final class FastHttpDateFormat {
         final long diff = now - nextGeneration;
         
         if (diff > 0 &&
-                (diff > 5000 || isGeneratingNow.compareAndSet(false, true))) {
-            synchronized(FORMAT) {
+                (diff > 5000 ||
+                    (!isGeneratingNow.get() &&
+                     isGeneratingNow.compareAndSet(false, true)))) {
+            synchronized (FORMAT) {
                 if (now > nextGeneration) {
                     currentDateBuffer.setLength(0);
                     FORMATTER.formatTo(now, currentDateBuffer);
