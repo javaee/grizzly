@@ -462,7 +462,8 @@ public class PooledMemoryManagerTest {
 
     @Test
     public void circularityBoundaryTest() {
-        final PooledMemoryManager mm = new PooledMemoryManager(128, 1, .0000002f);
+        final PooledMemoryManager mm = new PooledMemoryManager(128, 1,
+                1024.0f / Runtime.getRuntime().maxMemory());
         final PooledMemoryManager.BufferPool pool = mm.getBufferPools()[0];
         final int poolSize = pool.size();
         final ArrayList<PooledMemoryManager.PoolBuffer> tempStorage =
