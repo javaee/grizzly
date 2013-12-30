@@ -388,10 +388,9 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
     /*
      *   This array backed by this pool can only support
      *   2^30-1 elements instead of the usual 2^32-1.
-     *   This is because we use bits 30 and 31 to store
-     *   information about the read and write pointer
-     *   'wrapping' status.  Without these bits, it's difficult
-     *   to tell if the array is full or empty when both read and
+     *   This is because we use bit 30 to store information about the read
+     *   and write pointer 'wrapping' status.  Without these bits, it's
+     *   difficult to tell if the array is full or empty when both read and
      *   write pointers are equal.
      *   The pool is considered full when read and write pointers
      *   refer to the same index and the aforementioned bits are equal.
@@ -404,14 +403,11 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         // less the bits for wrap bits.
         private static final int MASK = 0x3FFFFFFF;
 
-        // Apply this mask to obtain both wrap status bits.
-        private static final int WRAP_BITS_MASK = 0xC0000000;
+        // Apply this mask to obtain the wrap status bit.
+        private static final int WRAP_BIT_MASK = 0x40000000;
 
-        // Bit position for the poll wrapping status bit.
-        private static final int POLL_WRAP_BIT = 30;
-
-        // Bit position for the offer wrapping status bit.
-        private static final int OFFER_WRAP_BIT = 31;
+        // Bit position for the wrap status bit.
+        private static final int WRAP_BIT = 30;
 
         // Using an AtomicReferenceArray to ensure proper visibility of items
         // within the pool which while be shared across threads.
@@ -444,7 +440,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             maxPoolSize = (int) (totalPoolSize / ((long) bufferSize));
 
             // poolSize must be less than or equal to 2^30 - 1.
-            if (((maxPoolSize & WRAP_BITS_MASK) >> 30 != 0)) {
+            if (((maxPoolSize & WRAP_BIT_MASK) >> 30 != 0)) {
                 throw new IllegalStateException(
                         "Cannot manage a pool larger than 2^30-1");
             }
@@ -469,7 +465,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 if (isEmpty(pollIdx, offerIdx)) {
                     return null;
                 }
-                int nextPollIdx = nextPollIndex(pollIdx);
+                int nextPollIdx = nextIndex(pollIdx);
                 if (this.pollIdx.compareAndSet(pollIdx, nextPollIdx)) {
                     // unmask the current read value to the actual array index.
                     PoolBuffer pb = pool.getAndSet(unmask(pollIdx), null);
@@ -495,7 +491,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 if (isFull(pollIdx, offerIdx)) {
                     return false;
                 }
-                int nextOfferIndex = nextOfferIndex(offerIdx);
+                int nextOfferIndex = nextIndex(offerIdx);
                 if (this.offerIdx.compareAndSet(offerIdx, nextOfferIndex)) {
                     // unmask the current write value to the actual array index.
                     if (!pool.compareAndSet(unmask(offerIdx), null, b)) {
@@ -516,8 +512,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         public final int size() {
             final int curPoll = pollIdx.get();
             final int curOffer = offerIdx.get();
-            return ((getPollWrappingBit(curPoll) != getOfferWrappingBit(
-                    curOffer))
+            return ((getWrappingBit(curPoll) != getWrappingBit(curOffer))
                     ? (unmask(curOffer) - unmask(curPoll))
                     : maxPoolSize - (unmask(curPoll) - unmask(curOffer)));
         }
@@ -541,35 +536,23 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
         private static boolean isFull(final int pollIdx, final int offerIdx) {
             return ((unmask(pollIdx) == unmask(offerIdx))
-                        && (getPollWrappingBit(pollIdx) == getOfferWrappingBit(
-                    offerIdx)));
+                        && (getWrappingBit(pollIdx) == getWrappingBit(offerIdx)));
         }
 
         private static boolean isEmpty(final int pollIdx, final int offerIdx) {
             return ((unmask(pollIdx) == unmask(offerIdx))
-                    && (getPollWrappingBit(pollIdx) != getOfferWrappingBit(
-                    offerIdx)));
+                    && (getWrappingBit(pollIdx) != getWrappingBit(offerIdx)));
         }
 
-        private int nextOfferIndex(final int currentIdx) {
-            return nextIndex(currentIdx, OFFER_WRAP_BIT);
-        }
-
-        private int nextPollIndex(final int currentIdx) {
-            return nextIndex(currentIdx, POLL_WRAP_BIT);
-        }
-
-        private int nextIndex(final int currentIdx, final int wrapBitPosition) {
+        private int nextIndex(final int currentIdx) {
             int idx = unmask(currentIdx) + 1;
             if (idx == maxPoolSize) {
-                // set lower 30 bits to 0.
-                idx = (currentIdx & WRAP_BITS_MASK);
-                // invert current bit at specified position
-                idx ^= 1 << wrapBitPosition;
+                // set lower 30 bits to 0 and invert wrap bit
+                idx = (currentIdx & WRAP_BIT_MASK) ^ 1 << WRAP_BIT;
                 return idx;
             }
             // apply the current values for bits 30/31 to the new value
-            idx |= (currentIdx & WRAP_BITS_MASK);
+            idx |= (currentIdx & WRAP_BIT_MASK);
             return idx;
         }
 
@@ -577,12 +560,8 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             return val & MASK;
         }
 
-        private static int getPollWrappingBit(final int val) {
-            return val >> POLL_WRAP_BIT & 1;
-        }
-
-        private static int getOfferWrappingBit(final int val) {
-            return val >> OFFER_WRAP_BIT & 1;
+        private static int getWrappingBit(final int val) {
+            return val & WRAP_BIT_MASK;
         }
 
         @Override
@@ -593,9 +572,9 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         private String toString(final int ridx, final int widx) {
             return "BufferPool[" + Integer.toHexString(hashCode()) + "] {" +
                                 "offer index=" + unmask(widx) +
-                                ", offer wrap bit=" + getOfferWrappingBit(widx) +
+                                ", offer wrap bit=" + getWrappingBit(widx) +
                                 ", poll index=" + unmask(ridx) +
-                                ", poll wrap bit=" + getPollWrappingBit(ridx) +
+                                ", poll wrap bit=" + getWrappingBit(ridx) +
                                 ", maxPoolSize=" + maxPoolSize +
                                 '}';
         }
