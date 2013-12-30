@@ -97,7 +97,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
             };
 
-    private BufferPool[] pools;
+    private final BufferPool[] pools;
     private final int bufferSize;
     //private final AtomicInteger allocDistributor = new AtomicInteger();
 
@@ -128,8 +128,8 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
      * @param percentOfHeap percentage of the heap that will be used when populating the pools.
      */
     public PooledMemoryManagerAlt(final int bufferSize,
-                               final int numberOfPools,
-                               final float percentOfHeap) {
+                                  final int numberOfPools,
+                                  final float percentOfHeap) {
         if (bufferSize <= 0) {
             throw new IllegalArgumentException("bufferSize must be greater than zero");
         }
@@ -460,15 +460,15 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
         public final PoolBuffer poll() {
             for (;;) {
-                int pollIdx = this.pollIdx.get();
-                int offerIdx = this.offerIdx.get();
+                final int pollIdx = this.pollIdx.get();
+                final int offerIdx = this.offerIdx.get();
                 if (isEmpty(pollIdx, offerIdx)) {
                     return null;
                 }
-                int nextPollIdx = nextIndex(pollIdx);
+                final int nextPollIdx = nextIndex(pollIdx);
                 if (this.pollIdx.compareAndSet(pollIdx, nextPollIdx)) {
                     // unmask the current read value to the actual array index.
-                    PoolBuffer pb = pool.getAndSet(unmask(pollIdx), null);
+                    final PoolBuffer pb = pool.getAndSet(unmask(pollIdx), null);
                     if (pb == null) {
                         return null;
                     }
@@ -486,12 +486,12 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 return false;
             }
             for (;;) {
-                int offerIdx = this.offerIdx.get();
-                int pollIdx = this.pollIdx.get();
+                final int offerIdx = this.offerIdx.get();
+                final int pollIdx = this.pollIdx.get();
                 if (isFull(pollIdx, offerIdx)) {
                     return false;
                 }
-                int nextOfferIndex = nextIndex(offerIdx);
+                final int nextOfferIndex = nextIndex(offerIdx);
                 if (this.offerIdx.compareAndSet(offerIdx, nextOfferIndex)) {
                     // unmask the current write value to the actual array index.
                     if (!pool.compareAndSet(unmask(offerIdx), null, b)) {
@@ -724,7 +724,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
          * {@inheritDoc}
          */
         @Override
-        public Buffer split(int splitPosition) {
+        public Buffer split(final int splitPosition) {
             checkDispose();
             final int oldPosition = position();
             final int oldLimit = limit();
@@ -788,7 +788,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         // ----------------------------------------------------- Private Methods
 
 
-        private ByteBufferWrapper wrap(ByteBuffer buffer) {
+        private ByteBufferWrapper wrap(final ByteBuffer buffer) {
             final PoolBuffer b =
                     new PoolBuffer(buffer,
                             null, // don't keep track of the owner for child buffers
