@@ -406,9 +406,6 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         // Apply this mask to obtain the wrap status bit.
         private static final int WRAP_BIT_MASK = 0x40000000;
 
-        // Bit position for the wrap status bit.
-        private static final int WRAP_BIT = 30;
-
         // Using an AtomicReferenceArray to ensure proper visibility of items
         // within the pool which while be shared across threads.
         private final AtomicReferenceArray<PoolBuffer> pool;
@@ -545,15 +542,11 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         }
 
         private int nextIndex(final int currentIdx) {
-            int idx = unmask(currentIdx) + 1;
-            if (idx == maxPoolSize) {
-                // set lower 30 bits to 0 and invert wrap bit
-                idx = (currentIdx & WRAP_BIT_MASK) ^ 1 << WRAP_BIT;
-                return idx;
-            }
-            // apply the current values for bits 30/31 to the new value
-            idx |= (currentIdx & WRAP_BIT_MASK);
-            return idx;
+            
+            return unmask(currentIdx) + 1 < maxPoolSize
+                    ? currentIdx + 1
+                    : // set lower 30 bits to 0 and invert wrap bit
+                    WRAP_BIT_MASK ^ (currentIdx & WRAP_BIT_MASK);
         }
 
         private static int unmask(final int val) {
