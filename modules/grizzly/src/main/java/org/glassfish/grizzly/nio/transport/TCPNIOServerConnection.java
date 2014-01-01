@@ -89,8 +89,10 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 future, registerCompletionHandler));
         try {
             future.get(10, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            throw Exceptions.makeIOException(e.getCause());
         } catch (Exception e) {
-            throw new IOException("Error registering server channel key", e);
+            throw Exceptions.makeIOException(e);
         }
 
         notifyReady();
@@ -147,7 +149,9 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             final SocketChannel acceptedChannel = doAccept();
             if (acceptedChannel != null) {
                 configureAcceptedChannel(acceptedChannel);
-                registerAcceptedChannel(acceptedChannel,
+                final TCPNIOConnection clientConnection =
+                        createClientConnection(acceptedChannel);
+                registerAcceptedChannel(clientConnection,
                         new RegisterAcceptedChannelCompletionHandler(future),
                         0);
             } else {
@@ -171,11 +175,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         tcpNIOTransport.configureChannel(acceptedChannel);
     }
 
-    private TCPNIOConnection registerAcceptedChannel(final SocketChannel acceptedChannel,
-            final CompletionHandler<RegisterChannelResult> completionHandler,
-            final int initialSelectionKeyInterest)
-            throws IOException {
-
+    private TCPNIOConnection createClientConnection(final SocketChannel acceptedChannel) {
         final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
         final TCPNIOConnection connection =
                 tcpNIOTransport.obtainNIOConnection(acceptedChannel);
@@ -190,11 +190,19 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
 
         connection.resetProperties();
         
-        tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
-                acceptedChannel, initialSelectionKeyInterest, connection,
-                completionHandler);
-        
         return connection;
+    }
+    
+    private void registerAcceptedChannel(final TCPNIOConnection acceptedConnection,
+            final CompletionHandler<RegisterChannelResult> completionHandler,
+            final int initialSelectionKeyInterest)
+            throws IOException {
+
+        final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
+
+        tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
+                acceptedConnection.getChannel(), initialSelectionKeyInterest,
+                acceptedConnection, completionHandler);
     }
 
     @Override
@@ -225,7 +233,11 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             }
 
             configureAcceptedChannel(acceptedChannel);
-            acceptedConnection = registerAcceptedChannel(acceptedChannel,
+            acceptedConnection = createClientConnection(acceptedChannel);
+            
+            notifyProbesAccept(this, acceptedConnection);
+            
+            registerAcceptedChannel(acceptedConnection,
                     defaultCompletionHandler, SelectionKey.OP_READ);
         } else {
             synchronized (acceptSync) {
@@ -241,14 +253,16 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 }
 
                 configureAcceptedChannel(acceptedChannel);
-                acceptedConnection = registerAcceptedChannel(acceptedChannel,
+                acceptedConnection = createClientConnection(acceptedChannel);
+                
+                notifyProbesAccept(this, acceptedConnection);
+                
+                registerAcceptedChannel(acceptedConnection,
                         new RegisterAcceptedChannelCompletionHandler(acceptListener),
                         0);
                 acceptListener = null;
             }
         }
-
-        notifyProbesAccept(this, acceptedConnection);
     }
     
     @Override
