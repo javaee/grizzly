@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -57,6 +58,7 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
+import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -92,8 +94,10 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
                 future, registerCompletionHandler));
         try {
             future.get(10, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            throw Exceptions.makeIOException(e.getCause());
         } catch (Exception e) {
-            throw new IOException("Error registering server channel key", e);
+            throw Exceptions.makeIOException(e);
         }
 
         notifyReady();
@@ -113,12 +117,15 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         if (acceptedChannel == null) {
             return;
         }
-
+                
         configureAcceptedChannel(acceptedChannel);
-        acceptedConnection = registerAcceptedChannel(acceptedChannel,
-                defaultCompletionHandler, SelectionKey.OP_READ);
+        
+        acceptedConnection = createClientConnection(acceptedChannel);
 
         notifyProbesAccept(this, acceptedConnection);
+
+        registerAcceptedChannel(acceptedConnection,
+                defaultCompletionHandler, SelectionKey.OP_READ);
     }
     
     @Override
@@ -203,11 +210,7 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         tcpNIOTransport.configureChannel(acceptedChannel);
     }
 
-    private TCPNIOConnection registerAcceptedChannel(final SocketChannel acceptedChannel,
-            final CompletionHandler<RegisterChannelResult> completionHandler,
-            final int initialSelectionKeyInterest)
-            throws IOException {
-
+    private TCPNIOConnection createClientConnection(final SocketChannel acceptedChannel) {
         final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
         final TCPNIOConnection connection =
                 tcpNIOTransport.obtainNIOConnection(acceptedChannel);
@@ -218,11 +221,19 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
 
         connection.resetProperties();
         
-        tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
-                acceptedChannel, initialSelectionKeyInterest, connection,
-                completionHandler);
-
         return connection;
+    }
+    
+    private void registerAcceptedChannel(final TCPNIOConnection acceptedConnection,
+            final CompletionHandler<RegisterChannelResult> completionHandler,
+            final int initialSelectionKeyInterest)
+            throws IOException {
+
+        final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
+
+        tcpNIOTransport.getNIOChannelDistributor().registerChannelAsync(
+                acceptedConnection.getChannel(), initialSelectionKeyInterest,
+                acceptedConnection, completionHandler);
     }
     
     @Override
