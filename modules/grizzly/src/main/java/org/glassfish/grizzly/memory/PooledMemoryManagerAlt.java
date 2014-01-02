@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -408,12 +408,12 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
         // Using an AtomicReferenceArray to ensure proper visibility of items
         // within the pool which while be shared across threads.
-        private final AtomicReferenceArray<PoolBuffer> pool;
+        private final AtomicReferenceArray<PoolBuffer> pool1, pool2;
 
         // Maintain two different pointers for reading/writing to reduce
         // contention.
         private final AtomicInteger pollIdx = new AtomicInteger(0);
-        private final AtomicInteger offerIdx = new AtomicInteger(0);
+        private final AtomicInteger offerIdx = new AtomicInteger(WRAP_BIT_MASK);
 
         // The max size of the pool.
         private final int maxPoolSize;
@@ -441,14 +441,14 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 throw new IllegalStateException(
                         "Cannot manage a pool larger than 2^30-1");
             }
-            pool = new AtomicReferenceArray<PoolBuffer>(maxPoolSize);
+            pool1 = new AtomicReferenceArray<PoolBuffer>(maxPoolSize);
             for (int i = 0; i < maxPoolSize; i++) {
                 PoolBuffer b = allocate();
                 b.allowBufferDispose(true);
                 b.free = true;
-                pool.set(i, b);
+                pool1.lazySet(i, b);
             }
-
+            pool2 = new AtomicReferenceArray<PoolBuffer>(maxPoolSize);
         }
 
 
@@ -456,60 +456,77 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
 
         public final PoolBuffer poll() {
+            int pollIdx;
             for (;;) {
-                final int pollIdx = this.pollIdx.get();
+                pollIdx = this.pollIdx.get();
                 final int offerIdx = this.offerIdx.get();
                 if (isEmpty(pollIdx, offerIdx)) {
                     return null;
                 }
+                
                 final int nextPollIdx = nextIndex(pollIdx);
                 if (this.pollIdx.compareAndSet(pollIdx, nextPollIdx)) {
-                    // unmask the current read value to the actual array index.
-                    final PoolBuffer pb = pool.getAndSet(unmask(pollIdx), null);
-                    if (pb == null) {
-                        return null;
-                    }
-                    ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
-                                                                bufferSize);
-                    return pb;
+                    break;
                 } else {
                     LockSupport.parkNanos(1);
                 }
             }
+            
+            final int unmaskedPollIdx = unmask(pollIdx);
+            PoolBuffer pb;
+            for (;;) {
+                // unmask the current read value to the actual array index.
+                pb = pool(pollIdx).getAndSet(unmaskedPollIdx, null);
+                if (pb != null) {
+                    break;
+                }
+                LockSupport.parkNanos(1);
+            }
+            
+            ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
+                    bufferSize);
+            return pb;
         }
 
         public final boolean offer(final PoolBuffer b) {
             if (b.owner != this) {
                 return false;
             }
+            
+            int offerIdx;
             for (;;) {
-                final int offerIdx = this.offerIdx.get();
+                offerIdx = this.offerIdx.get();
                 final int pollIdx = this.pollIdx.get();
                 if (isFull(pollIdx, offerIdx)) {
                     return false;
                 }
                 final int nextOfferIndex = nextIndex(offerIdx);
                 if (this.offerIdx.compareAndSet(offerIdx, nextOfferIndex)) {
-                    // unmask the current write value to the actual array index.
-                    if (!pool.compareAndSet(unmask(offerIdx), null, b)) {
-                        // lost the cas race, so we have to start over
-                        LockSupport.parkNanos(1);
-                        continue;
-                    }
-                    ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
-                                                             bufferSize);
                     break;
                 } else {
                     LockSupport.parkNanos(1);
                 }
             }
+            
+            for (;;) {
+                // unmask the current write value to the actual array index.
+                if (pool(offerIdx).compareAndSet(unmask(offerIdx), null, b)) {
+                    break;
+                }
+
+                LockSupport.parkNanos(1);
+            }
+            
+            ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
+                    bufferSize);
+            
             return true;
         }
 
         public final int size() {
             final int curPoll = pollIdx.get();
             final int curOffer = offerIdx.get();
-            return ((getWrappingBit(curPoll) != getWrappingBit(curOffer))
+            return ((getWrappingBit(curPoll) == getWrappingBit(curOffer))
                     ? (unmask(curOffer) - unmask(curPoll))
                     : maxPoolSize - (unmask(curPoll) - unmask(curOffer)));
         }
@@ -533,14 +550,17 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
         private static boolean isFull(final int pollIdx, final int offerIdx) {
             return ((unmask(pollIdx) == unmask(offerIdx))
-                        && (getWrappingBit(pollIdx) == getWrappingBit(offerIdx)));
-        }
-
-        private static boolean isEmpty(final int pollIdx, final int offerIdx) {
-            return ((unmask(pollIdx) == unmask(offerIdx))
                     && (getWrappingBit(pollIdx) != getWrappingBit(offerIdx)));
         }
 
+        private static boolean isEmpty(final int pollIdx, final int offerIdx) {
+            return pollIdx == offerIdx;
+        }
+
+        private AtomicReferenceArray<PoolBuffer> pool(final int idx) {
+            return (idx & WRAP_BIT_MASK) == 0 ? pool1 : pool2;
+        }
+        
         private int nextIndex(final int currentIdx) {
             
             return unmask(currentIdx) + 1 < maxPoolSize

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -164,13 +164,16 @@ public final class BuffersBuffer extends CompositeBuffer {
         this.isReadOnly = isReadOnly;
     }
 
-    private void initBuffers(Buffer[] buffers, int bufferSize) {
+    private void initBuffers(final Buffer[] buffers, final int bufferSize) {
         this.buffers = buffers != null ? buffers : new Buffer[4];
         this.buffersSize = bufferSize;
-        this.bufferBounds = new int[this.buffers.length];
+        
+        if (bufferBounds == null || bufferBounds.length < this.buffers.length) {
+            bufferBounds = new int[this.buffers.length];
+        }
     }
 
-    private BuffersBuffer copy(BuffersBuffer that) {
+    private BuffersBuffer copy(final BuffersBuffer that) {
         this.memoryManager = that.memoryManager;
         initBuffers(Arrays.copyOf(that.buffers, that.buffers.length), that.buffersSize);
         System.arraycopy(that.bufferBounds, 0, this.bufferBounds, 0, that.buffersSize);
