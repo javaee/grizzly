@@ -272,7 +272,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
      * {@inheritDoc}
      */
     @Override
-    public boolean willAllocateDirect(int size) {
+    public boolean willAllocateDirect(final int size) {
         return false;
     }
 
@@ -289,7 +289,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
 
     @Override
-    public Buffer wrap(byte[] data) {
+    public Buffer wrap(final byte[] data) {
         return wrap(ByteBuffer.wrap(data));
     }
 
@@ -299,17 +299,17 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
     }
 
     @Override
-    public Buffer wrap(String s) {
+    public Buffer wrap(final String s) {
         return wrap(s.getBytes(Charset.defaultCharset()));
     }
 
     @Override
-    public Buffer wrap(String s, Charset charset) {
+    public Buffer wrap(final String s, final Charset charset) {
         return wrap(s.getBytes(charset));
     }
 
     @Override
-    public Buffer wrap(ByteBuffer byteBuffer) {
+    public Buffer wrap(final ByteBuffer byteBuffer) {
         return new ByteBufferWrapper(byteBuffer);
     }
 
@@ -340,7 +340,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
     private BufferPool getPool() {
         //final int idx = ((allocDistributor.getAndIncrement() & 0x7fffffff) % pools.length);
         //return pools[idx];
-        return pools[ThreadLocalRandom.current().nextInt(0, pools.length)];
+        return pools[ThreadLocalRandom.current().nextInt(pools.length)];
     }
 
     private int estimateBufferArraySize(final int allocationRequest) {
@@ -437,7 +437,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             maxPoolSize = (int) (totalPoolSize / ((long) bufferSize));
 
             // poolSize must be less than or equal to 2^30 - 1.
-            if (((maxPoolSize & WRAP_BIT_MASK) >> 30 != 0)) {
+            if (maxPoolSize >= WRAP_BIT_MASK) {
                 throw new IllegalStateException(
                         "Cannot manage a pool larger than 2^30-1");
             }
@@ -473,10 +473,11 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             }
             
             final int unmaskedPollIdx = unmask(pollIdx);
+            final AtomicReferenceArray<PoolBuffer> pool = pool(pollIdx);
             PoolBuffer pb;
             for (;;) {
                 // unmask the current read value to the actual array index.
-                pb = pool(pollIdx).getAndSet(unmaskedPollIdx, null);
+                pb = pool.getAndSet(unmaskedPollIdx, null);
                 if (pb != null) {
                     break;
                 }
@@ -509,9 +510,10 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             }
             
             final int unmaskedOfferIdx = unmask(offerIdx);
+            final AtomicReferenceArray<PoolBuffer> pool = pool(offerIdx);
             for (;;) {
                 // unmask the current write value to the actual array index.
-                if (pool(offerIdx).compareAndSet(unmaskedOfferIdx, null, b)) {
+                if (pool.compareAndSet(unmaskedOfferIdx, null, b)) {
                     break;
                 }
 
