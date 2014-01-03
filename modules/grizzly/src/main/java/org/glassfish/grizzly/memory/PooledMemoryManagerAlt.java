@@ -508,9 +508,10 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 }
             }
             
+            final int unmaskedOfferIdx = unmask(offerIdx);
             for (;;) {
                 // unmask the current write value to the actual array index.
-                if (pool(offerIdx).compareAndSet(unmask(offerIdx), null, b)) {
+                if (pool(offerIdx).compareAndSet(unmaskedOfferIdx, null, b)) {
                     break;
                 }
 
@@ -549,8 +550,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
 
         private static boolean isFull(final int pollIdx, final int offerIdx) {
-            return ((unmask(pollIdx) == unmask(offerIdx))
-                    && (getWrappingBit(pollIdx) != getWrappingBit(offerIdx)));
+            return (pollIdx ^ offerIdx) == WRAP_BIT_MASK;
         }
 
         private static boolean isEmpty(final int pollIdx, final int offerIdx) {
