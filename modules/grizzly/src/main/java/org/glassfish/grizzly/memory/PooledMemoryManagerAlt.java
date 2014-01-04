@@ -407,7 +407,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         private static final int WRAP_BIT_MASK = 0x40000000;
 
         // Using an AtomicReferenceArray to ensure proper visibility of items
-        // within the pool which while be shared across threads.
+        // within the pool which will be shared across threads.
         private final AtomicReferenceArray<PoolBuffer> pool1, pool2;
 
         // Maintain two different pointers for reading/writing to reduce
