@@ -81,6 +81,22 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
     public static final int DEFAULT_BUFFER_SIZE = 4 * 1024;
     public static final float DEFAULT_HEAP_USAGE_PERCENTAGE = 0.1f;
 
+    private static final long SLEEP_ON_IDX_CAS_MISS;
+    private static final long SLEEP_ON_BUF_CAS_MISS;
+    
+    static {
+        final long sleepOnIdxCasMiss =
+                Long.getLong(PooledMemoryManagerAlt.class.getName() +
+                        ".sleep-on-idx-cas-miss-nanos", 1L);
+        SLEEP_ON_IDX_CAS_MISS = sleepOnIdxCasMiss >= 0 ? sleepOnIdxCasMiss : 1L;
+        
+        final long sleepOnBufCasMiss =
+                Long.getLong(PooledMemoryManagerAlt.class.getName() +
+                        ".sleep-on-buf-cas-miss-nanos", 0L);
+        SLEEP_ON_BUF_CAS_MISS = sleepOnBufCasMiss >= 0 ? sleepOnBufCasMiss : 0L;
+
+    }
+    
     /**
      * Basic monitoring support.  Concrete implementations of this class need
      * only to implement the {@link #createJmxManagementObject()}  method
