@@ -433,9 +433,12 @@ public class ContentType {
      * Resets the <tt>ContentType</tt> state.
      */
     protected void reset() {
-        unparsedContentType = compiledContentType = null;
-        quotedCharsetValue = characterEncoding = null;
+        unparsedContentType = null;
+        compiledContentType = null;
+        quotedCharsetValue = null;
+        characterEncoding = null;
         compiledContentTypeArray = null;
+        mimeType = null;
         isCharsetSet = false;
         isParsed = true;
     }
