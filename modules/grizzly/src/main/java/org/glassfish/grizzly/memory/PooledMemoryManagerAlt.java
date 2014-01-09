@@ -47,7 +47,6 @@ import java.nio.charset.Charset;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.concurrent.locks.LockSupport;
 
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
@@ -399,21 +398,24 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
      */
     public static class BufferPool {
 
+        // Array index stride.
+        private static final int STRIDE = 16;
+
         // Apply this mask to obtain the first 30 bits of an integer
-        // less the bits for wrap bits.
+        // less the bits for wrap and offset.
         private static final int MASK = 0x3FFFFFFF;
 
-        // Apply this mask to obtain the wrap status bit.
+        // Apply this mask to get/set the wrap status bit.
         private static final int WRAP_BIT_MASK = 0x40000000;
 
         // Using an AtomicReferenceArray to ensure proper visibility of items
         // within the pool which will be shared across threads.
-        private final AtomicReferenceArray<PoolBuffer> pool1, pool2;
+        private final PaddedAtomicReferenceArray<PoolBuffer> pool1, pool2;
 
         // Maintain two different pointers for reading/writing to reduce
         // contention.
-        private final AtomicInteger pollIdx = new AtomicInteger(0);
-        private final AtomicInteger offerIdx = new AtomicInteger(WRAP_BIT_MASK);
+        private final PaddedAtomicInteger pollIdx = new PaddedAtomicInteger(0);
+        private final PaddedAtomicInteger offerIdx = new PaddedAtomicInteger(WRAP_BIT_MASK);
 
         // The max size of the pool.
         private final int maxPoolSize;
@@ -434,21 +436,28 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
             this.bufferSize = bufferSize;
             this.monitoringConfig = monitoringConfig;
-            maxPoolSize = (int) (totalPoolSize / ((long) bufferSize));
+            int initialSize = (int) (totalPoolSize / ((long) bufferSize));
+
+            // Round up to the nearest multiple of 16 (STRIDE).  This is
+            // done as elements will be accessed at (offset + index + STRIDE).
+            // Offset is calculated each time we overflow the array.
+            // This access scheme should help us avoid false sharing.
+            maxPoolSize = ((initialSize + (STRIDE - 1)) & ~(STRIDE - 1));
 
             // poolSize must be less than or equal to 2^30 - 1.
             if (maxPoolSize >= WRAP_BIT_MASK) {
                 throw new IllegalStateException(
                         "Cannot manage a pool larger than 2^30-1");
             }
-            pool1 = new AtomicReferenceArray<PoolBuffer>(maxPoolSize);
+
+            pool1 = new PaddedAtomicReferenceArray<PoolBuffer>(maxPoolSize);
             for (int i = 0; i < maxPoolSize; i++) {
                 PoolBuffer b = allocate();
                 b.allowBufferDispose(true);
                 b.free = true;
                 pool1.lazySet(i, b);
             }
-            pool2 = new AtomicReferenceArray<PoolBuffer>(maxPoolSize);
+            pool2 = new PaddedAtomicReferenceArray<PoolBuffer>(maxPoolSize);
         }
 
 
@@ -467,8 +476,6 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 final int nextPollIdx = nextIndex(pollIdx);
                 if (this.pollIdx.compareAndSet(pollIdx, nextPollIdx)) {
                     break;
-                } else {
-                    LockSupport.parkNanos(1);
                 }
             }
             
@@ -481,7 +488,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 if (pb != null) {
                     break;
                 }
-                LockSupport.parkNanos(1);
+                Thread.yield();
             }
             
             ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
@@ -504,8 +511,6 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 final int nextOfferIndex = nextIndex(offerIdx);
                 if (this.offerIdx.compareAndSet(offerIdx, nextOfferIndex)) {
                     break;
-                } else {
-                    LockSupport.parkNanos(1);
                 }
             }
             
@@ -517,21 +522,13 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                     break;
                 }
 
-                LockSupport.parkNanos(1);
+                Thread.yield();
             }
             
             ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
                     bufferSize);
             
             return true;
-        }
-
-        public final int size() {
-            final int curPoll = pollIdx.get();
-            final int curOffer = offerIdx.get();
-            return ((getWrappingBit(curPoll) == getWrappingBit(curOffer))
-                    ? (unmask(curOffer) - unmask(curPoll))
-                    : maxPoolSize - (unmask(curPoll) - unmask(curOffer)));
         }
 
         public void clear() {
@@ -564,11 +561,21 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         }
         
         private int nextIndex(final int currentIdx) {
-            
-            return unmask(currentIdx) + 1 < maxPoolSize
-                    ? currentIdx + 1
-                    : // set lower 30 bits to 0 and invert wrap bit
-                    WRAP_BIT_MASK ^ (currentIdx & WRAP_BIT_MASK);
+            final int arrayIndex = unmask(currentIdx);
+            if (arrayIndex + STRIDE < maxPoolSize) {
+                return currentIdx + STRIDE;
+            } else {
+                int offset = arrayIndex - maxPoolSize + STRIDE;
+                if (offset == STRIDE - 1) {
+                    // set lower 26 bits to zero and flip the wrap bit.
+                    return WRAP_BIT_MASK ^ (currentIdx & WRAP_BIT_MASK);
+                } else {
+                    int idx = ++offset;
+                    // reapply the wrap bit
+                    idx |= (currentIdx & WRAP_BIT_MASK);
+                    return idx;
+                }
+            }
         }
 
         private static int unmask(final int val) {
@@ -593,6 +600,31 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                                 ", maxPoolSize=" + maxPoolSize +
                                 '}';
         }
+
+        @SuppressWarnings("UnusedDeclaration")
+        static final class PaddedAtomicInteger extends AtomicInteger {
+            private long p0, p1, p2, p3, p4, p5, p6, p7 = 7l;
+
+
+            // -------------------------------------------------------- Constructors
+
+
+            PaddedAtomicInteger(int initialValue) {
+                super(initialValue);
+            }
+
+        } // END PaddedAtomicInteger
+
+        @SuppressWarnings("UnusedDeclaration")
+        static final class PaddedAtomicReferenceArray<E>
+                extends AtomicReferenceArray<E> {
+            private long p0, p1, p2, p3, p4, p5, p6, p7 = 7l;
+
+            PaddedAtomicReferenceArray(int length) {
+                super(length);
+            }
+
+        } // END PaddedAtomicReferenceArray
 
     } // END BufferPool
 
