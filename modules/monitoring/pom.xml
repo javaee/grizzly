@@ -45,14 +45,14 @@
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2.3.9-SNAPSHOT</version>
+        <version>2.3.9</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-monitoring</artifactId>
     <packaging>pom</packaging>
-    <version>2.3.9-SNAPSHOT</version>
+    <version>2.3.9</version>
     <name>grizzly-monitoring</name>
     <modules>
         <module>grizzly</module>
