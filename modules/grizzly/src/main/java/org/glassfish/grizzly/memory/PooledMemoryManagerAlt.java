@@ -107,12 +107,13 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
             };
 
-    //private final AtomicInteger allocDistributor = new AtomicInteger();
-
     // number of pools with different buffer sizes
     private final Pool[] pools;
+
     // the max buffer size pooled by this memory manager
     private final int maxPooledBufferSize;
+
+
     // ------------------------------------------------------------ Constructors
 
 
@@ -226,47 +227,6 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 allocateToCompositeBuffer(newCompositeBuffer(), size);
     }
 
-    private Pool getPoolFor(final int size) {
-        for (int i = 0; i < pools.length; i++) {
-            final Pool pool = pools[i];
-            if (pool.bufferSize >= size) {
-                return pool;
-            }
-        }
-
-        throw new IllegalStateException("There is no pool big enough to allocate " + size + " bytes");
-    }
-    
-    private CompositeBuffer allocateToCompositeBuffer(
-            final CompositeBuffer cb, int size) {
-
-        assert size >= 0;
-        
-        final boolean oldAppendable = cb.isAppendable();
-        cb.setAppendable(true);
-        
-        if (size >= maxPooledBufferSize) {
-            final Pool maxBufferSizePool = pools[pools.length - 1];
-            
-            do {
-                cb.append(maxBufferSizePool.allocate());
-                size -= maxPooledBufferSize;
-            } while (size >= maxPooledBufferSize);
-        }
-
-        for (int i = 0; i < pools.length; i++) {
-            final Pool pool = pools[i];
-            if (pool.bufferSize >= size) {
-                cb.append(pool.allocate());
-                break;
-            }
-        }
-        
-        cb.setAppendable(oldAppendable);
-        
-        return cb;
-    }
-        
     /**
      * Reallocates an existing buffer to at least the specified size.
      *
@@ -345,12 +305,6 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         }
     }
 
-    private CompositeBuffer newCompositeBuffer() {
-        final CompositeBuffer cb = CompositeBuffer.newBuffer(this);
-        cb.allowInternalBuffersDispose(true);
-        cb.allowBufferDispose(true);
-        return cb;
-    }
     /**
      * {@inheritDoc}
      */
@@ -427,6 +381,55 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
     // --------------------------------------------------------- Private Methods
 
 
+    private Pool getPoolFor(final int size) {
+        for (int i = 0; i < pools.length; i++) {
+            final Pool pool = pools[i];
+            if (pool.bufferSize >= size) {
+                return pool;
+            }
+        }
+
+        throw new IllegalStateException(
+                "There is no pool big enough to allocate " + size + " bytes");
+    }
+
+    private CompositeBuffer allocateToCompositeBuffer(
+            final CompositeBuffer cb, int size) {
+
+        assert size >= 0;
+
+        final boolean oldAppendable = cb.isAppendable();
+        cb.setAppendable(true);
+
+        if (size >= maxPooledBufferSize) {
+            final Pool maxBufferSizePool = pools[pools.length - 1];
+
+            do {
+                cb.append(maxBufferSizePool.allocate());
+                size -= maxPooledBufferSize;
+            } while (size >= maxPooledBufferSize);
+        }
+
+        for (int i = 0; i < pools.length; i++) {
+            final Pool pool = pools[i];
+            if (pool.bufferSize >= size) {
+                cb.append(pool.allocate());
+                break;
+            }
+        }
+
+        cb.setAppendable(oldAppendable);
+
+        return cb;
+    }
+
+    private CompositeBuffer newCompositeBuffer() {
+        final CompositeBuffer cb = CompositeBuffer.newBuffer(this);
+        cb.allowInternalBuffersDispose(true);
+        cb.allowBufferDispose(true);
+        return cb;
+    }
+
     private static boolean isPowerOfTwo(final int valueToCheck) {
         return ((valueToCheck & (valueToCheck - 1)) == 0);
     }
@@ -467,7 +470,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         }
         
         public long size() {
-            return elementsCount() * bufferSize;
+            return (long) elementsCount() * (long) bufferSize;
         }
         
         public int getBufferSize() {
@@ -491,8 +494,6 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         
         @SuppressWarnings("unchecked")
         private PoolSlice getSlice() {
-            //final int idx = ((allocDistributor.getAndIncrement() & 0x7fffffff) % pools.length);
-            //return pools[idx];
             return slices[ThreadLocalRandom.current().nextInt(slices.length)];
         }
     }
@@ -671,7 +672,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         }
         
         public final long size() {
-            return elementsCount() * bufferSize;
+            return (long) elementsCount() * (long) bufferSize;
         }
 
         public void clear() {
