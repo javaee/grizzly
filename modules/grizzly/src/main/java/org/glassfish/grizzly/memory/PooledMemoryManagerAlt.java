@@ -608,17 +608,17 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                     if (pb != null) {
                         break;
                     }
+                    Thread.yield();
                 }
             } else {
                 pb = pool(pollIdx).getAndSet(unmask(pollIdx), null);
                 if (pb == null) {
                     return null;
                 }
-                Thread.yield();
             }
             
             ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
-                    bufferSize);
+                                                        bufferSize);
             return pb;
         }
 
@@ -648,8 +648,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                     if (pool.compareAndSet(unmaskedOfferIdx, null, b)) {
                         break;
                     }
-
-                Thread.yield();
+                    Thread.yield();
                 }
             } else {
                 if (!pool(offerIdx).compareAndSet(unmask(offerIdx), null, b)) {
@@ -658,7 +657,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             }
             
             ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
-                    bufferSize);
+                                                     bufferSize);
             
             return true;
         }
