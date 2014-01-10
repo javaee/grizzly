@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Buffer;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -53,20 +54,24 @@ import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 
 /**
- * A {@link MemoryManager} implementation based on a series of shared memory pools containing
- * multiple fixed-length buffers.
+ * A {@link MemoryManager} implementation based on a series of shared memory pools.
+ * Each pool contains multiple buffers of the fixed length specific for this pool.
  *
  * There are several tuning options for this {@link MemoryManager} implementation.
  * <ul>
- *     <li>The size of the buffers managed by this manager.</li>
- *     <li>The number of pools that this manager will stripe allocation requests across.</li>
+ *     <li>The base size of the buffer for the 1st pool, every next pool n will have buffer size equal to bufferSize(n-1) * 2^growthFactor.</li>
+ *     <li>The number of pools, responsible for allocation of buffers of a pool-specific size.</li>
+ *     <li>The buffer size growth factor, that defines 2^x multiplier, used to calculate buffer size for next allocated pool.</li>
+ *     <li>The number of pool slices that every pool will stripe allocation requests across.</li>
  *     <li>The percentage of the heap that this manager will use when populating the pools.</li>
  * </ul>
  *
  * If no explicit configuration is provided, the following defaults will be used:
  * <ul>
- *     <li>Buffer size: 4 KiB ({@link #DEFAULT_BUFFER_SIZE}).</li>
- *     <li>Number of pools: Based on the return value of <code>Runtime.getRuntime().availableProcessors()</code>.</li>
+ *     <li>Base buffer size: 4 KiB ({@link #DEFAULT_BASE_BUFFER_SIZE}).</li>
+ *     <li>Number of pools: 3 ({@link #DEFAULT_NUMBER_OF_POOLS}).</li>
+ *     <li>Growth factor: 2 ({@link #DEFAULT_GROWTH_FACTOR}), which means the first buffer pool will contains buffer of size 4 KiB, the seconds one buffer of size 16KiB, the third one buffer of size 64KiB.</li>
+ *     <li>Number of pool slices: Based on the return value of <code>Runtime.getRuntime().availableProcessors()</code>.</li>
  *     <li>Percentage of heap: 10% ({@link #DEFAULT_HEAP_USAGE_PERCENTAGE}).</li>
  * </ul>
  *
@@ -78,24 +83,14 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
  */
 public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAware {
 
-    public static final int DEFAULT_BUFFER_SIZE = 4 * 1024;
+    public static final int DEFAULT_BASE_BUFFER_SIZE = 4 * 1024;
+    public static final int DEFAULT_NUMBER_OF_POOLS = 3;
+    public static final int DEFAULT_GROWTH_FACTOR = 2;
+    
     public static final float DEFAULT_HEAP_USAGE_PERCENTAGE = 0.1f;
 
-    private static final long SLEEP_ON_IDX_CAS_MISS;
-    private static final long SLEEP_ON_BUF_CAS_MISS;
-    
-    static {
-        final long sleepOnIdxCasMiss =
-                Long.getLong(PooledMemoryManagerAlt.class.getName() +
-                        ".sleep-on-idx-cas-miss-nanos", 1L);
-        SLEEP_ON_IDX_CAS_MISS = sleepOnIdxCasMiss >= 0 ? sleepOnIdxCasMiss : 1L;
-        
-        final long sleepOnBufCasMiss =
-                Long.getLong(PooledMemoryManagerAlt.class.getName() +
-                        ".sleep-on-buf-cas-miss-nanos", 0L);
-        SLEEP_ON_BUF_CAS_MISS = sleepOnBufCasMiss >= 0 ? sleepOnBufCasMiss : 0L;
-
-    }
+    private static final boolean IS_SKIP_BUF_WAIT_LOOP =
+            Boolean.getBoolean(PooledMemoryManagerAlt.class.getName() + ".skip-buf-wait-loop");
     
     /**
      * Basic monitoring support.  Concrete implementations of this class need
@@ -112,24 +107,29 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
             };
 
-    private final BufferPool[] pools;
-    private final int bufferSize;
     //private final AtomicInteger allocDistributor = new AtomicInteger();
 
-
+    // number of pools with different buffer sizes
+    private final Pool[] pools;
+    // the max buffer size pooled by this memory manager
+    private final int maxPooledBufferSize;
     // ------------------------------------------------------------ Constructors
 
 
     /**
      * Creates a new <code>PooledMemoryManager</code> using the following defaults:
      * <ul>
-     *     <li>4 KiB buffer size.</li>
-     *     <li>Number of pools based on <code>Runtime.getRuntime().availableProcessors()</code></li>
+     *     <li>4 KiB base buffer size.</li>
+     *     <li>3 pools.</li>
+     *     <li>2 growth factor, which means 1st pool will contain buffers of size 4KiB, the 2nd - 16KiB, the 3rd - 64KiB.</li>
+     *     <li>Number of pool slices based on <code>Runtime.getRuntime().availableProcessors()</code></li>
      *     <li>The initial allocation will use 10% of the heap.</li>
      * </ul>
      */
     public PooledMemoryManagerAlt() {
-        this(DEFAULT_BUFFER_SIZE,
+        this(DEFAULT_BASE_BUFFER_SIZE,
+                DEFAULT_NUMBER_OF_POOLS,
+                DEFAULT_GROWTH_FACTOR,
                 Runtime.getRuntime().availableProcessors(),
                 DEFAULT_HEAP_USAGE_PERCENTAGE);
     }
@@ -138,32 +138,51 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
     /**
      * Creates a new <code>PooledMemoryManager</code> using the specified parameters for configuration.
      *
-     * @param bufferSize the size of the individual buffers within the pool(s).
-     * @param numberOfPools the number of pools to which allocation requests will be striped against.
+     * @param baseBufferSize the base size of the buffer for the 1st pool, every next pool n will have buffer size equal to bufferSize(n-1) * 2^growthFactor.
+     * @param numberOfPools the number of pools, responsible for allocation of buffers of a pool-specific size.
+     * @param growthFactor the buffer size growth factor, that defines 2^x multiplier, used to calculate buffer size for next allocated pool.
+     * @param numberOfPoolSlices the number of pool slices that every pool will stripe allocation requests across
      * @param percentOfHeap percentage of the heap that will be used when populating the pools.
      */
-    public PooledMemoryManagerAlt(final int bufferSize,
-                                  final int numberOfPools,
-                                  final float percentOfHeap) {
-        if (bufferSize <= 0) {
-            throw new IllegalArgumentException("bufferSize must be greater than zero");
-        }
-        if (!isPowerOfTwo(bufferSize)) {
-            throw new IllegalArgumentException("bufferSize must be a power of two");
+    public PooledMemoryManagerAlt(
+            final int baseBufferSize,
+            final int numberOfPools,
+            final int growthFactor,
+            final int numberOfPoolSlices,
+            final float percentOfHeap) {
+        if (baseBufferSize <= 0) {
+            throw new IllegalArgumentException("baseBufferSize must be greater than zero");
         }
         if (numberOfPools <= 0) {
             throw new IllegalArgumentException("numberOfPools must be greater than zero");
         }
+        if (growthFactor == 0 && numberOfPools > 1) {
+            throw new IllegalArgumentException("if numberOfPools is greater than 0 - growthFactor must be greater than zero");
+        }
+        if (growthFactor < 0) {
+            throw new IllegalArgumentException("growthFactor must be greater or equal to zero");
+        }
+        if (numberOfPoolSlices <= 0) {
+            throw new IllegalArgumentException("numberOfPoolSlices must be greater than zero");
+        }
+
+        if (!isPowerOfTwo(baseBufferSize) || !isPowerOfTwo(growthFactor)) {
+            throw new IllegalArgumentException("minBufferSize and growthFactor must be a power of two");
+        }
+
         if (percentOfHeap <= 0.0f || percentOfHeap >= 1.0f) {
             throw new IllegalArgumentException("percentOfHeap must be greater than zero and less than 1.");
         }
-        this.bufferSize = bufferSize;
+        
         final long heapSize = Runtime.getRuntime().maxMemory();
-        final long memoryPerPool = (long) (heapSize * percentOfHeap / numberOfPools);
-        pools = new BufferPool[numberOfPools];
-        for (int i = 0; i < numberOfPools; i++) {
-            pools[i] = new BufferPool(memoryPerPool, bufferSize, monitoringConfig);
+        final long memoryPerSubPool = (long) (heapSize * percentOfHeap / numberOfPools);
+
+        pools = new Pool[numberOfPools];
+        for (int i = 0, bufferSize = baseBufferSize; i < numberOfPools; i++, bufferSize <<= growthFactor) {
+            pools[i] = new Pool(bufferSize, memoryPerSubPool,
+                    numberOfPoolSlices, monitoringConfig);
         }
+        maxPooledBufferSize = pools[numberOfPools - 1].bufferSize;
     }
 
 
@@ -193,20 +212,61 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
      * @return a buffer with a limit of the specified <tt>size</tt>.
      */
     @Override
-    public Buffer allocateAtLeast(final int size) {
+    public Buffer allocateAtLeast(int size) {
         if (size < 0) {
             throw new IllegalArgumentException("Requested allocation size must be greater than or equal to zero.");
         }
-        final Buffer b;
-        if (size <= bufferSize) {
-            b = allocateSingle();
-        } else {
-            b = allocateComposite(size);
+        
+        if (size == 0) {
+            return Buffers.EMPTY_BUFFER;
         }
-        b.clear();
-        return b;
+        
+        return size <= maxPooledBufferSize ?
+                getPoolFor(size).allocate() :
+                allocateToCompositeBuffer(newCompositeBuffer(), size);
     }
 
+    private Pool getPoolFor(final int size) {
+        for (int i = 0; i < pools.length; i++) {
+            final Pool pool = pools[i];
+            if (pool.bufferSize >= size) {
+                return pool;
+            }
+        }
+
+        throw new IllegalStateException("There is no pool big enough to allocate " + size + " bytes");
+    }
+    
+    private CompositeBuffer allocateToCompositeBuffer(
+            final CompositeBuffer cb, int size) {
+
+        assert size >= 0;
+        
+        final boolean oldAppendable = cb.isAppendable();
+        cb.setAppendable(true);
+        
+        if (size >= maxPooledBufferSize) {
+            final Pool maxBufferSizePool = pools[pools.length - 1];
+            
+            do {
+                cb.append(maxBufferSizePool.allocate());
+                size -= maxPooledBufferSize;
+            } while (size >= maxPooledBufferSize);
+        }
+
+        for (int i = 0; i < pools.length; i++) {
+            final Pool pool = pools[i];
+            if (pool.bufferSize >= size) {
+                cb.append(pool.allocate());
+                break;
+            }
+        }
+        
+        cb.setAppendable(oldAppendable);
+        
+        return cb;
+    }
+        
     /**
      * Reallocates an existing buffer to at least the specified size.
      *
@@ -217,64 +277,80 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
      */
     @Override
     public Buffer reallocate(final Buffer oldBuffer, final int newSize) {
-        if (newSize <= bufferSize) {
-            oldBuffer.limit(newSize);
-            return oldBuffer;
+        if (newSize == 0) {
+            oldBuffer.tryDispose();
+            return Buffers.EMPTY_BUFFER;
         }
-        BuffersBuffer newBuffer;
-        boolean appendable = false;
-        final int pos = oldBuffer.position();
+        
+        final int curBufSize = oldBuffer.capacity();
+        
         if (oldBuffer instanceof PoolBuffer) {
-            newBuffer = BuffersBuffer.create(this);
-            oldBuffer.position(0);
-            final int cap = oldBuffer.capacity();
-            if (oldBuffer.limit() != cap) {
-                oldBuffer.limit(cap);
-            }
-            newBuffer.append(oldBuffer);
-        } else {
-            newBuffer = (BuffersBuffer) oldBuffer;
-            appendable = newBuffer.isAppendable();
-            newBuffer.setAppendable(true);
-            Buffer b = newBuffer.buffers[newBuffer.buffersSize - 1];
-            final int cap = b.capacity();
-            if (b.limit() != cap) {
-                b.limit(cap);
-            }
-            newBuffer.calcCapacity();
-        }
-
-        // append new buffers to existing
-        // determine number of buffers we need to add
-        final int totalBufferCount = estimateBufferArraySize(newSize);
-        int bufferDiffCount = totalBufferCount - newBuffer.buffersSize;
-        if (bufferDiffCount == 0) {
-            PoolBuffer p = (PoolBuffer)
-                    newBuffer.buffers[newBuffer.buffersSize - 1];
-            p.limit(bufferSize - (((totalBufferCount * bufferSize)) - newSize));
-            newBuffer.limit(newSize);
-            newBuffer.calcCapacity();
-        } else {
-            BufferPool pool = getPool();
-            for (int i = 0; i < bufferDiffCount; i++) {
-                PoolBuffer p = pool.poll();
-                if (p == null) {
-                    p = pool.allocate();
+            if (curBufSize >= newSize) {
+                final PoolBuffer oldPoolBuffer = (PoolBuffer) oldBuffer;
+                
+                final Pool newPool = getPoolFor(newSize);
+                if (newPool != oldPoolBuffer.owner.owner) {
+                    final int pos = Math.min(oldPoolBuffer.position(), newSize);
+                    final int lim = Math.min(oldPoolBuffer.limit(), newSize);
+                    
+                    final Buffer newPoolBuffer = newPool.allocate();
+                    Buffers.setPositionLimit(oldPoolBuffer, 0, newSize);
+                    newPoolBuffer.put(oldPoolBuffer);
+                    Buffers.setPositionLimit(newPoolBuffer, pos, lim);
+                    
+                    oldPoolBuffer.tryDispose();
+                    
+                    return newPoolBuffer;
                 }
-                p.allowBufferDispose(true);
-                p.free = false;
-                if (i == bufferDiffCount - 1) {
-                    p.limit(bufferSize - (((totalBufferCount * bufferSize)) - newSize));
+                
+                return oldPoolBuffer.limit(newSize);
+            } else {
+                final int pos = oldBuffer.position();
+                final int lim = oldBuffer.limit();
+                Buffers.setPositionLimit(oldBuffer, 0, curBufSize);
+                
+                if (newSize <= maxPooledBufferSize) {
+                    
+                    final Pool newPool = getPoolFor(newSize);
+                    
+                    final Buffer newPoolBuffer = newPool.allocate();
+                    newPoolBuffer.put(oldBuffer);
+                    Buffers.setPositionLimit(newPoolBuffer, pos, lim);
+                    
+                    oldBuffer.tryDispose();
+                    
+                    return newPoolBuffer;
+                } else {
+                    final CompositeBuffer cb = newCompositeBuffer();
+                    cb.append(oldBuffer);
+                    allocateToCompositeBuffer(cb, newSize - curBufSize);
+                    Buffers.setPositionLimit(cb, pos, newSize);
+                    return cb;
                 }
-                newBuffer.append(p);
+            }
+        } else {
+            assert oldBuffer instanceof CompositeBuffer;
+            final CompositeBuffer oldCompositeBuffer = (CompositeBuffer) oldBuffer;
+            if (curBufSize > newSize) {
+                final int oldPos = oldCompositeBuffer.position();
+                Buffers.setPositionLimit(oldBuffer, newSize, newSize);
+                oldCompositeBuffer.trim();
+                oldCompositeBuffer.position(Math.min(oldPos, newSize));
+                
+                return oldCompositeBuffer;
+            } else {
+                return allocateToCompositeBuffer(oldCompositeBuffer,
+                        newSize - curBufSize);
             }
         }
-        newBuffer.position(pos);
-        newBuffer.setAppendable(appendable);
-        return newBuffer;
-
     }
 
+    private CompositeBuffer newCompositeBuffer() {
+        final CompositeBuffer cb = CompositeBuffer.newBuffer(this);
+        cb.allowInternalBuffersDispose(true);
+        cb.allowBufferDispose(true);
+        return cb;
+    }
     /**
      * {@inheritDoc}
      */
@@ -332,8 +408,8 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
     // ---------------------------------------------------------- Public Methods
 
 
-    public BufferPool[] getBufferPools() {
-        return pools;
+    public Pool[] getPools() {
+        return Arrays.copyOf(pools, pools.length);
     }
 
 
@@ -351,53 +427,74 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
     // --------------------------------------------------------- Private Methods
 
 
-    @SuppressWarnings("unchecked")
-    private BufferPool getPool() {
-        //final int idx = ((allocDistributor.getAndIncrement() & 0x7fffffff) % pools.length);
-        //return pools[idx];
-        return pools[ThreadLocalRandom.current().nextInt(pools.length)];
-    }
-
-    private int estimateBufferArraySize(final int allocationRequest) {
-        return allocationRequest / bufferSize + (allocationRequest % bufferSize != 0 ? 1 : 0);
-//        return (int) Math.ceil((float) allocationRequest / (float) bufferSize);
-    }
-
-    private Buffer allocateSingle() {
-        final BufferPool pool = getPool();
-        PoolBuffer p = pool.poll();
-        if (p == null) {
-            p = pool.allocate();
-        }
-        p.allowBufferDispose(true);
-        p.free = false;
-        return p;
-    }
-
-    private Buffer allocateComposite(final int size) {
-        Buffer[] buffers = new Buffer[estimateBufferArraySize(size)];
-        BufferPool pool = getPool();
-        for (int i = 0, len = buffers.length; i < len; i++) {
-            PoolBuffer p = pool.poll();
-            if (p == null) {
-                p = pool.allocate();
-            }
-            p.free = false;
-            p.allowBufferDispose(true);
-            if (i == buffers.length - 1) {
-                p.limit(bufferSize - (((buffers.length * bufferSize)) - size));
-            }
-            buffers[i] = p;
-        }
-        CompositeBuffer cb = CompositeBuffer.newBuffer(this, buffers);
-        cb.allowInternalBuffersDispose(true);
-        cb.allowBufferDispose(true);
-        cb.setAppendable(false);
-        return cb;
-    }
-
     private static boolean isPowerOfTwo(final int valueToCheck) {
         return ((valueToCheck & (valueToCheck - 1)) == 0);
+    }
+
+    private static int propagateHighestOneBitRight(int value) {
+        value |= (value >> 1);
+        value |= (value >> 2);
+        value |= (value >> 4);
+        value |= (value >> 8);
+        value |= (value >> 16);
+        return value;
+    }
+    
+    public static class Pool {
+        private final PoolSlice[] slices;
+        private final int bufferSize;
+
+        public Pool(final int bufferSize, final long memoryPerSubPool,
+                final int numberOfPoolSlices,
+                final DefaultMonitoringConfig<MemoryProbe> monitoringConfig) {
+            this.bufferSize = bufferSize;
+            slices = new PoolSlice[numberOfPoolSlices];
+            final long memoryPerSlice = memoryPerSubPool / numberOfPoolSlices;
+            
+            for (int i = 0; i < numberOfPoolSlices; i++) {
+                slices[i] = new PoolSlice(this, memoryPerSlice, bufferSize,
+                        monitoringConfig);
+            }
+        }
+
+        public int elementsCount() {
+            int sum = 0;
+            for (int i = 0; i < slices.length; i++) {
+                sum += slices[i].elementsCount();
+            }
+            
+            return sum;
+        }
+        
+        public long size() {
+            return elementsCount() * bufferSize;
+        }
+        
+        public int getBufferSize() {
+            return bufferSize;
+        }
+        
+        public PoolSlice[] getSlices() {
+            return Arrays.copyOf(slices, slices.length);
+        }
+        
+        public Buffer allocate() {
+            final PoolSlice slice = getSlice();
+            PoolBuffer b = slice.poll();
+            if (b == null) {
+                b = slice.allocate();
+            }
+            b.allowBufferDispose(true);
+            b.free = false;
+            return b;
+        }
+        
+        @SuppressWarnings("unchecked")
+        private PoolSlice getSlice() {
+            //final int idx = ((allocDistributor.getAndIncrement() & 0x7fffffff) % pools.length);
+            //return pools[idx];
+            return slices[ThreadLocalRandom.current().nextInt(slices.length)];
+        }
     }
 
     /*
@@ -412,7 +509,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
      *   The same logic is applied to determine if the pool is empty, except
      *   the bits are not equal.
      */
-    public static class BufferPool {
+    public static class PoolSlice {
 
         // Array index stride.
         private static final int STRIDE = 16;
@@ -433,6 +530,9 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         private final PaddedAtomicInteger pollIdx = new PaddedAtomicInteger(0);
         private final PaddedAtomicInteger offerIdx = new PaddedAtomicInteger(WRAP_BIT_MASK);
 
+        // The Pool this slice belongs to
+        private final Pool owner;
+        
         // The max size of the pool.
         private final int maxPoolSize;
 
@@ -446,10 +546,12 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         // -------------------------------------------------------- Constructors
 
 
-        BufferPool(final long totalPoolSize,
+        PoolSlice(final Pool owner,
+                   final long totalPoolSize,
                    final int bufferSize,
                    final DefaultMonitoringConfig<MemoryProbe> monitoringConfig) {
 
+            this.owner = owner;
             this.bufferSize = bufferSize;
             this.monitoringConfig = monitoringConfig;
             int initialSize = (int) (totalPoolSize / ((long) bufferSize));
@@ -495,14 +597,21 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 }
             }
             
-            final int unmaskedPollIdx = unmask(pollIdx);
-            final AtomicReferenceArray<PoolBuffer> pool = pool(pollIdx);
             PoolBuffer pb;
-            for (;;) {
-                // unmask the current read value to the actual array index.
-                pb = pool.getAndSet(unmaskedPollIdx, null);
-                if (pb != null) {
-                    break;
+            if (!IS_SKIP_BUF_WAIT_LOOP) {
+                final int unmaskedPollIdx = unmask(pollIdx);
+                final AtomicReferenceArray<PoolBuffer> pool = pool(pollIdx);
+                for (;;) {
+                    // unmask the current read value to the actual array index.
+                    pb = pool.getAndSet(unmaskedPollIdx, null);
+                    if (pb != null) {
+                        break;
+                    }
+                }
+            } else {
+                pb = pool(pollIdx).getAndSet(unmask(pollIdx), null);
+                if (pb == null) {
+                    return null;
                 }
                 Thread.yield();
             }
@@ -530,21 +639,39 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 }
             }
             
-            final int unmaskedOfferIdx = unmask(offerIdx);
-            final AtomicReferenceArray<PoolBuffer> pool = pool(offerIdx);
-            for (;;) {
-                // unmask the current write value to the actual array index.
-                if (pool.compareAndSet(unmaskedOfferIdx, null, b)) {
-                    break;
-                }
+            if (!IS_SKIP_BUF_WAIT_LOOP) {
+                final int unmaskedOfferIdx = unmask(offerIdx);
+                final AtomicReferenceArray<PoolBuffer> pool = pool(offerIdx);
+                for (;;) {
+                    // unmask the current write value to the actual array index.
+                    if (pool.compareAndSet(unmaskedOfferIdx, null, b)) {
+                        break;
+                    }
 
                 Thread.yield();
+                }
+            } else {
+                if (!pool(offerIdx).compareAndSet(unmask(offerIdx), null, b)) {
+                    return false;
+                }
             }
             
             ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
                     bufferSize);
             
             return true;
+        }
+
+        public final int elementsCount() {
+            final int curPoll = pollIdx.get();
+            final int curOffer = offerIdx.get();
+            
+            return unmask(curOffer) - unmask(curPoll) +
+                    (maxPoolSize & propagateHighestOneBitRight((curPoll ^ curOffer) & WRAP_BIT_MASK));
+        }
+        
+        public final long size() {
+            return elementsCount() * bufferSize;
         }
 
         public void clear() {
@@ -647,8 +774,8 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
     public static class PoolBuffer extends ByteBufferWrapper {
 
-        // The pool to which this Buffer instance will be returned.
-        private final BufferPool owner;
+        // The pool slice to which this Buffer instance will be returned.
+        private final PoolSlice owner;
 
         // When this Buffer instance resides in the pool, this flag will
         // be true.
@@ -680,7 +807,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
          *              this <tt>PoolBuffer</tt> instance.
          */
         PoolBuffer(final ByteBuffer underlyingByteBuffer,
-                   final BufferPool owner) {
+                   final PoolSlice owner) {
             this(underlyingByteBuffer, owner, null, new AtomicInteger());
         }
 
@@ -701,7 +828,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
          *                                  are <tt>null</tt>.
          */
         private PoolBuffer(final ByteBuffer underlyingByteBuffer,
-                           final BufferPool owner,
+                           final PoolSlice owner,
                            final PoolBuffer source,
                            final AtomicInteger shareCount) {
             super(underlyingByteBuffer);

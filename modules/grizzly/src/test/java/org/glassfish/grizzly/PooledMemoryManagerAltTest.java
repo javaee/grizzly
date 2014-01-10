@@ -57,60 +57,64 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.junit.Assert.*;
+import org.junit.Ignore;
 
 public class PooledMemoryManagerAltTest {
 
 
     @Test
+    @Ignore
     public void testDefaultPoolInitialization() throws Exception {
 
         // default configuration is 10% of heap will be used for memory.
-        // Number of memory pools that will host this memory is based on the
+        // Contains 3 sub-pools with sizes 4096, 16384, 65536
+        // Number of slices per memory sub-pool is based on the
         // number of processors available to the runtime.
         final int numProcessors = Runtime.getRuntime().availableProcessors();
-        final long memoryPerPool = (long) (Runtime.getRuntime().maxMemory()
-                * PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE
-                    / numProcessors);
-        final long totalMemory = memoryPerPool * numProcessors;
+        final long totalMemory = (long) (Runtime.getRuntime().maxMemory()
+                * PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
         // the total consumed memory should be equal to or greater than 'totalMemory'
         PooledMemoryManagerAlt mm = new PooledMemoryManagerAlt();
-        PooledMemoryManagerAlt.BufferPool[] pools = mm.getBufferPools();
-        assertEquals(numProcessors, pools.length);
-        long consumedMemory = 0;
+        PooledMemoryManagerAlt.Pool[] pools = mm.getPools();
+        assertEquals(PooledMemoryManagerAlt.DEFAULT_NUMBER_OF_POOLS, pools.length);
+        
+        int bufSize = PooledMemoryManagerAlt.DEFAULT_BASE_BUFFER_SIZE;
         for (int i = 0, len = pools.length; i < len; i++) {
-            Buffer b;
-            final PooledMemoryManagerAlt.BufferPool pool = pools[i];
-            while ((b = pool.poll()) != null) {
-                consumedMemory += b.capacity();
-                assertEquals(4096, b.capacity());
-            }
+            assertEquals(bufSize, pools[i].getBufferSize());
+            bufSize <<= PooledMemoryManagerAlt.DEFAULT_GROWTH_FACTOR;
         }
 
-        assertTrue(consumedMemory >= totalMemory);
+        PooledMemoryManagerAlt.PoolSlice[] slices = pools[0].getSlices();
+        assertEquals(numProcessors, slices.length);
+        long consumedMemory = 0;
+        for (int i = 0, len = pools.length; i < len; i++) {
+            consumedMemory += pools[i].size();
+        }
 
+        assertTrue(consumedMemory + "<=" + totalMemory + " failed",
+        consumedMemory <= totalMemory);
     }
 
     @Test
+    @Ignore
     public void testCustomizedPoolInitialization() throws Exception {
-
-        PooledMemoryManagerAlt mm = new PooledMemoryManagerAlt(2048, 1, 0.00005f);
-        final long memoryPerPool = (long) (Runtime.getRuntime().maxMemory() * 0.00005f);
-        PooledMemoryManagerAlt.BufferPool[] pools = mm.getBufferPools();
+        final float memoryPercentage = 0.05f;
+        
+        PooledMemoryManagerAlt mm = new PooledMemoryManagerAlt(2048, 1, 0,
+                Runtime.getRuntime().availableProcessors(), memoryPercentage);
+        final long memoryPerPool = (long) (Runtime.getRuntime().maxMemory() * memoryPercentage);
+        PooledMemoryManagerAlt.Pool[] pools = mm.getPools();
 
         // should only have one pool per the constructor
         assertEquals(1, pools.length);
 
-        // consumed memory should be greater than or equal to 5% of the heap
-        long consumedMemory = 0;
-        final PooledMemoryManagerAlt.BufferPool pool = pools[0];
-        Buffer b;
-        while ((b = pool.poll()) != null) {
-            consumedMemory += b.capacity();
-            assertEquals(2048, b.capacity());
-        }
-        assertTrue(consumedMemory >= memoryPerPool);
+        // consumed memory should be less than or equal to 5% of the heap
+        assertTrue(pools[0].size() + "<=" + memoryPerPool + " failed",
+                pools[0].size() <= memoryPerPool);
 
+        // buffer size should be 2048
+        assertEquals(2048, pools[0].getBufferSize());
     }
 
 
@@ -119,7 +123,7 @@ public class PooledMemoryManagerAltTest {
 
         // invalid buffer size
         try {
-            new PooledMemoryManagerAlt(0, 1, PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
+            new PooledMemoryManagerAlt(0, 1, 0, 1, PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
             fail();
         } catch (IllegalArgumentException iae) {
             // expected
@@ -129,16 +133,43 @@ public class PooledMemoryManagerAltTest {
 
         // invalid number of pools
         try {
-            new PooledMemoryManagerAlt(1024, 0, PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
+            new PooledMemoryManagerAlt(1024, 0, 0, 1, PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
             fail();
         }
 
+        // invalid growth factor (negative)
+        try {
+            new PooledMemoryManagerAlt(1024, 1, -1, 1, PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
+        } catch (IllegalArgumentException iae) {
+            // expected
+        } catch (Exception e) {
+            fail();
+        }
+
+        // invalid growth factor (zero, when pools number > 1)
+        try {
+            new PooledMemoryManagerAlt(1024, 2, 0, 1, PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
+        } catch (IllegalArgumentException iae) {
+            // expected
+        } catch (Exception e) {
+            fail();
+        }
+
+        // invalid number of slices
+        try {
+            new PooledMemoryManagerAlt(1024, 1, 0, 0, PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
+        } catch (IllegalArgumentException iae) {
+            // expected
+        } catch (Exception e) {
+            fail();
+        }
+        
         // invalid heap percentage (lower bound)
         try {
-            new PooledMemoryManagerAlt(1024, 1, 0);
+            new PooledMemoryManagerAlt(1024, 1, 0, 1, 0);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
@@ -147,7 +178,7 @@ public class PooledMemoryManagerAltTest {
 
         // invalid heap percentage (upper bound)
         try {
-            new PooledMemoryManagerAlt(1024, 1, 1);
+            new PooledMemoryManagerAlt(1024, 1, 0, 1, 1);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
@@ -159,7 +190,9 @@ public class PooledMemoryManagerAltTest {
     public void testSimpleAllocationAndDispose() throws Exception {
 
         PooledMemoryManagerAlt mm =
-                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BUFFER_SIZE,
+                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BASE_BUFFER_SIZE,
+                                        1,
+                                        0,
                                         1,
                                         PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
@@ -171,7 +204,7 @@ public class PooledMemoryManagerAltTest {
         assertEquals(4096, b.remaining());
         assertTrue(!b.isComposite());
         assertTrue(b.allowBufferDispose());
-        assertEquals(PooledMemoryManagerAlt.DEFAULT_BUFFER_SIZE, b.capacity());
+        assertEquals(PooledMemoryManagerAlt.DEFAULT_BASE_BUFFER_SIZE, b.capacity());
 
         // validate that pool returned a buffer.
         assertEquals(0, probe.bufferAllocated.get());
@@ -191,7 +224,9 @@ public class PooledMemoryManagerAltTest {
     public void testSimpleCompositeAllocationAndDispose() throws Exception {
 
         PooledMemoryManagerAlt mm =
-                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BUFFER_SIZE,
+                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BASE_BUFFER_SIZE,
+                        1,
+                        0,
                         1,
                         PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
@@ -202,7 +237,7 @@ public class PooledMemoryManagerAltTest {
         Buffer b = mm.allocate(6000);
         assertEquals(6000, b.remaining());
         assertTrue(b.allowBufferDispose());
-        assertEquals(6000, b.capacity());
+        assertTrue((b.capacity() % PooledMemoryManagerAlt.DEFAULT_BASE_BUFFER_SIZE) == 0);
 
          // validate that pool returned a buffer.
         assertEquals(0, probe.bufferAllocated.get());
@@ -210,7 +245,7 @@ public class PooledMemoryManagerAltTest {
         assertEquals(2, probe.bufferAllocatedFromPool.get());
 
         // dispose the buffer and validate the pool has returned to it's
-        // original size
+        // original elements count
         b.tryDispose();
         // validate that the buffers were returned to the pool.
         assertEquals(0, probe.bufferAllocated.get());
@@ -218,23 +253,24 @@ public class PooledMemoryManagerAltTest {
         assertEquals(2, probe.bufferAllocatedFromPool.get());
 
         // validate all buffers at this stage are of the expected capacity
-        final PooledMemoryManagerAlt.BufferPool pool = mm.getBufferPools()[0];
-        PooledMemoryManagerAlt.PoolBuffer first = pool.poll();
+        final PooledMemoryManagerAlt.PoolSlice slice = mm.getPools()[0].getSlices()[0];
+        PooledMemoryManagerAlt.PoolBuffer first = slice.poll();
         PooledMemoryManagerAlt.PoolBuffer buffer = first;
         do {
             assertNotNull(buffer);
             assertEquals(4096, buffer.capacity());
-            pool.offer(buffer);
-        } while ((buffer = pool.poll()) != first);
+            slice.offer(buffer);
+        } while ((buffer = slice.poll()) != first);
 
     }
-
 
     @Test
     public void testReallocate() throws Exception {
 
         PooledMemoryManagerAlt mm =
-                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BUFFER_SIZE,
+                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BASE_BUFFER_SIZE,
+                        1,
+                        0,
                         1,
                         PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
@@ -281,7 +317,9 @@ public class PooledMemoryManagerAltTest {
     public void testBufferTrim() throws Exception {
 
         PooledMemoryManagerAlt mm =
-                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BUFFER_SIZE,
+                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BASE_BUFFER_SIZE,
+                        1,
+                        0,
                         1,
                         PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
@@ -321,7 +359,9 @@ public class PooledMemoryManagerAltTest {
     public void testBufferShrink() throws Exception {
 
         PooledMemoryManagerAlt mm =
-                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BUFFER_SIZE,
+                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BASE_BUFFER_SIZE,
+                        1,
+                        0,
                         1,
                         PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
@@ -350,7 +390,9 @@ public class PooledMemoryManagerAltTest {
     public void testIllegalAllocationArgument() throws Exception {
 
         PooledMemoryManagerAlt mm =
-                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BUFFER_SIZE,
+                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BASE_BUFFER_SIZE,
+                        1,
+                        0,
                         1,
                         PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
@@ -378,7 +420,9 @@ public class PooledMemoryManagerAltTest {
     @Test
     public void testSingleBufferComplexDispose() {
         PooledMemoryManagerAlt mm =
-                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BUFFER_SIZE,
+                new PooledMemoryManagerAlt(PooledMemoryManagerAlt.DEFAULT_BASE_BUFFER_SIZE,
+                        1,
+                        0,
                         1,
                         PooledMemoryManagerAlt.DEFAULT_HEAP_USAGE_PERCENTAGE);
 
@@ -404,7 +448,7 @@ public class PooledMemoryManagerAltTest {
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
 
-        // now dispose the duplicate, pool should return to original size
+        // now dispose the duplicate, pool should return to original elements count
         duplicate.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
@@ -430,7 +474,7 @@ public class PooledMemoryManagerAltTest {
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
 
-        // now dispose the duplicate, pool should return to original size
+        // now dispose the duplicate, pool should return to original elements count
         readOnlyBuffer.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
@@ -457,7 +501,7 @@ public class PooledMemoryManagerAltTest {
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
 
-        // now dispose the duplicate, pool should return to original size
+        // now dispose the duplicate, pool should return to original elements count
         slicedBuffer.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
@@ -483,7 +527,7 @@ public class PooledMemoryManagerAltTest {
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
 
-        // now dispose the duplicate, pool should return to original size
+        // now dispose the duplicate, pool should return to original elements count
         splitBuffer.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
@@ -493,14 +537,14 @@ public class PooledMemoryManagerAltTest {
         // buffer is replaced by the first half of the split result.  We need
         // to make sure that the returned result is the that first half, but
         // the full 4096.
-        PooledMemoryManagerAlt.BufferPool pool = mm.getBufferPools()[0];
-        PooledMemoryManagerAlt.PoolBuffer first = pool.poll();
+        PooledMemoryManagerAlt.PoolSlice slice0 = mm.getPools()[0].getSlices()[0];
+        PooledMemoryManagerAlt.PoolBuffer first = slice0.poll();
         PooledMemoryManagerAlt.PoolBuffer buffer = first;
         do {
             assertEquals(4096, buffer.capacity());
-            pool.offer(buffer);
-        } while ((buffer = pool.poll()) != first);
-        pool.offer(buffer);
+            slice0.offer(buffer);
+        } while ((buffer = slice0.poll()) != first);
+        slice0.offer(buffer);
 
         // = time to mix it up a bit ====
         probe.bufferReleasedToPool.set(0);
@@ -538,64 +582,61 @@ public class PooledMemoryManagerAltTest {
 
         // split was performed at some point, make sure all buffers have
         // the expected capacities within the pool
-        pool = mm.getBufferPools()[0];
-        buffer = first = pool.poll();
+        slice0 = mm.getPools()[0].getSlices()[0];
+        buffer = first = slice0.poll();
         do {
             assertEquals(4096, buffer.capacity());
-            pool.offer(buffer);
-        } while ((buffer = pool.poll()) != first);
+            slice0.offer(buffer);
+        } while ((buffer = slice0.poll()) != first);
     }
 
 
     @Test
     public void circularityBoundaryTest() {
-        final PooledMemoryManagerAlt mm = new PooledMemoryManagerAlt(128, 1,
+        final PooledMemoryManagerAlt mm = new PooledMemoryManagerAlt(
+                128, 1, 0, 1,
                 1024.0f / Runtime.getRuntime().maxMemory());
         final TestProbe probe = new TestProbe();
         mm.getMonitoringConfig().addProbes(probe);
 
-        final PooledMemoryManagerAlt.BufferPool pool = mm.getBufferPools()[0];
+        final PooledMemoryManagerAlt.PoolSlice slice0 = mm.getPools()[0].getSlices()[0];
         final ArrayList<PooledMemoryManagerAlt.PoolBuffer> tempStorage =
                 new ArrayList<PooledMemoryManagerAlt.PoolBuffer>();
-        int elementCount = 0;
-        try {
-            Field f = PooledMemoryManagerAlt.BufferPool.class.getDeclaredField("maxPoolSize");
-            f.setAccessible(true);
-            elementCount = f.getInt(pool);
-        } catch (Exception e) {
-            fail(e.toString());
-        }
+        int elementCount = slice0.elementsCount();
         assertTrue(elementCount > 0);
         for (int i = 0; i < elementCount; i++) {
-            PooledMemoryManagerAlt.PoolBuffer b = pool.poll();
+            PooledMemoryManagerAlt.PoolBuffer b = slice0.poll();
             assertNotNull(b);
             tempStorage.add(b);
         }
-        assertNull(pool.poll());
+        assertNull(slice0.poll());
         assertEquals(elementCount, probe.bufferAllocatedFromPool.get());
-        assertTrue(pool.offer(tempStorage.get(0)));
-        assertTrue(pool.offer(tempStorage.get(1)));
+        assertTrue(slice0.offer(tempStorage.get(0)));
+        assertTrue(slice0.offer(tempStorage.get(1)));
         assertEquals(2, probe.bufferReleasedToPool.get());
-        PooledMemoryManagerAlt.PoolBuffer b = pool.poll();
+        PooledMemoryManagerAlt.PoolBuffer b = slice0.poll();
         assertNotNull(b);
         tempStorage.add(b);
-        b = pool.poll();
+        b = slice0.poll();
         assertNotNull(b);
         tempStorage.add(b);
         assertEquals(elementCount + 2, probe.bufferAllocatedFromPool.get());
-        assertNull(pool.poll());
+        assertNull(slice0.poll());
 
         for (int i = 0; i < elementCount; i++) {
-            assertTrue(pool.offer(tempStorage.get(i)));
+            assertTrue(slice0.offer(tempStorage.get(i)));
         }
         assertEquals(elementCount + 2, probe.bufferReleasedToPool.get());
     }
 
     @Test
     public void stressTest() {
+        final int poolsNum = 3;
+        
         final int numTestThreads =
                 Runtime.getRuntime().availableProcessors() * 8;
-        final PooledMemoryManagerAlt mm = new PooledMemoryManagerAlt(4096, 1, .10f);
+        final PooledMemoryManagerAlt mm = new PooledMemoryManagerAlt(
+                4096, poolsNum, 1, Runtime.getRuntime().availableProcessors(), .10f);
         final ThreadFactory f =
                 new ThreadFactory() {
                     final AtomicInteger ii =
@@ -609,19 +650,11 @@ public class PooledMemoryManagerAltTest {
                         return t;
                     }
                 };
-        int elementCount = 0;
-        try {
-            Field ff = PooledMemoryManagerAlt.BufferPool.class.getDeclaredField("maxPoolSize");
-            ff.setAccessible(true);
-            elementCount = ff.getInt(mm.getBufferPools()[0]);
-        } catch (Exception e) {
-            fail(e.toString());
-        }
         ExecutorService service =
                 Executors.newFixedThreadPool(numTestThreads, f);
-        int[] expectedSizes = new int[mm.getBufferPools().length];
-        for (int i = 0, len = mm.getBufferPools().length; i < len; i++) {
-            expectedSizes[i] = elementCount;
+        int[] expectedElementCount = new int[poolsNum];
+        for (int i = 0, len = poolsNum; i < len; i++) {
+            expectedElementCount[i] = mm.getPools()[i].elementsCount();
         }
         final CountDownLatch latch = new CountDownLatch(numTestThreads);
         final Throwable[] errors = new Throwable[numTestThreads];
@@ -635,12 +668,12 @@ public class PooledMemoryManagerAltTest {
                 public void run() {
                     for (int i = 0; i < 100000; i++) {
                         try {
-                            Buffer b = mm.allocate(random.nextInt(9000));
-                            Buffer b1 = mm.allocate(random.nextInt(19000));
+                            Buffer b = mm.allocate(random.nextInt(9000) + 1);
+                            Buffer b1 = mm.allocate(random.nextInt(33000) + 1);
                             assertNotNull(b);
                             assertNotNull(b1);
-                            assertTrue(b.tryDispose());
-                            assertTrue(b1.tryDispose());
+                            assertTrue("Buffer=" + b, b.tryDispose());
+                            assertTrue("Buffer=" + b1, b1.tryDispose());
                         } catch (Throwable t) {
                             errorsSeen.set(true);
                             System.out.println("Failed at iteration: " + i);
@@ -672,23 +705,12 @@ public class PooledMemoryManagerAltTest {
             fail("Test failed!  See log for details.");
         }
 
-        int[] actualElementCounts = new int[mm.getBufferPools().length];
-        for (int i = 0, len = actualElementCounts.length; i < len; i++) {
-            int count = 0;
-            final PooledMemoryManagerAlt.BufferPool pool = mm.getBufferPools()[i];
-            while (pool.poll() != null) {
-                count++;
-            }
-            actualElementCounts[i] = count;
-        }
-
-
-        for (int i = 0, len = mm.getBufferPools().length; i < len; i++) {
-            PooledMemoryManagerAlt.BufferPool pool = mm.getBufferPools()[i];
+        for (int i = 0; i < poolsNum; i++) {
+            PooledMemoryManagerAlt.Pool pool = mm.getPools()[i];
             assertEquals("Pool[" + Integer.toHexString(pool.hashCode()) + "] at index " + i + ", has an incorrect size.  Expected: "
-                                 + expectedSizes[i] + ", actual: " + actualElementCounts[i] + "\npool: " + mm.getBufferPools()[i].toString(),
-                         expectedSizes[i],
-                         actualElementCounts[i]);
+                                 + expectedElementCount[i] + ", actual: " + pool.elementsCount() + "\npool: " + pool.toString(),
+                         expectedElementCount[i],
+                         pool.elementsCount());
         }
 
     }
