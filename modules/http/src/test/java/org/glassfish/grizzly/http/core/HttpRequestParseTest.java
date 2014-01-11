@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -223,6 +223,7 @@ public class HttpRequestParseTest extends TestCase {
                 headers, eol);
     }
 
+    @SuppressWarnings("unchecked")
     private void doHttpRequestTest(Pair<String, String> method,
             Pair<String, String> requestURI, Pair<String, String> protocol,
             Map<String, Pair<String, String>> headers, String eol)

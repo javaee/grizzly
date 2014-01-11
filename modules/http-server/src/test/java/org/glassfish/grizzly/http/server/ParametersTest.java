@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,7 +52,6 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
@@ -62,7 +61,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.DelayFilter;
-import org.glassfish.grizzly.utils.Futures;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -97,7 +95,7 @@ public class ParametersTest {
                         for (int i = 0, len = paramParts.length; i < len; i++) {
                             final String value = request.getParameter(paramParts[i][0]);
                             try {
-                                assertNotNull(value);
+                                assertNotNull("value is null", value);
                                 assertEquals(paramParts[i][1], value);
                             } catch (Throwable t) {
                                 error.set(t);
@@ -141,7 +139,7 @@ public class ParametersTest {
             Connection c = future.get(10, TimeUnit.SECONDS);
             c.write(content);
             latch.await(10, TimeUnit.SECONDS);
-            assertNull(error.get());
+            assertNull("Null is expected, but was: " + error.get(), error.get());
         } finally {
             server.shutdownNow();
             clientTransport.shutdownNow();
@@ -149,6 +147,75 @@ public class ParametersTest {
 
     }
 
+    /**
+     * Override charset encoding
+     */
+    @Test
+    public void testOverrideCharsetEncoding() throws Exception {
+        final HttpServer server = createServer();
+        final String body = generatePostBody(1024 * 3);
+        final String[][] paramParts = getParts(body);
+        final AtomicReference<Throwable> error = new AtomicReference<Throwable>(null);
+        server.getServerConfiguration().addHttpHandler(
+                new HttpHandler() {
+                    @Override
+                    public void service(Request request, Response response) throws Exception {
+                        // !!!! Override character encoding
+                        request.setCharacterEncoding("UTF-8");
+                        for (int i = 0, len = paramParts.length; i < len; i++) {
+                            final String value = request.getParameter(paramParts[i][0]);
+                            try {
+                                assertEquals(request.getCharacterEncoding(), "UTF-8");
+                                assertNotNull("value is null", value);
+                                assertEquals(paramParts[i][1], value);
+                            } catch (Throwable t) {
+                                error.set(t);
+                            }
+                        }
+                    }
+                }
+                , "/*");
+
+        final TCPNIOTransport clientTransport =
+                TCPNIOTransportBuilder.newInstance().build();
+        try {
+            final CountDownLatch latch = new CountDownLatch(1);
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+            clientFilterChainBuilder.add(new TransportFilter());
+            clientFilterChainBuilder.add(new HttpClientFilter());
+            clientFilterChainBuilder.add(new BaseFilter() {
+                @Override
+                public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                    latch.countDown();
+                    return ctx.getStopAction();
+                }
+            });
+            clientTransport.setProcessor(clientFilterChainBuilder.build());
+            clientTransport.start();
+
+            server.start();
+            TCPNIOConnectorHandler handler = TCPNIOConnectorHandler.builder(clientTransport).build();
+            GrizzlyFuture<Connection> future = handler.connect("0.0.0.0", PORT);
+            final Buffer bodyBuffer = Buffers.wrap(clientTransport.getMemoryManager(), body);
+            HttpRequestPacket request = HttpRequestPacket.builder()
+                    .chunked(true)
+                    .method(Method.POST)
+                    .uri("/")
+                    .header(Header.Host, "localhost:" + PORT)
+                    .contentType("application/x-www-form-urlencoded; charset=ISO-8859-1")
+                    .protocol(Protocol.HTTP_1_1).build();
+            HttpContent content = HttpContent.builder(request).content(bodyBuffer).last(true).build();
+            Connection c = future.get(10, TimeUnit.SECONDS);
+            c.write(content);
+            latch.await(10, TimeUnit.SECONDS);
+            assertNull("Null is expected, but was: " + error.get(), error.get());
+        } finally {
+            server.shutdownNow();
+            clientTransport.shutdownNow();
+        }
+
+    }
+    
 
     // -------------------------------------------------------- Private Methods
 
