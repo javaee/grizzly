@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -78,7 +78,7 @@ import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.MessageBytes;
 
-import static org.glassfish.grizzly.http.util.DataChunk.Type.*;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Mapper, which implements the servlet API mapping rules (which are derived
@@ -898,7 +898,7 @@ public class Mapper {
         }
         
         host.toChars(Constants.DEFAULT_HTTP_CHARSET);
-        uri.toChars(null);
+        uri.toChars(Charsets.UTF8_CHARSET);
         
         internalMap(host.getCharChunk(), uri.getCharChunk(), mappingData);
 
@@ -933,7 +933,7 @@ public class Mapper {
             hostCC = null;
         }
         
-        uri.toChars(null);
+        uri.toChars(Charsets.UTF8_CHARSET);
         internalMap(hostCC,
                     uri.getCharChunk(),
                     mappingData);
@@ -981,10 +981,9 @@ public class Mapper {
         // Virtual host mapping
         if (mappingData.host == null) {
             Host[] newHosts = hosts;
-            int pos = -1;
-            if (host != null && host.isNull()) {
-                pos = findIgnoreCase(newHosts, host);
-            }
+            int pos = host == null || host.isNull() ?
+                    -1 :
+                    findIgnoreCase(newHosts, host);
             if (pos != -1 && host.equalsIgnoreCase(newHosts[pos].name)) {
                 mappingData.host = newHosts[pos].object;
                 hostPos = pos;
