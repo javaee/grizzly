@@ -506,7 +506,7 @@ public abstract class HttpHeader extends HttpPacket
      * @return <code>true</code> if a content type has been set.
      */
     public boolean isContentTypeSet() {
-        return contentType.isSet() ||
+        return contentType.isMimeTypeSet()||
                 headers.getValue(Header.ContentType) != null;
     }
 
