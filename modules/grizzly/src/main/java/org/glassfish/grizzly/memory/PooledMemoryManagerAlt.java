@@ -608,6 +608,8 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             for (;;) {
                 pollIdx = this.pollIdx.get();
                 final int offerIdx = this.offerIdx.get();
+                
+                // weak isEmpty check, might return false positives
                 if (isEmpty(pollIdx, offerIdx)) {
                     return null;
                 }
@@ -651,6 +653,8 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             for (;;) {
                 offerIdx = this.offerIdx.get();
                 final int pollIdx = this.pollIdx.get();
+                
+                // weak isFull check, might return false positives
                 if (isFull(pollIdx, offerIdx)) {
                     return false;
                 }
@@ -727,13 +731,17 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         private int nextIndex(final int currentIdx) {
             final int arrayIndex = unmask(currentIdx);
             if (arrayIndex + STRIDE < maxPoolSize) {
+                // add stride and return
                 return currentIdx + STRIDE;
             } else {
                 final int offset = arrayIndex - maxPoolSize + STRIDE + 1;
                 
                 return offset == STRIDE ?
+                    // we reached the end on the current array,
                     // set lower 26 bits to zero and flip the wrap bit.
                     WRAP_BIT_MASK ^ (currentIdx & WRAP_BIT_MASK) :
+                    // otherwise we stay on the same array, just flip the index
+                    // considering the current offset
                     offset | (currentIdx & WRAP_BIT_MASK);
             }
         }
