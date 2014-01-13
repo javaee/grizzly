@@ -186,7 +186,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         maxPooledBufferSize = pools[numberOfPools - 1].bufferSize;
     }
 
-
+    
     // ---------------------------------------------- Methods from MemoryManager
 
 
@@ -491,6 +491,26 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             b.free = false;
             return b;
         }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder(
+                    "Pool[" + Integer.toHexString(hashCode()) + "] {" +
+                    "buffer size=" + bufferSize +
+                    ", slices count=" + slices.length);
+            
+            for (int i = 0; i < slices.length; i++) {
+                if (i == 0) {
+                    sb.append("\n");
+                }
+                
+                sb.append("\t[").append(i).append("] ")
+                        .append(slices[i].toString()).append('\n');
+            }
+            
+            sb.append('}');
+            return sb.toString();
+        }
         
         @SuppressWarnings("unchecked")
         private PoolSlice getSlice() {
@@ -663,17 +683,18 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         }
 
         public final int elementsCount() {
-            final int curPoll = pollIdx.get();
-            final int curOffer = offerIdx.get();
-            
-            return unmask(curOffer) - unmask(curPoll) +
-                    (maxPoolSize & propagateHighestOneBitRight((curPoll ^ curOffer) & WRAP_BIT_MASK));
+            return elementsCount(pollIdx.get(), offerIdx.get());
         }
         
+        private final int elementsCount(final int ridx, final int widx) {
+            return unstride(unmask(widx)) - unstride(unmask(ridx)) +
+                    (maxPoolSize & propagateHighestOneBitRight((ridx ^ widx) & WRAP_BIT_MASK));
+        }
+
         public final long size() {
             return (long) elementsCount() * (long) bufferSize;
         }
-
+        
         public void clear() {
             //noinspection StatementWithEmptyBody
             while (poll() != null) ;
@@ -708,16 +729,12 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             if (arrayIndex + STRIDE < maxPoolSize) {
                 return currentIdx + STRIDE;
             } else {
-                int offset = arrayIndex - maxPoolSize + STRIDE;
-                if (offset == STRIDE - 1) {
+                final int offset = arrayIndex - maxPoolSize + STRIDE + 1;
+                
+                return offset == STRIDE ?
                     // set lower 26 bits to zero and flip the wrap bit.
-                    return WRAP_BIT_MASK ^ (currentIdx & WRAP_BIT_MASK);
-                } else {
-                    int idx = ++offset;
-                    // reapply the wrap bit
-                    idx |= (currentIdx & WRAP_BIT_MASK);
-                    return idx;
-                }
+                    WRAP_BIT_MASK ^ (currentIdx & WRAP_BIT_MASK) :
+                    offset | (currentIdx & WRAP_BIT_MASK);
             }
         }
 
@@ -729,17 +746,24 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             return val & WRAP_BIT_MASK;
         }
 
+        private static int unstride(final int idx) {
+            // could be optimized if STRIDE is 2^x
+            return idx / STRIDE + (idx % STRIDE) * STRIDE;
+        }
+        
         @Override
         public String toString() {
             return toString(pollIdx.get(), offerIdx.get());
         }
 
         private String toString(final int ridx, final int widx) {
-            return "BufferPool[" + Integer.toHexString(hashCode()) + "] {" +
-                                "offer index=" + unmask(widx) +
-                                ", offer wrap bit=" + getWrappingBit(widx) +
+            return "BufferSlice[" + Integer.toHexString(hashCode()) + "] {" +
+                                "buffer size=" + bufferSize +
+                                ", elements in pool=" + elementsCount(ridx, widx) +
                                 ", poll index=" + unmask(ridx) +
-                                ", poll wrap bit=" + getWrappingBit(ridx) +
+                                ", poll wrap bit=" + (propagateHighestOneBitRight(getWrappingBit(ridx)) & 1) +
+                                ", offer index=" + unmask(widx) +
+                                ", offer wrap bit=" + (propagateHighestOneBitRight(getWrappingBit(widx)) & 1) +
                                 ", maxPoolSize=" + maxPoolSize +
                                 '}';
         }
