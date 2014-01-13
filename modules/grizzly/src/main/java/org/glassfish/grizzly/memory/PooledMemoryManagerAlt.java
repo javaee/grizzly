@@ -434,7 +434,22 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         return ((valueToCheck & (valueToCheck - 1)) == 0);
     }
 
-    private static int propagateHighestOneBitRight(int value) {
+    /*
+     * Propagates right-most one bit to the right.  Each shift right
+     * will set all of the bits between the original and new position to one.
+     *
+     * Ex.  If the value is 16, i.e.:
+     *     0x0000 0000 0000 0000 0000 0000 0001 0000
+     * the result of this call will be:
+     *     0x0000 0000 0000 0000 0000 0000 0001 1111
+     * or 31.
+     *
+     * In our case, we're using the result of this method as a
+     * mask.
+     *
+     * Part of this algorithm came from HD Figure 15-5.
+     */
+    private static int fillHighestOneBitRight(int value) {
         value |= (value >> 1);
         value |= (value >> 2);
         value |= (value >> 4);
@@ -442,7 +457,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         value |= (value >> 16);
         return value;
     }
-    
+
     public static class Pool {
         private final PoolSlice[] slices;
         private final int bufferSize;
@@ -630,6 +645,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                     if (pb != null) {
                         break;
                     }
+                    // give offer at this index time to complete...
                     Thread.yield();
                 }
             } else {
@@ -672,6 +688,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                     if (pool.compareAndSet(unmaskedOfferIdx, null, b)) {
                         break;
                     }
+                    // give poll at this index time to complete...
                     Thread.yield();
                 }
             } else {
@@ -689,10 +706,26 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         public final int elementsCount() {
             return elementsCount(pollIdx.get(), offerIdx.get());
         }
-        
-        private final int elementsCount(final int ridx, final int widx) {
+
+        /*
+         * There are two cases to consider.
+         *  1) When both indexes are on the same array.
+         *  2) When index are on different arrays (i.e., the wrap bit is set
+         *     on the index value).
+         *
+         *  When both indexes are on the same array, then to calculate
+         *  the number of elements, we have to 'de-virtualize' the indexes
+         *  and simply subtract the result.
+         *
+         *  When the indexes are on different arrays, the result of subtracting
+         *  the 'de-virtualized' indexes will be negative.  We then have to
+         *  add the result of and-ing the maxPoolSize with a mask consisting
+         *  of the first 31 bits being all ones.
+         */
+        private int elementsCount(final int ridx, final int widx) {
             return unstride(unmask(widx)) - unstride(unmask(ridx)) +
-                    (maxPoolSize & propagateHighestOneBitRight((ridx ^ widx) & WRAP_BIT_MASK));
+                    (maxPoolSize & fillHighestOneBitRight(
+                            (ridx ^ widx) & WRAP_BIT_MASK));
         }
 
         public final long size() {
@@ -727,7 +760,10 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         private AtomicReferenceArray<PoolBuffer> pool(final int idx) {
             return (idx & WRAP_BIT_MASK) == 0 ? pool1 : pool2;
         }
-        
+
+        /*
+         *
+         */
         private int nextIndex(final int currentIdx) {
             final int arrayIndex = unmask(currentIdx);
             if (arrayIndex + STRIDE < maxPoolSize) {
@@ -746,17 +782,28 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             }
         }
 
+        /*
+         * Return lower 30 bits, i.e., the actual array index.
+         */
         private static int unmask(final int val) {
             return val & MASK;
         }
 
+        /*
+         * Return only the wrapping bit.
+         */
         private static int getWrappingBit(final int val) {
             return val & WRAP_BIT_MASK;
         }
 
-        private static int unstride(final int idx) {
+        /*
+         * Calculate the index value without stride and offset.
+         */
+        private int unstride(final int idx) {
             // could be optimized if STRIDE is 2^x
-            return idx / STRIDE + (idx % STRIDE) * STRIDE;
+            return ((maxPoolSize != STRIDE)
+                        ? idx / STRIDE + (idx % STRIDE) * STRIDE
+                        : idx);
         }
         
         @Override
@@ -769,19 +816,24 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                                 "buffer size=" + bufferSize +
                                 ", elements in pool=" + elementsCount(ridx, widx) +
                                 ", poll index=" + unmask(ridx) +
-                                ", poll wrap bit=" + (propagateHighestOneBitRight(getWrappingBit(ridx)) & 1) +
+                                ", poll wrap bit=" + (fillHighestOneBitRight(
+                    getWrappingBit(ridx)) & 1) +
                                 ", offer index=" + unmask(widx) +
-                                ", offer wrap bit=" + (propagateHighestOneBitRight(getWrappingBit(widx)) & 1) +
+                                ", offer wrap bit=" + (fillHighestOneBitRight(
+                    getWrappingBit(widx)) & 1) +
                                 ", maxPoolSize=" + maxPoolSize +
                                 '}';
         }
 
+        /*
+         * We pad the default AtomicInteger implementation as the offer/poll
+         * pointers will be highly contended.  The padding ensures that
+         * each AtomicInteger is within it's own cacheline thus reducing
+         * false sharing.
+         */
         @SuppressWarnings("UnusedDeclaration")
         static final class PaddedAtomicInteger extends AtomicInteger {
             private long p0, p1, p2, p3, p4, p5, p6, p7 = 7l;
-
-
-            // -------------------------------------------------------- Constructors
 
 
             PaddedAtomicInteger(int initialValue) {
@@ -790,6 +842,12 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
         } // END PaddedAtomicInteger
 
+        /*
+         * Padded in order to avoid false sharing when the arrays used by AtomicReferenceArray
+         * are laid out end-to-end (pointer in array one is at end of the array and
+         * pointer two in array two is at the beginning - both elements could be loaded
+         * onto the same cacheline).
+         */
         @SuppressWarnings("UnusedDeclaration")
         static final class PaddedAtomicReferenceArray<E>
                 extends AtomicReferenceArray<E> {
@@ -1023,5 +1081,10 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         }
 
     } // END PoolBuffer
+
+    public static void main(String[] args) {
+        PooledMemoryManagerAlt alt = new PooledMemoryManagerAlt();
+        System.out.println(alt.getPools()[0].elementsCount());
+    }
 
 }

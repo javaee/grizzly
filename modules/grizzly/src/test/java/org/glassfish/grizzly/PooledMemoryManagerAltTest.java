@@ -604,16 +604,19 @@ public class PooledMemoryManagerAltTest {
                 new ArrayList<PooledMemoryManagerAlt.PoolBuffer>();
         int elementCount = slice0.elementsCount();
         assertTrue(elementCount > 0);
+        assertFalse(slice0.offer(slice0.allocate()));
         for (int i = 0; i < elementCount; i++) {
             PooledMemoryManagerAlt.PoolBuffer b = slice0.poll();
             assertNotNull(b);
             tempStorage.add(b);
         }
         assertNull(slice0.poll());
+        assertEquals(0, slice0.elementsCount());
         assertEquals(elementCount, probe.bufferAllocatedFromPool.get());
         assertTrue(slice0.offer(tempStorage.get(0)));
         assertTrue(slice0.offer(tempStorage.get(1)));
         assertEquals(2, probe.bufferReleasedToPool.get());
+        assertEquals(2, slice0.elementsCount());
         PooledMemoryManagerAlt.PoolBuffer b = slice0.poll();
         assertNotNull(b);
         tempStorage.add(b);
@@ -627,6 +630,8 @@ public class PooledMemoryManagerAltTest {
             assertTrue(slice0.offer(tempStorage.get(i)));
         }
         assertEquals(elementCount + 2, probe.bufferReleasedToPool.get());
+        assertEquals(elementCount, slice0.elementsCount());
+        assertFalse(slice0.offer(slice0.allocate()));
     }
 
     @Test
