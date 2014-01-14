@@ -545,8 +545,11 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
      */
     public static class PoolSlice {
 
+        // Stride is calculate as 2^LOG2_STRIDE
+        private static final int LOG2_STRIDE = 4;
+        
         // Array index stride.
-        private static final int STRIDE = 16;
+        private static final int STRIDE = 1 << LOG2_STRIDE;
 
         // Apply this mask to obtain the first 30 bits of an integer
         // less the bits for wrap and offset.
@@ -570,6 +573,9 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         // The max size of the pool.
         private final int maxPoolSize;
 
+        // Strides in pool
+        private final int stridesInPool;
+        
         // individual buffer size.
         private final int bufferSize;
 
@@ -595,7 +601,8 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             // Offset is calculated each time we overflow the array.
             // This access scheme should help us avoid false sharing.
             maxPoolSize = ((initialSize + (STRIDE - 1)) & ~(STRIDE - 1));
-
+            stridesInPool = maxPoolSize >> LOG2_STRIDE; // maxPoolSize / STRIDE
+            
             // poolSize must be less than or equal to 2^30 - 1.
             if (maxPoolSize >= WRAP_BIT_MASK) {
                 throw new IllegalStateException(
@@ -795,7 +802,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
          * Calculate the index value without stride and offset.
          */
         private int unstride(final int idx) {
-            return (idx >> 4) + (idx & 15) * (maxPoolSize >> 4);
+            return (idx >> LOG2_STRIDE) + (idx & (STRIDE - 1)) * stridesInPool;
         }
         
         @Override
