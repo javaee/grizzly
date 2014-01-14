@@ -797,7 +797,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
          * Calculate the index value without stride and offset.
          */
         private int unstride(final int idx) {
-            return idx / STRIDE + (idx % STRIDE) * (maxPoolSize / STRIDE);
+            return idx / STRIDE + (idx & 3) * (maxPoolSize >> 4);
         }
         
         @Override
