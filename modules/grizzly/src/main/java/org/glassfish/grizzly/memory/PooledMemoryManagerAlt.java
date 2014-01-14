@@ -251,31 +251,29 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 final Pool newPool = getPoolFor(newSize);
                 if (newPool != oldPoolBuffer.owner.owner) {
                     final int pos = Math.min(oldPoolBuffer.position(), newSize);
-                    final int lim = Math.min(oldPoolBuffer.limit(), newSize);
-                    
+
                     final Buffer newPoolBuffer = newPool.allocate();
                     Buffers.setPositionLimit(oldPoolBuffer, 0, newSize);
                     newPoolBuffer.put(oldPoolBuffer);
-                    Buffers.setPositionLimit(newPoolBuffer, pos, lim);
-                    
+                    Buffers.setPositionLimit(newPoolBuffer, pos, newSize);
+
                     oldPoolBuffer.tryDispose();
-                    
+
                     return newPoolBuffer;
                 }
-                
+
                 return oldPoolBuffer.limit(newSize);
             } else {
                 final int pos = oldBuffer.position();
-                final int lim = oldBuffer.limit();
                 Buffers.setPositionLimit(oldBuffer, 0, curBufSize);
-                
+
                 if (newSize <= maxPooledBufferSize) {
-                    
+
                     final Pool newPool = getPoolFor(newSize);
-                    
+
                     final Buffer newPoolBuffer = newPool.allocate();
                     newPoolBuffer.put(oldBuffer);
-                    Buffers.setPositionLimit(newPoolBuffer, pos, lim);
+                    Buffers.setPositionLimit(newPoolBuffer, pos, newSize);
                     
                     oldBuffer.tryDispose();
                     

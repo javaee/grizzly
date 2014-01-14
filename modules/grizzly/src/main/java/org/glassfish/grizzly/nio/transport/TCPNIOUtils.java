@@ -62,8 +62,6 @@ import org.glassfish.grizzly.utils.Exceptions;
 public class TCPNIOUtils {
     static final Logger LOGGER = TCPNIOTransport.LOGGER;
     
-    private static final int MAX_READ_ATTEMPTS = 3;
-    
     public static int writeCompositeBuffer(final TCPNIOConnection connection,
             final CompositeBuffer buffer) throws IOException {
         
@@ -189,11 +187,10 @@ public class TCPNIOUtils {
                 
                 if (currentDirectBufferSlice == null) {
                     final ByteBuffer directByteBuffer = ioRecord.getDirectBuffer();
-                    if (directByteBuffer == null) {
-                        currentDirectBufferSlice = ioRecord.allocate(remaining);
-                    } else {
-                        currentDirectBufferSlice = ioRecord.sliceBuffer();
-                    }
+                    currentDirectBufferSlice =
+                            directByteBuffer == null
+                                ? ioRecord.allocate(remaining)
+                                : ioRecord.sliceBuffer();
                     
                     ioRecord.putToArray(currentDirectBufferSlice);
                 }
@@ -235,9 +232,11 @@ public class TCPNIOUtils {
                 
                 try {
                     read = readSimpleByteBuffer(connection, directByteBuffer);
-                    directByteBuffer.flip();
-                    buffer = memoryManager.allocate(read);
-                    buffer.put(directByteBuffer);
+                    if (read > 0) {
+                        directByteBuffer.flip();
+                        buffer = memoryManager.allocate(read);
+                        buffer.put(directByteBuffer);
+                    }
                 } finally {
                     ioRecord.release();
                 }
@@ -259,6 +258,7 @@ public class TCPNIOUtils {
             }
             
             if (read < 0) {
+                //noinspection ThrowableResultOfMethodCallIgnored
                 throw error != null
                         ? Exceptions.makeIOException(error)
                         : new EOFException();
@@ -277,21 +277,14 @@ public class TCPNIOUtils {
 
     public static int readBuffer(final TCPNIOConnection connection,
                                  final Buffer buffer) throws IOException {
-        if (buffer.isComposite()) {
-            return readCompositeBuffer(connection, (CompositeBuffer) buffer);
-        } else {
-            return readSimpleBuffer(connection, buffer);
-        }
+        return buffer.isComposite()
+                ? readCompositeBuffer(connection, (CompositeBuffer) buffer)
+                : readSimpleBuffer(connection, buffer);
 
     }
 
     public static int readCompositeBuffer(final TCPNIOConnection connection,
             final CompositeBuffer buffer) throws IOException {
-        
-//        final Thread currentThread = Thread.currentThread();
-//        final boolean isSelectorThread =
-//                (currentThread instanceof WorkerThread) &&
-//                ((WorkerThread) currentThread).isSelectorThread();
         
         final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
         final int oldPos = buffer.position();
@@ -299,13 +292,8 @@ public class TCPNIOUtils {
         final ByteBuffer byteBuffers[] = array.getArray();
         final int size = array.size();
         
-        final int read;
-//        if (!isSelectorThread) {
-//            read = doReadInLoop(socketChannel, byteBuffers, 0, size);
-//        } else {
-            read = (int) socketChannel.read(byteBuffers, 0, size);
-//        }
-        
+        final int read = (int) socketChannel.read(byteBuffers, 0, size);
+
         array.restore();
         array.recycle();
         
@@ -324,22 +312,14 @@ public class TCPNIOUtils {
 
     public static int readSimpleBuffer(final TCPNIOConnection connection,
             final Buffer buffer) throws IOException {
-//        final Thread currentThread = Thread.currentThread();
-//        final boolean isSelectorThread = (currentThread instanceof WorkerThread)
-//                && ((WorkerThread) currentThread).isSelectorThread();
-        
+
         final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
         final int oldPos = buffer.position();
         final ByteBuffer byteBuffer = buffer.toByteBuffer();
         final int bbOldPos = byteBuffer.position();
-        final int read;
-        
-//        if (!isSelectorThread) {
-//            read = doReadInLoop(socketChannel, byteBuffer);
-//        } else {
-            read = socketChannel.read(byteBuffer);
-//        }
-        
+
+        final int read = socketChannel.read(byteBuffer);
+
         if (read > 0) {
             byteBuffer.position(bbOldPos);
             buffer.position(oldPos + read);
@@ -360,61 +340,6 @@ public class TCPNIOUtils {
         final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
         return socketChannel.read(byteBuffer);
 
-//        final Thread currentThread = Thread.currentThread();
-//        final boolean isSelectorThread = (currentThread instanceof WorkerThread)
-//                && ((WorkerThread) currentThread).isSelectorThread();
-//        
-//        final SocketChannel socketChannel = (SocketChannel) tcpConnection.getChannel();
-//        
-//        final int read;
-//        if (!isSelectorThread) {
-//            read = doReadInLoop(socketChannel, byteBuffer);
-//        } else {
-//            read = socketChannel.read(byteBuffer);
-//        }
-//        
-//        return read;
     }
 
-    private static int doReadInLoop(final SocketChannel socketChannel,
-            final ByteBuffer byteBuffer) throws IOException {
-        
-        int read = 0;
-        int readAttempt = 0;
-        int readNow;
-        
-        while ((readNow = socketChannel.read(byteBuffer)) > 0) {
-            read += readNow;
-            if (!byteBuffer.hasRemaining() || ++readAttempt >= MAX_READ_ATTEMPTS) {
-                return read;
-            }
-        }
-        if (read == 0) {
-            read = readNow;
-        }
-        
-        return read;
-    }
-
-    private static int doReadInLoop(final SocketChannel socketChannel,
-            final ByteBuffer byteBuffers[], final int offset, final int length)
-            throws IOException {
-        
-        int read = 0;
-        int readAttempt = 0;
-        final ByteBuffer lastByteBuffer = byteBuffers[length - 1];
-        int readNow;
-        while ((readNow = (int) socketChannel.read(byteBuffers, offset, length)) > 0) {
-            read += readNow;
-            if (!lastByteBuffer.hasRemaining() || ++readAttempt >= MAX_READ_ATTEMPTS) {
-                return read;
-            }
-        }
-        
-        if (read == 0) {
-            read = readNow;
-        }
-        
-        return read;
-    }
 }
