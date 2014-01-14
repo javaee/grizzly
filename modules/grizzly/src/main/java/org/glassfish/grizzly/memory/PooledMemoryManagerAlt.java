@@ -761,9 +761,6 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
             return (idx & WRAP_BIT_MASK) == 0 ? pool1 : pool2;
         }
 
-        /*
-         *
-         */
         private int nextIndex(final int currentIdx) {
             final int arrayIndex = unmask(currentIdx);
             if (arrayIndex + STRIDE < maxPoolSize) {
@@ -774,7 +771,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 
                 return offset == STRIDE ?
                     // we reached the end on the current array,
-                    // set lower 26 bits to zero and flip the wrap bit.
+                    // set lower 30 bits to zero and flip the wrap bit.
                     WRAP_BIT_MASK ^ (currentIdx & WRAP_BIT_MASK) :
                     // otherwise we stay on the same array, just flip the index
                     // considering the current offset
