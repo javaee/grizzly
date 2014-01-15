@@ -287,7 +287,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 }
             }
         } else {
-            assert oldBuffer instanceof CompositeBuffer;
+            assert oldBuffer.isComposite();
             final CompositeBuffer oldCompositeBuffer = (CompositeBuffer) oldBuffer;
             if (curBufSize > newSize) {
                 final int oldPos = oldCompositeBuffer.position();
