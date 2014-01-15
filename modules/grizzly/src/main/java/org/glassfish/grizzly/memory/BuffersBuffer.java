@@ -169,11 +169,16 @@ public final class BuffersBuffer extends CompositeBuffer {
         }
     }
 
-    private BuffersBuffer copy(final BuffersBuffer that) {
+    private BuffersBuffer duplicateFrom(final BuffersBuffer that) {
         this.memoryManager = that.memoryManager;
-        initBuffers(Arrays.copyOf(that.buffers, that.buffers.length), that.buffersSize);
+
+        final Buffer[] ba = new Buffer[that.buffers.length];
+        for (int i = 0, len = that.buffersSize; i < len; i++) {
+            ba[i] = that.buffers[i].duplicate();
+        }
+        initBuffers(ba, that.buffersSize);
         System.arraycopy(that.bufferBounds, 0, this.bufferBounds, 0, that.buffersSize);
-        
+
         this.position = that.position;
         this.limit = that.limit;
         this.capacity = that.capacity;
@@ -400,7 +405,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     @Override
     public BuffersBuffer asReadOnlyBuffer() {
         checkDispose();
-        final BuffersBuffer buffer = create().copy(this);
+        final BuffersBuffer buffer = create().duplicateFrom(this);
         buffer.isReadOnly = true;
 
         return buffer;
@@ -623,7 +628,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     @Override
     public BuffersBuffer duplicate() {
         checkDispose();
-        return create().copy(this);
+        return create().duplicateFrom(this);
     }
 
     @Override
