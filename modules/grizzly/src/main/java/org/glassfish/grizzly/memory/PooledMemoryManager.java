@@ -887,7 +887,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          * {@link java.nio.ByteBuffer}.
          *
          * @param underlyingByteBuffer the {@link java.nio.ByteBuffer} instance to wrap.
-         * @param owner the {@link org.glassfish.grizzly.memory.PooledMemoryManager.BufferPool} that owns
+         * @param owner the {@link org.glassfish.grizzly.memory.PooledMemoryManager.PoolSlice} that owns
          *              this <tt>PoolBuffer</tt> instance.
          */
         PoolBuffer(final ByteBuffer underlyingByteBuffer,
@@ -900,7 +900,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          * {@link java.nio.ByteBuffer}.
          *
          * @param underlyingByteBuffer the {@link java.nio.ByteBuffer} instance to wrap.
-         * @param owner                the {@link org.glassfish.grizzly.memory.PooledMemoryManager.BufferPool} that owns
+         * @param owner                the {@link org.glassfish.grizzly.memory.PooledMemoryManager.PoolSlice} that owns
          *                             this <tt>PoolBuffer</tt> instance.
          *                             May be <tt>null</tt>.
          * @param source               the <tt>PoolBuffer</tt> that is the
