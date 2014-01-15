@@ -43,7 +43,6 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.BuffersBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -248,11 +247,6 @@ public class BuffersBufferTest extends AbstractMemoryManagerTest {
 
     // ------------------------------------------------------- Protected Methods
 
-
-    @Override
-    protected PooledMemoryManager createPooledMemoryManager() {
-        return new PooledMemoryManager(4, 1, .00001f);
-    }
 
 
     // --------------------------------------------------------- Private Methods

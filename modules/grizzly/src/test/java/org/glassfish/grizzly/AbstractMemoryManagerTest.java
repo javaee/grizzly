@@ -42,7 +42,6 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
@@ -59,7 +58,6 @@ public class AbstractMemoryManagerTest {
                 {0},
                 {1},
                 {2},
-                {3}
         });
     }
 
@@ -72,9 +70,6 @@ public class AbstractMemoryManagerTest {
                 mm = createByteBufferManager();
                 break;
             case 2:
-                mm = createPooledMemoryManager();
-                break;
-            case 3:
                 mm = createPooledMemoryManagerAlt();
                 break;
             default:
@@ -84,10 +79,6 @@ public class AbstractMemoryManagerTest {
 
     protected PooledMemoryManagerAlt createPooledMemoryManagerAlt() {
         return new PooledMemoryManagerAlt();
-    }
-
-    protected PooledMemoryManager createPooledMemoryManager() {
-        return new PooledMemoryManager();
     }
 
     protected ByteBufferManager createByteBufferManager() {

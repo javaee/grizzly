@@ -372,7 +372,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         
         return MonitoringUtils.loadJmxObject(
                 "org.glassfish.grizzly.memory.jmx.PooledMemoryManager", this,
-                PooledMemoryManager.class);
+                PooledMemoryManagerAlt.class);
     }
 
 
