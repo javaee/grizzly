@@ -269,7 +269,8 @@ public final class BuffersBuffer extends CompositeBuffer {
         }
         
         for (int i = 0; i < buffersSize; i++) {
-            if (buffers[i] == oldBuffer) {
+            final Buffer b = buffers[i];
+            if (b == oldBuffer) {
                 buffers[i] = newBuffer;
                 calcCapacity();
                 limit = capacity;
@@ -281,6 +282,10 @@ public final class BuffersBuffer extends CompositeBuffer {
                 resetLastLocation();
                 
                 return true;
+            } else if (b instanceof CompositeBuffer) {
+                if (((CompositeBuffer) b).replace(oldBuffer, newBuffer)) {
+                    break;
+                }
             }
         }
         
