@@ -282,7 +282,7 @@ public final class BuffersBuffer extends CompositeBuffer {
                 resetLastLocation();
                 
                 return true;
-            } else if (b instanceof CompositeBuffer) {
+            } else if (b.isComposite()) {
                 if (((CompositeBuffer) b).replace(oldBuffer, newBuffer)) {
                     break;
                 }
