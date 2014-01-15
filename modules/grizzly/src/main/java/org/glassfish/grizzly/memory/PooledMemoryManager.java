@@ -81,7 +81,7 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
  *
  * @since 3.0
  */
-public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAware {
+public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware {
 
     public static final int DEFAULT_BASE_BUFFER_SIZE = 4 * 1024;
     public static final int DEFAULT_NUMBER_OF_POOLS = 3;
@@ -90,7 +90,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
     public static final float DEFAULT_HEAP_USAGE_PERCENTAGE = 0.1f;
 
     private static final boolean IS_SKIP_BUF_WAIT_LOOP =
-            Boolean.getBoolean(PooledMemoryManagerAlt.class.getName() + ".skip-buf-wait-loop");
+            Boolean.getBoolean(PooledMemoryManager.class.getName() + ".skip-buf-wait-loop");
     
     /**
      * Basic monitoring support.  Concrete implementations of this class need
@@ -127,7 +127,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
      *     <li>The initial allocation will use 10% of the heap.</li>
      * </ul>
      */
-    public PooledMemoryManagerAlt() {
+    public PooledMemoryManager() {
         this(DEFAULT_BASE_BUFFER_SIZE,
                 DEFAULT_NUMBER_OF_POOLS,
                 DEFAULT_GROWTH_FACTOR,
@@ -145,7 +145,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
      * @param numberOfPoolSlices the number of pool slices that every pool will stripe allocation requests across
      * @param percentOfHeap percentage of the heap that will be used when populating the pools.
      */
-    public PooledMemoryManagerAlt(
+    public PooledMemoryManager(
             final int baseBufferSize,
             final int numberOfPools,
             final int growthFactor,
@@ -372,7 +372,7 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         
         return MonitoringUtils.loadJmxObject(
                 "org.glassfish.grizzly.memory.jmx.PooledMemoryManager", this,
-                PooledMemoryManagerAlt.class);
+                PooledMemoryManager.class);
     }
 
 

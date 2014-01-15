@@ -43,7 +43,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.HeapBuffer;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
-import org.glassfish.grizzly.memory.PooledMemoryManagerAlt;
+import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -70,7 +70,7 @@ public class GeneralMemoryManagerTest extends AbstractMemoryManagerTest {
     public void testBufferEquals() {
         final HeapMemoryManager hmm = new HeapMemoryManager();
         final ByteBufferManager bbm = new ByteBufferManager();
-        final PooledMemoryManagerAlt pmm = new PooledMemoryManagerAlt();
+        final PooledMemoryManager pmm = new PooledMemoryManager();
 
         Buffer[] buffers = new Buffer[4];
         buffers[0] = Buffers.wrap(hmm, "Value#1");

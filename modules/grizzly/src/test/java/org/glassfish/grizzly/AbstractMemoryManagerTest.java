@@ -42,11 +42,11 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.Collection;
-import org.glassfish.grizzly.memory.PooledMemoryManagerAlt;
 
 public class AbstractMemoryManagerTest {
 
@@ -70,15 +70,15 @@ public class AbstractMemoryManagerTest {
                 mm = createByteBufferManager();
                 break;
             case 2:
-                mm = createPooledMemoryManagerAlt();
+                mm = createPooledMemoryManager();
                 break;
             default:
                 throw new IllegalStateException("Unknown memory manager type");
         }
     }
 
-    protected PooledMemoryManagerAlt createPooledMemoryManagerAlt() {
-        return new PooledMemoryManagerAlt();
+    protected PooledMemoryManager createPooledMemoryManager() {
+        return new PooledMemoryManager();
     }
 
     protected ByteBufferManager createByteBufferManager() {
