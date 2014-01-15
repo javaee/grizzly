@@ -90,6 +90,7 @@ public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
     /**
      * Returns the order in which internal {@link Buffer}s will be disposed.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public DisposeOrder disposeOrder() {
         return disposeOrder;
     }
@@ -108,6 +109,7 @@ public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
     /**
      * Removes underlying {@link Buffer}s, without disposing
      */
+    @SuppressWarnings("UnusedDeclaration")
     public abstract void removeAll();
 
     public abstract void allowInternalBuffersDispose(boolean allow);
@@ -143,10 +145,6 @@ public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
      */
     public abstract boolean replace(Buffer oldBuffer, Buffer newBuffer);
 
-    public abstract boolean isAppendable();
-
-    public abstract void setAppendable(boolean appendable);
-    
     /**
      * Bulk Buffer operation, responsible for byte-by-byte Buffer processing.
      */

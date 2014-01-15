@@ -454,10 +454,17 @@ public class Buffers {
             return buffer1;
         }
 
-        if (buffer1.isComposite() && ((CompositeBuffer) buffer1).isAppendable()) {
+        // we can only append to or prepend buffer1 if the limit()
+        // is the same as capacity.  If it's not, then appending or
+        // prepending effectively clobbers the limit causing an invalid
+        // view of the data.  So instead, we allocate a new CompositeBuffer
+        // and append buffer1 and buffer2 to it.  The underlying buffers
+        // aren't changed so the limit they have is maintained.
+        final boolean buffer1LimIsCap = buffer1.capacity() == buffer1.limit();
+        if (buffer1.isComposite() && buffer1LimIsCap) {
             ((CompositeBuffer) buffer1).append(buffer2);
             return buffer1;
-        } if (buffer2.isComposite() && ((CompositeBuffer) buffer2).isAppendable()) {
+        } if (buffer2.isComposite() && buffer1LimIsCap) {
             ((CompositeBuffer) buffer2).prepend(buffer1);
             return buffer2;
         } else {
@@ -624,6 +631,7 @@ public class Buffers {
      * 
      * @throws IOException 
      */
+    @SuppressWarnings("UnusedDeclaration")
     public static long writeToFileChannel(final FileChannel fileChannel,
             final Buffer buffer) throws IOException {
 

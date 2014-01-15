@@ -116,8 +116,6 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     private boolean isReadOnly;
 
-    private boolean appendable = true;
-
     private int mark = -1;
 
     // absolute position
@@ -149,11 +147,9 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     private void set(final MemoryManager memoryManager, final Buffer[] buffers,
             final int buffersSize, final boolean isReadOnly) {
-        if (memoryManager != null) {
-            this.memoryManager = memoryManager;
-        } else {
-            this.memoryManager = MemoryManager.DEFAULT_MEMORY_MANAGER;
-        }
+        this.memoryManager = memoryManager != null
+                ? memoryManager
+                : MemoryManager.DEFAULT_MEMORY_MANAGER;
 
         if (buffers != null || this.buffers == null) {
             initBuffers(buffers, buffersSize);
@@ -202,7 +198,6 @@ public final class BuffersBuffer extends CompositeBuffer {
     public void dispose() {
         checkDispose();
         isDisposed = true;
-        appendable = true;
         removeAndDisposeBuffers();
 
         if (DEBUG_MODE) { // if debug is on - clear the buffer content
@@ -219,20 +214,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public boolean isAppendable() {
-        return appendable;
-    }
-
-    @Override
-    public void setAppendable(boolean appendable) {
-        this.appendable = appendable;
-    }
-
-    @Override
     public BuffersBuffer append(final Buffer buffer) {
-        if (!appendable) {
-            throw new IllegalStateException("Buffer does not allow appending");
-        }
         if (buffer == this) {
             throw new IllegalArgumentException("CompositeBuffer can not append itself");
         }
@@ -255,9 +237,6 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     @Override
     public BuffersBuffer prepend(final Buffer buffer) {
-        if (!appendable) {
-            throw new IllegalStateException("Buffer does not allow prepending");
-        }
         if (buffer == this) {
             throw new IllegalArgumentException("CompositeBuffer can not append itself");
         }
@@ -840,7 +819,6 @@ public final class BuffersBuffer extends CompositeBuffer {
             int bytesToCopy = Math.min(buffer.remaining(), length);
             buffer.put(src, offset, bytesToCopy);
             buffer.position(oldPos);
-            bufferPosition += (bytesToCopy - 1);
 
             length -= bytesToCopy;
             offset += bytesToCopy;
@@ -901,7 +879,6 @@ public final class BuffersBuffer extends CompositeBuffer {
             final int bytesToCopy = Math.min(buffer.remaining(), length);
             buffer.get(dst, offset, bytesToCopy);
             buffer.position(oldPos);
-            bufferPosition += (bytesToCopy - 1);
 
             length -= bytesToCopy;
             offset += bytesToCopy;
@@ -944,7 +921,6 @@ public final class BuffersBuffer extends CompositeBuffer {
             int bytesToCopy = Math.min(buffer.remaining(), length);
             buffer.put(src, offset, bytesToCopy);
             buffer.position(oldPos);
-            bufferPosition += (bytesToCopy - 1);
 
             length -= bytesToCopy;
             offset += bytesToCopy;

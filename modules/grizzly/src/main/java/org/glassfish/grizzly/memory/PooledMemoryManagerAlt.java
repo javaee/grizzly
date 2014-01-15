@@ -396,9 +396,6 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
 
         assert size >= 0;
 
-        final boolean oldAppendable = cb.isAppendable();
-        cb.setAppendable(true);
-
         if (size >= maxPooledBufferSize) {
             final Pool maxBufferSizePool = pools[pools.length - 1];
 
@@ -415,8 +412,6 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
                 break;
             }
         }
-
-        cb.setAppendable(oldAppendable);
 
         return cb;
     }
@@ -1080,10 +1075,5 @@ public class PooledMemoryManagerAlt implements MemoryManager<Buffer>, WrapperAwa
         }
 
     } // END PoolBuffer
-
-    public static void main(String[] args) {
-        PooledMemoryManagerAlt alt = new PooledMemoryManagerAlt();
-        System.out.println(alt.getPools()[0].elementsCount());
-    }
 
 }

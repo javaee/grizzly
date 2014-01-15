@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * A {@link MemoryManager} implementation based on a series of shared memory pools containing
@@ -180,11 +181,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             throw new IllegalArgumentException("Requested allocation size must be greater than or equal to zero.");
         }
         final Buffer b;
-        if (size <= bufferSize) {
-            b = allocateSingle();
-        } else {
-            b = allocateComposite(size);
-        }
+        b = size <= bufferSize ? allocateSingle() : allocateComposite(size);
         b.clear();
         return b;
     }
@@ -204,7 +201,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             return oldBuffer;
         }
         BuffersBuffer newBuffer;
-        boolean appendable = false;
         final int pos = oldBuffer.position();
         if (oldBuffer instanceof PoolBuffer) {
             newBuffer = BuffersBuffer.create(this);
@@ -216,8 +212,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             newBuffer.append(oldBuffer);
         } else {
             newBuffer = (BuffersBuffer) oldBuffer;
-            appendable = newBuffer.isAppendable();
-            newBuffer.setAppendable(true);
             Buffer b = newBuffer.buffers[newBuffer.buffersSize - 1];
             final int cap = b.capacity();
             if (b.limit() != cap) {
@@ -252,7 +246,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             }
         }
         newBuffer.position(pos);
-        newBuffer.setAppendable(appendable);
         return newBuffer;
 
     }
@@ -297,7 +290,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
     @Override
     public Buffer wrap(String s) {
-        return wrap(s.getBytes());
+        return wrap(s.getBytes(Charsets.DEFAULT_CHARSET));
     }
 
     @Override
@@ -373,7 +366,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         CompositeBuffer cb = CompositeBuffer.newBuffer(this, buffers);
         cb.allowInternalBuffersDispose(true);
         cb.allowBufferDispose(true);
-        cb.setAppendable(false);
         return cb;
     }
 
