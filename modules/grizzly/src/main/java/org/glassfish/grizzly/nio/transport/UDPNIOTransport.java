@@ -74,6 +74,7 @@ import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
+import org.glassfish.grizzly.nio.DirectByteBufferRecord;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
@@ -568,25 +569,25 @@ public final class UDPNIOTransport extends NIOTransport {
 
         final int read;
 
-        final int oldPos = buffer.position();
-
-        if (!buffer.isComposite()) {
-            final ByteBuffer underlyingBB = buffer.toByteBuffer();
-            final int initialBufferPos = underlyingBB.position();
+        final DirectByteBufferRecord ioRecord =
+                        DirectByteBufferRecord.get();
+        try {
+            final ByteBuffer directByteBuffer =
+                    ioRecord.allocate(buffer.limit());
+            final int initialBufferPos = directByteBuffer.position();
             peerAddress = ((DatagramChannel) connection.getChannel()).receive(
-                    underlyingBB);
-            read = underlyingBB.position() - initialBufferPos;
-        } else {
-            throw new IllegalStateException("Cannot read from "
-                    + "non-connection UDP connection into CompositeBuffer");
+                    directByteBuffer);
+            read = directByteBuffer.position() - initialBufferPos;
+            if (read > 0) {
+                directByteBuffer.flip();
+                buffer.put(directByteBuffer);
+            }
+        } finally {
+            ioRecord.release();
         }
 
         final boolean hasRead = (read > 0);
 
-        if (hasRead) {
-            buffer.position(oldPos + read);
-        }
-        
         if (hasRead && currentResult != null) {
             currentResult.setMessage(buffer);
             currentResult.setReadSize(currentResult.getReadSize() + read);
@@ -614,11 +615,9 @@ public final class UDPNIOTransport extends NIOTransport {
                 buffer = memoryManager.allocateAtLeast(connection.getReadBufferSize());
             }
 
-            if (connection.isConnected()) {
-                read = readConnected(connection, buffer, currentResult);
-            } else {
-                read = readNonConnected(connection, buffer, currentResult);
-            }
+            read = connection.isConnected()
+                    ? readConnected(connection, buffer, currentResult)
+                    : readNonConnected(connection, buffer, currentResult);
 
             connection.onRead(buffer, read);
         } catch (Exception e) {
