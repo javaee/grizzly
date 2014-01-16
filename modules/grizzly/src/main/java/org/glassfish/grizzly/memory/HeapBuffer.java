@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -272,8 +272,7 @@ public class HeapBuffer implements Buffer {
         final int oldLimit = lim;
 
         final HeapBuffer ret = createHeapBuffer(
-                               heap,
-                               offset + splitPosition,
+                               splitPosition,
                                cap - splitPosition);
 
         cap = splitPosition;
@@ -303,7 +302,7 @@ public class HeapBuffer implements Buffer {
 
     @Override
     public HeapBuffer slice(int position, int limit) {
-        return createHeapBuffer(heap, offset + position, limit - position);
+        return createHeapBuffer(position, limit - position);
     }
 
 
@@ -311,7 +310,7 @@ public class HeapBuffer implements Buffer {
     public HeapBuffer duplicate() {
 
         final HeapBuffer duplicate =
-                createHeapBuffer(heap, offset, cap);
+                createHeapBuffer(0, cap);
         duplicate.position(pos);
         duplicate.limit(lim);
         return duplicate;
@@ -319,6 +318,7 @@ public class HeapBuffer implements Buffer {
 
     @Override
     public HeapBuffer asReadOnlyBuffer() {
+        onShareHeap();
         final HeapBuffer b = new ReadOnlyHeapBuffer(heap, offset, cap);
         b.pos = pos;
         b.lim = lim;
@@ -986,13 +986,22 @@ public class HeapBuffer implements Buffer {
     // ------------------------------------------------------- Protected Methods
 
 
+    protected void onShareHeap() {
+    }
 
-
-    protected HeapBuffer createHeapBuffer(final byte[] heap,
-            final int offset, final int capacity) {
+    /**
+     * Create a new {@link HeapBuffer} based on the current heap.
+     * 
+     * @param offs relative offset, the absolute value will calculated as (this.offset + offs)
+     * @param capacity
+     * @return
+     */
+    protected HeapBuffer createHeapBuffer(final int offs, final int capacity) {
+        onShareHeap();
+        
         return new HeapBuffer(
                 heap,
-                offset,
+                offs + offset,
                 capacity);
     }
 

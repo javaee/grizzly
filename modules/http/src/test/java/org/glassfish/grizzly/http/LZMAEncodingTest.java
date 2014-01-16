@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,7 +38,7 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.core;
+package org.glassfish.grizzly.http;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -61,17 +61,6 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.ContentEncoding;
-import org.glassfish.grizzly.http.EncodingFilter;
-import org.glassfish.grizzly.http.HttpClientFilter;
-import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpHeader;
-import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.http.HttpServerFilter;
-import org.glassfish.grizzly.http.LZMAContentEncoding;
-import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
@@ -419,9 +408,9 @@ public class LZMAEncodingTest {
     private class ClientFilter extends BaseFilter {
         private final Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private HttpPacket request;
-        private FutureImpl<Boolean> testResult;
-        private ExpectedResult expectedResult;
+        private final HttpPacket request;
+        private final FutureImpl<Boolean> testResult;
+        private final ExpectedResult expectedResult;
 
         // -------------------------------------------------------- Constructors
 
@@ -587,7 +576,7 @@ public class LZMAEncodingTest {
     private static final class ExpectedResult {
 
         private int statusCode = -1;
-        private Map<String,String> expectedHeaders =
+        private final Map<String,String> expectedHeaders =
                 new HashMap<String,String>();
         private String protocol;
         private String statusMessage;
