@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,38 +38,31 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http.core;
+package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.compression.lzma.LZMAEncoder;
+import org.glassfish.grizzly.compression.lzma.impl.Encoder;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.http.ContentEncoding;
-import org.glassfish.grizzly.http.EncodingFilter;
-import org.glassfish.grizzly.http.GZipContentEncoding;
-import org.glassfish.grizzly.http.HttpClientFilter;
-import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpHeader;
-import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.http.HttpServerFilter;
-import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
-import java.io.ByteArrayOutputStream;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -79,24 +72,21 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.GZIPOutputStream;
-import junit.framework.TestCase;
-import org.glassfish.grizzly.memory.Buffers;
 
-/**
- *
- * @author Alexey Stashok
- */
-public class GZipEncodingTest extends TestCase {
-    private static final Logger logger = Grizzly.logger(GZipEncodingTest.class);
+import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-    public static int PORT = 19006;
+public class LZMAEncodingTest {
+
+    public static int PORT = 19200;
 
     private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
-    public void testGZipResponse() throws Throwable {
-        GZipContentEncoding gzipServerContentEncoding =
-                new GZipContentEncoding(512, 512, new EncodingFilter() {
+    @Test
+    public void testLZMAResponse() throws Throwable {
+        LZMAContentEncoding LZMAServerContentEncoding =
+                new LZMAContentEncoding(new EncodingFilter() {
             @Override
             public boolean applyEncoding(HttpHeader httpPacket) {
                 final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
@@ -104,7 +94,7 @@ public class GZipEncodingTest extends TestCase {
 
                 final DataChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
 
-                return bc != null && bc.indexOf("gzip", 0) != -1;
+                return bc != null && bc.indexOf("lzma", 0) != -1;
             }
 
             @Override
@@ -113,8 +103,8 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        GZipContentEncoding gzipClientContentEncoding =
-                new GZipContentEncoding(512, 512, new EncodingFilter() {
+        LZMAContentEncoding LZMAClientContentEncoding =
+                new LZMAContentEncoding(new EncodingFilter() {
             @Override
             public boolean applyEncoding(HttpHeader httpPacket) {
                 return false;
@@ -126,28 +116,35 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        HttpRequestPacket request = HttpRequestPacket.builder()
-            .method("GET")
-            .header("Host", "localhost:" + PORT)
-            .uri("/path")
-            .header("accept-encoding", "gzip")
-            .protocol(Protocol.HTTP_1_1)
-            .build();
+        for (int i = 1; i <= 10; i++) {
+            HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method("GET")
+                    .header("Host", "localhost:" + PORT)
+                    .uri("/path")
+                    .header("accept-encoding", "lzma")
+                    .protocol(Protocol.HTTP_1_1)
+                    .build();
 
-        ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.1");
-        result.setStatusCode(200);
-        result.addHeader("content-encoding", "gzip");
+            ExpectedResult result = new ExpectedResult();
+            result.setProtocol("HTTP/1.1");
+            result.setStatusCode(200);
+            result.addHeader("content-encoding", "lzma");
 
-        final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
-        result.setContent(Buffers.wrap(mm, "Echo: <nothing>"));
-        doTest(request, result, gzipServerContentEncoding, gzipClientContentEncoding);
+            final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
+            result.setContent(Buffers.wrap(mm, "Echo: <nothing>"));
+            try {
+               doTest(request, result, LZMAServerContentEncoding, LZMAClientContentEncoding, i);
+            } catch (Throwable t) {
+                System.out.println("Failed on loop count: " + i);
+                throw t;
+            }
+        }
     }
 
-
-    public void testGZipRequest() throws Throwable {
-        GZipContentEncoding gzipServerContentEncoding =
-                new GZipContentEncoding(512, 512, new EncodingFilter() {
+    @Test
+    public void testLZMARequest() throws Throwable {
+        LZMAContentEncoding LZMAServerContentEncoding =
+                new LZMAContentEncoding(new EncodingFilter() {
             @Override
             public boolean applyEncoding(HttpHeader httpPacket) {
                 return false;
@@ -159,8 +156,8 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        GZipContentEncoding gzipClientContentEncoding =
-                new GZipContentEncoding(512, 512, new EncodingFilter() {
+        LZMAContentEncoding LZMAClientContentEncoding =
+                new LZMAContentEncoding(new EncodingFilter() {
             @Override
             public boolean applyEncoding(HttpHeader httpPacket) {
                 return false;
@@ -174,42 +171,43 @@ public class GZipEncodingTest extends TestCase {
 
         final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
-        String reqString = "GZipped hello. Works?";
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        GZIPOutputStream go = new GZIPOutputStream(baos);
-        go.write(reqString.getBytes());
-        go.finish();
-        go.close();
+        String reqString = "LZMAped hello. Works?";
+        Buffer LZMApedContent = lzmaCompress(reqString, mm);
 
-        byte[] gzippedContent = baos.toByteArray();
+        for (int i = 1; i <= 10; i++) {
+            HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method("POST")
+                    .header("Host", "localhost:" + PORT)
+                    .uri("/path")
+                    .protocol(Protocol.HTTP_1_1)
+                    .header("content-encoding", "lzma")
+                    .contentLength(LZMApedContent.remaining())
+                    .build();
 
-        HttpRequestPacket request = HttpRequestPacket.builder()
-            .method("POST")
-            .header("Host", "localhost:" + PORT)
-            .uri("/path")
-            .protocol(Protocol.HTTP_1_1)
-            .header("content-encoding", "gzip")
-            .contentLength(gzippedContent.length)
-            .build();
-        
-        HttpContent reqHttpContent = HttpContent.builder(request)
-                .last(true)
-                .content(Buffers.wrap(mm, gzippedContent))
-                .build();
+            HttpContent reqHttpContent = HttpContent.builder(request)
+                    .last(true)
+                    .content(LZMApedContent.duplicate())
+                    .build();
 
-        ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.1");
-        result.setStatusCode(200);
-        result.addHeader("!content-encoding", "gzip");
-        result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
+            ExpectedResult result = new ExpectedResult();
+            result.setProtocol("HTTP/1.1");
+            result.setStatusCode(200);
+            result.addHeader("!content-encoding", "lzma");
+            result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
-        doTest(reqHttpContent, result, gzipServerContentEncoding, gzipClientContentEncoding);
+            try {
+               doTest(reqHttpContent, result, LZMAServerContentEncoding, LZMAClientContentEncoding, i);
+            } catch (Throwable t) {
+                System.out.println("Failed on loop count: " + i);
+                throw t;
+            }
+        }
     }
 
-
-    public void testGZipRequestResponse() throws Throwable {
-        GZipContentEncoding gzipServerContentEncoding =
-                new GZipContentEncoding(512, 512, new EncodingFilter() {
+    @Test
+    public void testLZMARequestResponse() throws Throwable {
+        LZMAContentEncoding LZMAServerContentEncoding =
+                new LZMAContentEncoding(new EncodingFilter() {
             @Override
             public boolean applyEncoding(HttpHeader httpPacket) {
                 final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
@@ -217,7 +215,7 @@ public class GZipEncodingTest extends TestCase {
 
                 final DataChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
 
-                return bc != null && bc.indexOf("gzip", 0) != -1;
+                return bc != null && bc.indexOf("lzma", 0) != -1;
             }
 
             @Override
@@ -226,8 +224,8 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        GZipContentEncoding gzipClientContentEncoding =
-                new GZipContentEncoding(512, 512, new EncodingFilter() {
+        LZMAContentEncoding LZMAClientContentEncoding =
+                new LZMAContentEncoding(new EncodingFilter() {
             @Override
             public boolean applyEncoding(HttpHeader httpPacket) {
                 return false;
@@ -241,42 +239,45 @@ public class GZipEncodingTest extends TestCase {
 
         final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
-        String reqString = generateBigString(19865);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        GZIPOutputStream go = new GZIPOutputStream(baos);
-        go.write(reqString.getBytes());
-        go.finish();
-        go.close();
+        String reqString = generateBigString(16384);
 
-        byte[] gzippedContent = baos.toByteArray();
+        Buffer LZMApedContent = lzmaCompress(reqString, mm);
 
-        HttpRequestPacket request = HttpRequestPacket.builder()
-            .method("POST")
-            .header("Host", "localhost:" + PORT)
-            .uri("/path")
-            .protocol(Protocol.HTTP_1_1)
-            .header("accept-encoding", "gzip")
-            .header("content-encoding", "gzip")
-            .contentLength(gzippedContent.length)
-            .build();
+        for (int i = 1; i <= 10; i++) {
+            HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method("POST")
+                    .header("Host", "localhost:" + PORT)
+                    .uri("/path")
+                    .protocol(Protocol.HTTP_1_1)
+                    .header("accept-encoding", "lzma")
+                    .header("content-encoding", "lzma")
+                    .contentLength(LZMApedContent.remaining())
+                    .build();
 
-        HttpContent reqHttpContent = HttpContent.builder(request)
-                .last(true)
-                .content(Buffers.wrap(mm, gzippedContent))
-                .build();
+            HttpContent reqHttpContent = HttpContent.builder(request)
+                    .last(true)
+                    .content(LZMApedContent.duplicate())
+                    .build();
 
-        ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.1");
-        result.setStatusCode(200);
-        result.addHeader("content-encoding", "gzip");
-        result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
+            ExpectedResult result = new ExpectedResult();
+            result.setProtocol("HTTP/1.1");
+            result.setStatusCode(200);
+            result.addHeader("content-encoding", "lzma");
+            result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
-        doTest(reqHttpContent, result, gzipServerContentEncoding, gzipClientContentEncoding);
+            try {
+               doTest(reqHttpContent, result, LZMAServerContentEncoding, LZMAClientContentEncoding, i);
+            } catch (Throwable t) {
+                System.out.println("Failed on loop count: " + i);
+                throw t;
+            }
+        }
     }
 
-    public void testGZipRequestResponseChunkedXferEncoding() throws Throwable {
-        GZipContentEncoding gzipServerContentEncoding =
-                new GZipContentEncoding(512, 512, new EncodingFilter() {
+    @Test
+    public void testLZMARequestResponseChunkedXferEncoding() throws Throwable {
+        LZMAContentEncoding LZMAServerContentEncoding =
+                new LZMAContentEncoding(new EncodingFilter() {
             @Override
             public boolean applyEncoding(HttpHeader httpPacket) {
                 final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
@@ -284,7 +285,7 @@ public class GZipEncodingTest extends TestCase {
 
                 final DataChunk bc = httpRequest.getHeaders().getValue("accept-encoding");
 
-                return bc != null && bc.indexOf("gzip", 0) != -1;
+                return bc != null && bc.indexOf("lzma", 0) != -1;
             }
 
             @Override
@@ -293,8 +294,8 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        GZipContentEncoding gzipClientContentEncoding =
-                new GZipContentEncoding(512, 512, new EncodingFilter() {
+        LZMAContentEncoding LZMAClientContentEncoding =
+                new LZMAContentEncoding(new EncodingFilter() {
             @Override
             public boolean applyEncoding(HttpHeader httpPacket) {
                 return false;
@@ -308,37 +309,39 @@ public class GZipEncodingTest extends TestCase {
 
         final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
 
-        String reqString = generateBigString(17231);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        GZIPOutputStream go = new GZIPOutputStream(baos);
-        go.write(reqString.getBytes());
-        go.finish();
-        go.close();
+        String reqString = generateBigString(16384);
 
-        byte[] gzippedContent = baos.toByteArray();
+        Buffer LZMApedContent = lzmaCompress(reqString, mm);
 
-        HttpRequestPacket request = HttpRequestPacket.builder()
-                .method("POST")
-                .header("Host", "localhost:" + PORT)
-                .uri("/path")
-                .protocol(Protocol.HTTP_1_1)
-                .header("accept-encoding", "gzip")
-                .header("content-encoding", "gzip")
-                .chunked(true)
-                .build();
+        for (int i = 1; i <= 10; i++) {
+            HttpRequestPacket request = HttpRequestPacket.builder()
+                    .method("POST")
+                    .header("Host", "localhost:" + PORT)
+                    .uri("/path")
+                    .protocol(Protocol.HTTP_1_1)
+                    .header("accept-encoding", "lzma")
+                    .header("content-encoding", "lzma")
+                    .chunked(true)
+                    .build();
 
-        HttpContent reqHttpContent = HttpContent.builder(request)
-                .last(true)
-                .content(Buffers.wrap(mm, gzippedContent))
-                .build();
+            HttpContent reqHttpContent = HttpContent.builder(request)
+                    .last(true)
+                    .content(LZMApedContent.duplicate())
+                    .build();
 
-        ExpectedResult result = new ExpectedResult();
-        result.setProtocol("HTTP/1.1");
-        result.setStatusCode(200);
-        result.addHeader("content-encoding", "gzip");
-        result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
+            ExpectedResult result = new ExpectedResult();
+            result.setProtocol("HTTP/1.1");
+            result.setStatusCode(200);
+            result.addHeader("content-encoding", "lzma");
+            result.setContent(Buffers.wrap(mm, "Echo: " + reqString));
 
-        doTest(reqHttpContent, result, gzipServerContentEncoding, gzipClientContentEncoding);
+            try {
+               doTest(reqHttpContent, result, LZMAServerContentEncoding, LZMAClientContentEncoding, i);
+            } catch (Throwable t) {
+                System.out.println("Failed on loop count: " + i);
+                throw t;
+            }
+        }
     }
     
     // --------------------------------------------------------- Private Methods
@@ -351,14 +354,17 @@ public class GZipEncodingTest extends TestCase {
         }
     }
 
-    private void doTest(HttpPacket request, ExpectedResult expectedResults,
-            ContentEncoding serverContentEncoding, ContentEncoding clientContentEncoding)
+    private void doTest(HttpPacket request,
+                        ExpectedResult expectedResults,
+                        ContentEncoding serverContentEncoding,
+                        ContentEncoding clientContentEncoding,
+                        int networkChunkSize)
     throws Throwable {
 
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new ChunkingFilter(2));
+        filterChainBuilder.add(new ChunkingFilter(networkChunkSize));
 
         final HttpServerFilter httpServerFilter = new HttpServerFilter();
         if (serverContentEncoding != null) {
@@ -379,7 +385,7 @@ public class GZipEncodingTest extends TestCase {
 
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new ChunkingFilter(2));
+            clientFilterChainBuilder.add(new ChunkingFilter(networkChunkSize));
 
             final HttpClientFilter httpClientFilter = new HttpClientFilter();
             if (clientContentEncoding != null) {
@@ -533,10 +539,11 @@ public class GZipEncodingTest extends TestCase {
                         .append(requestContent.hasRemaining() ?
                             requestContent.toStringContent() :
                             "<nothing>");
+                final MemoryManager mm = ctx.getMemoryManager();
 
                 final HttpContent responseContent = HttpContent.builder(response)
                         .last(true)
-                        .content(Buffers.wrap(ctx.getMemoryManager(), sb.toString()))
+                        .content(Buffers.wrap(mm, sb.toString()))
                         .build();
 
                 ctx.write(responseContent);
@@ -556,6 +563,29 @@ public class GZipEncodingTest extends TestCase {
         }
 
         return sb.toString();
+    }
+
+    private Buffer lzmaCompress(String message, MemoryManager mm) throws IOException {
+        Buffer in = Buffers.wrap(mm, message.getBytes(Charsets.UTF8_CHARSET));
+        Buffer out = mm.allocate(512);
+        LZMAEncoder.LZMAProperties props = new LZMAEncoder.LZMAProperties();
+        LZMAEncoder.LZMAOutputState state = LZMAEncoder.create();
+        state.setDst(out);
+        state.setSrc(in);
+        state.setMemoryManager(mm);
+        Encoder encoder = new Encoder();
+        encoder.setAlgorithm(props.getAlgorithm());
+        encoder.setDictionarySize(props.getDictionarySize());
+        encoder.setNumFastBytes(props.getNumFastBytes());
+        encoder.setMatchFinder(props.getMatchFinder());
+        encoder.setLcLpPb(props.getLc(), props.getLp(), props.getPb());
+        encoder.setEndMarkerMode(true);
+        encoder.writeCoderProperties(out);
+        encoder.code(state, -1, -1);
+        out = state.getDst();
+        state.recycle();
+        out.trim();
+        return out;
     }
 
     private static final class ExpectedResult {

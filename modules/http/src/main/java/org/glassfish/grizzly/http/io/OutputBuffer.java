@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -118,7 +118,7 @@ public class OutputBuffer {
             new TemporaryHeapBuffer();
     // The cloner, which will be responsible for cloning temporaryWriteBuffer,
     // if it's not possible to write its content in this thread
-    private final ByteArrayCloner cloner = new ByteArrayCloner();
+    private final ByteArrayCloner cloner = new ByteArrayCloner(temporaryWriteBuffer);
 
     private final List<LifeCycleListener> lifeCycleListeners =
             new ArrayList<LifeCycleListener>(2);
@@ -1188,7 +1188,13 @@ public class OutputBuffer {
      * of async write queues, and content of the passed byte[] might be changed
      * by user application once in gets control back.
      */
-    private final class ByteArrayCloner implements MessageCloner<Buffer> {
+    static final class ByteArrayCloner implements MessageCloner<Buffer> {
+        private final TemporaryHeapBuffer temporaryWriteBuffer;
+
+        public ByteArrayCloner(final TemporaryHeapBuffer temporaryWriteBuffer) {
+            this.temporaryWriteBuffer = temporaryWriteBuffer;
+        }
+        
         @Override
         public Buffer clone(final Connection connection,
                 final Buffer originalMessage) {

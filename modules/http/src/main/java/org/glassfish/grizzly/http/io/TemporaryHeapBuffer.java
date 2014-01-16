@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,9 @@
 
 package org.glassfish.grizzly.http.io;
 
+import java.util.Arrays;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.HeapBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
@@ -53,6 +55,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 final class TemporaryHeapBuffer extends HeapBuffer {
 
     boolean isDisposed;
+    boolean hasClonedArray;
     
     /**
      * Reset the byte[] this Buffer wraps.
@@ -65,26 +68,40 @@ final class TemporaryHeapBuffer extends HeapBuffer {
         this.pos = 0;
         byteBuffer = null;
         isDisposed = false;
+        hasClonedArray = false;
     }
 
     Buffer cloneContent() {
-//        final byte[] clonedBytes = Arrays.copyOfRange(heap,
-//                offset + pos, offset + lim);
+        final Buffer buffer;
+        
         final int length = remaining();
         
-        final Buffer buffer = MemoryManager.DEFAULT_MEMORY_MANAGER.allocate(length);
-        buffer.allowBufferDispose(true);
-        buffer.put(heap, offset + pos, length);
-        buffer.flip();
+        if (!hasClonedArray) {
+            buffer = MemoryManager.DEFAULT_MEMORY_MANAGER.allocate(length);
+            buffer.put(heap, offset + pos, length);
+            buffer.flip();
+        } else {
+            buffer = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, heap,
+                    offset + pos, length);
+        }
 
-        // reset the mutable buffer content with the cloned array
-//        reset(clonedBytes, 0, clonedBytes.length);
-        
+        buffer.allowBufferDispose(true);
         dispose();
         
         return buffer;
     }
 
+    @Override
+    protected void onShareHeap() {
+        if (!hasClonedArray) {
+            heap = Arrays.copyOfRange(heap, offset, offset + cap);
+            offset = 0;
+            hasClonedArray = true;
+        }
+        
+        super.onShareHeap();
+    }
+    
     @Override
     public void dispose() {
         isDisposed = true;
@@ -94,25 +111,6 @@ final class TemporaryHeapBuffer extends HeapBuffer {
     
     boolean isDisposed() {
         return isDisposed;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof TemporaryHeapBuffer)) return false;
-        if (!super.equals(o)) return false;
-
-        TemporaryHeapBuffer that = (TemporaryHeapBuffer) o;
-
-        return (isDisposed == that.isDisposed);
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (isDisposed ? 1 : 0);
-        return result;
     }
 
     public void recycle() {
