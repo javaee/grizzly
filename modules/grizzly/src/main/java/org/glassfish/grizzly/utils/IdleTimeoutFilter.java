@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -281,13 +281,23 @@ public class IdleTimeoutFilter extends BaseFilter {
             // Small trick to not synchronize this block and queueAction();
             idleRecord.timeoutMillis.set(FOREVER_SPECIAL);
             if (idleRecord.counter.decrementAndGet() == 0) {
-                final long timeout = timeoutResolver.getTimeout(ctx);
-                if (timeout == FOREVER) {
-                    idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL, FOREVER);
+                final long timeoutToSet;
+                
+                // non-volatile isClosed should work ok,
+                // because if we race with idleRecord.close(), the logic within close()
+                // should guarantee that we either:
+                // 1) see isClosed as true, so next CAS will succeed and 0 will be assigned, or
+                // 2) we see false, but in that case CAS will fail and timeout (assigned by close()) will remain 0
+                if (idleRecord.isClosed) {
+                    timeoutToSet = 0;
                 } else {
-                    idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL,
-                        System.currentTimeMillis() + timeout);
+                    final long timeout = timeoutResolver.getTimeout(ctx);
+                    timeoutToSet = timeout == FOREVER ?
+                            FOREVER :
+                            System.currentTimeMillis() + timeout;
                 }
+
+                idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL, timeoutToSet);
             }
         }
     } // END ContextCompletionListener
@@ -319,7 +329,7 @@ public class IdleTimeoutFilter extends BaseFilter {
 
         @Override
         public boolean removeTimeout(final Connection connection) {
-            IDLE_ATTR.get(connection).timeoutMillis.set(0);
+            IDLE_ATTR.get(connection).close();
             return true;
         }
 
@@ -337,8 +347,8 @@ public class IdleTimeoutFilter extends BaseFilter {
     } // END Resolver
 
     private static final class IdleRecord {
-
-        private volatile boolean isInitialSet = false;
+        private boolean isClosed;
+        private volatile boolean isInitialSet;
         private long initialTimeoutMillis;
         private final AtomicLong timeoutMillis;
         private final AtomicInteger counter;
@@ -355,6 +365,11 @@ public class IdleTimeoutFilter extends BaseFilter {
         private void setInitialTimeoutMillis(final long initialTimeoutMillis) {
             this.initialTimeoutMillis = initialTimeoutMillis;
             isInitialSet = true;
+        }
+
+        private void close() {
+            isClosed = true;
+            timeoutMillis.set(0);
         }
 
     } // END IdleRecord
