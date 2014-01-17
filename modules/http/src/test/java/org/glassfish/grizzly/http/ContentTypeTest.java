@@ -60,42 +60,54 @@ public class ContentTypeTest {
         assertEquals("text/plain", ct.getMimeType());
         assertNull(ct.getCharacterEncoding());
         
-        assertTrue(Arrays.equals("text/plain".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray()));
+        assertArrayEquals("text/plain".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
+        ct.reset();
         
         ct.set("text/plain;charset=UTF-8");
         assertEquals("text/plain", ct.getMimeType());
         assertEquals("UTF-8", ct.getCharacterEncoding());
         
-        assertTrue(Arrays.equals("text/plain;charset=UTF-8".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray()));
+        assertArrayEquals("text/plain;charset=UTF-8".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
+        ct.reset();
 
         ct.set("text/plain;charset=UTF-8;abc=xyz");
         assertEquals("text/plain;abc=xyz", ct.getMimeType());
         assertEquals("UTF-8", ct.getCharacterEncoding());
         
-        assertTrue(Arrays.equals("text/plain;abc=xyz;charset=UTF-8".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray()));
-
+        assertArrayEquals("Incorrect value=" + new String(ct.getByteArray()),
+                "text/plain;charset=UTF-8;abc=xyz".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
+        
         ct.setMimeType("text/html");
         assertEquals("text/html", ct.getMimeType());
         assertEquals("UTF-8", ct.getCharacterEncoding());
         
-        assertTrue(Arrays.equals("text/html;charset=UTF-8".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray()));
+        assertArrayEquals("text/html;charset=UTF-8".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
 
         ct.setCharacterEncoding("UTF-16");
         assertEquals("text/html", ct.getMimeType());
         assertEquals("UTF-16", ct.getCharacterEncoding());
         
-        assertTrue(Arrays.equals("text/html;charset=UTF-16".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray()));
+        assertArrayEquals("text/html;charset=UTF-16".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
     
         ct.setCharacterEncoding(null);
         assertEquals("text/html", ct.getMimeType());
         assertEquals(null, ct.getCharacterEncoding());
         
-        assertTrue(Arrays.equals("text/html".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray()));
+        assertArrayEquals("text/html".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
 
+        ct.reset();
+
+        ct.set("text/html;charset=Shift_Jis");
+        ct.set("text/xml");
+        assertEquals("text/xml;charset=Shift_Jis", ct.get());
+        assertNotNull(ct.getCharacterEncoding());
+        
+        ct.reset();
+        
         ContentType prepared = ContentType.newContentType("application/json;charset=UTF-8").prepare();
         ct.set(prepared);
         
-        assertTrue(Arrays.equals("application/json;charset=UTF-8".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray()));
+        assertArrayEquals("application/json;charset=UTF-8".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
         assertEquals("application/json", ct.getMimeType());
         assertEquals("UTF-8", ct.getCharacterEncoding());
         
