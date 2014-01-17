@@ -42,10 +42,8 @@ package org.glassfish.grizzly.http.io;
 
 import java.util.Arrays;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -74,7 +72,7 @@ public class ByteArrayClonerTest {
         OutputBuffer.ByteArrayCloner cloner =
                 new OutputBuffer.ByteArrayCloner(buffer);
         
-        Buffer newBuffer =cloner.clone0(mm, buffer);
+        Buffer newBuffer = cloner.clone0(mm, buffer);
         clean(array);
         checkContent(newBuffer, 'A');
         
