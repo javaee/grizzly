@@ -311,6 +311,11 @@ public class ContentType {
      * @param contentType the content type
      */
     protected void set(final String contentType) {
+        if (unparsedContentType != null) {
+            // there might be charset assigned, we don't want to lose it
+            parse();
+        }
+        
         unparsedContentType = contentType;
         
         isParsed = (contentType == null);
