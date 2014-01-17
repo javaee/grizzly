@@ -1205,6 +1205,13 @@ public class OutputBuffer {
                 return originalMessage;
             }
             
+            return clone0(connection.getTransport().getMemoryManager(),
+                    originalMessage);
+        }
+
+        Buffer clone0(final MemoryManager memoryManager,
+                final Buffer originalMessage) {
+            
             if (originalMessage.isComposite()) {
                 final CompositeBuffer compositeBuffer = (CompositeBuffer) originalMessage;
                 compositeBuffer.shrink();
@@ -1213,17 +1220,17 @@ public class OutputBuffer {
                     if (compositeBuffer.remaining() == temporaryWriteBuffer.remaining()) {
                         compositeBuffer.allowInternalBuffersDispose(false);
                         compositeBuffer.tryDispose();
-                        return temporaryWriteBuffer.cloneContent();
+                        return temporaryWriteBuffer.cloneContent(memoryManager);
                     } else {
                         compositeBuffer.replace(temporaryWriteBuffer,
-                                temporaryWriteBuffer.cloneContent());
+                                temporaryWriteBuffer.cloneContent(memoryManager));
                     }
                 }
                 
                 return originalMessage;
             }
                 
-            return temporaryWriteBuffer.cloneContent();
+            return temporaryWriteBuffer.cloneContent(memoryManager);
         }
     }
     

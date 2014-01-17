@@ -71,18 +71,17 @@ final class TemporaryHeapBuffer extends HeapBuffer {
         hasClonedArray = false;
     }
 
-    Buffer cloneContent() {
+    Buffer cloneContent(final MemoryManager memoryManager) {
         final Buffer buffer;
         
         final int length = remaining();
         
         if (!hasClonedArray) {
-            buffer = MemoryManager.DEFAULT_MEMORY_MANAGER.allocate(length);
+            buffer = memoryManager.allocate(length);
             buffer.put(heap, offset + pos, length);
             buffer.flip();
         } else {
-            buffer = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, heap,
-                    offset + pos, length);
+            buffer = Buffers.wrap(memoryManager, heap, offset + pos, length);
         }
 
         buffer.allowBufferDispose(true);

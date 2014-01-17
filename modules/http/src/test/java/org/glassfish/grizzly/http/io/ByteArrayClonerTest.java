@@ -57,6 +57,8 @@ public class ByteArrayClonerTest {
     private static final int EXTRA_BUFFER_SIZE = 1024;
     private static final int TEMP_BUFFER_SIZE = 2048;
     
+    private final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
+    
     @Test
     public void testSimpleBuffer() {
         
@@ -70,7 +72,7 @@ public class ByteArrayClonerTest {
         OutputBuffer.ByteArrayCloner cloner =
                 new OutputBuffer.ByteArrayCloner(buffer);
         
-        Buffer newBuffer = cloner.clone(null, buffer);
+        Buffer newBuffer = cloner.clone0(mm, buffer);
         clean(array);
         checkContent(newBuffer, 'A');
         
@@ -84,7 +86,7 @@ public class ByteArrayClonerTest {
         fill(buffer);
         cloner = new OutputBuffer.ByteArrayCloner(buffer);
         
-        newBuffer = cloner.clone(null, buffer);
+        newBuffer = cloner.clone0(mm, buffer);
         clean(array);
         assertEquals(array.length - offset, newBuffer.remaining());
         checkContent(newBuffer, 'A');
@@ -102,7 +104,7 @@ public class ByteArrayClonerTest {
         
         cloner = new OutputBuffer.ByteArrayCloner(buffer);
         
-        newBuffer = cloner.clone(null, buffer);
+        newBuffer = cloner.clone0(mm, buffer);
         clean(array);
         assertEquals(array.length - offset - position, newBuffer.remaining());
         checkContent(newBuffer, 'A' + position);
@@ -122,7 +124,7 @@ public class ByteArrayClonerTest {
         OutputBuffer.ByteArrayCloner cloner =
                 new OutputBuffer.ByteArrayCloner(buffer);
         
-        Buffer newBuffer = cloner.clone(null, cb);
+        Buffer newBuffer = cloner.clone0(mm, cb);
         clean(array);
         checkContent(newBuffer, 'A');
         
@@ -139,7 +141,7 @@ public class ByteArrayClonerTest {
         fill(cb);
         cloner = new OutputBuffer.ByteArrayCloner(buffer);
         
-        newBuffer = cloner.clone(null, cb);
+        newBuffer = cloner.clone0(mm, cb);
         clean(array);
         assertEquals(array.length - offset, newBuffer.remaining());
         checkContent(newBuffer, 'A');
@@ -160,7 +162,7 @@ public class ByteArrayClonerTest {
         
         cloner = new OutputBuffer.ByteArrayCloner(buffer);
         
-        newBuffer = cloner.clone(null, cb);
+        newBuffer = cloner.clone0(mm, cb);
         clean(array);
         assertEquals(array.length - offset - position, newBuffer.remaining());
         checkContent(newBuffer, 'A' + position);
@@ -186,7 +188,7 @@ public class ByteArrayClonerTest {
         OutputBuffer.ByteArrayCloner cloner =
                 new OutputBuffer.ByteArrayCloner(buffer);
         
-        Buffer newBuffer = cloner.clone(null, cb);
+        Buffer newBuffer = cloner.clone0(mm, cb);
         clean(array);
         checkContent(newBuffer, 'A');
         
@@ -205,7 +207,7 @@ public class ByteArrayClonerTest {
         
         cloner = new OutputBuffer.ByteArrayCloner(buffer);
         
-        newBuffer = cloner.clone(null, cb);
+        newBuffer = cloner.clone0(mm, cb);
         clean(array);
         
         assertEquals(TEMP_BUFFER_SIZE + EXTRA_BUFFER_SIZE * 2 - position, newBuffer.remaining());
@@ -226,7 +228,7 @@ public class ByteArrayClonerTest {
         
         cloner = new OutputBuffer.ByteArrayCloner(buffer);
         
-        newBuffer = cloner.clone(null, cb);
+        newBuffer = cloner.clone0(mm, cb);
         clean(array);
         
         assertEquals(TEMP_BUFFER_SIZE + EXTRA_BUFFER_SIZE * 2 - position, newBuffer.remaining());
@@ -247,7 +249,7 @@ public class ByteArrayClonerTest {
         
         cloner = new OutputBuffer.ByteArrayCloner(buffer);
         
-        newBuffer = cloner.clone(null, cb);
+        newBuffer = cloner.clone0(mm, cb);
         clean(array);
         
         assertEquals(TEMP_BUFFER_SIZE + EXTRA_BUFFER_SIZE * 2 - position, newBuffer.remaining());
