@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -108,6 +108,7 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
+import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.JdkVersion;
@@ -580,7 +581,8 @@ public class Request {
                 try {
                     anAfterServicesList.onAfterService(this);
                 } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Unexpected error during afterService notification", e);
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_HTTP_SERVER_REQUEST_AFTERSERVICE_NOTIFICATION_ERROR(), e);
                 }
             }
         }
@@ -2016,10 +2018,10 @@ public class Request {
 
         if ((maxFormPostSize > 0) && (len > maxFormPostSize)) {
             if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.warning("Post too large");
+                LOGGER.warning(LogMessages.WARNING_GRIZZLY_HTTP_SERVER_REQUEST_POST_TOO_LARGE());
             }
 
-            throw new IllegalStateException("Post too large");
+            throw new IllegalStateException(LogMessages.WARNING_GRIZZLY_HTTP_SERVER_REQUEST_POST_TOO_LARGE());
         }
 
         int read = 0;
@@ -2032,7 +2034,8 @@ public class Request {
             try {
                 skipPostBody(read);
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Exception occurred during body skip", e);
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_HTTP_SERVER_REQUEST_BODY_SKIP(), e);
             }
         }
 

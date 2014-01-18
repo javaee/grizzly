@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -70,6 +70,7 @@ import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
+import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.BufferArray;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
@@ -168,8 +169,8 @@ public final class TCPNIOTransport extends NIOTransport implements
                 listenServerConnection(serverConnection);
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING,
-                           "Exception occurred when starting server connection: " +
-                                   serverConnection, e);
+                        LogMessages.WARNING_GRIZZLY_TRANSPORT_START_SERVER_CONNECTION_EXCEPTION(serverConnection),
+                        e);
             }
         }
     }
@@ -271,7 +272,9 @@ public final class TCPNIOTransport extends NIOTransport implements
                     future.get(1000, TimeUnit.MILLISECONDS);
                     future.recycle(false);
                 } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Error unbinding connection: " + connection, e);
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_TRANSPORT_UNBINDING_CONNECTION_EXCEPTION(connection),
+                            e);
                 }
             }
         } finally {
@@ -427,19 +430,19 @@ public final class TCPNIOTransport extends NIOTransport implements
                 socket.setSoLinger(true, linger);
             }
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not set linger to " + linger, e);
+            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_LINGER_EXCEPTION(linger), e);
         }
 
         try {
             socket.setKeepAlive(isKeepAlive());
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not set keepAlive to " + isKeepAlive(), e);
+            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_KEEPALIVE_EXCEPTION(isKeepAlive()), e);
         }
         
         try {
             socket.setTcpNoDelay(isTcpNoDelay());
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not set TcpNoDelay to " + isTcpNoDelay(), e);
+            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_TCPNODELAY_EXCEPTION(isTcpNoDelay()), e);
         }
         socket.setReuseAddress(isReuseAddress());
     }

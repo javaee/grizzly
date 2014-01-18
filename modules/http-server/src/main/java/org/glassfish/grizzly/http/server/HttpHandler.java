@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,6 +59,7 @@ import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.RequestURIRef;
+import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.utils.Charsets;
 
 /**
@@ -173,7 +174,8 @@ public abstract class HttpHandler {
             
             return runService(request, response);
         } catch (Exception t) {
-            LOGGER.log(Level.WARNING, "service exception", t);
+            LOGGER.log(Level.WARNING,
+                    LogMessages.WARNING_GRIZZLY_HTTP_SERVER_HTTPHANDLER_SERVICE_ERROR(), t);
             HtmlHelper.setErrorAndSendErrorPage(request, response,
                     response.getErrorPageGenerator(),
                     500, HttpStatus.INTERNAL_SERVER_ERROR_500.getReasonPhrase(),

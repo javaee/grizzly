@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -110,7 +110,7 @@ public abstract class AbstractBindingHandler implements SocketBinder {
      *                          which will be used to get {@link Processor} to process I/O events,
      *                          occurring on connection phase.
      */
-    public void setProcessorSelector(ProcessorSelector processorSelector) {
+    public void setProcessorSelector(final ProcessorSelector processorSelector) {
         this.processorSelector = processorSelector;
     }
 
@@ -121,7 +121,7 @@ public abstract class AbstractBindingHandler implements SocketBinder {
      * {@inheritDoc}
      */
     @Override
-    public Connection bind(int port) throws IOException {
+    public Connection bind(final int port) throws IOException {
         return bind(new InetSocketAddress(port));
     }
 
@@ -129,7 +129,7 @@ public abstract class AbstractBindingHandler implements SocketBinder {
      * {@inheritDoc}
      */
     @Override
-    public Connection bind(String host, int port) throws IOException {
+    public Connection bind(final String host, final int port) throws IOException {
         return bind(new InetSocketAddress(host, port));
     }
 
@@ -137,7 +137,8 @@ public abstract class AbstractBindingHandler implements SocketBinder {
      * {@inheritDoc}
      */
     @Override
-    public Connection bind(String host, int port, int backlog) throws IOException {
+    public Connection bind(final String host, final int port, final int backlog)
+            throws IOException {
         return bind(new InetSocketAddress(host, port), backlog);
     }
 
@@ -145,7 +146,8 @@ public abstract class AbstractBindingHandler implements SocketBinder {
      * {@inheritDoc}
      */
     @Override
-    public Connection bind(String host, PortRange portRange, int backlog) throws IOException {
+    public Connection bind(final String host, final PortRange portRange,
+            final int backlog) throws IOException {
         IOException ioException;
         final int lower = portRange.getLower();
         final int range = portRange.getUpper() - lower + 1;
