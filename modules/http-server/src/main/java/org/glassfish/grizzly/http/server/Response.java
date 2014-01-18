@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -105,6 +105,7 @@ import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 import static org.glassfish.grizzly.http.util.Constants.*;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.HeaderValue;
+import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  * Wrapper object for the Coyote response.
@@ -513,11 +514,13 @@ public class Response {
             outputBuffer.endRequest();
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINEST, "ACTION_CLIENT_FLUSH", e);
+                LOGGER.log(Level.FINEST,
+                        LogMessages.WARNING_GRIZZLY_HTTP_SERVER_RESPONSE_FINISH_ERROR(), e);
             }
         } catch (Throwable t) {
             if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.log(Level.WARNING, "ACTION_CLIENT_FLUSH", t);
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_HTTP_SERVER_RESPONSE_FINISH_ERROR(), t);
             }
         }
     }

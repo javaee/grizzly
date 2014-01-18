@@ -1,8 +1,8 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
- *
+<* Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
+>*
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -112,7 +112,7 @@ public class UDPNIOConnection extends NIOConnection {
                 mkUnblock = membershipKeyClass.getDeclaredMethod("unblock", InetAddress.class);
                 isInitialized = true;
             } catch (Throwable t) {
-                LOGGER.log(Level.WARNING, "Can't initialize reflection methods for DatagramChannel multicasting", t);
+                LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_CONNECTION_UDPMULTICASTING_EXCEPTIONE(), t);
             }
         }
         

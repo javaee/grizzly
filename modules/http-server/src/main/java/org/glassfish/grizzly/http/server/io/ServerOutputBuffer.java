@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,7 @@ import org.glassfish.grizzly.http.server.Response;
 import java.io.File;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
+import org.glassfish.grizzly.localization.LogMessages;
 
 public class ServerOutputBuffer extends OutputBuffer {
 
@@ -109,8 +110,7 @@ public class ServerOutputBuffer extends OutputBuffer {
                 public void cancelled() {
                     if (LOGGER.isLoggable(Level.WARNING)) {
                         LOGGER.log(Level.WARNING,
-                                "Transfer of file {0} was cancelled.",
-                                file.getAbsolutePath());
+                                LogMessages.WARNING_GRIZZLY_HTTP_SERVER_SERVEROUTPUTBUFFER_FILE_TRANSFER_CANCELLED(file.getAbsolutePath()));
                     }
                     serverResponse.resume();
                 }
@@ -119,9 +119,7 @@ public class ServerOutputBuffer extends OutputBuffer {
                 public void failed(Throwable throwable) {
                     if (LOGGER.isLoggable(Level.SEVERE)) {
                         LOGGER.log(Level.SEVERE,
-                                String.format("Failed to transfer file %s.  Cause: %s.",
-                                        file.getAbsolutePath(),
-                                        throwable.getMessage()),
+                                LogMessages.WARNING_GRIZZLY_HTTP_SERVER_SERVEROUTPUTBUFFER_FILE_TRANSFER_FAILED(file.getAbsolutePath(), throwable.getMessage()),
                                 throwable);
                     }
                     serverResponse.resume();

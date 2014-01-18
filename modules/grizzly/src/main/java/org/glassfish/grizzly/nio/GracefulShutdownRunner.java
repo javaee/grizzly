@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,6 +54,7 @@ import org.glassfish.grizzly.GracefulShutdownListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ShutdownContext;
 import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.localization.LogMessages;
 
 class GracefulShutdownRunner implements Runnable {
     private static final Logger LOGGER = Grizzly.logger(GracefulShutdownRunner.class);
@@ -108,16 +109,16 @@ class GracefulShutdownRunner implements Runnable {
             } else {
                 if (LOGGER.isLoggable(Level.WARNING)) {
                     LOGGER.log(Level.WARNING,
-                            "Shutting down transport {0} in {1} {2}.",
-                            new Object[]{transport.getName() + '[' + Integer.toHexString(hashCode()) + ']',
-                                gracePeriod, timeUnit});
+                            LogMessages.WARNING_GRIZZLY_GRACEFULSHUTDOWN_MSG(
+                                    transport.getName() + '[' + Integer.toHexString(hashCode()) + ']',
+                                    gracePeriod, timeUnit));
                 }
                 final boolean result = shutdownLatch.await(gracePeriod, timeUnit);
                 if (!result) {
                     if (LOGGER.isLoggable(Level.WARNING)) {
                         LOGGER.log(Level.WARNING,
-                                "Shutdown grace period exceeded.  Terminating transport {0}.",
-                                transport.getName() + '[' + Integer.toHexString(hashCode()) + ']');
+                                LogMessages.WARNING_GRIZZLY_GRACEFULSHUTDOWN_EXCEEDED(
+                                        transport.getName() + '[' + Integer.toHexString(hashCode()) + ']'));
                     }
                     if (!contexts.isEmpty()) {
                         for (GracefulShutdownListener l : contexts.values()) {
@@ -128,7 +129,7 @@ class GracefulShutdownRunner implements Runnable {
             }
         } catch (InterruptedException ie) {
             if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.warning("Primary shutdown thread interrupted.  Forcing transport termination.");
+                LOGGER.warning(LogMessages.WARNING_GRIZZLY_GRACEFULSHUTDOWN_INTERRUPTED());
             }
             if (!contexts.isEmpty()) {
                 for (GracefulShutdownListener l : contexts.values()) {

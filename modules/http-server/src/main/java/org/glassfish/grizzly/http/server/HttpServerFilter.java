@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,6 +68,7 @@ import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.localization.LogMessages;
 
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
@@ -223,7 +224,8 @@ public class HttpServerFilter extends BaseFilter
                                 "The server is being shutting down...", null);
                     }
                 } catch (Exception t) {
-                    LOGGER.log(Level.WARNING, "Exception during HttpHandler invocation", t);
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_HTTP_SERVER_FILTER_HTTPHANDLER_INVOCATION_ERROR(), t);
                     
                     request.getProcessingState().setError(true);
                     
@@ -236,7 +238,8 @@ public class HttpServerFilter extends BaseFilter
                                     t);
                     }
                 } catch (Throwable t) {
-                    LOGGER.log(Level.WARNING, "Unexpected error", t);
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_HTTP_SERVER_FILTER_UNEXPECTED(), t);
                     throw new IllegalStateException(t);
                 }
                 
