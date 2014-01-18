@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,79 +41,44 @@
 package org.glassfish.grizzly;
 
 import java.io.IOException;
-import java.net.SocketAddress;
 
 /**
- * Common API for {@link java.net.Socket} based {@link Transport}s, which are able
- * to bind server {@link java.net.Socket} to specific address and listen for incoming
- * data.
  *
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public interface SocketBinder extends Binder<SocketAddress> {
+public interface Binder<T> {
     /**
-     * Binds Transport to the specific port on localhost.
-     *
-     * @param port
+     * Binds the Transport to the channel inherited from the entity that
+     * created this Java virtual machine.
+     * 
      * @return bound {@link Connection}
-     *
-     * @throws java.io.IOException
+     * 
+     * @throws IOException 
      */
-    public Connection bind(int port) throws IOException;
-
-    /**
-     * Binds Transport to the specific host and port.
-     *
-     * @param host the local host the server will bind to
-     * @param port
-     * @return bound {@link Connection}
-     *
-     * @throws java.io.IOException
-     */
-    public Connection bind(String host, int port) throws IOException;
-
-    /**
-     * Binds Transport to the specific host and port.
-     * @param host the local host the server will bind to
-     * @param port
-     * @param backlog the maximum length of the queue
-     * @return bound {@link Connection}
-     *
-     * @throws java.io.IOException
-     */
-    public Connection bind(String host, int port, int backlog) throws IOException;
-
-    /**
-     * Binds Transport to the specific host, and port within a {@link PortRange}.
-     *
-     * @param host the local host the server will bind to
-     * @param portRange {@link PortRange}.
-     * @return bound {@link Connection}
-     *
-     * @throws java.io.IOException
-     */
-    public Connection bind(String host, PortRange portRange) throws IOException;
+    public Connection bindToInherited() throws IOException;
     
     /**
-     * Binds Transport to the specific host, and port within a {@link PortRange}.
+     * Binds Transport to the specific local endpoint.
      *
-     * @param host the local host the server will bind to
-     * @param portRange {@link PortRange}.
-     * @param backlog the maximum length of the queue
+     * @param endpoint the local address the server will bind to
      * @return bound {@link Connection}
      *
      * @throws java.io.IOException
      */
-    public Connection bind(String host, PortRange portRange, int backlog) throws IOException;
+    public Connection bind(T endpoint) throws IOException;
+    
+    /**
+     * Unbinds bound {@link Transport} connection.
+     * @param connection {@link Connection}
+     *
+     * @throws java.io.IOException
+     */
+    public void unbind(Connection connection) throws IOException;
 
     /**
-     * Binds Transport to the specific SocketAddress.
-     *
-     * @param socketAddress the local address the server will bind to
-     * @param backlog the maximum length of the queue
-     * @return bound {@link Connection}
+     * Unbinds all bound {@link Transport} connections.
      *
      * @throws java.io.IOException
      */
-    public Connection bind(SocketAddress socketAddress, int backlog) throws IOException;
+    public void unbindAll() throws IOException;
 }

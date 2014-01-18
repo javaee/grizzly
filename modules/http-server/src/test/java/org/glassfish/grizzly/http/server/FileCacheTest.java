@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -91,6 +91,7 @@ import org.glassfish.grizzly.http.CompressionConfig.CompressionMode;
 
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.glassfish.grizzly.http.util.MimeType;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -1005,7 +1006,7 @@ public class FileCacheTest {
         builder.add(new HttpMessageFilter(future));
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
-                httpServer.getListener("grizzly").getTransport())
+                (TCPNIOTransport) httpServer.getListener("grizzly").getTransport())
                 .filterChain(builder.build())
                 .build();
 

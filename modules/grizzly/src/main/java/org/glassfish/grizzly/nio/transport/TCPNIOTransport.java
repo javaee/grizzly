@@ -351,6 +351,16 @@ public class TCPNIOTransport extends NIOTransport {
         }
     }
 
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TCPNIOServerConnection bind(final String host,
+            final PortRange portRange) throws IOException {
+        return bind(host, portRange, serverConnectionBackLog);
+    }
+    
     
     /**
      * {@inheritDoc}

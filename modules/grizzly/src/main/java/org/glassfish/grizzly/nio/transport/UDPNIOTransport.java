@@ -169,7 +169,7 @@ public final class UDPNIOTransport extends NIOTransport {
     @Override
     public UDPNIOServerConnection bind(SocketAddress socketAddress)
             throws IOException {
-        return bind(socketAddress, 4096);
+        return bind(socketAddress, -1);
     }
 
     /**
@@ -294,6 +294,16 @@ public final class UDPNIOTransport extends NIOTransport {
         }
     }
 
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public UDPNIOServerConnection bind(final String host,
+            final PortRange portRange) throws IOException {
+        return bind(host, portRange, -1);
+    }
+    
     
     /**
      * {@inheritDoc}

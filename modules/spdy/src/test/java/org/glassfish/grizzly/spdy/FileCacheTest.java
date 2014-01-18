@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -85,6 +85,7 @@ import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.DataStructures;
 import org.junit.After;
 import org.junit.Before;
@@ -424,7 +425,7 @@ public class FileCacheTest extends AbstractSpdyTest {
 
         
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
-                httpServer.getListener("grizzly").getTransport())
+                (TCPNIOTransport) httpServer.getListener("grizzly").getTransport())
                 .filterChain(clientChain)
                 .build();
 

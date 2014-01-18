@@ -41,10 +41,12 @@ package org.glassfish.grizzly.http.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
+import org.glassfish.grizzly.Binder;
 import org.glassfish.grizzly.CompletionHandler;
 
 import org.glassfish.grizzly.Connection;
@@ -54,6 +56,8 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.ShutdownContext;
+import org.glassfish.grizzly.SocketBinder;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.http.CompressionConfig;
 import org.glassfish.grizzly.http.HttpCodecFilter;
@@ -63,7 +67,7 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
-import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
+import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
@@ -88,21 +92,15 @@ public class NetworkListener {
     public static final int DEFAULT_NETWORK_PORT = 8080;
 
     /**
-     * The network host to which the <code>HttpServer<code> will bind to in order to service <code>HTTP</code> requests.
-     * If not explicitly set, the value of {@link #DEFAULT_NETWORK_HOST} will be used.
-     */
-    private String host = DEFAULT_NETWORK_HOST;
-
-    /**
-     * The network port to which the <code>HttpServer<code> will bind to in order to service <code>HTTP</code> requests.
-     * If not explicitly set, the value of {@link #DEFAULT_NETWORK_PORT} will be used.
-     */
-    private int port = DEFAULT_NETWORK_PORT;
-    /**
-     * The flag indicates if the <code>HttpServer<code> will be bounnd to an inherited Channel.
-     * If not explicitly set, the <code>HttpServer</code> will be bound to  {@link #DEFAULT_NETWORK_HOST}:{@link #DEFAULT_NETWORK_PORT}.
+     * The flag indicates if the {@link HttpServer} will be bounnd to an inherited Channel.
+     * If not explicitly set, the {@link HttpServer} will be bound to  {@link #DEFAULT_NETWORK_HOST}:{@link #DEFAULT_NETWORK_PORT}.
      */
     private final boolean isBindToInherited;
+    /**
+     * The generic representation of the local endpoint to which the
+     * {@link HttpServer} will bind to in order to service <code>HTTP</code> requests.
+     */
+    private Object localEndpoint;
     
     /**
      * The time, in seconds, for which a request must complete processing.
@@ -110,7 +108,7 @@ public class NetworkListener {
     private int transactionTimeout = -1;
 
     /**
-     * The network port range to which the <code>HttpServer<code> will bind to
+     * The network port range to which the {@link HttpServer} will bind to
      * in order to service <code>HTTP</code> requests.
      * If not explicitly set, the value of {@link #port} will be used.
      */
@@ -129,13 +127,13 @@ public class NetworkListener {
      */
     private FilterChain filterChain;
     /**
-     * The {@link TCPNIOTransport} used by this <code>NetworkListener</code>
+     * The {@link Transport} used by this <code>NetworkListener</code>
      */
-    private TCPNIOTransport transport;
+    private Transport transport;
     /**
      * TCP Server {@link Connection} responsible for accepting client connections
      */
-    private TCPNIOServerConnection serverConnection;    
+    private Connection serverConnection;    
     
     /**
      * The default error page generator
@@ -280,8 +278,7 @@ public class NetworkListener {
             throw new IllegalArgumentException("Invalid port");
         }
         this.name = name;
-        this.host = host;
-        this.port = port;
+        this.localEndpoint = new InetSocketAddress(host, port);
         isBindToInherited = false;
     }
 
@@ -300,12 +297,30 @@ public class NetworkListener {
         validateArg("host", host);
 
         this.name = name;
-        this.host = host;
-        this.port = -1;
+        this.localEndpoint = new InetSocketAddress(host, 0);
         this.portRange = portRange;
         isBindToInherited = false;
     }
 
+    /**
+     * <p> Constructs a new <code>NetworkListener</code> using the specified <code>name</code>, <code>host</code>, and
+     * <code>port</code>. </p>
+     *
+     * @param name the logical name of the listener.
+     * @param localEndpoint generic endpoint, could be {@link SocketAddress} for
+     *        traditional {@link TCPTransport}, or any other endpoint type
+     *        understandable by the underlying {@link Transport}
+     */
+    public NetworkListener(final String name, final Object localEndpoint) {
+        if (localEndpoint == null) {
+            throw new IllegalArgumentException("Local endpoint can't be null");
+        }
+        this.name = name;
+        this.localEndpoint = localEndpoint;
+        
+        isBindToInherited = false;
+    }
+    
     // ----------------------------------------------------------- Configuration
 
     /**
@@ -320,23 +335,28 @@ public class NetworkListener {
      * @return the network host to which this listener is configured to bind to.
      */
     public String getHost() {
-        return host;
-
+        if (!(localEndpoint instanceof InetSocketAddress)) {
+            throw new IllegalStateException("Local endpoint is not a InetSocketAddress, so the host can not be returned");
+        }
+        
+        return ((InetSocketAddress) localEndpoint).getHostString();
     }
 
     /**
      * @return the network port to which this listener is configured to bind to.
      * If the {@link HttpServer} has not been started yet - the returned value
      * may be:
-     * <tt>-1</tt>, if {@link PortRange} will be used to bind the listener;
-     * <tt>0</tt>, if the port will be assigned by OS;
+     * <tt>0</tt>, if the port will be assigned based on {@link PortRange} (if set) or by OS;
      * <tt>0 < N < 65536</tt>, the port this listener will be bound to.
      * If {@link HttpServer} has been started - the value returned is the port the
      * this listener is bound to.
      */
     public int getPort() {
-        return port;
-
+        if (!(localEndpoint instanceof InetSocketAddress)) {
+            throw new IllegalStateException("Local endpoint is not a InetSocketAddress, so the port can not be returned");
+        }
+        
+        return ((InetSocketAddress) localEndpoint).getPort();
     }
 
     /**
@@ -348,6 +368,13 @@ public class NetworkListener {
     }
 
     /**
+     * @return the generic 
+     */
+    public Object getEndpoint() {
+        return localEndpoint;
+    }
+    
+    /**
      * @return the configuration for the keep-alive HTTP connections.
      */
     public KeepAliveConfig getKeepAliveConfig() {
@@ -356,27 +383,37 @@ public class NetworkListener {
     }
 
     /**
-     * @return the {@link TCPNIOTransport} used by this listener.
+     * @return the {@link Transport} used by this listener.
      */
-    public TCPNIOTransport getTransport() {
-        return transport;
+    @SuppressWarnings("unchecked")
+    public <T extends Transport> T getTransport() {
+        return (T) transport;
 
     }
 
     /**
-     * <p> This allows the developer to specify a custom {@link TCPNIOTransport} implementation to be used by this
+     * <p> This allows the developer to specify a custom {@link Transport} implementation to be used by this
      * listener. </p>
      * <p/>
      * <p> Attempts to change the transport implementation while the listener is running will be ignored. </p>
      *
-     * @param transport a custom {@link TCPNIOTransport} implementation.
+     * @param transport a custom {@link Transport} implementation
+     * @throws IllegalArgumentException if the {@link Transport} doesn't implement {@link Binder}
+     * @throws IllegalArgumentException if this <tt>NetworkListener</tt> was given a {@link PortRange}
+     *         to bind to and the {@link Transport} doesn't implement {@link SocketBinder}
      */
-    public void setTransport(final TCPNIOTransport transport) {
+    public void setTransport(final Transport transport) {
         if (transport == null) {
             return;
         }
         if (!transport.isStopped()) {
             return;
+        }
+        if (!(transport instanceof Binder)) {
+            throw new IllegalArgumentException("Can not set the Transport, that doesn't implement Binder");
+        }
+        if (portRange != null && !(transport instanceof SocketBinder)) {
+            throw new IllegalArgumentException("Can not set the Transport, that doesn't implement SocketBinder");
         }
         this.transport = transport;
 
@@ -617,7 +654,11 @@ public class NetworkListener {
      */
     public void setMaxPendingBytes(int maxPendingBytes) {
         this.maxPendingBytes = maxPendingBytes;
-        transport.setMaxAsyncWriteQueueSizeInBytes(maxPendingBytes);
+        if (transport instanceof NIOTransport) {
+            ((NIOTransport) transport).setMaxAsyncWriteQueueSizeInBytes(maxPendingBytes);
+        } else {
+            LOGGER.log(Level.WARNING, "Can not set max pending bytes for the underlying transport");
+        }
     }
 
     // ---------------------------------------------------------- Public Methods
@@ -654,14 +695,14 @@ public class NetworkListener {
         transport.setFilterChain(filterChain);
 
         if (isBindToInherited) {
-            serverConnection = transport.bindToInherited();
+            serverConnection = ((Binder) transport).bindToInherited();
         } else {
-            serverConnection = (port != -1) ?
-                transport.bind(host, port) :
-                transport.bind(host, portRange, transport.getServerConnectionBackLog());
+            serverConnection = (portRange == null) ?
+                ((Binder) transport).bind(localEndpoint) :
+                ((SocketBinder) transport).bind(getHost(), portRange);
         }
         
-        port = ((InetSocketAddress) serverConnection.getLocalAddress()).getPort();
+        localEndpoint = serverConnection.getLocalAddress();
 
         transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
@@ -699,7 +740,7 @@ public class NetworkListener {
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                 "Started listener bound to [{0}]",
-                host + ':' + port);
+                localEndpoint);
         }
 
     }
@@ -755,7 +796,7 @@ public class NetworkListener {
             if (LOGGER.isLoggable(Level.INFO)) {
                 LOGGER.log(Level.INFO,
                     "Stopped listener bound to [{0}]",
-                    host + ':' + port);
+                    localEndpoint);
             }
         } finally {
             state = State.STOPPED;
@@ -767,8 +808,6 @@ public class NetworkListener {
 
     /**
      * <p> Pauses the listener. </p>
-     *
-     * @throws IOException if an error occurs when attempting to pause the listener.
      */
     public synchronized void pause() {
         if (state != State.RUNNING) {
@@ -779,7 +818,7 @@ public class NetworkListener {
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                 "Paused listener bound to [{0}]",
-                host + ':' + port);
+                localEndpoint);
         }
 
     }
@@ -796,7 +835,7 @@ public class NetworkListener {
         if (LOGGER.isLoggable(Level.INFO)) {
             LOGGER.log(Level.INFO,
                 "Resumed listener bound to [{0}]",
-                host + ':' + port);
+                localEndpoint);
         }
 
     }
@@ -808,8 +847,7 @@ public class NetworkListener {
     public String toString() {
         return "NetworkListener{" +
             "name='" + name + '\'' +
-            ", host='" + host + '\'' +
-            ", port=" + port +
+            ", endpoint='" + localEndpoint + '\'' +
             ", secure=" + secure +
             ", state=" + state +
             '}';

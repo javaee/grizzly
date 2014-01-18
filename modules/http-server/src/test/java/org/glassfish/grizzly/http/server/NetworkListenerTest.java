@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -101,7 +101,7 @@ public class NetworkListenerTest {
         httpServer.addListener(listener);
 
         try {
-            assertEquals(-1, listener.getPort());
+            assertEquals(0, listener.getPort());
             httpServer.start();
             assertTrue(listener.getPort() >= PORT);
             assertTrue(listener.getPort() <= PORT + RANGE);
