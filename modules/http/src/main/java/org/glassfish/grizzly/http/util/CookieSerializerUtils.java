@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -317,7 +317,7 @@ public class CookieSerializerUtils {
 
         final int version = cookies[0].getVersion();
 
-        if (version == 1) {
+        if (!rfc6265Support && version == 1) {
             buf.append("$Version=\"1\"; ");
         }
 
@@ -331,7 +331,7 @@ public class CookieSerializerUtils {
             maybeQuote2(version, buf, cookie.getValue(), true, rfc6265Support);
 
             // If version == 1 - add domain and path
-            if (version == 1) {
+            if (!rfc6265Support && version == 1) {
                 // $Domain="domain"
                 final String domain = cookie.getDomain();
                 if (domain != null) {
