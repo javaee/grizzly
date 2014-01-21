@@ -89,9 +89,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     
     public static final float DEFAULT_HEAP_USAGE_PERCENTAGE = 0.1f;
 
-    private static final boolean IS_SKIP_BUF_WAIT_LOOP =
-            Boolean.getBoolean(PooledMemoryManager.class.getName() + ".skip-buf-wait-loop");
-    
     /**
      * Basic monitoring support.  Concrete implementations of this class need
      * only to implement the {@link #createJmxManagementObject()}  method
@@ -635,29 +632,20 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 }
             }
             
-            PoolBuffer pb;
-            if (!IS_SKIP_BUF_WAIT_LOOP) {
-                final int unmaskedPollIdx = unmask(pollIdx);
-                final AtomicReferenceArray<PoolBuffer> pool = pool(pollIdx);
-                for (;;) {
-                    // unmask the current read value to the actual array index.
-                    pb = pool.getAndSet(unmaskedPollIdx, null);
-                    if (pb != null) {
-                        break;
-                    }
-                    // give offer at this index time to complete...
-                    Thread.yield();
+            final int unmaskedPollIdx = unmask(pollIdx);
+            final AtomicReferenceArray<PoolBuffer> pool = pool(pollIdx);
+            for (;;) {
+                // unmask the current read value to the actual array index.
+                final PoolBuffer pb = pool.getAndSet(unmaskedPollIdx, null);
+                if (pb != null) {
+                    ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
+                                                                bufferSize);
+                    return pb;
                 }
-            } else {
-                pb = pool(pollIdx).getAndSet(unmask(pollIdx), null);
-                if (pb == null) {
-                    return null;
-                }
+                
+                // give offer at this index time to complete...
+                Thread.yield();
             }
-            
-            ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
-                                                        bufferSize);
-            return pb;
         }
 
         public final boolean offer(final PoolBuffer b) {
@@ -680,27 +668,19 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 }
             }
             
-            if (!IS_SKIP_BUF_WAIT_LOOP) {
-                final int unmaskedOfferIdx = unmask(offerIdx);
-                final AtomicReferenceArray<PoolBuffer> pool = pool(offerIdx);
-                for (;;) {
-                    // unmask the current write value to the actual array index.
-                    if (pool.compareAndSet(unmaskedOfferIdx, null, b)) {
-                        break;
-                    }
-                    // give poll at this index time to complete...
-                    Thread.yield();
+            final int unmaskedOfferIdx = unmask(offerIdx);
+            final AtomicReferenceArray<PoolBuffer> pool = pool(offerIdx);
+            for (;;) {
+                // unmask the current write value to the actual array index.
+                if (pool.compareAndSet(unmaskedOfferIdx, null, b)) {
+                    ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
+                                                             bufferSize);
+
+                    return true;
                 }
-            } else {
-                if (!pool(offerIdx).compareAndSet(unmask(offerIdx), null, b)) {
-                    return false;
-                }
+                // give poll at this index time to complete...
+                Thread.yield();
             }
-            
-            ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
-                                                     bufferSize);
-            
-            return true;
         }
 
         public final int elementsCount() {

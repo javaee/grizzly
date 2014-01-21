@@ -223,7 +223,9 @@ public class TCPNIOUtils {
         Buffer buffer = null;
         
         try {
-            final int receiveBufferSize = connection.getReadBufferSize();
+            final int receiveBufferSize =
+                    Math.min(TCPNIOTransport.MAX_RECEIVE_BUFFER_SIZE,
+                            connection.getReadBufferSize());
         
             if (!memoryManager.willAllocateDirect(receiveBufferSize)) {
                 final DirectByteBufferRecord ioRecord = 

@@ -91,9 +91,12 @@ import org.glassfish.grizzly.utils.Exceptions;
  * @author Jean-Francois Arcand
  */
 public class TCPNIOTransport extends NIOTransport {
-
     static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
 
+    public static final int MAX_RECEIVE_BUFFER_SIZE =
+            Integer.getInteger(TCPNIOTransport.class.getName() +
+                    ".max-receive-buffer-size", Integer.MAX_VALUE);
+    
     public static final boolean DEFAULT_TCP_NO_DELAY = true;
     public static final boolean DEFAULT_KEEP_ALIVE = true;
     public static final int DEFAULT_LINGER = -1;

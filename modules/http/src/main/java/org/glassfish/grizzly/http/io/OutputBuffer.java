@@ -96,9 +96,13 @@ public class OutputBuffer implements OutputSink {
     
     protected static final Logger LOGGER = Grizzly.logger(OutputBuffer.class);
 
-    private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
+    private static final int DEFAULT_BUFFER_SIZE =
+            Integer.getInteger(OutputBuffer.class.getName() + ".default-buffer-size",
+                    1024 * 8);
 
-    private static final int MAX_CHAR_BUFFER_SIZE = 1024 * 64 + 1;
+    private static final int MAX_CHAR_BUFFER_SIZE =
+            Integer.getInteger(OutputBuffer.class.getName() + ".max-char-buffer-size",
+                    1024 * 64 + 1);
     
     /**
      * Flag indicating whether or not async operations are being used on the
