@@ -307,6 +307,7 @@ public class OutputBuffer implements OutputSink {
         }
 //        charBuf.position(0);
 
+        bufferSize = DEFAULT_BUFFER_SIZE;
         fileTransferRequested = false;
         encoder = null;
         ctx = null;
