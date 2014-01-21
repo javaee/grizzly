@@ -90,6 +90,10 @@ public final class TCPNIOTransport extends NIOTransport implements
 
     private static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
 
+    public static final int MAX_RECEIVE_BUFFER_SIZE =
+            Integer.getInteger(TCPNIOTransport.class.getName() +
+                    ".max-receive-buffer-size", Integer.MAX_VALUE);
+    
     public static final boolean DEFAULT_TCP_NO_DELAY = true;
     public static final boolean DEFAULT_KEEP_ALIVE = true;
     public static final int DEFAULT_LINGER = -1;
@@ -603,7 +607,9 @@ public final class TCPNIOTransport extends NIOTransport implements
         if (isAllocate) {
 
             try {
-                final int receiveBufferSize = connection.getReadBufferSize();
+                final int receiveBufferSize =
+                        Math.min(TCPNIOTransport.MAX_RECEIVE_BUFFER_SIZE,
+                                connection.getReadBufferSize());
                 if (!memoryManager.willAllocateDirect(receiveBufferSize)) {
                     final DirectByteBufferRecord directByteBufferRecord =
                             DirectByteBufferRecord.allocate(receiveBufferSize);
