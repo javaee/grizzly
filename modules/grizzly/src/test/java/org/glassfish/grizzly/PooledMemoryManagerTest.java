@@ -86,6 +86,11 @@ public class PooledMemoryManagerTest {
 
         PooledMemoryManager.PoolSlice[] slices = pools[0].getSlices();
         assertEquals(numProcessors, slices.length);
+        
+        // check the number of buffers preallocated
+        assertEquals(slices[0].getMaxElementsCount(),
+                slices[0].elementsCount());
+        
         long consumedMemory = 0;
         for (int i = 0, len = pools.length; i < len; i++) {
             consumedMemory += pools[i].size();
@@ -106,7 +111,8 @@ public class PooledMemoryManagerTest {
                                                                1,
                                                                0,
                                                                processors,
-                                                               memoryPercentage);
+                                                               memoryPercentage,
+                                                               1.0f);
         final long memoryPerPool = (long) (maxMemory * memoryPercentage);
         final long upperBound = (long) (maxMemory * 0.0505f);
         PooledMemoryManager.Pool[] pools = mm.getPools();
@@ -124,6 +130,21 @@ public class PooledMemoryManagerTest {
 
         // buffer size should be 2048
         assertEquals(2048, pools[0].getBufferSize());
+        
+        final float preallocatedPercentage = 0.25f;
+        
+        mm = new PooledMemoryManager(2048,
+                                           1,
+                                           0,
+                                           processors,
+                                           memoryPercentage,
+                                           preallocatedPercentage);
+        pools = mm.getPools();
+        final PoolSlice slice0 = pools[0].getSlices()[0];
+
+        // check the number of buffers preallocated
+        assertEquals((int) (slice0.getMaxElementsCount() * preallocatedPercentage),
+                slice0.elementsCount());
     }
 
 
@@ -132,7 +153,8 @@ public class PooledMemoryManagerTest {
 
         // invalid buffer size
         try {
-            new PooledMemoryManager(0, 1, 0, 1, DEFAULT_HEAP_USAGE_PERCENTAGE);
+            new PooledMemoryManager(0, 1, 0, 1, DEFAULT_HEAP_USAGE_PERCENTAGE,
+                DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
             fail();
         } catch (IllegalArgumentException iae) {
             // expected
@@ -142,7 +164,8 @@ public class PooledMemoryManagerTest {
 
         // invalid number of pools
         try {
-            new PooledMemoryManager(1024, 0, 0, 1, DEFAULT_HEAP_USAGE_PERCENTAGE);
+            new PooledMemoryManager(1024, 0, 0, 1, DEFAULT_HEAP_USAGE_PERCENTAGE,
+                DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
@@ -151,7 +174,8 @@ public class PooledMemoryManagerTest {
 
         // invalid growth factor (negative)
         try {
-            new PooledMemoryManager(1024, 1, -1, 1, DEFAULT_HEAP_USAGE_PERCENTAGE);
+            new PooledMemoryManager(1024, 1, -1, 1, DEFAULT_HEAP_USAGE_PERCENTAGE,
+                    DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
@@ -160,7 +184,8 @@ public class PooledMemoryManagerTest {
 
         // invalid growth factor (zero, when pools number > 1)
         try {
-            new PooledMemoryManager(1024, 2, 0, 1, DEFAULT_HEAP_USAGE_PERCENTAGE);
+            new PooledMemoryManager(1024, 2, 0, 1, DEFAULT_HEAP_USAGE_PERCENTAGE
+                    , DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
@@ -169,7 +194,8 @@ public class PooledMemoryManagerTest {
 
         // invalid number of slices
         try {
-            new PooledMemoryManager(1024, 1, 0, 0, DEFAULT_HEAP_USAGE_PERCENTAGE);
+            new PooledMemoryManager(1024, 1, 0, 0, DEFAULT_HEAP_USAGE_PERCENTAGE,
+                DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
@@ -178,7 +204,8 @@ public class PooledMemoryManagerTest {
         
         // invalid heap percentage (lower bound)
         try {
-            new PooledMemoryManager(1024, 1, 0, 1, 0);
+            new PooledMemoryManager(1024, 1, 0, 1, 0,
+                    DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
@@ -187,12 +214,33 @@ public class PooledMemoryManagerTest {
 
         // invalid heap percentage (upper bound)
         try {
-            new PooledMemoryManager(1024, 1, 0, 1, 1);
+            new PooledMemoryManager(1024, 1, 0, 1, 1,
+                    DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
         } catch (IllegalArgumentException iae) {
             // expected
         } catch (Exception e) {
             fail();
         }
+        
+        // invalid preallocated buffers percentage (lower bound)
+        try {
+            new PooledMemoryManager(1024, 1, 0, 1, DEFAULT_HEAP_USAGE_PERCENTAGE,
+                    -0.01f);
+        } catch (IllegalArgumentException iae) {
+            // expected
+        } catch (Exception e) {
+            fail();
+        }
+
+        // invalid preallocated buffers percentage (upper bound)
+        try {
+            new PooledMemoryManager(1024, 1, 0, 1, DEFAULT_HEAP_USAGE_PERCENTAGE,
+                    1.01f);
+        } catch (IllegalArgumentException iae) {
+            // expected
+        } catch (Exception e) {
+            fail();
+        }        
     }
 
     @Test
@@ -203,7 +251,8 @@ public class PooledMemoryManagerTest {
                                         1,
                                         0,
                                         1,
-                                        DEFAULT_HEAP_USAGE_PERCENTAGE);
+                                        DEFAULT_HEAP_USAGE_PERCENTAGE,
+                                        DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
 
         final TestProbe probe = new TestProbe();
         mm.getMonitoringConfig().addProbes(probe);
@@ -237,7 +286,8 @@ public class PooledMemoryManagerTest {
                         1,
                         0,
                         1,
-                        DEFAULT_HEAP_USAGE_PERCENTAGE);
+                        DEFAULT_HEAP_USAGE_PERCENTAGE,
+                        DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
 
         final TestProbe probe = new TestProbe();
         mm.getMonitoringConfig().addProbes(probe);
@@ -281,7 +331,8 @@ public class PooledMemoryManagerTest {
                         1,
                         0,
                         1,
-                        DEFAULT_HEAP_USAGE_PERCENTAGE);
+                        DEFAULT_HEAP_USAGE_PERCENTAGE,
+                        DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
 
         // re-allocate request that is smaller than the default buffer size.
         // this should return the same buffer instance with the limit adjusted
@@ -330,7 +381,8 @@ public class PooledMemoryManagerTest {
                         1,
                         0,
                         1,
-                        DEFAULT_HEAP_USAGE_PERCENTAGE);
+                        DEFAULT_HEAP_USAGE_PERCENTAGE,
+                        DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
 
         final TestProbe probe = new TestProbe();
         mm.getMonitoringConfig().addProbes(probe);
@@ -372,7 +424,8 @@ public class PooledMemoryManagerTest {
                         1,
                         0,
                         1,
-                        DEFAULT_HEAP_USAGE_PERCENTAGE);
+                        DEFAULT_HEAP_USAGE_PERCENTAGE,
+                        DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
 
         final TestProbe probe = new TestProbe();
         mm.getMonitoringConfig().addProbes(probe);
@@ -403,7 +456,8 @@ public class PooledMemoryManagerTest {
                         1,
                         0,
                         1,
-                        DEFAULT_HEAP_USAGE_PERCENTAGE);
+                        DEFAULT_HEAP_USAGE_PERCENTAGE,
+                        DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
 
         // allocation request must be greater than zero
         try {
@@ -433,7 +487,8 @@ public class PooledMemoryManagerTest {
                         1,
                         0,
                         1,
-                        DEFAULT_HEAP_USAGE_PERCENTAGE);
+                        DEFAULT_HEAP_USAGE_PERCENTAGE,
+                        DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
 
         final TestProbe probe = new TestProbe();
         mm.getMonitoringConfig().addProbes(probe);
@@ -604,7 +659,8 @@ public class PooledMemoryManagerTest {
     public void circularityBoundaryTest() {
         final PooledMemoryManager mm = new PooledMemoryManager(
                 128, 1, 0, 1,
-                1024.0f / Runtime.getRuntime().maxMemory());
+                1024.0f / Runtime.getRuntime().maxMemory(),
+                DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
         final TestProbe probe = new TestProbe();
         mm.getMonitoringConfig().addProbes(probe);
 
@@ -650,7 +706,8 @@ public class PooledMemoryManagerTest {
         final int numTestThreads =
                 Runtime.getRuntime().availableProcessors() * 8;
         final PooledMemoryManager mm = new PooledMemoryManager(
-                4096, poolsNum, 1, Runtime.getRuntime().availableProcessors(), .10f);
+                4096, poolsNum, 1, Runtime.getRuntime().availableProcessors(), .10f,
+                DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
         final ThreadFactory f =
                 new ThreadFactory() {
                     final AtomicInteger ii =

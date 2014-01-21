@@ -59,20 +59,22 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
  *
  * There are several tuning options for this {@link MemoryManager} implementation.
  * <ul>
- *     <li>The base size of the buffer for the 1st pool, every next pool n will have buffer size equal to bufferSize(n-1) * 2^growthFactor.</li>
- *     <li>The number of pools, responsible for allocation of buffers of a pool-specific size.</li>
- *     <li>The buffer size growth factor, that defines 2^x multiplier, used to calculate buffer size for next allocated pool.</li>
- *     <li>The number of pool slices that every pool will stripe allocation requests across.</li>
- *     <li>The percentage of the heap that this manager will use when populating the pools.</li>
+ *     <li>The base size of the buffer for the 1st pool, every next pool n will have buffer size equal to bufferSize(n-1) * 2^growthFactor</li>
+ *     <li>The number of pools, responsible for allocation of buffers of a pool-specific size</li>
+ *     <li>The buffer size growth factor, that defines 2^x multiplier, used to calculate buffer size for next allocated pool</li>
+ *     <li>The number of pool slices that every pool will stripe allocation requests across</li>
+ *     <li>The percentage of the heap that this manager will use when populating the pools</li>
+ *     <li>The percentage of buffers to be preallocated during MemoryManager initialization</li>
  * </ul>
  *
  * If no explicit configuration is provided, the following defaults will be used:
  * <ul>
- *     <li>Base buffer size: 4 KiB ({@link #DEFAULT_BASE_BUFFER_SIZE}).</li>
- *     <li>Number of pools: 3 ({@link #DEFAULT_NUMBER_OF_POOLS}).</li>
- *     <li>Growth factor: 2 ({@link #DEFAULT_GROWTH_FACTOR}), which means the first buffer pool will contains buffer of size 4 KiB, the seconds one buffer of size 16KiB, the third one buffer of size 64KiB.</li>
- *     <li>Number of pool slices: Based on the return value of <code>Runtime.getRuntime().availableProcessors()</code>.</li>
- *     <li>Percentage of heap: 10% ({@link #DEFAULT_HEAP_USAGE_PERCENTAGE}).</li>
+ *     <li>Base buffer size: 4 KiB ({@link #DEFAULT_BASE_BUFFER_SIZE})</li>
+ *     <li>Number of pools: 3 ({@link #DEFAULT_NUMBER_OF_POOLS})</li>
+ *     <li>Growth factor: 2 ({@link #DEFAULT_GROWTH_FACTOR}), which means the first buffer pool will contains buffer of size 4 KiB, the seconds one buffer of size 16KiB, the third one buffer of size 64KiB</li>
+ *     <li>Number of pool slices: Based on the return value of <code>Runtime.getRuntime().availableProcessors()</code></li>
+ *     <li>Percentage of heap: 10% ({@link #DEFAULT_HEAP_USAGE_PERCENTAGE})</li>
+ *     <li>Percentage of buffers to be preallocated: 100% ({@link #DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE})</li>
  * </ul>
  *
  * The main advantage of this manager over {@link org.glassfish.grizzly.memory.HeapMemoryManager} or
@@ -88,6 +90,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     public static final int DEFAULT_GROWTH_FACTOR = 2;
     
     public static final float DEFAULT_HEAP_USAGE_PERCENTAGE = 0.1f;
+    public static final float DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE = 1.0f;
 
     /**
      * Basic monitoring support.  Concrete implementations of this class need
@@ -117,11 +120,12 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     /**
      * Creates a new <code>PooledMemoryManager</code> using the following defaults:
      * <ul>
-     *     <li>4 KiB base buffer size.</li>
-     *     <li>3 pools.</li>
-     *     <li>2 growth factor, which means 1st pool will contain buffers of size 4KiB, the 2nd - 16KiB, the 3rd - 64KiB.</li>
+     *     <li>4 KiB base buffer size</li>
+     *     <li>3 pools</li>
+     *     <li>2 growth factor, which means 1st pool will contain buffers of size 4KiB, the 2nd - 16KiB, the 3rd - 64KiB</li>
      *     <li>Number of pool slices based on <code>Runtime.getRuntime().availableProcessors()</code></li>
-     *     <li>The initial allocation will use 10% of the heap.</li>
+     *     <li>The initial allocation will use 10% of the heap</li>
+     *     <li>The percentage of buffers to be preallocated during MemoryManager initialization</li>
      * </ul>
      */
     public PooledMemoryManager() {
@@ -129,25 +133,28 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 DEFAULT_NUMBER_OF_POOLS,
                 DEFAULT_GROWTH_FACTOR,
                 Runtime.getRuntime().availableProcessors(),
-                DEFAULT_HEAP_USAGE_PERCENTAGE);
+                DEFAULT_HEAP_USAGE_PERCENTAGE,
+                DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
     }
 
 
     /**
      * Creates a new <code>PooledMemoryManager</code> using the specified parameters for configuration.
      *
-     * @param baseBufferSize the base size of the buffer for the 1st pool, every next pool n will have buffer size equal to bufferSize(n-1) * 2^growthFactor.
-     * @param numberOfPools the number of pools, responsible for allocation of buffers of a pool-specific size.
-     * @param growthFactor the buffer size growth factor, that defines 2^x multiplier, used to calculate buffer size for next allocated pool.
+     * @param baseBufferSize the base size of the buffer for the 1st pool, every next pool n will have buffer size equal to bufferSize(n-1) * 2^growthFactor
+     * @param numberOfPools the number of pools, responsible for allocation of buffers of a pool-specific size
+     * @param growthFactor the buffer size growth factor, that defines 2^x multiplier, used to calculate buffer size for next allocated pool
      * @param numberOfPoolSlices the number of pool slices that every pool will stripe allocation requests across
-     * @param percentOfHeap percentage of the heap that will be used when populating the pools.
+     * @param percentOfHeap percentage of the heap that will be used when populating the pools
+     * @param percentPreallocated percentage of buffers to be preallocated during MemoryManager initialization
      */
     public PooledMemoryManager(
             final int baseBufferSize,
             final int numberOfPools,
             final int growthFactor,
             final int numberOfPoolSlices,
-            final float percentOfHeap) {
+            final float percentOfHeap,
+            final float percentPreallocated) {
         if (baseBufferSize <= 0) {
             throw new IllegalArgumentException("baseBufferSize must be greater than zero");
         }
@@ -169,16 +176,20 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         }
 
         if (percentOfHeap <= 0.0f || percentOfHeap >= 1.0f) {
-            throw new IllegalArgumentException("percentOfHeap must be greater than zero and less than 1.");
+            throw new IllegalArgumentException("percentOfHeap must be greater than zero and less than 1");
         }
         
+        if (percentPreallocated < 0.0f || percentPreallocated > 1.0f) {
+            throw new IllegalArgumentException("percentPreallocated must be greater or equal to zero and less or equal to 1");
+        }
+
         final long heapSize = Runtime.getRuntime().maxMemory();
         final long memoryPerSubPool = (long) (heapSize * percentOfHeap / numberOfPools);
 
         pools = new Pool[numberOfPools];
         for (int i = 0, bufferSize = baseBufferSize; i < numberOfPools; i++, bufferSize <<= growthFactor) {
             pools[i] = new Pool(bufferSize, memoryPerSubPool,
-                    numberOfPoolSlices, monitoringConfig);
+                    numberOfPoolSlices, percentPreallocated, monitoringConfig);
         }
         maxPooledBufferSize = pools[numberOfPools - 1].bufferSize;
     }
@@ -453,7 +464,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         private final int bufferSize;
 
         public Pool(final int bufferSize, final long memoryPerSubPool,
-                final int numberOfPoolSlices,
+                final int numberOfPoolSlices, final float percentPreallocated,
                 final DefaultMonitoringConfig<MemoryProbe> monitoringConfig) {
             this.bufferSize = bufferSize;
             slices = new PoolSlice[numberOfPoolSlices];
@@ -461,7 +472,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             
             for (int i = 0; i < numberOfPoolSlices; i++) {
                 slices[i] = new PoolSlice(this, memoryPerSlice, bufferSize,
-                        monitoringConfig);
+                        percentPreallocated, monitoringConfig);
             }
         }
 
@@ -556,8 +567,8 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
         // Maintain two different pointers for reading/writing to reduce
         // contention.
-        private final PaddedAtomicInteger pollIdx = new PaddedAtomicInteger(0);
-        private final PaddedAtomicInteger offerIdx = new PaddedAtomicInteger(WRAP_BIT_MASK);
+        private final PaddedAtomicInteger pollIdx;
+        private final PaddedAtomicInteger offerIdx;
 
         // The Pool this slice belongs to
         private final Pool owner;
@@ -581,6 +592,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         PoolSlice(final Pool owner,
                    final long totalPoolSize,
                    final int bufferSize,
+                   final float percentPreallocated,
                    final DefaultMonitoringConfig<MemoryProbe> monitoringConfig) {
 
             this.owner = owner;
@@ -602,13 +614,22 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             }
 
             pool1 = new PaddedAtomicReferenceArray<PoolBuffer>(maxPoolSize);
-            for (int i = 0; i < maxPoolSize; i++) {
+            
+            final int preallocatedBufs = Math.min(maxPoolSize,
+                    (int) (percentPreallocated * maxPoolSize));
+            
+            int idx = 0;
+            
+            for (int i = 0; i < preallocatedBufs; i++, idx = nextIndex(idx)) {
                 PoolBuffer b = allocate();
                 b.allowBufferDispose(true);
                 b.free = true;
-                pool1.lazySet(i, b);
+                pool1.lazySet(idx, b);
             }
             pool2 = new PaddedAtomicReferenceArray<PoolBuffer>(maxPoolSize);
+            
+            pollIdx = new PaddedAtomicInteger(0);
+            offerIdx = new PaddedAtomicInteger(idx);
         }
 
 
@@ -708,6 +729,14 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                             (ridx ^ widx) & WRAP_BIT_MASK));
         }
 
+        /**
+         * @return the max number of {@link Buffer}s, that could be pooled in
+         * this <tt>PoolSlice</tt>
+         */
+        public int getMaxElementsCount() {
+            return maxPoolSize;
+        }
+        
         public final long size() {
             return (long) elementsCount() * (long) bufferSize;
         }
