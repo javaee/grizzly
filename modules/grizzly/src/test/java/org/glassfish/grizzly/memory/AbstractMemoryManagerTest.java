@@ -37,12 +37,8 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly;
+package org.glassfish.grizzly.memory;
 
-import org.glassfish.grizzly.memory.ByteBufferManager;
-import org.glassfish.grizzly.memory.HeapMemoryManager;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;

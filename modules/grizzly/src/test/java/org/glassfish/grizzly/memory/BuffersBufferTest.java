@@ -38,11 +38,8 @@
  * holder.
  */
 
-package org.glassfish.grizzly;
+package org.glassfish.grizzly.memory;
 
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.BuffersBuffer;
-import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
 import org.junit.runner.RunWith;

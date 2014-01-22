@@ -38,18 +38,14 @@
  * holder.
  */
 
-package org.glassfish.grizzly;
+package org.glassfish.grizzly.memory;
 
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.ByteBufferManager;
-import org.glassfish.grizzly.memory.HeapBuffer;
-import org.glassfish.grizzly.memory.HeapMemoryManager;
-import org.glassfish.grizzly.memory.PooledMemoryManager;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.nio.ByteBuffer;
+import org.glassfish.grizzly.Buffer;
 
 import static org.junit.Assert.assertEquals;
 

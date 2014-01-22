@@ -49,7 +49,7 @@ import java.nio.ReadOnlyBufferException;
  *
  * @since 2.0
  */
-final class ReadOnlyHeapBuffer extends HeapBuffer {
+class ReadOnlyHeapBuffer extends HeapBuffer {
 
 
     // ------------------------------------------------------------ Constructors
@@ -174,7 +174,7 @@ final class ReadOnlyHeapBuffer extends HeapBuffer {
     }
 
     @Override
-    protected HeapBuffer createHeapBuffer(int offset, int capacity) {
+    protected HeapBuffer createHeapBuffer(final int offset, final int capacity) {
         return new ReadOnlyHeapBuffer(heap, offset, capacity);
     }
 

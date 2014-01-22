@@ -48,6 +48,7 @@ import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.locks.LockSupport;
 
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
@@ -65,6 +66,7 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
  *     <li>The number of pool slices that every pool will stripe allocation requests across</li>
  *     <li>The percentage of the heap that this manager will use when populating the pools</li>
  *     <li>The percentage of buffers to be preallocated during MemoryManager initialization</li>
+ *     <li>The flag indicating whether direct or heap based {@link Buffer}s will be allocated</li>
  * </ul>
  *
  * If no explicit configuration is provided, the following defaults will be used:
@@ -75,6 +77,7 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
  *     <li>Number of pool slices: Based on the return value of <code>Runtime.getRuntime().availableProcessors()</code></li>
  *     <li>Percentage of heap: 10% ({@link #DEFAULT_HEAP_USAGE_PERCENTAGE})</li>
  *     <li>Percentage of buffers to be preallocated: 100% ({@link #DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE})</li>
+ *     <li>Heap based {@link Buffer}s will be allocated</li>
  * </ul>
  *
  * The main advantage of this manager over {@link org.glassfish.grizzly.memory.HeapMemoryManager} or
@@ -91,7 +94,12 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     
     public static final float DEFAULT_HEAP_USAGE_PERCENTAGE = 0.1f;
     public static final float DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE = 1.0f;
+    
+    private static final boolean FORCE_BYTE_BUFFER_BASED_BUFFERS =
+            Boolean.getBoolean(PooledMemoryManager.class + ".force-byte-buffer-based-buffers");
 
+    private static final long BACK_OFF_DELAY = Long.getLong(
+            PooledMemoryManager.class + ".back-off-delay", 0l);
     /**
      * Basic monitoring support.  Concrete implementations of this class need
      * only to implement the {@link #createJmxManagementObject()}  method
@@ -134,10 +142,25 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 DEFAULT_GROWTH_FACTOR,
                 Runtime.getRuntime().availableProcessors(),
                 DEFAULT_HEAP_USAGE_PERCENTAGE,
-                DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE);
+                DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE,
+                false);
     }
 
-
+    /**
+     * Creates a new <code>PooledMemoryManager</code> using the specified parameters for configuration.
+     *
+     * @param isDirect flag, indicating whether direct or heap based {@link Buffer}s will be allocated
+     */
+    public PooledMemoryManager(final boolean isDirect) {
+        this(DEFAULT_BASE_BUFFER_SIZE,
+                DEFAULT_NUMBER_OF_POOLS,
+                DEFAULT_GROWTH_FACTOR,
+                Runtime.getRuntime().availableProcessors(),
+                DEFAULT_HEAP_USAGE_PERCENTAGE,
+                DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE,
+                isDirect);
+    }
+    
     /**
      * Creates a new <code>PooledMemoryManager</code> using the specified parameters for configuration.
      *
@@ -147,6 +170,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
      * @param numberOfPoolSlices the number of pool slices that every pool will stripe allocation requests across
      * @param percentOfHeap percentage of the heap that will be used when populating the pools
      * @param percentPreallocated percentage of buffers to be preallocated during MemoryManager initialization
+     * @param isDirect flag, indicating whether direct or heap based {@link Buffer}s will be allocated
      */
     public PooledMemoryManager(
             final int baseBufferSize,
@@ -154,7 +178,8 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             final int growthFactor,
             final int numberOfPoolSlices,
             final float percentOfHeap,
-            final float percentPreallocated) {
+            final float percentPreallocated,
+            final boolean isDirect) {
         if (baseBufferSize <= 0) {
             throw new IllegalArgumentException("baseBufferSize must be greater than zero");
         }
@@ -189,7 +214,8 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         pools = new Pool[numberOfPools];
         for (int i = 0, bufferSize = baseBufferSize; i < numberOfPools; i++, bufferSize <<= growthFactor) {
             pools[i] = new Pool(bufferSize, memoryPerSubPool,
-                    numberOfPoolSlices, percentPreallocated, monitoringConfig);
+                    numberOfPoolSlices, percentPreallocated, isDirect,
+                    monitoringConfig);
         }
         maxPooledBufferSize = pools[numberOfPools - 1].bufferSize;
     }
@@ -257,7 +283,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 final PoolBuffer oldPoolBuffer = (PoolBuffer) oldBuffer;
                 
                 final Pool newPool = getPoolFor(newSize);
-                if (newPool != oldPoolBuffer.owner.owner) {
+                if (newPool != oldPoolBuffer.owner().owner) {
                     final int pos = Math.min(oldPoolBuffer.position(), newSize);
 
                     final Buffer newPoolBuffer = newPool.allocate();
@@ -365,14 +391,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     }
 
 
-    // ---------------------------------------------------------- Public Methods
-
-
-    public Pool[] getPools() {
-        return Arrays.copyOf(pools, pools.length);
-    }
-
-
     // ------------------------------------------------------- Protected Methods
 
 
@@ -383,7 +401,11 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 PooledMemoryManager.class);
     }
 
-
+    
+    Pool[] getPools() {
+        return Arrays.copyOf(pools, pools.length);
+    }
+    
     // --------------------------------------------------------- Private Methods
 
 
@@ -459,12 +481,13 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         return value;
     }
 
-    public static class Pool {
+    static final class Pool {
         private final PoolSlice[] slices;
         private final int bufferSize;
 
         public Pool(final int bufferSize, final long memoryPerSubPool,
                 final int numberOfPoolSlices, final float percentPreallocated,
+                final boolean isDirect,
                 final DefaultMonitoringConfig<MemoryProbe> monitoringConfig) {
             this.bufferSize = bufferSize;
             slices = new PoolSlice[numberOfPoolSlices];
@@ -472,7 +495,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             
             for (int i = 0; i < numberOfPoolSlices; i++) {
                 slices[i] = new PoolSlice(this, memoryPerSlice, bufferSize,
-                        percentPreallocated, monitoringConfig);
+                        percentPreallocated, isDirect, monitoringConfig);
             }
         }
 
@@ -503,9 +526,8 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             if (b == null) {
                 b = slice.allocate();
             }
-            b.allowBufferDispose(true);
-            b.free = false;
-            return b;
+            
+            return b.prepare();
         }
 
         @Override
@@ -546,7 +568,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
      *   The same logic is applied to determine if the pool is empty, except
      *   the bits are not equal.
      */
-    public static class PoolSlice {
+    static final class PoolSlice {
 
         // Stride is calculate as 2^LOG2_STRIDE
         private static final int LOG2_STRIDE = 4;
@@ -581,6 +603,9 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         
         // individual buffer size.
         private final int bufferSize;
+        
+        // flag, indicating if heap or direct Buffers will be allocated
+        private final boolean isDirect;
 
         // MemoryProbe configuration.
         private final DefaultMonitoringConfig<MemoryProbe> monitoringConfig;
@@ -593,10 +618,12 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                    final long totalPoolSize,
                    final int bufferSize,
                    final float percentPreallocated,
+                   final boolean isDirect,
                    final DefaultMonitoringConfig<MemoryProbe> monitoringConfig) {
 
             this.owner = owner;
             this.bufferSize = bufferSize;
+            this.isDirect = isDirect;
             this.monitoringConfig = monitoringConfig;
             int initialSize = (int) (totalPoolSize / ((long) bufferSize));
 
@@ -621,10 +648,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             int idx = 0;
             
             for (int i = 0; i < preallocatedBufs; i++, idx = nextIndex(idx)) {
-                PoolBuffer b = allocate();
-                b.allowBufferDispose(true);
-                b.free = true;
-                pool1.lazySet(idx, b);
+                pool1.lazySet(idx, allocate().free(true));
             }
             pool2 = new PaddedAtomicReferenceArray<PoolBuffer>(maxPoolSize);
             
@@ -651,6 +675,8 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 if (this.pollIdx.compareAndSet(pollIdx, nextPollIdx)) {
                     break;
                 }
+                
+                LockSupport.parkNanos(BACK_OFF_DELAY);
             }
             
             final int unmaskedPollIdx = unmask(pollIdx);
@@ -670,10 +696,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         }
 
         public final boolean offer(final PoolBuffer b) {
-            if (b.owner != this) {
-                return false;
-            }
-            
             int offerIdx;
             for (;;) {
                 offerIdx = this.offerIdx.get();
@@ -687,6 +709,8 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 if (this.offerIdx.compareAndSet(offerIdx, nextOfferIndex)) {
                     break;
                 }
+                
+                LockSupport.parkNanos(BACK_OFF_DELAY);
             }
             
             final int unmaskedOfferIdx = unmask(offerIdx);
@@ -747,9 +771,18 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         }
 
         public PoolBuffer allocate() {
-            final PoolBuffer buffer = new PoolBuffer(
-                    ByteBuffer.allocate(bufferSize),
-                    this);
+            final PoolBuffer buffer =
+                    (isDirect || FORCE_BYTE_BUFFER_BASED_BUFFERS) ?
+
+                    // if isDirect || FORCE_BYTE_BUFFER - allocate ByteBufferWrapper
+                    new PoolByteBufferWrapper(isDirect ?
+                            ByteBuffer.allocateDirect(bufferSize) :
+                            ByteBuffer.allocate(bufferSize), this) :
+                    
+                    // otherwise use HeapBuffer
+                    new PoolHeapBuffer(new byte[bufferSize], this);
+                    
+            
             ProbeNotifier.notifyBufferAllocated(monitoringConfig, bufferSize);
             return buffer;
         }
@@ -865,7 +898,16 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     } // END BufferPool
 
 
-    public static class PoolBuffer extends ByteBufferWrapper {
+    static interface PoolBuffer extends Buffer {
+        public PoolBuffer prepare();
+        public boolean free();
+        public PoolBuffer free(boolean free);
+
+        public PoolSlice owner();
+    }
+    
+    private static final class PoolHeapBuffer extends HeapBuffer
+            implements PoolBuffer {
 
         // The pool slice to which this Buffer instance will be returned.
         private final PoolSlice owner;
@@ -881,13 +923,9 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
         // represents the original buffer from the pool.  This value will be
         // non-null in any 'child' buffers created from the original.
-        protected final PoolBuffer source;
+        protected final PoolHeapBuffer source;
 
-        // Used for the special case of the split() method.  This maintains
-        // the original wrapper from the pool which must ultimately be returned.
-        private ByteBuffer origVisible;
-
-
+        
         // ------------------------------------------------------------ Constructors
 
 
@@ -899,7 +937,231 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          * @param owner the {@link org.glassfish.grizzly.memory.PooledMemoryManager.PoolSlice} that owns
          *              this <tt>PoolBuffer</tt> instance.
          */
-        PoolBuffer(final ByteBuffer underlyingByteBuffer,
+        private PoolHeapBuffer(final byte[] heap,
+                   final PoolSlice owner) {
+            this(heap, 0, heap.length, owner, null, new AtomicInteger());
+        }
+
+        /**
+         * Creates a new PoolBuffer instance wrapping the specified
+         * {@link java.nio.ByteBuffer}.
+         *
+         * @param underlyingByteBuffer the {@link java.nio.ByteBuffer} instance to wrap.
+         * @param owner                the {@link org.glassfish.grizzly.memory.PooledMemoryManager.PoolSlice} that owns
+         *                             this <tt>PoolBuffer</tt> instance.
+         *                             May be <tt>null</tt>.
+         * @param source               the <tt>PoolBuffer</tt> that is the
+         *                             'parent' of this new buffer instance.  May be <tt>null</tt>.
+         * @param shareCount          shared reference to an {@link java.util.concurrent.atomic.AtomicInteger} that enables
+         *                             shared buffer book-keeping.
+         *
+         * @throws IllegalArgumentException if <tt>underlyingByteBuffer</tt> or <tt>shareCount</tt>
+         *                                  are <tt>null</tt>.
+         */
+        private PoolHeapBuffer(final byte[] heap, final int offs, final int cap,
+                           final PoolSlice owner,
+                           final PoolHeapBuffer source,
+                           final AtomicInteger shareCount) {
+            super(heap, offs, cap);
+            if (heap == null) {
+                throw new IllegalArgumentException("heap cannot be null.");
+            }
+            if (shareCount == null) {
+                throw new IllegalArgumentException("shareCount cannot be null");
+            }
+
+            this.owner = owner;
+            this.shareCount = shareCount;
+            this.source = source != null ? source : this;
+        }
+
+        @Override
+        public PoolBuffer prepare() {
+            allowBufferDispose = true;
+            free = false;
+            
+            return this;
+        }
+
+        @Override
+        public PoolSlice owner() {
+            return owner;
+        }
+        
+        @Override
+        public boolean free() {
+            return free;
+        }
+
+        @Override
+        public PoolBuffer free(final boolean free) {
+            this.free = free;
+            return this;
+        }
+        
+        // ------------------------------------------ Methods from HeapBuffer
+
+        @Override
+        public HeapBuffer asReadOnlyBuffer() {
+            final HeapBuffer b = asReadOnlyBuffer(offset, cap);
+            
+            b.pos = pos;
+            b.lim = lim;
+            return b;            
+        }
+
+
+        private HeapBuffer asReadOnlyBuffer(final int offset, final int cap) {
+            checkDispose();
+
+            onShareHeap();
+            final HeapBuffer b = new ReadOnlyHeapBuffer(heap, offset, cap) {
+
+                @Override
+                public void dispose() {
+                    super.dispose();
+                    PoolHeapBuffer.this.dispose0();
+                }
+
+                
+                @Override
+                protected void onShareHeap() {
+                    PoolHeapBuffer.this.onShareHeap();
+                }
+
+                @Override
+                protected HeapBuffer createHeapBuffer(final int offset,
+                        final int capacity) {
+                    return PoolHeapBuffer.this.asReadOnlyBuffer(offset, capacity);
+                }
+            };
+            
+            b.allowBufferDispose(true);
+            
+            return b;            
+        }
+        
+        @Override
+        public void dispose() {
+            if (free) {
+                return;
+            }
+            free = true;
+            
+            dispose0();
+        }
+
+        private void dispose0() {
+            // check shared counter optimistically
+            boolean isNotShared = shareCount.get() == 0;
+            if (!isNotShared) {
+                // try pessimistic check using CAS loop
+                isNotShared = (shareCount.getAndDecrement() == 0);
+                if (isNotShared) {
+                    // if the former check is true - the shared counter is negative,
+                    // so we have to reset it
+                    shareCount.set(0);
+                }
+            }
+            
+            if (isNotShared) {
+                // we can now safely return source back to the queue
+                source.returnToPool();
+            }
+        }
+
+
+        private void returnToPool() {
+            // restore capacity
+            cap = heap.length;
+            // clear
+            clear();
+            
+            owner.offer(this);
+        }
+        
+        // ----------------------------------------------------- Protected Methods
+        
+        /**
+         * Override the default implementation to check the <tt>free</tt> status
+         * of this buffer (i.e., once released, operations on the buffer will no
+         * longer succeed).
+         */
+        @Override
+        protected final void checkDispose() {
+            if (free) {
+                throw new IllegalStateException(
+                        "PoolBuffer has already been disposed",
+                        disposeStackTrace);
+            }
+        }
+        
+        /**
+         * Create a new {@link HeapBuffer} based on the current heap.
+         * 
+         * @param offs relative offset, the absolute value will calculated as (this.offset + offs)
+         * @param capacity
+         * @return
+         */
+        @Override
+        protected HeapBuffer createHeapBuffer(final int offs, final int capacity) {
+            onShareHeap();
+
+            final PoolHeapBuffer b =
+                    new PoolHeapBuffer(heap, offs + offset, capacity,
+                            null, // don't keep track of the owner for child buffers
+                            source, // pass the 'parent' buffer along
+                            shareCount); // pass the shareCount
+            b.allowBufferDispose(true);
+
+            return b;
+        }
+
+        @Override
+        protected void onShareHeap() {
+            super.onShareHeap();
+            
+            shareCount.incrementAndGet();
+        }
+    } // END PoolBuffer
+
+    
+    private static final class PoolByteBufferWrapper extends ByteBufferWrapper
+            implements PoolBuffer {
+
+        // The pool slice to which this Buffer instance will be returned.
+        private final PoolSlice owner;
+
+        // When this Buffer instance resides in the pool, this flag will
+        // be true.
+        boolean free;
+
+        // represents the number of 'child' buffers that have been created using
+        // this as the foundation.  This source buffer can't be returned
+        // to the pool unless this value is zero.
+        protected final AtomicInteger shareCount;
+
+        // represents the original buffer from the pool.  This value will be
+        // non-null in any 'child' buffers created from the original.
+        protected final PoolByteBufferWrapper source;
+
+        // Used for the special case of the split() method.  This maintains
+        // the original wrapper from the pool which must ultimately be returned.
+        private final ByteBuffer origVisible;
+        
+        
+        // ------------------------------------------------------------ Constructors
+
+
+        /**
+         * Creates a new PoolBuffer instance wrapping the specified
+         * {@link java.nio.ByteBuffer}.
+         *
+         * @param underlyingByteBuffer the {@link java.nio.ByteBuffer} instance to wrap.
+         * @param owner the {@link org.glassfish.grizzly.memory.PooledMemoryManager.PoolSlice} that owns
+         *              this <tt>PoolBuffer</tt> instance.
+         */
+        private PoolByteBufferWrapper(final ByteBuffer underlyingByteBuffer,
                    final PoolSlice owner) {
             this(underlyingByteBuffer, owner, null, new AtomicInteger());
         }
@@ -920,9 +1182,9 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          * @throws IllegalArgumentException if <tt>underlyingByteBuffer</tt> or <tt>shareCount</tt>
          *                                  are <tt>null</tt>.
          */
-        private PoolBuffer(final ByteBuffer underlyingByteBuffer,
+        private PoolByteBufferWrapper(final ByteBuffer underlyingByteBuffer,
                            final PoolSlice owner,
-                           final PoolBuffer source,
+                           final PoolByteBufferWrapper source,
                            final AtomicInteger shareCount) {
             super(underlyingByteBuffer);
             if (underlyingByteBuffer == null) {
@@ -934,61 +1196,84 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
 
             this.owner = owner;
             this.shareCount = shareCount;
-            this.source = source;
+            this.source = source != null ? source : this;
+            
+            assert this.source != null;
+            
+            this.origVisible = this.source.visible;
         }
 
+        @Override
+        public PoolBuffer prepare() {
+            allowBufferDispose = true;
+            free = false;
+            return this;
+        }
 
+        @Override
+        public PoolSlice owner() {
+            return owner;
+        }
+        
+        @Override
+        public boolean free() {
+            return free;
+        }
+
+        @Override
+        public PoolBuffer free(final boolean free) {
+            this.free = free;
+            return this;
+        }
+        
         // ------------------------------------------ Methods from ByteBufferWrapper
-
-
-        /**
-         * Overrides the default behavior to only consider a buffer disposed when
-         * it is no longer shared.  When invoked and this buffer isn't shared,
-         * the buffer will be cleared and returned back to the pool.
-         */
+        
         @Override
         public void dispose() {
             if (free) {
                 return;
             }
             free = true;
-            // if shared count is greater than 0, decrement and take no further
-            // action
-            if (shareCount.get() != 0) {
-                shareCount.decrementAndGet();
-            } else {
-                // if source is available and has been disposed, we can now
-                // safely return source back to the queue
-                if (source != null && source.free) {
-                    // this block will be executed if this buffer was split.
-                    if (source.origVisible != null) {
-                        source.visible = source.origVisible;
-                    }
-                    source.visible.clear();
-                    if (!source.owner.offer(source)) {
-                        // queue couldn't accept the buffer, allow GC to reclaim it
-                        source.visible = null;
-                    }
-                } else {
-                    // this block executes in the simple case where the original
-                    // buffer is allocated and returned to the pool without sharing
-                    // the data across multiple buffer instances
-                    if (owner != null) {
-                        // this block will be executed if this buffer was split.
-                        if (origVisible != null) {
-                            visible = origVisible;
-                        }
-                        visible.clear();
-                        if (!owner.offer(this)) {
-                            // queue couldn't accept the buffer, allow GC to reclaim it
-                            visible = null;
-                        }
-                    }
-                }
-            }
+            
+            dispose0();
         }
 
+        private void dispose0() {
+            // check shared counter optimistically
+            boolean isNotShared = shareCount.get() == 0;
+            if (!isNotShared) {
+                // try pessimistic check using CAS loop
+                isNotShared = (shareCount.getAndDecrement() == 0);
+                if (isNotShared) {
+                    // if the former check is true - the shared counter is negative,
+                    // so we have to reset it
+                    shareCount.set(0);
+                }
+            }
+            
+            if (isNotShared) {
+                // we can now safely return source back to the queue
+                source.returnToPool();
+            }
+        }
+        
+        // ----------------------------------------------------- Protected Methods
 
+
+        @Override
+        protected ByteBufferWrapper wrapByteBuffer(final ByteBuffer buffer) {
+            final PoolByteBufferWrapper b =
+                    new PoolByteBufferWrapper(buffer,
+                            null, // don't keep track of the owner for child buffers
+                            source, // pass the 'parent' buffer along
+                            shareCount); // pass the shareCount
+            b.allowBufferDispose(true);
+            shareCount.incrementAndGet();
+
+            return b;
+        }
+        
+        
         /**
          * Override the default implementation to check the <tt>free</tt> status
          * of this buffer (i.e., once released, operations on the buffer will no
@@ -1002,87 +1287,14 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                         disposeStackTrace);
             }
         }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public Buffer split(final int splitPosition) {
-            checkDispose();
-            final int oldPosition = position();
-            final int oldLimit = limit();
-            // we have to save the original ByteBuffer before we split
-            // in order to restore the result prior to returning the result
-            // to the pool.
-            origVisible = visible;
-            Buffers.setPositionLimit(visible, 0, splitPosition);
-            ByteBuffer slice1 = visible.slice();
-            Buffers.setPositionLimit(visible, splitPosition, visible.capacity());
-            ByteBuffer slice2 = visible.slice();
-
-            if (oldPosition < splitPosition) {
-                slice1.position(oldPosition);
-            } else {
-                slice1.position(slice1.capacity());
-                slice2.position(oldPosition - splitPosition);
-            }
-
-            if (oldLimit < splitPosition) {
-                slice1.limit(oldLimit);
-                slice2.limit(0);
-            } else {
-                slice2.limit(oldLimit - splitPosition);
-            }
-
-
-            this.visible = slice1;
-
-            return wrap(slice2);
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public ByteBufferWrapper asReadOnlyBuffer() {
-            checkDispose();
-            return wrap(visible.asReadOnlyBuffer());
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public ByteBufferWrapper duplicate() {
-            checkDispose();
-            return wrap(visible.duplicate());
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public ByteBufferWrapper slice() {
-            checkDispose();
-            return wrap(visible.slice());
-        }
-
-
+        
         // ----------------------------------------------------- Private Methods
-
-
-        private ByteBufferWrapper wrap(final ByteBuffer buffer) {
-            final PoolBuffer b =
-                    new PoolBuffer(buffer,
-                            null, // don't keep track of the owner for child buffers
-                            ((source == null) ? this : source), // pass the 'parent' buffer along
-                            shareCount); // pass the shareCount
-            b.allowBufferDispose(true);
-            b.shareCount.incrementAndGet();
-
-            return b;
+        
+        private void returnToPool() {
+            // should be called on "source" only
+            visible = origVisible;
+            visible.clear();
+            owner.offer(this);
         }
-
-    } // END PoolBuffer
-
+    } // END PoolBuffer    
 }
