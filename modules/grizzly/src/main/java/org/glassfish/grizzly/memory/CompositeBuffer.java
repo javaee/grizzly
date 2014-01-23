@@ -40,14 +40,13 @@
 
 package org.glassfish.grizzly.memory;
 
-import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.Buffer;
 
 /**
  *
  * @author Alexey Stashok
  */
-public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
+public abstract class CompositeBuffer implements Buffer {
     /**
      * The order in which internal {@link Buffer}s will be disposed.
      */
@@ -102,6 +101,8 @@ public abstract class CompositeBuffer implements Buffer, Appendable<Buffer> {
         this.disposeOrder = disposeOrder;
         return this;
     }
+    
+    public abstract CompositeBuffer append(Buffer buffer);
     
     @Override
     public abstract Object[] underlying();

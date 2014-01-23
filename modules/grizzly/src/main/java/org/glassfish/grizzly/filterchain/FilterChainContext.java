@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -520,10 +520,10 @@ public final class FilterChainContext implements AttributeStorage {
             return INVOKE_ACTION;
         }
         
-        if (appender == null && !(incompleteChunk instanceof Appendable)) {
+        if (appender == null) {
             if (incompleteChunk instanceof Buffer) {
                 appender = (Appender<E>) Buffers.getBufferAppender(true);
-            } else {
+            } else if (!(incompleteChunk instanceof Appendable)) {
                 throw new IllegalArgumentException("Remainder has to be either "
                         + Buffer.class.getName() + " or " + Appendable.class.getName() +
                         " but was " + incompleteChunk.getClass().getName());
