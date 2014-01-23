@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,40 +40,76 @@
 package org.glassfish.grizzly.memory;
 
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.nio.SelectionKeyHandler;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.glassfish.grizzly.memory.DefaultMemoryManagerFactory.DMMF_PROP_NAME;
+
 class MemoryManagerInitializer {
 
-    private static final String PROP = "org.glassfish.grizzly.DEFAULT_MEMORY_MANAGER";
+    private static final String DMM_PROP_NAME =
+            "org.glassfish.grizzly.DEFAULT_MEMORY_MANAGER";
 
-        private static final Logger LOGGER = Grizzly.logger(MemoryManagerInitializer.class);
+    private static final Logger LOGGER =
+            Grizzly.logger(MemoryManagerInitializer.class);
 
-        @SuppressWarnings("unchecked")
-        static MemoryManager initManager() {
-            final String className = System.getProperty(PROP);
-            if (className != null) {
-                try {
-                    Class<? extends MemoryManager> mmClass = (Class<? extends MemoryManager>)
-                            Class.forName(className,
-                                          true,
-                                          SelectionKeyHandler.class.getClassLoader());
-                    return mmClass.newInstance();
-                } catch (Exception e) {
-                    if (LOGGER.isLoggable(Level.SEVERE)) {
-                        LOGGER.log(Level.SEVERE,
-                                "Unable to load or create a new instance of MemoryManager {0}.  Cause: {1}",
-                                new Object[]{className, e.getMessage()});
-                    }
-                    if (LOGGER.isLoggable(Level.FINE)) {
-                        LOGGER.log(Level.FINE, e.toString(), e);
-                    }
-                    return new HeapMemoryManager();
-                }
+
+    // ------------------------------------------------- Package-Private Methods
+
+
+    static MemoryManager initManager() {
+
+        final MemoryManager mm = initMemoryManagerViaFactory();
+        return (mm != null) ? mm : initMemoryManagerFallback();
+
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    @SuppressWarnings("unchecked")
+    private static MemoryManager initMemoryManagerViaFactory() {
+        String dmmfClassName = System.getProperty(DMMF_PROP_NAME);
+        if (dmmfClassName != null) {
+            final DefaultMemoryManagerFactory mmf = newInstance(dmmfClassName);
+            if (mmf != null) {
+                return mmf.createMemoryManager();
             }
-            return new HeapMemoryManager();
         }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static MemoryManager initMemoryManagerFallback() {
+        final String className = System.getProperty(DMM_PROP_NAME);
+        final MemoryManager mm = newInstance(className);
+        return (mm != null) ? mm : new HeapMemoryManager();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T newInstance(final String className) {
+        if (className == null) {
+            return null;
+        }
+        try {
+            Class clazz =
+                    Class.forName(className,
+                                  true,
+                                  MemoryManager.class.getClassLoader());
+            return (T) clazz.newInstance();
+        } catch (Exception e) {
+            if (LOGGER.isLoggable(Level.SEVERE)) {
+                LOGGER.log(Level.SEVERE,
+                           "Unable to load or create a new instance of Class {0}.  Cause: {1}",
+                           new Object[]{className, e.getMessage()});
+            }
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, e.toString(), e);
+            }
+            return null;
+        }
+    }
 
 }
