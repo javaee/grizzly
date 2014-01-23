@@ -255,7 +255,8 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         buffersSize++;
         calcCapacity();
-        limit = capacity;
+        position = 0;
+        limit += buffer.remaining();
 
         resetLastLocation();
 
@@ -1689,6 +1690,8 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         buffersSize = 0;
         disposeOrder = DisposeOrder.LAST_TO_FIRST;
+        allowBufferDispose = false;
+        allowInternalBuffersDispose = true;
         resetLastLocation();
     }
 

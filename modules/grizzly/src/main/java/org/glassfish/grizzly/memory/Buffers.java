@@ -107,7 +107,7 @@ public class Buffers {
     public static final Buffer EMPTY_BUFFER;
 
     static {
-        EMPTY_BUFFER = new ByteBufferWrapper(ByteBuffer.allocate(0).asReadOnlyBuffer()) {
+        EMPTY_BUFFER = new ByteBufferWrapper(ByteBuffer.allocate(0)) {
             @Override
             public void dispose() {
             }
@@ -461,11 +461,10 @@ public class Buffers {
         // view of the data.  So instead, we allocate a new CompositeBuffer
         // and append buffer1 and buffer2 to it.  The underlying buffers
         // aren't changed so the limit they have is maintained.
-        final boolean buffer1LimIsCap = buffer1.capacity() == buffer1.limit();
-        if (buffer1.isComposite() && buffer1LimIsCap) {
+        if (buffer1.isComposite() && (buffer1.capacity() == buffer1.limit())) {
             ((CompositeBuffer) buffer1).append(buffer2);
             return buffer1;
-        } if (buffer2.isComposite() && buffer1LimIsCap) {
+        } if (buffer2.isComposite() && (buffer2.position() == 0)) {
             ((CompositeBuffer) buffer2).prepend(buffer1);
             return buffer2;
         } else {
@@ -582,6 +581,10 @@ public class Buffers {
     public static Buffer cloneBuffer(final Buffer srcBuffer,
             final int position, final int limit) {
         final int srcLength = limit - position;
+        if (srcLength == 0) { // make sure clone doesn't return EMPTY_BUFFER 
+            return wrap(getDefaultMemoryManager(), EMPTY_BYTE_BUFFER);
+        }
+        
         final Buffer clone = getDefaultMemoryManager().allocate(srcLength);
         clone.put(srcBuffer, position, srcLength);
 
