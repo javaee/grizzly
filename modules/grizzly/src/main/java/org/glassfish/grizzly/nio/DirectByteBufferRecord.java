@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,68 +37,130 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.nio;
 
 import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.memory.Buffers;
 
 /**
  * Thread-local Direct {@link ByteBuffer} storage.
- * 
+ *
  * @author Alexey Stashok
  */
 public final class DirectByteBufferRecord {
-    ByteBuffer strongRef;
-    private SoftReference<ByteBuffer> softRef;
 
     private static final ThreadCache.CachedTypeIndex<DirectByteBufferRecord> CACHE_IDX =
             ThreadCache.obtainIndex("direct-buffer-cache", DirectByteBufferRecord.class, 1);
-    
-    public static DirectByteBufferRecord allocate(final int size) {
-        DirectByteBufferRecord record = ThreadCache.getFromCache(CACHE_IDX);
-        final ByteBuffer byteBuffer;
+
+    public static DirectByteBufferRecord get() {
+        final DirectByteBufferRecord record =
+                ThreadCache.getFromCache(CACHE_IDX);
         if (record != null) {
-            if ((byteBuffer = record.switchToStrong()) != null) {
-                if (byteBuffer.remaining() >= size) {
-                    return record;
-                }
-            }
-        } else {
-            record = new DirectByteBufferRecord();
-            ThreadCache.putToCache(CACHE_IDX, record);
+            return record;
         }
-
-        record.reset(ByteBuffer.allocateDirect(size));
-        return record;
-    }
-
-    public ByteBuffer getByteBuffer() {
-        return strongRef;
+        final DirectByteBufferRecord recordLocal = new DirectByteBufferRecord();
+        ThreadCache.putToCache(CACHE_IDX, recordLocal);
+        return recordLocal;
     }
     
-    void reset(final ByteBuffer byteBuffer) {
-        strongRef = byteBuffer;
-        softRef = null;
+    
+    private ByteBuffer directBuffer;
+    private int sliceOffset;
+    private ByteBuffer directBufferSlice;
+    private SoftReference<ByteBuffer> softRef;
+    private ByteBuffer array[];
+    private int arraySize;
+
+    DirectByteBufferRecord() {
+        array = new ByteBuffer[8];
+    }
+
+    public ByteBuffer getDirectBuffer() {
+        return directBuffer;
+    }
+
+    public ByteBuffer getDirectBufferSlice() {
+        return directBufferSlice;
+    }
+
+    public ByteBuffer allocate(final int size) {
+        ByteBuffer byteBuffer;
+        if ((byteBuffer = switchToStrong()) != null && byteBuffer.remaining() >= size) {
+            return byteBuffer;
+        } else {
+            byteBuffer = ByteBuffer.allocateDirect(size);
+            reset(byteBuffer);
+            return byteBuffer;
+        }
+    }
+        
+    public ByteBuffer sliceBuffer() {
+        int oldLim = directBuffer.limit();
+        Buffers.setPositionLimit(directBuffer, sliceOffset, directBuffer.capacity());
+        directBufferSlice = directBuffer.slice();
+        Buffers.setPositionLimit(directBuffer, 0, oldLim);
+        return directBufferSlice;
+    }
+
+    public void finishBufferSlice() {
+        if (directBufferSlice != null) {
+            directBufferSlice.flip();
+            sliceOffset += directBufferSlice.remaining();
+            directBufferSlice = null;
+        }
+    }
+
+    public ByteBuffer[] getArray() {
+        return array;
+    }
+
+    public int getArraySize() {
+        return arraySize;
+    }
+
+    public void putToArray(ByteBuffer byteBuffer) {
+        ensureArraySize();
+        array[arraySize++] = byteBuffer;
+    }
+
+    public void release() {
+        if (directBuffer != null) {
+            directBuffer.clear();
+            switchToSoft();
+        }
+        
+        Arrays.fill(array, 0, arraySize, null);
+        arraySize = 0;
+        directBufferSlice = null;
+        sliceOffset = 0;
     }
 
     ByteBuffer switchToStrong() {
-        if (strongRef == null && softRef != null) {
-            strongRef = softRef.get();
+        if (directBuffer == null && softRef != null) {
+            directBuffer = directBufferSlice = softRef.get();
         }
-        return strongRef;
+        return directBuffer;
     }
 
     void switchToSoft() {
-        if (strongRef != null && softRef == null) {
-            softRef = new SoftReference<ByteBuffer>(strongRef);
+        if (directBuffer != null && softRef == null) {
+            softRef = new SoftReference<ByteBuffer>(directBuffer);
         }
-        strongRef = null;
+        directBuffer = null;
     }
-    
-    public void release() {
-        strongRef.clear();
-        switchToSoft();
-//        ThreadCache.putToCache(CACHE_IDX, directByteBufferRecord);
+
+    void reset(ByteBuffer byteBuffer) {
+        directBuffer = directBufferSlice = byteBuffer;
+        softRef = null;
+    }
+
+    private void ensureArraySize() {
+        if (arraySize == array.length) {
+            array = Arrays.copyOf(array, (arraySize * 3) / 2 + 1);
+        }
     }
 }

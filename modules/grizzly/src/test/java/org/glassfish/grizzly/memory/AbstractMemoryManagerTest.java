@@ -37,38 +37,52 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.memory;
 
-package org.glassfish.grizzly.ssl;
+import org.junit.runners.Parameterized;
 
-import org.glassfish.grizzly.memory.ByteBufferWrapper;
-import org.glassfish.grizzly.nio.DirectByteBufferRecord;
+import java.util.Arrays;
+import java.util.Collection;
 
-/**
- * Input {@link org.glassfish.grizzly.Buffer} to read SSL packets to.
- * This {@link org.glassfish.grizzly.Buffer} has to be used by a Transport
- * to read data.
- * 
- * @author Alexey Stashok
- */
-final class InputBufferWrapper extends ByteBufferWrapper {
-    private DirectByteBufferRecord record;
+public class AbstractMemoryManagerTest {
 
-    public InputBufferWrapper() {
+    protected final MemoryManager mm;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> getOptimizedForMultiplexing() {
+        return Arrays.asList(new Object[][]{
+                {0},
+                {1},
+                {2},
+        });
     }
 
-    public InputBufferWrapper prepare(final int size) {
-        final DirectByteBufferRecord recordLocal = DirectByteBufferRecord.get();
-        this.record = recordLocal;
-        this.visible = recordLocal.allocate(size);
-        
-        return this;
+    public AbstractMemoryManagerTest(final int mmType) {
+        switch (mmType) {
+            case 0:
+                mm = createHeapMemoryManager();
+                break;
+            case 1:
+                mm = createByteBufferManager();
+                break;
+            case 2:
+                mm = createPooledMemoryManager();
+                break;
+            default:
+                throw new IllegalStateException("Unknown memory manager type");
+        }
     }
 
-    @Override
-    public void dispose() {
-        record.release();
-        record = null;
-        super.dispose();
+    protected PooledMemoryManager createPooledMemoryManager() {
+        return new PooledMemoryManager();
     }
-    
+
+    protected ByteBufferManager createByteBufferManager() {
+        return new ByteBufferManager();
+    }
+
+    protected HeapMemoryManager createHeapMemoryManager() {
+        return new HeapMemoryManager();
+    }
+
 }

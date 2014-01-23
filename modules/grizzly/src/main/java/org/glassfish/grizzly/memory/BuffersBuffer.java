@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,6 +57,8 @@ import org.glassfish.grizzly.utils.ArrayUtils;
  * @author Alexey Stashok
  */
 public final class BuffersBuffer extends CompositeBuffer {
+    public static volatile boolean DEBUG_MODE = false;
+
     private static final ThreadCache.CachedTypeIndex<BuffersBuffer> CACHE_IDX =
             ThreadCache.obtainIndex(BuffersBuffer.class,
                     Integer.getInteger(BuffersBuffer.class.getName() + ".bb-cache-size", 5));
@@ -96,6 +98,8 @@ public final class BuffersBuffer extends CompositeBuffer {
         return new BuffersBuffer(memoryManager, buffers, buffersSize, isReadOnly);
     }
 
+    protected Exception disposeStackTrace;
+    
     private MemoryManager memoryManager;
 
     private ByteOrder byteOrder = ByteOrder.BIG_ENDIAN; // parity with ByteBuffer
@@ -143,11 +147,9 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     private void set(final MemoryManager memoryManager, final Buffer[] buffers,
             final int buffersSize, final boolean isReadOnly) {
-        if (memoryManager != null) {
-            this.memoryManager = memoryManager;
-        } else {
-            this.memoryManager = MemoryManager.DEFAULT_MEMORY_MANAGER;
-        }
+        this.memoryManager = memoryManager != null
+                ? memoryManager
+                : MemoryManager.DEFAULT_MEMORY_MANAGER;
 
         if (buffers != null || this.buffers == null) {
             initBuffers(buffers, buffersSize);
@@ -158,15 +160,23 @@ public final class BuffersBuffer extends CompositeBuffer {
         this.isReadOnly = isReadOnly;
     }
 
-    private void initBuffers(Buffer[] buffers, int bufferSize) {
+    private void initBuffers(final Buffer[] buffers, final int bufferSize) {
         this.buffers = buffers != null ? buffers : new Buffer[4];
         this.buffersSize = bufferSize;
-        this.bufferBounds = new int[this.buffers.length];
+
+        if (bufferBounds == null || bufferBounds.length < this.buffers.length) {
+            bufferBounds = new int[this.buffers.length];
+        }
     }
 
-    private BuffersBuffer copy(BuffersBuffer that) {
+    private BuffersBuffer duplicateFrom(final BuffersBuffer that) {
         this.memoryManager = that.memoryManager;
-        initBuffers(Arrays.copyOf(that.buffers, that.buffers.length), that.buffersSize);
+
+        final Buffer[] ba = new Buffer[that.buffers.length];
+        for (int i = 0, len = that.buffersSize; i < len; i++) {
+            ba[i] = that.buffers[i].duplicate();
+        }
+        initBuffers(ba, that.buffersSize);
         System.arraycopy(that.bufferBounds, 0, this.bufferBounds, 0, that.buffersSize);
         
         this.position = that.position;
@@ -183,7 +193,7 @@ public final class BuffersBuffer extends CompositeBuffer {
             dispose();
             return true;
         } else if (allowInternalBuffersDispose) {
-            removeAndDisposeBuffers(true);
+            removeAndDisposeBuffers();
         }
 
         return false;
@@ -193,8 +203,13 @@ public final class BuffersBuffer extends CompositeBuffer {
     public void dispose() {
         checkDispose();
         isDisposed = true;
-        removeAndDisposeBuffers(true);
+        removeAndDisposeBuffers();
 
+        if (DEBUG_MODE) { // if debug is on - clear the buffer content
+            // Use static logic class to help JIT optimize the code
+            DebugLogic.doDebug(this);
+        }
+        
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 
@@ -254,7 +269,8 @@ public final class BuffersBuffer extends CompositeBuffer {
         }
         
         for (int i = 0; i < buffersSize; i++) {
-            if (buffers[i] == oldBuffer) {
+            final Buffer b = buffers[i];
+            if (b == oldBuffer) {
                 buffers[i] = newBuffer;
                 calcCapacity();
                 limit = capacity;
@@ -262,13 +278,17 @@ public final class BuffersBuffer extends CompositeBuffer {
                 if (position > limit) {
                     position = limit;
                 }
-                
+
                 resetLastLocation();
-                
+
                 return true;
+            } else if (b.isComposite()) {
+                if (((CompositeBuffer) b).replace(oldBuffer, newBuffer)) {
+                    break;
+                }
             }
         }
-        
+
         return false;
     }
 
@@ -390,7 +410,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     @Override
     public BuffersBuffer asReadOnlyBuffer() {
         checkDispose();
-        final BuffersBuffer buffer = create().copy(this);
+        final BuffersBuffer buffer = create().duplicateFrom(this);
         buffer.isReadOnly = true;
 
         return buffer;
@@ -472,7 +492,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         checkDispose();
 
         if (position == limit) {
-            removeAndDisposeBuffers(false);
+            removeAndDisposeBuffers();
             return;
         }
 
@@ -586,6 +606,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         final int limitBufferIndex = lastSegmentIndex;
         final int limitBufferPosition = toActiveBufferPos(limit);
 
+        //noinspection ConstantConditions
         if (posBufferIndex == limitBufferIndex) {
             return buffers[posBufferIndex].slice(
                     posBufferPosition, limitBufferPosition);
@@ -612,7 +633,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     @Override
     public BuffersBuffer duplicate() {
         checkDispose();
-        return create().copy(this);
+        return create().duplicateFrom(this);
     }
 
     @Override
@@ -808,7 +829,6 @@ public final class BuffersBuffer extends CompositeBuffer {
             int bytesToCopy = Math.min(buffer.remaining(), length);
             buffer.put(src, offset, bytesToCopy);
             buffer.position(oldPos);
-            bufferPosition += (bytesToCopy - 1);
 
             length -= bytesToCopy;
             offset += bytesToCopy;
@@ -869,7 +889,6 @@ public final class BuffersBuffer extends CompositeBuffer {
             final int bytesToCopy = Math.min(buffer.remaining(), length);
             buffer.get(dst, offset, bytesToCopy);
             buffer.position(oldPos);
-            bufferPosition += (bytesToCopy - 1);
 
             length -= bytesToCopy;
             offset += bytesToCopy;
@@ -912,7 +931,6 @@ public final class BuffersBuffer extends CompositeBuffer {
             int bytesToCopy = Math.min(buffer.remaining(), length);
             buffer.put(src, offset, bytesToCopy);
             buffer.position(oldPos);
-            bufferPosition += (bytesToCopy - 1);
 
             length -= bytesToCopy;
             offset += bytesToCopy;
@@ -1345,6 +1363,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         final int pos2 = lastSegmentIndex;
         final int bufLimit = toActiveBufferPos(limit);
 
+        //noinspection ConstantConditions
         if (pos1 == pos2) {
             final Buffer buffer = buffers[pos1];
             return buffer.toByteBuffer(bufPosition, bufLimit);
@@ -1436,6 +1455,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         final int pos2 = lastSegmentIndex;
         final int bufLimit = toActiveBufferPos(limit);
 
+        //noinspection ConstantConditions
         if (pos1 == pos2) {
             final Buffer buffer = buffers[pos1];
             return buffer.toByteBufferArray(array, bufPosition, bufLimit);
@@ -1520,6 +1540,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         final int pos2 = lastSegmentIndex;
         final int bufLimit = toActiveBufferPos(limit);
 
+        //noinspection ConstantConditions
         if (pos1 == pos2) {
             final Buffer buffer = buffers[pos1];
             return buffer.toBufferArray(array, bufPosition, bufLimit);
@@ -1637,10 +1658,10 @@ public final class BuffersBuffer extends CompositeBuffer {
         }
     }
 
-    private void removeAndDisposeBuffers(boolean force) {
+    private void removeAndDisposeBuffers() {
         boolean isNulled = false;
 
-        if (force || allowInternalBuffersDispose) {
+        if (allowInternalBuffersDispose) {
             if (disposeOrder != DisposeOrder.FIRST_TO_LAST) {
                 for (int i = buffersSize - 1; i >= 0; i--) {
                     final Buffer buffer = buffers[i];
@@ -1683,7 +1704,8 @@ public final class BuffersBuffer extends CompositeBuffer {
     private void checkDispose() {
         if (isDisposed) {
             throw new IllegalStateException(
-                    "CompositeBuffer has already been disposed");
+                    "CompositeBuffer has already been disposed",
+                    disposeStackTrace);
         }
     }
 
@@ -1883,5 +1905,13 @@ public final class BuffersBuffer extends CompositeBuffer {
         checkIndex(++index);
         final byte b2 = activeBuffer.get(toActiveBufferPos(index));
         return Bits.makeChar(b1, b2);
+    }
+    
+    // ---------------------------------------------------------- Nested Classes
+
+    private static class DebugLogic {
+        static void doDebug(BuffersBuffer buffersBuffer) {
+            buffersBuffer.disposeStackTrace = new Exception("BuffersBuffer was disposed from: ");
+        }
     }
 }

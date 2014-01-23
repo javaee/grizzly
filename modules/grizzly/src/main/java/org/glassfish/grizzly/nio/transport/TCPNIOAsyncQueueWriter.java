@@ -42,18 +42,26 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseReason;
+import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.FileTransfer;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.BufferArray;
+import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import org.glassfish.grizzly.nio.DirectByteBufferRecord;
 import org.glassfish.grizzly.nio.NIOConnection;
@@ -75,48 +83,42 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     @SuppressWarnings("unchecked")
     protected long write0(final NIOConnection connection,
             final AsyncWriteQueueRecord queueRecord) throws IOException {
-
         if (queueRecord instanceof CompositeQueueRecord) {
-            return writeComposite0(connection, (CompositeQueueRecord) queueRecord);
+            return writeCompositeRecord(connection,
+                    (CompositeQueueRecord) queueRecord);
         }
         
-        final WriteResult<WritableMessage, SocketAddress> currentResult =
-                queueRecord.getCurrentResult();
-        final WritableMessage message = queueRecord.getMessage();
+        return write0(connection, queueRecord.getWritableMessage(),
+                queueRecord.getCurrentResult());
+    }
 
+    @SuppressWarnings("unchecked")
+    protected long write0(final NIOConnection connection,
+            final WritableMessage message,
+            final WriteResult<WritableMessage, SocketAddress> currentResult)
+            throws IOException {
         final long written;
 
         if (message instanceof Buffer) {
             final Buffer buffer = (Buffer) message;
-            final int oldPos = buffer.position();
-            final int bufferSize = Math.min(buffer.remaining(),
-                    connection.getWriteBufferSize() * 2);
-
-            if (bufferSize == 0) {
-                written = 0;
-            } else {                
-
-                final DirectByteBufferRecord directByteBufferRecord =
-                        DirectByteBufferRecord.allocate(bufferSize);
-                
-                try {
-                    final ByteBuffer directByteBuffer = directByteBufferRecord.getByteBuffer();
-                    final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
-
-                    fillByteBuffer(buffer, 0, bufferSize, directByteBuffer);
-                    written = TCPNIOTransport.flushByteBuffer(
-                            socketChannel, directByteBuffer);
-
-                    buffer.position(oldPos + (int) written);
-                    ((TCPNIOConnection) connection).onWrite(buffer, written);
-                } catch (IOException e) {
-                    // Mark connection as closed remotely.
-                    ((TCPNIOConnection) connection).close0(null,
-                            new CloseReason(CloseType.REMOTELY, e));
-                    throw e;
-                } finally {
-                    directByteBufferRecord.release();
+            
+            try {
+                if (!buffer.hasRemaining()) {
+                    written = 0;
+                } else if (!buffer.isComposite()) {  // Simple buffer
+                    written = TCPNIOUtils.writeSimpleBuffer(
+                            (TCPNIOConnection) connection, buffer);
+                } else { // Composite buffer
+                    written = TCPNIOUtils.writeCompositeBuffer(
+                            (TCPNIOConnection) connection, (CompositeBuffer) buffer);
                 }
+
+                ((TCPNIOConnection) connection).onWrite(buffer, written);
+            } catch (IOException e) {
+                // Mark connection as closed remotely.
+                ((TCPNIOConnection) connection).close0(null,
+                        new CloseReason(CloseType.REMOTELY, e));
+                throw e;
             }
         } else if (message instanceof FileTransfer) {
             written = ((FileTransfer) message).writeTo((SocketChannel) connection.getChannel());
@@ -135,25 +137,32 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
         return written;
     }
-
-    private int writeComposite0(final NIOConnection connection,
+    
+    private int writeCompositeRecord(final NIOConnection connection,
             final CompositeQueueRecord queueRecord) throws IOException {
         
         final int bufferSize = Math.min(queueRecord.size,
-                connection.getWriteBufferSize() * 2);
+                connection.getWriteBufferSize() * 3 / 2);
         
         final DirectByteBufferRecord directByteBufferRecord =
-                DirectByteBufferRecord.allocate(bufferSize);
+                DirectByteBufferRecord.get();
 
         try {
-            final ByteBuffer directByteBuffer = directByteBufferRecord.getByteBuffer();
             final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
         
-            fillByteBuffer(queueRecord.queue, directByteBuffer);
+            fill(queueRecord, bufferSize, directByteBufferRecord);
+            directByteBufferRecord.finishBufferSlice();
             
-            final int written = TCPNIOTransport.flushByteBuffer(socketChannel,
-                    directByteBuffer);
+            final int arraySize = directByteBufferRecord.getArraySize();
 
+            final int written = arraySize == 1 ?
+
+                    TCPNIOUtils.flushByteBuffer(
+                    socketChannel, directByteBufferRecord.getArray()[0]) :
+
+                    TCPNIOUtils.flushByteBuffers(
+                    socketChannel, directByteBufferRecord.getArray(), 0, arraySize) ;
+            
             return update(queueRecord, written);
         } catch (IOException e) {
             // Mark connection as closed remotely.
@@ -165,56 +174,59 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         }
     }
     
-    private static void fillByteBuffer(final Buffer src, final int offset,
-            final int size, final ByteBuffer dstByteBuffer) {
+    private static void fill(final CompositeQueueRecord queueRecord,
+            final int totalBufferSize,            
+            final DirectByteBufferRecord ioRecord) {
         
-        dstByteBuffer.limit(size);
-        final int oldPos = src.position();
-        src.position(oldPos + offset);
-        
-        src.get(dstByteBuffer);
-        
-        dstByteBuffer.position(0);
-        src.position(oldPos);
-    }
+//        int dstBufferRemaining = dstByteBuffer.remaining();
+//        
+//        dstByteBuffer.limit(0);
 
-    private static void fillByteBuffer(final Deque<AsyncWriteQueueRecord> queue,
-            final ByteBuffer dstByteBuffer) {
+        int totalRemaining = totalBufferSize;
+        final Deque<AsyncWriteQueueRecord> queue = queueRecord.queue;
+        final ArrayList<BufferArray> savedBufferStates = queueRecord.savedBufferStates;
         
-        int dstBufferRemaining = dstByteBuffer.remaining();
-        
-        dstByteBuffer.limit(0);
-
         for (final Iterator<AsyncWriteQueueRecord> it = queue.iterator();
-                it.hasNext() && dstBufferRemaining > 0; ) {
+                it.hasNext() && totalRemaining > 0; ) {
             
             final AsyncWriteQueueRecord record = it.next();
             
-            if (record.isEmptyRecord()) continue;
+            if (record.isEmptyRecord()) {
+                savedBufferStates.add(null);
+                continue;
+            }
             
             final Buffer message = record.getMessage();
-            final int oldPos = message.position();
-            final int oldLim = message.limit();
+            final int pos = message.position();
             
-            final int remaining = message.remaining();
-            
-            if (dstBufferRemaining >= remaining) {
-                dstByteBuffer.limit(dstByteBuffer.limit() + remaining);
-            } else {
-                dstByteBuffer.limit(dstByteBuffer.capacity());
-                message.limit(oldPos + dstBufferRemaining);
-            }
+            final int messageRemaining = message.remaining();
 
-            message.get(dstByteBuffer);
-            Buffers.setPositionLimit(message, oldPos, oldLim);
+            final BufferArray bufferArray =
+                    (totalRemaining >= messageRemaining) ?
+                    message.toBufferArray() :
+                    message.toBufferArray(pos, pos + totalRemaining);
+
+            savedBufferStates.add(bufferArray);
+            TCPNIOUtils.fill(bufferArray, totalRemaining, ioRecord);
             
-            dstBufferRemaining -= remaining;
+            totalRemaining -= messageRemaining;
+        }
+    }
+    
+    private int update(final CompositeQueueRecord queueRecord,
+            int written) {
+        
+        // Restore buffer state
+        for (int i = 0; i < queueRecord.savedBufferStates.size(); i++) {
+            final BufferArray savedState = queueRecord.savedBufferStates.get(i);
+            if (savedState != null) {
+                savedState.restore();
+                savedState.recycle();
+            }
         }
         
-        dstByteBuffer.position(0);
-    }
-
-    private int update(final CompositeQueueRecord queueRecord, int written) {
+        queueRecord.savedBufferStates.clear();
+        
         int remainder = written;
         queueRecord.size -= written;
         
@@ -278,14 +290,13 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     @Override
     protected AsyncWriteQueueRecord aggregate(
             final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue) {
-        final int queueSize = writeTaskQueue.spaceInBytes();
+        final int queueSize = writeTaskQueue.size();
         
         if (queueSize == 0) {
             return null;
         }
         
-        final AsyncWriteQueueRecord currentRecord =
-                writeTaskQueue.obtainCurrentElementAndReserve();
+        final AsyncWriteQueueRecord currentRecord = writeTaskQueue.poll();
 
         if (currentRecord == null ||
                 !canBeAggregated(currentRecord) ||
@@ -363,13 +374,17 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             return (CompositeQueueRecord) currentRecord;
         }
     }
-    
+
     private static final class CompositeQueueRecord extends AsyncWriteQueueRecord {
+        
+        private final ArrayList<BufferArray> savedBufferStates =
+                new ArrayList<BufferArray>(2);
         
         private final Deque<AsyncWriteQueueRecord> queue =
                 new ArrayDeque<AsyncWriteQueueRecord>(2);
         
         private int size;
+        
         
         public static CompositeQueueRecord create(final Connection connection) {
             return new CompositeQueueRecord(connection);

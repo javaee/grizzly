@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -86,7 +86,13 @@ public class ByteBufferManager extends AbstractMemoryManager<ByteBufferWrapper> 
 
     public ByteBufferManager() {
         this(false,
-             AbstractMemoryManager.DEFAULT_MAX_BUFFER_SIZE,
+             DEFAULT_MAX_BUFFER_SIZE,
+             DEFAULT_SMALL_BUFFER_SIZE);
+    }
+
+    public ByteBufferManager(final boolean isDirect) {
+        this(isDirect,
+             DEFAULT_MAX_BUFFER_SIZE,
              DEFAULT_SMALL_BUFFER_SIZE);
     }
 

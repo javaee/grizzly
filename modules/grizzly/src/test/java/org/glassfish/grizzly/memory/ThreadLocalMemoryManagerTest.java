@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,25 +38,19 @@
  * holder.
  */
 
-package org.glassfish.grizzly;
+package org.glassfish.grizzly.memory;
 
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.HeapBuffer;
-import org.glassfish.grizzly.memory.HeapMemoryManager;
-import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.MemoryProbe;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.ByteBufferManager;
-import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Grizzly;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -65,15 +59,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- *
  * @author oleksiys
  */
 @RunWith(Parameterized.class)
-public class DefaultMemoryManagerTest extends AbstractMemoryTest {
+public class ThreadLocalMemoryManagerTest extends AbstractThreadLocalMemoryManagerTest {
 
-    private static final Logger LOGGER = Grizzly.logger(DefaultMemoryManagerTest.class);
+    private static final Logger LOGGER = Grizzly.logger(ThreadLocalMemoryManagerTest.class);
 
-    public DefaultMemoryManagerTest(int mmType) {
+    public ThreadLocalMemoryManagerTest(int mmType) {
         super(mmType);
     }
 
@@ -81,7 +74,6 @@ public class DefaultMemoryManagerTest extends AbstractMemoryTest {
     @SuppressWarnings("unchecked")
     public void testTrimDispose() throws Exception {
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
-
         Runnable r = new Runnable() {
 
             @Override
@@ -115,21 +107,9 @@ public class DefaultMemoryManagerTest extends AbstractMemoryTest {
     }
 
     @Test
-    public void testBufferSlice() {
-        Buffer b = mm.allocate(10);
-        b.putInt(1);
-        ByteBuffer bb = b.slice().toByteBuffer().slice();
-        bb.rewind();
-        bb.putInt(2);
-        b.rewind();
-        assertEquals(1, b.getInt());
-    }
-
-    @Test
     @SuppressWarnings("unchecked")
     public void testDispose() throws Exception {
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
-
         Runnable r = new Runnable() {
 
             @Override
@@ -166,7 +146,6 @@ public class DefaultMemoryManagerTest extends AbstractMemoryTest {
 
             @Override
             public void run() {
-                final int allocSize = 16384;
 
                 // Initialize memory manager
                 mm.allocate(33);
@@ -224,12 +203,10 @@ public class DefaultMemoryManagerTest extends AbstractMemoryTest {
     @SuppressWarnings("unchecked")
     public void testTrimAllocateHistory() throws Exception {
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
-
         Runnable r = new Runnable() {
 
             @Override
             public void run() {
-                final int allocSize = 16384;
 
                 // Initialize memory manager
                 mm.allocate(33);
@@ -279,7 +256,6 @@ public class DefaultMemoryManagerTest extends AbstractMemoryTest {
     @SuppressWarnings("unchecked")
     public void testDisposeUnused() throws Exception {
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
-
         Runnable r = new Runnable() {
 
             @Override
@@ -320,7 +296,6 @@ public class DefaultMemoryManagerTest extends AbstractMemoryTest {
     @SuppressWarnings("unchecked")
     public void testReallocate() throws Exception {
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
-
         Runnable r = new Runnable() {
 
             @Override
@@ -366,59 +341,11 @@ public class DefaultMemoryManagerTest extends AbstractMemoryTest {
         testInWorkerThread(mm, r);
     }
 
-    @Test
-    public void testBufferEquals() {
-        final HeapMemoryManager hmm = new HeapMemoryManager();
-        final ByteBufferManager bbm = new ByteBufferManager();
-        
-        Buffer[] buffers = new Buffer[3];
-        buffers[0] = Buffers.wrap(hmm, "Value#1");
-        buffers[1] = Buffers.wrap(bbm, "Value#1");
-        
-        Buffer b11 = Buffers.wrap(hmm, "Val");
-        Buffer b12 = Buffers.wrap(bbm, "ue#1");
-
-        buffers[2] = Buffers.appendBuffers(bbm, b11, b12);
-        
-        for (int i = 0; i < buffers.length; i++) {
-            for (int j = 0; j < buffers.length; j++) {
-                assertEquals(buffers[i], buffers[j]);
-            }
-        }
-        
-        
-    }
-
-    @Test
-    public void testBufferPut() {
-        final Buffer b = mm.allocate(127);
-        if (!(b instanceof HeapBuffer)) {
-            return;
-        }
-
-        int i = 0;
-        while (b.hasRemaining()) {
-            b.put((byte) i++);
-        }
-
-        b.flip();
-
-        b.put(b, 10, 127 - 10).flip();
-
-        
-        assertEquals(127 - 10, b.remaining());
-
-        i = 10;
-        while (b.hasRemaining()) {
-            assertEquals(i++, b.get());
-        }
-    }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testCompositeBufferDispose() throws Exception {
         mm.getMonitoringConfig().addProbes(new MyMemoryMonitoringProbe());
-
         Runnable r = new Runnable() {
 
             @Override
@@ -464,12 +391,12 @@ public class DefaultMemoryManagerTest extends AbstractMemoryTest {
 
     private void testInWorkerThread(final MemoryManager mm,
                                     final Runnable task) throws Exception {
-        final FutureImpl<Boolean> future = SafeFutureImpl.<Boolean>create();
+        final FutureImpl<Boolean> future = SafeFutureImpl.create();
 
         ThreadPoolConfig config = ThreadPoolConfig.defaultConfig();
         config.setMemoryManager(mm);
         ExecutorService threadPool = GrizzlyExecutorService.createInstance(config);
-        
+
         threadPool.execute(new Runnable() {
 
             @Override

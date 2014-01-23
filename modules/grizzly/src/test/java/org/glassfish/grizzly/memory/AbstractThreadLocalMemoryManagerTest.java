@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,17 +37,14 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly;
+package org.glassfish.grizzly.memory;
 
-import org.glassfish.grizzly.memory.AbstractMemoryManager;
-import org.glassfish.grizzly.memory.ByteBufferManager;
-import org.glassfish.grizzly.memory.HeapMemoryManager;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-public class AbstractMemoryTest {
+public class AbstractThreadLocalMemoryManagerTest {
 
     protected final AbstractMemoryManager mm;
 
@@ -55,11 +52,11 @@ public class AbstractMemoryTest {
     public static Collection<Object[]> getOptimizedForMultiplexing() {
         return Arrays.asList(new Object[][]{
                 {0},
-                {1}
+                {1},
         });
     }
 
-    public AbstractMemoryTest(final int mmType) {
+    public AbstractThreadLocalMemoryManagerTest(final int mmType) {
         switch (mmType) {
             case 0:
                 mm = new HeapMemoryManager();
@@ -68,7 +65,7 @@ public class AbstractMemoryTest {
                 mm = new ByteBufferManager();
                 break;
             default:
-                throw new IllegalStateException("Unknown memory manager type");
+                throw new IllegalStateException("Unknown thread local memory manager type");
         }
     }
 

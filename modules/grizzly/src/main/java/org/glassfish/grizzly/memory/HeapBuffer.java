@@ -273,7 +273,9 @@ public class HeapBuffer implements Buffer {
      * {@inheritDoc}
      */
     @Override
-    public Buffer split(int splitPosition) {
+    public Buffer split(final int splitPosition) {
+        checkDispose();
+        
         final int oldPosition = pos;
         final int oldLimit = lim;
 
@@ -307,13 +309,15 @@ public class HeapBuffer implements Buffer {
     }
 
     @Override
-    public HeapBuffer slice(int position, int limit) {
+    public HeapBuffer slice(final int position, final int limit) {
+        checkDispose();
         return createHeapBuffer(position, limit - position);
     }
 
 
     @Override
     public HeapBuffer duplicate() {
+        checkDispose();
 
         final HeapBuffer duplicate =
                 createHeapBuffer(0, cap);
@@ -324,6 +328,8 @@ public class HeapBuffer implements Buffer {
 
     @Override
     public HeapBuffer asReadOnlyBuffer() {
+        checkDispose();
+        
         onShareHeap();
         final HeapBuffer b = new ReadOnlyHeapBuffer(heap, offset, cap);
         b.pos = pos;
@@ -797,7 +803,7 @@ public class HeapBuffer implements Buffer {
         return remaining() - o.remaining();
     }
 
-    protected final void checkDispose() {
+    protected void checkDispose() {
         if (heap == null) {
             throw new IllegalStateException(
                     "HeapBuffer has already been disposed",
@@ -984,6 +990,7 @@ public class HeapBuffer implements Buffer {
         return offset;
     }
 
+    @Override
     public byte[] array() {
         return heap;
     }
@@ -1011,13 +1018,13 @@ public class HeapBuffer implements Buffer {
     }
 
     protected ByteBuffer toByteBuffer0(final int pos,
-                                       final int len,
+                                       final int lim,
                                        final boolean slice) {
         if (byteBuffer == null) {
             byteBuffer = ByteBuffer.wrap(heap);
         }
 
-        Buffers.setPositionLimit(byteBuffer, offset + pos, offset + len);
+        Buffers.setPositionLimit(byteBuffer, offset + pos, offset + lim);
 
         return ((slice) ? byteBuffer.slice() : byteBuffer);
 

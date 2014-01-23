@@ -460,7 +460,11 @@ public class HeapMemoryManager extends AbstractMemoryManager<HeapBuffer> impleme
         
         @Override
         public HeapBuffer reduceLastAllocated(final HeapBuffer heapBuffer) {
-            rightPos = heapBuffer.offset + heapBuffer.cap;
+            final int newPos = heapBuffer.offset + heapBuffer.cap;
+
+            ProbeNotifier.notifyBufferReleasedToPool(mm.monitoringConfig, rightPos - newPos);
+
+            rightPos = newPos;
 
             return null;
         }

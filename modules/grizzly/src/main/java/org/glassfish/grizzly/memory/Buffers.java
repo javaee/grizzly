@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -406,9 +406,11 @@ public class Buffers {
      * and both {@link Buffer}s will be added there. The resulting
      * {@link CompositeBuffer} will be disallowed for disposal.
      * 
-     * @param memoryManager
-     * @param buffer1
-     * @param buffer2
+     * @param memoryManager the {@link MemoryManager} to use if a new {@link Buffer}
+     *                      needs to be allocated in order to perform the requested
+     *                      operation.
+     * @param buffer1 the {@link Buffer} to append to.
+     * @param buffer2 the {@link Buffer} to append.
      * 
      * @return the result of appending of two {@link Buffer}s.
      */
@@ -433,10 +435,13 @@ public class Buffers {
      * {@link CompositeBuffer} will be assigned according to the
      * <code>isCompositeBufferDisposable</code> parameter.
      * 
-     * @param memoryManager
-     * @param buffer1
-     * @param buffer2
-     * @param isCompositeBufferDisposable
+     * @param memoryManager the {@link MemoryManager} to use if a new {@link Buffer}
+     *                      needs to be allocated in order to perform the requested
+     *                      operation.
+     * @param buffer1 the {@link Buffer} to append to.
+     * @param buffer2 the {@link Buffer} to append.
+     * @param isCompositeBufferDisposable flag indicating whether or not the
+     *                                    resulting composite buffer may be disposed.
      * 
      * @return the result of appending of two {@link Buffer}s.
      */
@@ -450,10 +455,17 @@ public class Buffers {
             return buffer1;
         }
 
-        if (buffer1.isComposite()) {
+        // we can only append to or prepend buffer1 if the limit()
+        // is the same as capacity.  If it's not, then appending or
+        // prepending effectively clobbers the limit causing an invalid
+        // view of the data.  So instead, we allocate a new CompositeBuffer
+        // and append buffer1 and buffer2 to it.  The underlying buffers
+        // aren't changed so the limit they have is maintained.
+        final boolean buffer1LimIsCap = buffer1.capacity() == buffer1.limit();
+        if (buffer1.isComposite() && buffer1LimIsCap) {
             ((CompositeBuffer) buffer1).append(buffer2);
             return buffer1;
-        } if (buffer2.isComposite()) {
+        } if (buffer2.isComposite() && buffer1LimIsCap) {
             ((CompositeBuffer) buffer2).prepend(buffer1);
             return buffer2;
         } else {
@@ -620,6 +632,7 @@ public class Buffers {
      * 
      * @throws IOException 
      */
+    @SuppressWarnings("UnusedDeclaration")
     public static long writeToFileChannel(final FileChannel fileChannel,
             final Buffer buffer) throws IOException {
 
