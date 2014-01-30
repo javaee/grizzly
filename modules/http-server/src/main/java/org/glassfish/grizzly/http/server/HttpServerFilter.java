@@ -183,8 +183,6 @@ public class HttpServerFilter extends BaseFilter
                 final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
                 final HttpResponsePacket response = request.getResponse();
                 
-                activeRequestsCounter.incrementAndGet();
-                
                 handlerRequest = Request.create();
                 handlerRequest.parameters.setLimit(config.getMaxRequestParameters());
                 httpRequestInProgress.set(context, handlerRequest);
@@ -194,7 +192,10 @@ public class HttpServerFilter extends BaseFilter
                 handlerResponse.initialize(handlerRequest, response, ctx,
                         suspendedResponseQueue, this);
 
-                handlerRequest.addAfterServiceListener(flushResponseHandler);
+                if (config.isGracefulShutdownSupported()) {
+                    activeRequestsCounter.incrementAndGet();
+                    handlerRequest.addAfterServiceListener(flushResponseHandler);
+                }
                 
                 HttpServerProbeNotifier.notifyRequestReceive(this, connection,
                         handlerRequest);
