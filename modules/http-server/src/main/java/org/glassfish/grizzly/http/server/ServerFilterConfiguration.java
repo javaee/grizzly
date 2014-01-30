@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -83,6 +83,12 @@ public class ServerFilterConfiguration {
      */
     private ErrorPageGenerator defaultErrorPageGenerator;
 
+    /**
+     * <tt>true</tt>, if {@link HttpServerFilter} has to support
+     * graceful shutdown, or <tt>false</tt> otherwise
+     */
+    private boolean isGracefulShutdownSupported = true;
+    
     public ServerFilterConfiguration() {
         this("Grizzly", Grizzly.getDotedVersion());
     }
@@ -108,6 +114,7 @@ public class ServerFilterConfiguration {
         this.maxBufferedPostSize = configuration.maxBufferedPostSize;
         this.defaultQueryEncoding = configuration.defaultQueryEncoding;
         this.defaultErrorPageGenerator = configuration.defaultErrorPageGenerator;
+        this.isGracefulShutdownSupported = configuration.isGracefulShutdownSupported;
     }
     
     /**
@@ -390,7 +397,24 @@ public class ServerFilterConfiguration {
             final ErrorPageGenerator defaultErrorPageGenerator) {
         this.defaultErrorPageGenerator = defaultErrorPageGenerator;
     }
-    
+
+    /**
+     * @return <tt>true</tt>, if {@link HttpServerFilter} has to support
+     * graceful shutdown, or <tt>false</tt> otherwise
+     */
+    public boolean isGracefulShutdownSupported() {
+        return isGracefulShutdownSupported;
+    }
+
+    /**
+     * Enables or disables graceful shutdown support.
+     * 
+     * @param isGracefulShutdownSupported
+     */
+    public void setGracefulShutdownSupported(final boolean isGracefulShutdownSupported) {
+        this.isGracefulShutdownSupported = isGracefulShutdownSupported;
+    }
+
     // --------------------------------------------------------- Private Methods
 
 
