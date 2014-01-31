@@ -118,6 +118,11 @@ public class ContentType {
     // or unparsedContentType hasn't been parsed
     private boolean isCharsetSet;
 
+    // array holding actual compiled content-type information.
+    private byte[] array = new byte[32];
+    // length, within 'array', of the content-type information.
+    private int len = -1;
+
     ContentType() {
     }
 
@@ -217,8 +222,18 @@ public class ContentType {
             compiledContentType = mimeType;
             characterEncoding = null;
         }
-        
         this.compiledContentTypeArray = null;
+    }
+
+    /**
+     * Used in conjunction with {@link #getByteArray()}.  The array returned by
+     * the aforementioned method may be larger than the data contained therein.
+     * This method will return the proper data length.
+     *
+     * @return the data length within the array returned by {@link #getByteArray()}
+     */
+    public int getArrayLen() {
+        return len;
     }
 
     /**
@@ -227,12 +242,14 @@ public class ContentType {
     public byte[] getByteArray() {
         // if there's prepared byte array - return it
         if (compiledContentTypeArray != null) {
+            //len = compiledContentTypeArray.length;
             return compiledContentTypeArray;
         }
         
         // if there's prepared String - convert it to a byte array
         if (compiledContentType != null) {
-            compiledContentTypeArray = toCheckedByteArray(compiledContentType);
+            compiledContentTypeArray = toCheckedByteArray(compiledContentType, array, 0);
+            len = compiledContentType.length();
             return compiledContentTypeArray;
         }
         
@@ -240,7 +257,7 @@ public class ContentType {
             // if we have unparsed content-type and no charset set independently -
             // convert the unparsedContentType to a byte array
             if (quotedCharsetValue == null) {
-                compiledContentTypeArray = toCheckedByteArray(unparsedContentType);
+                compiledContentTypeArray = toCheckedByteArray(unparsedContentType, array, 0);
                 return compiledContentTypeArray;
             }
             
@@ -252,23 +269,27 @@ public class ContentType {
             return EMPTY_ARRAY;
         }
         
-        final byte[] array;
+
         final int mtsz = mimeType.length();
         
         if (isCharsetSet) {
             // if isCharsetSet - build a content-type array: mimeType + CHARSET_BYTES + quotedCharsetValue
             final int qcssz = quotedCharsetValue.length();
-            
-            array = new byte[mtsz + qcssz + CHARSET_BYTES.length];
+            final int len = mtsz + qcssz + CHARSET_BYTES.length;
+            if (len > array.length) {
+                array = new byte[array.length * 2];
+            }
 
             toCheckedByteArray(mimeType, array, 0);
             System.arraycopy(CHARSET_BYTES, 0, array, mtsz, CHARSET_BYTES.length);
 
             final int offs = mtsz + CHARSET_BYTES.length;
             toCheckedByteArray(quotedCharsetValue, array, offs);
+            this.len = len;
         } else {
             // otherwise build the array based on mimeType only
-            array = toCheckedByteArray(mimeType);
+            toCheckedByteArray(mimeType, array, 0);
+            this.len = mimeType.length();
         }
 
         compiledContentTypeArray = array;
@@ -352,6 +373,9 @@ public class ContentType {
         
         this.compiledContentType = contentType.compiledContentType;
         this.compiledContentTypeArray = contentType.compiledContentTypeArray;
+        this.array = contentType.array;
+        this.len = contentType.len;
+
     }
     
     /**
@@ -426,12 +450,14 @@ public class ContentType {
      */
     public void serializeToDataChunk(final DataChunk dc) {
         if (compiledContentTypeArray != null) {
-            dc.setBytes(compiledContentTypeArray);
+            dc.setBytes(compiledContentTypeArray, 0, len);
+            return;
         } else if (compiledContentType != null) {
             dc.setString(compiledContentType);
+            return;
         }
         
-        dc.setBytes(getByteArray());
+        dc.setBytes(getByteArray(), 0, len);
     }
     
     /**
@@ -446,6 +472,7 @@ public class ContentType {
         mimeType = null;
         isCharsetSet = false;
         isParsed = true;
+        len = -1;
     }
 
     @Override
