@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http;
 
-import java.util.Arrays;
 import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.utils.Charsets;
 import org.junit.Test;
@@ -59,41 +58,55 @@ public class ContentTypeTest {
         ct.set("text/plain");
         assertEquals("text/plain", ct.getMimeType());
         assertNull(ct.getCharacterEncoding());
-        
-        assertArrayEquals("text/plain".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
+
+        assertEquals("text/plain",
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
         ct.reset();
         
         ct.set("text/plain;charset=UTF-8");
         assertEquals("text/plain", ct.getMimeType());
         assertEquals("UTF-8", ct.getCharacterEncoding());
         
-        assertArrayEquals("text/plain;charset=UTF-8".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
+        assertEquals("text/plain;charset=UTF-8",
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
         ct.reset();
 
         ct.set("text/plain;charset=UTF-8;abc=xyz");
         assertEquals("text/plain;abc=xyz", ct.getMimeType());
         assertEquals("UTF-8", ct.getCharacterEncoding());
         
-        assertArrayEquals("Incorrect value=" + new String(ct.getByteArray()),
-                "text/plain;charset=UTF-8;abc=xyz".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
+        assertEquals("Incorrect value=" + new String(ct.getByteArray(), 0,
+                                                     ct.getArrayLen(),
+                                                     Charsets.ASCII_CHARSET),
+                     "text/plain;charset=UTF-8;abc=xyz",
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
         
         ct.setMimeType("text/html");
         assertEquals("text/html", ct.getMimeType());
         assertEquals("UTF-8", ct.getCharacterEncoding());
         
-        assertArrayEquals("text/html;charset=UTF-8".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
+        assertEquals("text/html;charset=UTF-8",
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
 
         ct.setCharacterEncoding("UTF-16");
         assertEquals("text/html", ct.getMimeType());
         assertEquals("UTF-16", ct.getCharacterEncoding());
         
-        assertArrayEquals("text/html;charset=UTF-16".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
+        assertEquals("text/html;charset=UTF-16",
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
     
         ct.setCharacterEncoding(null);
         assertEquals("text/html", ct.getMimeType());
         assertEquals(null, ct.getCharacterEncoding());
         
-        assertArrayEquals("text/html".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
+        assertEquals("text/html",
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
 
         ct.reset();
 
@@ -107,14 +120,18 @@ public class ContentTypeTest {
         ContentType prepared = ContentType.newContentType("application/json;charset=UTF-8").prepare();
         ct.set(prepared);
         
-        assertArrayEquals("application/json;charset=UTF-8".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray());
+        assertEquals("application/json;charset=UTF-8",
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
         assertEquals("application/json", ct.getMimeType());
         assertEquals("UTF-8", ct.getCharacterEncoding());
         
         prepared = ContentType.newContentType("text/plain", "UTF-16");
         ct.set(prepared);
         
-        assertTrue(Arrays.equals("text/plain;charset=UTF-16".getBytes(Charsets.ASCII_CHARSET), ct.getByteArray()));
+        assertEquals("text/plain;charset=UTF-16",
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
         assertEquals("text/plain", ct.getMimeType());
         assertEquals("UTF-16", ct.getCharacterEncoding());
         
