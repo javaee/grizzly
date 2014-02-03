@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 
 /**
  * RoundRobin NIOConnectionDistributor implementation,
@@ -54,21 +55,37 @@ import org.glassfish.grizzly.CompletionHandler;
  */
 public final class RoundRobinConnectionDistributor
         extends AbstractNIOConnectionDistributor {
-    private final AtomicInteger counter;
     private final Iterator it;
     
     public RoundRobinConnectionDistributor(final NIOTransport transport) {
-        this(transport, false);
+        this(transport, false, false);
     }
 
     public RoundRobinConnectionDistributor(final NIOTransport transport,
             final boolean useDedicatedAcceptor) {
-        super(transport);
-        counter = new AtomicInteger();
-        this.it = useDedicatedAcceptor ? new DedicatedIterator() :
-                new SharedIterator();
-        
+        this(transport, useDedicatedAcceptor, false);
     }
+
+    /**
+     * Constructs RoundRobinConnectionDistributor with the given configuration.
+     * 
+     * @param transport
+     * @param useDedicatedAcceptor depending on this flag server {@link Connection}s,
+     *          responsible for accepting client connections, will or will not
+     *          use dedicated {@link SelectorRunner}
+     * @param isServerOnly <tt>true</tt> means this {@link NIOChannelDistributor}
+     *          will be used by a {@link Transport}, which operates as a
+     *          server only(the Transport will never initiate a client-side {@link Connection}).
+     *          In this case we're able to use optimized (thread unsafe) distribution algorithm.
+     */
+    public RoundRobinConnectionDistributor(final NIOTransport transport,
+            final boolean useDedicatedAcceptor, final boolean isServerOnly) {
+        super(transport);
+        this.it = useDedicatedAcceptor ?
+                (isServerOnly ? new ServDedicatedIterator() : new DedicatedIterator()) :
+                (isServerOnly ? new ServSharedIterator() : new SharedIterator());
+    }
+    
     @Override
     public void registerChannel(final SelectableChannel channel,
             final int interestOps, final Object attachment) throws IOException {
@@ -102,6 +119,8 @@ public final class RoundRobinConnectionDistributor
     }
     
     private final class DedicatedIterator implements Iterator {
+        private final AtomicInteger counter = new AtomicInteger();
+        
         @Override
         public SelectorRunner next() {
             final SelectorRunner[] runners = getTransportSelectorRunners();
@@ -119,6 +138,8 @@ public final class RoundRobinConnectionDistributor
     }
 
     private final class SharedIterator implements Iterator {
+        private final AtomicInteger counter = new AtomicInteger();
+
         @Override
         public SelectorRunner next() {
             final SelectorRunner[] runners = getTransportSelectorRunners();
@@ -133,5 +154,43 @@ public final class RoundRobinConnectionDistributor
         public SelectorRunner nextService() {
             return next();
         }
-    }    
+    }
+    
+    private final class ServDedicatedIterator implements Iterator {
+        private int counter;
+        
+        @Override
+        public SelectorRunner next() {
+            final SelectorRunner[] runners = getTransportSelectorRunners();
+            if (runners.length == 1) {
+                return runners[0];
+            }
+            
+            return runners[((counter++ & 0x7fffffff) % (runners.length - 1)) + 1];
+        }
+
+        @Override
+        public SelectorRunner nextService() {
+            return getTransportSelectorRunners()[0];
+        }
+    }
+
+    private final class ServSharedIterator implements Iterator {
+        private int counter;
+
+        @Override
+        public SelectorRunner next() {
+            final SelectorRunner[] runners = getTransportSelectorRunners();
+            if (runners.length == 1) {
+                return runners[0];
+            }
+            
+            return runners[(counter++ & 0x7fffffff) % runners.length];
+        }
+
+        @Override
+        public SelectorRunner nextService() {
+            return next();
+        }
+    }
 }
