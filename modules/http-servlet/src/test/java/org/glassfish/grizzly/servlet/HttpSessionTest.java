@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -156,7 +156,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
                 HttpSession session = e.getSession();
                 String sessionId = session.getId();
                 if (!oldId.equals(sessionId)) {
-                    session.setAttribute("A", "2");
+                    session.setAttribute("A", 2);
                 }
             }
         });
@@ -166,12 +166,12 @@ public class HttpSessionTest extends HttpServerAbstractTest {
             protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
                 HttpSession session = req.getSession(false);
                 if (session == null) {
-                    req.getSession(true).setAttribute("A", "1");
-                } else {
+                    req.getSession(true).setAttribute("A", 1);
+                } else if (Integer.valueOf(1).equals(session.getAttribute("A"))) {
                     req.changeSessionId();
                 }
                 Object a = req.getSession(false).getAttribute("A");
-                res.addHeader("A", (String) a);
+                res.addHeader("A", a.toString());
             }
         });
 
@@ -180,7 +180,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
 
         try {
             final HttpPacket request1 = createRequest(CONTEXT + SERVLETMAPPING, PORT, null);
-            final HttpContent response1 = sendRequest(request1, 10);
+            final HttpContent response1 = sendRequest(request1, 10000);
             
             Cookie[] cookies1 = getCookies(response1.getHttpHeader().getHeaders());
             
@@ -207,6 +207,34 @@ public class HttpSessionTest extends HttpServerAbstractTest {
 
             assertTrue(!cookies1[0].getValue().equals(cookies2[0].getValue()));
 
+            final HttpPacket request3 = createRequest(CONTEXT + SERVLETMAPPING, PORT,
+                    Collections.<String, String>singletonMap(Header.Cookie.toString(),
+                    Globals.SESSION_COOKIE_NAME + "=" + cookies1[0].getValue()));
+
+            final HttpContent response3 = sendRequest(request3, 10000);
+            Cookie[] cookies3 = getCookies(response3.getHttpHeader().getHeaders());
+            
+            assertEquals(1, cookies3.length);
+            assertEquals(Globals.SESSION_COOKIE_NAME, cookies3[0].getName());
+            
+            String[] values3 = getHeaderValues(response3.getHttpHeader().getHeaders(), "A");
+            assertEquals(1, values3.length);
+            assertEquals("1", values3[0]);
+
+            assertTrue(!cookies2[0].getValue().equals(cookies3[0].getValue()));
+
+            final HttpPacket request4 = createRequest(CONTEXT + SERVLETMAPPING, PORT,
+                    Collections.<String, String>singletonMap(Header.Cookie.toString(),
+                    Globals.SESSION_COOKIE_NAME + "=" + cookies2[0].getValue()));
+
+            final HttpContent response4 = sendRequest(request4, 10000);
+            Cookie[] cookies4 = getCookies(response4.getHttpHeader().getHeaders());
+            
+            assertEquals(0, cookies4.length);
+            
+            String[] values4 = getHeaderValues(response4.getHttpHeader().getHeaders(), "A");
+            assertEquals(1, values4.length);
+            assertEquals("2", values4[0]);
         } finally {
             stopHttpServer();
         }
