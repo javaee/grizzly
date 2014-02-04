@@ -2263,6 +2263,9 @@ public class Request {
             requestedSessionId = newSessionId;
         }
 
+        SESSIONS.remove(oldSessionId);
+        SESSIONS.put(newSessionId, session);
+        
         if (isRequestedSessionIdFromURL())
             return oldSessionId;
 
