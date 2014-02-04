@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,6 +48,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -124,7 +125,9 @@ public class AjpTestBase {
             socket = new Socket("localhost", PORT);
             socket.setSoTimeout(5000);
         }
-        socket.getOutputStream().write(request);
+        final OutputStream os = socket.getOutputStream();
+        os.write(request);
+        os.flush();
     }
 
     protected void closeClient() {
