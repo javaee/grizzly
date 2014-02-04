@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,6 +47,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.coyote.RequestGroupInfo;
 
@@ -55,7 +56,10 @@ import org.apache.coyote.RequestGroupInfo;
  *
  * @author Jean-Francois Arcand
  */
-public abstract class TaskBase implements Task, TaskListener{
+public abstract class TaskBase implements Task, TaskListener {
+    private static final Logger LOGGER =
+            Logger.getLogger(TaskBase.class.getName());
+    private static final Level LOG_LEVEL = Level.FINEST;
 
     
     /**
@@ -184,8 +188,11 @@ public abstract class TaskBase implements Task, TaskListener{
      * <code>Pipeline</code> is null, then execute the task on using the 
      * calling thread.
      */
-    public void execute(){
-        if (pipeline != null){
+    public void execute() {
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "TaskBase.execute tb={0}", new Object[]{this});
+        }
+        if (pipeline != null) {
             pipeline.addTask(this);
         } else {
             run();

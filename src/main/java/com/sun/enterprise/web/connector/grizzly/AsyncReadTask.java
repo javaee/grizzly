@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import com.sun.enterprise.web.connector.grizzly.async.AsyncProcessorTask;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This task execute and then notify its listener, which usualy execute on 
@@ -53,6 +54,9 @@ import java.util.logging.Level;
  * @author Jean-Francois Arcand
  */
 public class AsyncReadTask extends DefaultReadTask {
+    private static final Logger LOGGER =
+            Logger.getLogger(AsyncReadTask.class.getName());
+    private static final Level LOG_LEVEL = Level.FINEST;
     
     
     public AsyncReadTask(){
@@ -115,23 +119,39 @@ public class AsyncReadTask extends DefaultReadTask {
         
         if (SelectorThread.logger().isLoggable(Level.FINEST))
             SelectorThread.logger().log(Level.FINEST,"executeProcessorTask");
+
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "AsyncReadTask.executeProcessorTask");
+        }
         
         if (  algorithm.getHandler() != null && algorithm.getHandler()
                 .handle(null, Handler.REQUEST_BUFFERED) == Handler.BREAK ){
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "AsyncReadTask.executeProcessorTask_1");
+            }
             return true;
         }
         
         // Get a processor task. If the processorTask != null, that means we
         // failed to load all the bytes in a single channel.read().
         if (processorTask == null){
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "AsyncReadTask.executeProcessorTask_2");
+            }
             attachProcessor(selectorThread.getProcessorTask());
         } else {
             // When spawnProcessorTask is true, we must reconfigure the 
             // ProcessorTask
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "AsyncReadTask.executeProcessorTask_3");
+            }
             configureProcessorTask();
         }        
         
-        if (taskEvent == null){
+        if (taskEvent == null) {
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "AsyncReadTask.executeProcessorTask_4");
+            }
             taskContext = new TaskContext();
             taskEvent = new TaskEvent<TaskContext>(taskContext);
         }
@@ -202,8 +222,10 @@ public class AsyncReadTask extends DefaultReadTask {
                     SelectorThread.logger().log(Level.WARNING,
                             "postProcess DefaultProcessorTask:", e);
                 }
+                
+                processorTask.recycle();
             }
-
+            
             super.terminate(keepAlive);
         }
     }

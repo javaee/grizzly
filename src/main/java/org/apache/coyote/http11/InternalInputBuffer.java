@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -87,7 +87,6 @@ public class InternalInputBuffer implements InputBuffer {
      * Void constructor.
      */
     public InternalInputBuffer() {
-       ;
     }
 
     /**
@@ -156,6 +155,21 @@ public class InternalInputBuffer implements InputBuffer {
      */
     protected boolean swallowInput;
 
+    /**
+     * Flag, which indicates if we're currently swallowing this request input
+     */
+    private boolean isSwallowingInput;
+
+    /**
+     * Number of bytes being read in "input-swallow" mode
+     */
+    private long swallowedBytesCounter;
+
+    /**
+     * Max number of bytes Grizzly will try to swallow in order to read off
+     * the current request payload and prepare input to process next request.
+     */
+    private long maxSwallowingInputBytes = -1;
 
     /**
      * Pointer to the current read buffer.
@@ -230,11 +244,7 @@ public class InternalInputBuffer implements InputBuffer {
      * Set the underlying socket input stream.
      */
     public void setInputStream(InputStream inputStream) {
-
-        // FIXME: Check for null ?
-
         this.inputStream = inputStream;
-
     }
 
 
@@ -242,29 +252,47 @@ public class InternalInputBuffer implements InputBuffer {
      * Get the underlying socket input stream.
      */
     public InputStream getInputStream() {
-
         return inputStream;
-
     }
 
+    /**
+     * Get the max number of bytes Grizzly will try to swallow in order
+     * to read off from the current request payload and prepare input to
+     * process next request.
+     * 
+     * @return the max number of bytes Grizzly will try to swallow in order
+     * to read off from the current request payload and prepare input to
+     * process next request.
+     */
+    public long getMaxSwallowingInputBytes() {
+        return maxSwallowingInputBytes;
+    }
 
+    /**
+     * Set the max number of bytes Grizzly will try to swallow in order
+     * to read off from the current request payload and prepare input to
+     * process next request.
+     * 
+     * @param maxSwallowingInputBytes  the max number of bytes Grizzly will try
+     * to swallow in order to read off from the current request payload and
+     * prepare input to process next request.
+     */
+    public void setMaxSwallowingInputBytes(long maxSwallowingInputBytes) {
+        this.maxSwallowingInputBytes = maxSwallowingInputBytes;
+    }
+
+        
     /**
      * Add an input filter to the filter library.
      */
     public void addFilter(InputFilter filter) {
-
-        // FIXME: Check for null ?
-
         InputFilter[] newFilterLibrary = 
             new InputFilter[filterLibrary.length + 1];
-        for (int i = 0; i < filterLibrary.length; i++) {
-            newFilterLibrary[i] = filterLibrary[i];
-        }
+        System.arraycopy(filterLibrary, 0, newFilterLibrary, 0, filterLibrary.length);
         newFilterLibrary[filterLibrary.length] = filter;
         filterLibrary = newFilterLibrary;
 
         activeFilters = new InputFilter[filterLibrary.length];
-
     }
 
 
@@ -272,9 +300,7 @@ public class InternalInputBuffer implements InputBuffer {
      * Get filters.
      */
     public InputFilter[] getFilters() {
-
         return filterLibrary;
-
     }
 
 
@@ -282,10 +308,8 @@ public class InternalInputBuffer implements InputBuffer {
      * Clear filters.
      */
     public void clearFilters() {
-
         filterLibrary = new InputFilter[0];
         lastActiveFilter = -1;
-
     }
 
 
@@ -293,7 +317,6 @@ public class InternalInputBuffer implements InputBuffer {
      * Add an input filter to the filter library.
      */
     public void addActiveFilter(InputFilter filter) {
-
         if (lastActiveFilter == -1) {
             filter.setBuffer(inputStreamInputBuffer);
         } else {
@@ -331,12 +354,19 @@ public class InternalInputBuffer implements InputBuffer {
         // Recycle Request object
         request.recycle();
 
+        // Recycle filters
+        for (int i = 0; i <= lastActiveFilter; i++) {
+            activeFilters[i].recycle();
+        }
+
         inputStream = null;
         lastValid = 0;
         pos = 0;
         lastActiveFilter = -1;
         parsingHeader = true;
         swallowInput = true;
+        isSwallowingInput = false;
+        swallowedBytesCounter = 0;
     }
 
 
@@ -351,8 +381,6 @@ public class InternalInputBuffer implements InputBuffer {
         // Recycle Request object
         request.recycle();
 
-        // Determine the header buffer used for next request
-        byte[] newHeaderBuf = null;
         // Copy leftover bytes to the beginning of the buffer
         if (lastValid - pos > 0) {
             int npos = 0;
@@ -376,18 +404,22 @@ public class InternalInputBuffer implements InputBuffer {
         lastActiveFilter = -1;
         parsingHeader = true;
         swallowInput = true;
+        isSwallowingInput = false;
+        swallowedBytesCounter = 0;
     }
 
 
     /**
      * End request (consumes leftover bytes).
      * 
-     * @throws IOException an undelying I/O error occured
+     * @throws IOException an underlying I/O error occurred
      */
     public void endRequest()
         throws IOException {
 
         if (swallowInput && (lastActiveFilter != -1)) {
+            isSwallowingInput = true;
+            
             int extraBytes = (int) activeFilters[lastActiveFilter].end();
             pos = pos - extraBytes;
         }
@@ -443,7 +475,8 @@ public class InternalInputBuffer implements InputBuffer {
                     throw new EOFException(sm.getString("iib.eof.error"));
             }
 
-            if (buf[pos] == Constants.SP) {
+            // Spec says single SP but it also says be tolerant of HT
+            if (buf[pos] == Constants.SP || buf[pos] == Constants.HT) {
                 space = true;
                 request.method().setBytes(buf, start, pos - start);
             }
@@ -451,17 +484,29 @@ public class InternalInputBuffer implements InputBuffer {
             pos++;
         }
 
+        // Spec says single SP but also says be tolerant of multiple and/or HT
+        while (space) {
+            // Read new bytes if needed
+            if (pos >= lastValid) {
+                if (!fill())
+                    throw new EOFException(sm.getString("iib.eof.error"));
+            }
+            if (buf[pos] == Constants.SP || buf[pos] == Constants.HT) {
+                pos++;
+            } else {
+                space = false;
+            }
+        }
        
         // Mark the current buffer position
         start = pos;
-        int end = 0;
+        end = 0;
         int questionPos = -1;
 
         //
         // Reading the URI
         //
 
-        space = false;
         boolean eol = false;
         while (!space) {
 
@@ -471,7 +516,8 @@ public class InternalInputBuffer implements InputBuffer {
                     throw new EOFException(sm.getString("iib.eof.error"));
             }
 
-            if (buf[pos] == Constants.SP) {
+            // Spec says single SP but it also says be tolerant of HT
+            if (buf[pos] == Constants.SP || buf[pos] == Constants.HT) {
                 space = true;
                 end = pos;
             } else if ((buf[pos] == Constants.CR) 
@@ -496,6 +542,20 @@ public class InternalInputBuffer implements InputBuffer {
             request.requestURI().setBytes(buf, start, questionPos - start);
         } else {
             request.requestURI().setBytes(buf, start, end - start);
+        }
+
+        // Spec says single SP but also says be tolerant of multiple and/or HT
+        while (space) {
+            // Read new bytes if needed
+            if (pos >= lastValid) {
+                if (!fill())
+                    throw new EOFException(sm.getString("iib.eof.error"));
+            }
+            if (buf[pos] == Constants.SP || buf[pos] == Constants.HT) {
+                pos++;
+            } else {
+                space = false;
+            }
         }
 
         // Mark the current buffer position
@@ -703,8 +763,14 @@ public class InternalInputBuffer implements InputBuffer {
 
     }
 
-    public int available() {
-        return lastValid;
+    /**
+     * Return the number of bytes left after a valid http request has been 
+     * processed.
+     * @return the number of bytes left after a valid http request has been 
+     * processed. 
+     */
+    public int available(){
+        return lastValid - pos;
     }
 
     // ---------------------------------------------------- InputBuffer Methods
@@ -728,12 +794,17 @@ public class InternalInputBuffer implements InputBuffer {
 
 
     /**
-     * Fill the internal buffer using data from the undelying input stream.
+     * Fill the internal buffer using data from the underlying input stream.
      * 
      * @return false if at end of stream
      */
     protected boolean fill()
         throws IOException {
+
+        if (isSwallowingInput && maxSwallowingInputBytes >= 0
+                && swallowedBytesCounter >= maxSwallowingInputBytes) {
+            throw new EOFException("Can not skip more than " + maxSwallowingInputBytes + " bytes");
+        }
 
         int nRead = 0;
 
@@ -746,6 +817,7 @@ public class InternalInputBuffer implements InputBuffer {
 
             nRead = inputStream.read(buf, pos, buf.length - lastValid);
             if (nRead > 0) {
+                request.setBytesRead(request.getBytesRead() + nRead);
                 lastValid = pos + nRead;
             }
 
@@ -762,15 +834,30 @@ public class InternalInputBuffer implements InputBuffer {
             lastValid = pos;
             nRead = inputStream.read(buf, pos, buf.length - lastValid);
             if (nRead > 0) {
+                request.setBytesRead(request.getBytesRead() + nRead);
                 lastValid = pos + nRead;
             }
 
         }
-        return (nRead > 0);
+
+        final boolean success = nRead > 0;
+
+        if (success && isSwallowingInput) {
+            swallowedBytesCounter += nRead;
+        }
+
+        return success;
 
     }
 
-
+    public String toStringAvailable() {
+        if (available() > 0) {
+            return new String(buf, pos, available());
+        }
+        
+        return "";
+    }
+    
     // ------------------------------------- InputStreamInputBuffer Inner Class
 
 

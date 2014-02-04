@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,11 +42,14 @@ package com.sun.enterprise.web.connector.grizzly.async;
 
 import com.sun.enterprise.web.connector.grizzly.AsyncExecutor;
 import com.sun.enterprise.web.connector.grizzly.AsyncTask;
+import com.sun.enterprise.web.connector.grizzly.DefaultProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.ProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import com.sun.enterprise.web.connector.grizzly.TaskBase;
 import com.sun.enterprise.web.connector.grizzly.TaskEvent;
+import java.io.IOException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -58,7 +61,10 @@ import java.util.logging.Level;
  * @author Jeanfrancois Arcand
  */
 public class AsyncProcessorTask extends TaskBase implements AsyncTask {
- 
+    private static final Logger LOGGER =
+            Logger.getLogger(AsyncProcessorTask.class.getName());
+    private static final Level LOG_LEVEL = Level.FINEST;
+
     /**
      * The <code>AsyncExecutor</code> which drive the execution of the 
      * <code>ProcesssorTask</code>
@@ -67,60 +73,79 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
 
     
     /**
-     * The <code>ProcessorTask</code>
-     */
-    private ProcessorTask processorTask;
-    
-    
-    /**
      * The current execution stage.
      */
     private int stage = AsyncTask.PRE_EXECUTE;
-    
     
     /**
      * Execute the <code>AsyncExecutor</code> based on the <code>stage</code>
      * of the <code>ProcessorTask</code> execution.
      */
-    public void doTask() throws java.io.IOException {
-        boolean contineExecution = true;
-        while ( contineExecution ) {
-            try{
-                switch(stage){
-                    case AsyncTask.PRE_EXECUTE:
-                       stage = AsyncTask.INTERRUPTED;                       
-                       contineExecution = asyncExecutor.preExecute();
-                       break;                
-                    case AsyncTask.INTERRUPTED:
-                       stage = AsyncTask.POST_EXECUTE;                        
-                       contineExecution = asyncExecutor.interrupt();
-                       break;
-                    case AsyncTask.EXECUTE:    
-                       contineExecution = asyncExecutor.execute();
-                       stage = AsyncTask.POST_EXECUTE;
-                       break;                           
-                    case AsyncTask.POST_EXECUTE:    
-                       contineExecution = asyncExecutor.postExecute();
-                       stage = AsyncTask.COMPLETED;
-                       break;                
+    public void doTask() throws IOException {
+        boolean continueExecution = true;
+        while (continueExecution) {
+            try {
+                if (LOGGER.isLoggable(LOG_LEVEL)) {
+                    LOGGER.log(LOG_LEVEL, "doTask apt={0} stage={1}", new Object[]{this, stage});
                 }
-            } catch (Throwable t){
-                SelectorThread.logger().log(Level.SEVERE,t.getMessage(),t);
-                if ( stage <= AsyncTask.INTERRUPTED) {
+                
+                switch (stage) {
+                    case AsyncTask.PRE_EXECUTE:
+                        continueExecution = asyncExecutor.preExecute();
+                        if (!continueExecution) {
+                            asyncExecutor.getAsyncHandler().returnTask(this);
+                            return;
+                        } else {
+                            stage = AsyncTask.INTERRUPTED;
+                        }
+                        break;              
+                    case AsyncTask.INTERRUPTED:
+                        stage = AsyncTask.POST_EXECUTE;
+                        continueExecution = asyncExecutor.interrupt();
+                        break;
+                    case AsyncTask.EXECUTE:
+                        stage = AsyncTask.POST_EXECUTE;
+                        continueExecution = asyncExecutor.execute();
+                        break;
+                    case AsyncTask.POST_EXECUTE:    
+                        continueExecution = asyncExecutor.postExecute();
+                        if (continueExecution) {
+                            final ProcessorTask processorTask =
+                                    asyncExecutor.getProcessorTask();
+                    
+                            if (processorTask.hasNextRequest()
+                                    && isKeepAlive(processorTask)) {
+                                
+                                if (LOGGER.isLoggable(LOG_LEVEL)) {
+                                    final DefaultProcessorTask dpt = (DefaultProcessorTask) processorTask;
+                                    LOGGER.log(LOG_LEVEL, "doTask next request is ready. Available content: {0}", dpt.inputBuffer.toStringAvailable());
+                                }
+
+                                asyncExecutor.reset();
+                                asyncExecutor.getProcessorTask().prepareForNextRequest();
+
+                                stage = AsyncTask.PRE_EXECUTE;
+                            } else {
+                                stage = AsyncTask.FINISH;
+                            }
+                        }
+                       break;                
+                    case AsyncTask.FINISH:
+                        asyncExecutor.finishExecute();
+                        asyncExecutor.getAsyncHandler().returnTask(this);
+                        return;
+                }
+            } catch (Throwable t) {
+                SelectorThread.logger().log(Level.SEVERE, t.getMessage(), t);
+                if (stage <= AsyncTask.INTERRUPTED) {
                     // We must close the connection.
                     stage = AsyncTask.POST_EXECUTE;
                 } else {
-                    stage = AsyncTask.COMPLETED;
+                    stage = AsyncTask.PRE_EXECUTE;
                     throw new RuntimeException(t);
                 }
-            } finally {
-                // If the execution is completed, return this task to the pool.
-                if ( stage == AsyncTask.COMPLETED){
-                    stage = AsyncTask.PRE_EXECUTE;
-                    asyncExecutor.getAsyncHandler().returnTask(this);
-                }
             }
-        } 
+        }
     }
 
     
@@ -134,7 +159,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
     /**
      * Return the <code>stage</code> of the current execution.
      */
-    public int getStage(){
+    public int getStage() {
         return stage;
     }
     
@@ -143,20 +168,17 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
      * Reset the object.
      */
     @Override
-    public void recycle(){
+    public void recycle() {
         stage = AsyncTask.PRE_EXECUTE;
-        processorTask = null;
-        if (asyncExecutor instanceof DefaultAsyncExecutor){
-            ((DefaultAsyncExecutor)asyncExecutor).recycle();
-        }
+        asyncExecutor.reset();
     }
 
-    
+
     /**
      * Set the <code>AsyncExecutor</code> used by this <code>Task</code>
      * to delegate the execution of a <code>ProcessorTask</code>.
      */
-    public void setAsyncExecutor(AsyncExecutor asyncExecutor){
+    public void setAsyncExecutor(AsyncExecutor asyncExecutor) {
         this.asyncExecutor = asyncExecutor;
     }
     
@@ -164,7 +186,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
     /**
      * Get the <code>AsyncExecutor</code>.
      */
-    public AsyncExecutor getAsyncExecutor(){
+    public AsyncExecutor getAsyncExecutor() {
         return asyncExecutor;
     }
     
@@ -173,26 +195,37 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
      * Set the <code>ProcessorTask</code> that needs to be executed
      * asynchronously.
      */
-    public void setProcessorTask(ProcessorTask processorTask){
-        this.processorTask = processorTask;
-        if ( pipeline == null && processorTask != null) {
+    public void setProcessorTask(ProcessorTask processorTask) {
+        if (asyncExecutor != null) {
+            asyncExecutor.setProcessorTask(processorTask);
+        }
+
+        if (pipeline == null && processorTask != null) {
             setPipeline(processorTask.getPipeline());
-        }        
+        }
     }
     
     
     /**
-     * Return the <code>ProcessorTask</code>.
-     */
-    public ProcessorTask getProcessorTask(){
-        return processorTask;
+     * The {@link ProcessorTask} used to execute the request processing.
+     * @return {@link ProcessorTask} used to execute the request processing.
+     * @deprecated - Use {@link AsyncExecutor#getProcessorTask}
+     */        
+    public ProcessorTask getProcessorTask() {
+        return asyncExecutor == null ? null : asyncExecutor.getProcessorTask();
+        
     }
 
     
     /**
      * 
      */
-    public void setStage(int stage){
+    public void setStage(int stage) {
         this.stage = stage;
+    }
+    
+    private boolean isKeepAlive(final ProcessorTask processorTask) {
+        return processorTask.isKeepAlive() && !processorTask.isError()
+                && !processorTask.getDropConnection();
     }
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Default implementation of the <code>AsyncExecutor</code>. This class will
@@ -61,9 +62,19 @@ import java.util.logging.Level;
  * @author Jeanfrancois Arcand
  */
 public class DefaultAsyncExecutor implements AsyncExecutor{
+    private static final Logger LOGGER =
+            Logger.getLogger(DefaultAsyncExecutor.class.getName());
+    private static final Level LOG_LEVEL = Level.FINEST;
 
     private final static String ASYNC_FILTER = 
             "com.sun.enterprise.web.connector.grizzly.asyncFilters";
+
+    /**
+     * The <code>AsyncFilter</code> to execute asynchronous operations on 
+     * a <code>ProcessorTask</code>.
+     */
+    private final static ArrayList<AsyncFilter> sharedAsyncFilters =
+            loadFilters();
 
     
     /**
@@ -83,29 +94,8 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * The <code>AsyncFilter</code> to execute asynchronous operations on 
      * a <code>ProcessorTask</code>.
      */
-    private static String[] sharedAsyncFilters = null;;
-    
-    
-    /**
-     * The <code>AsyncFilter</code> to execute asynchronous operations on 
-     * a <code>ProcessorTask</code>.
-     */
-    private ArrayList<AsyncFilter> asyncFilters = 
-            new ArrayList<AsyncFilter>();
-    
-    
-    /**
-     * Do we need to invoke filters?
-     */
-    private boolean invokeFilter = true;
-
-    
-    /**
-     * Loads filters implementation.
-     */
-    static {
-        loadFilters();
-    }
+    private final ArrayList<AsyncFilter> asyncFilters =
+            new ArrayList<AsyncFilter>(sharedAsyncFilters);
     
     
     /**
@@ -116,39 +106,49 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     /**
      * Only one execution of every steps are allowed.
      */
-    private AtomicBoolean parseHeaderPhase = new AtomicBoolean(false);
-    private AtomicBoolean executeAdapterPhase = new AtomicBoolean(false);
-    private AtomicBoolean commitResponsePhase = new AtomicBoolean(false);
+    private final AtomicBoolean parseHeaderPhase = new AtomicBoolean(false);
+    private final AtomicBoolean executeAdapterPhase = new AtomicBoolean(false);
+    private final AtomicBoolean commitResponsePhase = new AtomicBoolean(false);
+    private final AtomicBoolean finishResponsePhase = new AtomicBoolean(false);
+    
     
     // --------------------------------------------------------------------- //
     
     public DefaultAsyncExecutor(){
-        init();
     }
     
     
-    private void init(){
-        if (sharedAsyncFilters != null){
-            for (String filterName: sharedAsyncFilters){
-                asyncFilters.add(loadInstance(filterName));
-            }
-        }
-    }
     
     // ------------------------------------------------Asynchrounous Execution --/
-    
     /**
      * Pre-execute a <code>ProcessorTask</code> by parsing the request 
      * line.
      */
-    public boolean preExecute() throws Exception{
-        if (!parseHeaderPhase.getAndSet(true)){
-            processorTask = asyncProcessorTask.getProcessorTask();
-            if ( processorTask == null ){
-                throw new IllegalStateException("Null ProcessorTask");
+    public boolean preExecute() throws Exception {
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.preExecute apt={0}", new Object[]{asyncProcessorTask});
+        }
+        
+        if (!parseHeaderPhase.getAndSet(true)) {
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.preExecute_1");
             }
+
             processorTask.preProcess();
-            processorTask.parseRequest();
+
+            // True when there is an error or when the (@link FileCache} is enabled
+            if (processorTask.parseRequest()) {
+                if (LOGGER.isLoggable(LOG_LEVEL)) {
+                    LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.preExecute_2");
+                }
+                finishResponse();
+                return false;
+            }
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.preExecute parsed OK. request-url={0}",
+                        processorTask.getRequestURI());
+            }
+            
             return true;
         }
         return false;
@@ -160,15 +160,28 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * has been defined.
      * @return true if the execution can continue, false if delayed.
      */
-    public boolean interrupt() throws Exception{
-        if (processorTask.isError()) return true;  // if error was detected on prev phase - skip execution
-
-        if ( asyncFilters == null || asyncFilters.size() == 0 ) {
-            execute();
-            return false;
+    public boolean interrupt() throws Exception {
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.interrupt apt={0}", new Object[]{asyncProcessorTask});
+        }
+        if (asyncFilters.isEmpty()) {
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.interrupt_1");
+            }
+            return execute();
         } else {
-            asyncHandler.addToInterruptedQueue(asyncProcessorTask); 
-            return invokeFilters();
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.interrupt_2");
+            }
+            final AsyncFilter.Result result = invokeFilters();
+            if (result == AsyncFilter.Result.NEXT) {
+                if (LOGGER.isLoggable(LOG_LEVEL)) {
+                    LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.interrupt_3");
+                }
+                return execute();
+            }
+
+            return result == AsyncFilter.Result.FINISH;
         }
     }
     
@@ -179,7 +192,13 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * @return true if the execution can continue, false if delayed.
      */
     public boolean execute() throws Exception{
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.execute apt={0}", new Object[]{asyncProcessorTask});
+        }
         if (!executeAdapterPhase.getAndSet(true)){
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.execute_1");
+            }
             processorTask.invokeAdapter();
             return true;
         }
@@ -190,35 +209,88 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     /**
      * Invoke the <code>AsyncFilter</code>
      */
-    private boolean invokeFilters(){
-        boolean continueExec = true;
-        for (AsyncFilter asf: asyncFilters){
-            continueExec = asf.doFilter(this);
-            if ( !continueExec ){
-                break;
+    private AsyncFilter.Result invokeFilters() {
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.invokeFilters apt={0}",
+                    new Object[]{asyncProcessorTask});
+        }
+        for (AsyncFilter asyncFilter : asyncFilters) {
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.invokeFilters.doFilter apt={0}, filter={1}",
+                        new Object[]{asyncProcessorTask, asyncFilter});
+            }
+            final AsyncFilter.Result result = asyncFilter.doFilter(this);
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.invokeFilters.doFilter apt={0}, filter={1}, result={2}",
+                        new Object[]{asyncProcessorTask, asyncFilter, result});
+            }
+            if (result != AsyncFilter.Result.NEXT) {
+                return result;
             }
         }
-        return continueExec;
+
+        return AsyncFilter.Result.NEXT;
     }
     
     
     /**
-     * Post-execute the <code>ProcessorTask</code> by preparing the response,
-     * flushing the response and then close or keep-alive the connection.
+     * Finish the {@link Response} and recycle {@link ProcessorTask}.
      */
-    public boolean postExecute() throws Exception{
-        if (!commitResponsePhase.getAndSet(true)){
+    private void finishResponse() throws Exception{       
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.finishResponse apt={0}",
+                    new Object[]{asyncProcessorTask});
+        }
+        processorTask.postProcess();        
+        processorTask.terminateProcess();
+        // De-reference so under stress we don't have a simili leak.
+        processorTask = null;    
+    }
+    
+    
+    /**
+     * Resume the connection by commit the {@link Response} object.
+     */
+    public boolean postExecute() throws Exception {
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.postExecute apt={0}",
+                    new Object[]{asyncProcessorTask});
+        }
+        if (!commitResponsePhase.getAndSet(true)) {
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.postExecute_1");
+            }
+            if (processorTask == null) return false;
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.postExecute_2");
+            }
             processorTask.postResponse();
-            processorTask.postProcess();
-            processorTask.terminateProcess();
-
-            // De-reference so under stress we don't have a simili leak.
-            processorTask = null;
-            return false;
+            return true;
         }
         return false;
     }
 
+    /**
+     * Resume the connection by commit the {@link Response} object.
+     */
+    public boolean finishExecute() throws Exception {
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.finishExecute apt={0}",
+                    new Object[]{asyncProcessorTask});
+        }
+        if (!finishResponsePhase.getAndSet(true)){
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.finishExecute_1");
+            }
+            if (processorTask == null) return false;
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.finishExecute_2");
+            }
+            finishResponse();
+            return false;
+        }
+        return false;
+    }
       
     /**
      * Set the <code>AsyncTask</code>.
@@ -238,29 +310,78 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     
     // --------------------------------------------------------- Util --------//  
     
+    /**
+     * Add an {@link AsyncFilter}
+     */
+    public void addAsyncFilter(AsyncFilter asyncFilter) {
+        asyncFilters.add(asyncFilter);
+    }
+
+    
+    /**
+     * Remove an {@link AsyncFilter}
+     */
+    public boolean removeAsyncFilter(AsyncFilter asyncFilter) {
+        return asyncFilters.remove(asyncFilter);
+    }
+    
+
+    /**
+     * Get the {@link AsyncHandler} who drive the asynchronous process.
+     */
+    public AsyncHandler getAsyncHandler() {
+        return asyncHandler;
+    }
+    
+    
+    /**
+     * Set the {@link AsyncHandler} who drive the asynchronous process.
+     */
+    public void setAsyncHandler(AsyncHandler asyncHandler) {
+        this.asyncHandler = asyncHandler;
+    }
+
+    
+    /**
+     * Set the {@link ProcessorTask} used to execute the request processing.
+     * @param task a {@link ProcessorTask} 
+     */
+    public void setProcessorTask(ProcessorTask task) {
+        processorTask = task;
+    }
+    
+    
+    /**
+     * The {@link ProcessorTask} used to execute the request processing.
+     * @return {@link ProcessorTask} used to execute the request processing.
+     */
+    public ProcessorTask getProcessorTask(){
+        return processorTask;
+    }
     
     /**
      * Load the list of <code>AsynchFilter</code>.
      */
-    protected static void loadFilters(){      
+    protected static ArrayList<AsyncFilter> loadFilters(){
+        ArrayList<AsyncFilter> al = new ArrayList<AsyncFilter>();
         if ( System.getProperty(ASYNC_FILTER) != null){
             StringTokenizer st = new StringTokenizer(
                     System.getProperty(ASYNC_FILTER),",");
-            
-            sharedAsyncFilters = new String[st.countTokens()];    
-            int i = 0;
             while (st.hasMoreTokens()){
-                sharedAsyncFilters[i++] = st.nextToken();                
+                AsyncFilter filter = (AsyncFilter) loadInstance(st.nextToken());
+                if (filter != null) {
+                    al.add(filter);
+                }
             } 
-        }   
-    }    
-    
+        }
+        return al;
+    }
     
     /**
-     * Instanciate a class based on a property.
+     * Instantiate a class based on a property.
      */
     private static AsyncFilter loadInstance(String property){        
-        Class className = null;                               
+        Class className;                               
         try{                              
             className = Class.forName(property);
             return (AsyncFilter)className.newInstance();
@@ -274,44 +395,17 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
         return null;
     }   
 
-    
-    /**
-     * Add an <code>AsyncFilter</code>
-     */
-    public void addAsyncFilter(AsyncFilter asyncFilter) {
-        asyncFilters.add(asyncFilter);
-    }
-
-    
-    /**
-     * Remove an <code>AsyncFilter</code>
-     */
-    public boolean removeAsyncFilter(AsyncFilter asyncFilter) {
-        return asyncFilters.remove(asyncFilter);
-    }
-
-    
-    /**
-     * Get the <code>AsyncHandler</code> who drive the asynchronous process.
-     */
-    public AsyncHandler getAsyncHandler() {
-        return asyncHandler;
-    }
-    
-    
-    /**
-     * Set the <code>AsyncHandler</code> who drive the asynchronous process.
-     */
-    public void setAsyncHandler(AsyncHandler asyncHandler) {
-        this.asyncHandler = asyncHandler;
-    }
-
     /**
      * Reset
      */
-    void recycle(){
-        parseHeaderPhase.getAndSet(false);
-        executeAdapterPhase.getAndSet(false);
-        commitResponsePhase.getAndSet(false);
+    public void reset() {
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.reset apt={0}",
+                    new Object[]{asyncProcessorTask});
+        }        
+        parseHeaderPhase.set(false);
+        executeAdapterPhase.set(false);
+        commitResponsePhase.set(false);
+        finishResponsePhase.set(false);
     }
 }

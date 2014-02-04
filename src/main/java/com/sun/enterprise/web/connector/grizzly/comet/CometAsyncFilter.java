@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -79,16 +79,17 @@ public class CometAsyncFilter implements AsyncFilter {
      * {@link CometEngine}. At this stage, the request has already
      * been interrupted.
      */
-    public boolean doFilter(AsyncExecutor asyncExecutor) {
+    public AsyncFilter.Result doFilter(AsyncExecutor asyncExecutor) {
         AsyncProcessorTask apt = (AsyncProcessorTask)asyncExecutor.getAsyncTask();
-        CometEngine cometEngine = CometEngine.getEngine();                
-        try{
+        CometEngine cometEngine = CometEngine.getEngine();
+        try {
             if (!cometEngine.handle(apt)) {
-                return true;
-            } 
-        } catch (IOException ex){
-            logger.log(Level.SEVERE,"CometAsyncFilter",ex);
+                return AsyncFilter.Result.FINISH;
+            }
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "CometAsyncFilter", ex);
         }
-        return false;
+        
+        return AsyncFilter.Result.INTERRUPT;
     }
 }

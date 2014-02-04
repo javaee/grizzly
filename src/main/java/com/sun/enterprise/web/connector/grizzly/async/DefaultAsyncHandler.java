@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,8 @@ import com.sun.enterprise.web.connector.grizzly.ProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.Task;
 import java.util.ArrayList;
 import java.util.Queue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Default implementation of <code>AsyncHandler</code>. This class handle 
@@ -66,6 +68,9 @@ import java.util.Queue;
  * @author Jeanfrancois Arcand
  */
 public class DefaultAsyncHandler implements AsyncHandler{
+    private static final Logger LOGGER =
+            Logger.getLogger(DefaultAsyncHandler.class.getName());
+    private static final Level LOG_LEVEL = Level.FINEST;
     
     /**
      * Cache instance of <code>AsyncTask</code>

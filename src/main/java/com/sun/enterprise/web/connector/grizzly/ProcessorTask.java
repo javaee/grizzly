@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,7 +50,6 @@ import java.net.Socket;
  * @author Jean-Francois Arcand
  */
 public interface ProcessorTask extends Task{
- 
     /**
      * Initialize the stream and the buffer used to parse the request.
      */
@@ -93,7 +92,7 @@ public interface ProcessorTask extends Task{
     /**
      * Parse the request line and the http header.
      */
-    public void parseRequest() throws Exception;
+    public boolean parseRequest() throws Exception;
 
     
     /**
@@ -231,7 +230,11 @@ public interface ProcessorTask extends Task{
     
     
     /**
-     * Has an error occured duing the HTTP parsing?
+     * Has an error occurred during the HTTP parsing?
      */
     public boolean isError();
+    
+    public boolean hasNextRequest();
+    
+    public void prepareForNextRequest();
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -93,7 +93,10 @@ import java.util.StringTokenizer;
  * @author Jean-Francois Arcand
  */
 public class SelectorThread extends Thread implements MBeanRegistration{
-            
+    private static final Logger LOGGER =
+            Logger.getLogger(SelectorThread.class.getName());
+    private static final Level LOG_LEVEL = Level.FINEST;
+
     public final static String SERVER_NAME = 
             System.getProperty("product.name") != null 
                 ? System.getProperty("product.name") : "grizzly";
@@ -440,9 +443,17 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      * in j2se 1.4.x that prevent registering selector event if the call
      * is done on another thread.
      */
-    private Queue<SelectionKey> keysToEnable =
+    private final Queue<SelectionKey> keysToEnable =
         new ConcurrentQueue<SelectionKey>("SelectorThread.keysToEnable");
          
+    /**
+     * List of <code>SelectionKey</code> to cancel next time the 
+     * <code>Selector</code> wakeups. This is needed since there a bug
+     * in j2se 1.4.x that prevent registering selector event if the call
+     * is done on another thread.
+     */
+    private final Queue<SelectionKey> keysToCancel =
+        new ConcurrentQueue<SelectionKey>("SelectorThread.keysToCancel");
     
     // ---------------------------------------------------- Object pools --//
 
@@ -678,19 +689,88 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     // ----------------------------------------------------------------------/
     
    /**
+     * Cancels (in the selector thread) all the selection keys
+     * scheduled for canceling.
+     */
+    public void cancelSelectionKeys() {
+        if (keysToCancel.isEmpty()) {
+            return;
+        }
+        
+        do {
+            try {
+                cancelKey0(keysToCancel.poll());
+            } catch (Exception e) {
+                logger.log(Level.FINE, "Error cancelling the key", e);
+            }
+        } while (!keysToCancel.isEmpty());
+    }
+
+    protected void cancelKey0(final SelectionKey key) {
+        if (enableNioLogging){
+            logger.log(Level.INFO,"Closing SocketChannel " + 
+                    key.channel());
+        }
+
+        Socket socket = ((SocketChannel)key.channel()).socket();
+        try{
+            if (!socket.isInputShutdown()){
+                socket.shutdownInput();
+            }
+        } catch (IOException ex){
+            ;
+        }
+        
+        try{
+            if (!socket.isOutputShutdown()){
+                socket.shutdownOutput();
+            }
+        } catch (IOException ex){
+            ;
+        }
+
+        try{
+            if (!socket.isClosed()){
+                socket.close();
+            }
+        } catch (IOException ex){
+            ;
+        } finally {
+            try{
+                // This is not needed but just to make sure the JDK isn't 
+                // leaking any fd.
+                if (key.channel().isOpen()){
+                    key.channel().close();
+                }
+            } catch (IOException ex){
+                logger.log(Level.FINEST,"selectorThread.unableToCloseKey", key);
+            }
+            if (isMonitoringEnabled() && 
+                    pipelineStat.decrementOpenConnectionsCount(key.channel())) {
+                getRequestGroupInfo().decreaseCountOpenConnections();
+            }
+        }
+
+        
+        // Set the attachement to null so the Selector.java handleConnection
+        // stop processing this key.
+        key.attach(null);
+        key.cancel();
+    }
+    
+    /**
      * Enable all registered interestOps. Due a a NIO bug, all interestOps
      * invokation needs to occurs on the same thread as the selector thread.
      */
-    public void enableSelectionKeys(){
-        SelectionKey selectionKey;
-        int size = keysToEnable.size();
-        long currentTime = 0L;
-        if (size > 0){
-            currentTime = (Long)System.currentTimeMillis();
+    public void enableSelectionKeys() {
+        if (keysToEnable.isEmpty()) {
+            return;
         }
+        
+        final long currentTime = System.currentTimeMillis();
 
-        for (int i=0; i < size; i++) {
-            selectionKey = keysToEnable.poll();
+        do {
+            final SelectionKey selectionKey = keysToEnable.poll();
             
             // If the SelectionKey is used for continuation, do not allow
             // the key to be registered.
@@ -700,7 +780,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
             }
             
             if (!selectionKey.isValid()){
-                cancelKey(selectionKey); 
+                cancelKey0(selectionKey); 
                 continue;
             }
             
@@ -714,7 +794,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
                 selectionKey.attach(-1L);
                 
                 if (processorPipeline.expireKey(selectionKey)){                 
-                    cancelKey(selectionKey);
+                    cancelKey0(selectionKey);
                     continue;
                 }
                 selectionKey.attach(attachment);
@@ -725,7 +805,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
 
             if (selectionKey.attachment() == null)
                 selectionKey.attach(currentTime);
-        } 
+        } while (!keysToEnable.isEmpty());
     } 
     
     
@@ -743,14 +823,22 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      * Register a <code>SelectionKey</code> to this <code>Selector</code>
      * running of this thread.
      */
-    public void registerKey(SelectionKey key){
+    public void registerKey(SelectionKey key) {
         if (key == null) return;
+        
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "SelectorThread.registerKey channel=" + key.channel(), new Exception("Stacktrace"));
+        }
         
         if (keepAlivePipeline.dropConnection()) {
             cancelKey(key);
             return;
         }
         
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "SelectorThread.registerKey_1");
+        }
+
         if (defaultAlgorithmInstalled){
             key.attach(null);
         }
@@ -766,6 +854,10 @@ public class SelectorThread extends Thread implements MBeanRegistration{
         selector.wakeup();
         // wakeup() will force the SelectorThread to bail out
         // of select() to process your registered request
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "SelectorThread.registerKey_2");
+        }
+        
     } 
 
    // -------------------------------------------------------------- Init // 
@@ -1416,7 +1508,8 @@ public class SelectorThread extends Thread implements MBeanRegistration{
         try{
             selectorState = 0;
             enableSelectionKeys();                
-
+            cancelSelectionKeys();
+            
             try{                
                 selectorState = selector.select(selectorTimeout);
             } catch (CancelledKeyException ex){
@@ -1444,7 +1537,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
                 if (key.isValid()) {
                     handleConnection(key);
                 } else {
-                    cancelKey(key);
+                    cancelKey0(key);
                 }
             }
             
@@ -1516,7 +1609,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
                                     "Keep-Alive expired for SocketChannel " + 
                                     key.channel());
                         }          
-                        cancelKey(key);
+                        cancelKey0(key);
                         keepAliveStats.incrementCountTimeouts();
                     } else if (expire + kaTimeout < nextKeysExpiration){
                         nextKeysExpiration = expire + kaTimeout;
@@ -1551,7 +1644,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
         if ( ((SocketChannel)key.channel()).isOpen() ) {
             task.execute();
         } else {
-            cancelKey(key);
+            cancelKey0(key);
         }
     }
         
@@ -1582,7 +1675,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
 
                     // The channel got closed just after the register operation.
                     if (!channel.isOpen()) {
-                        cancelKey(readKey);
+                        cancelKey0(readKey);
                         return;
                     }
 
@@ -1599,7 +1692,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
                 logger.log(Level.FINE, "selectorThread.errorOnRequest", e);
                 try {
                     if (readKey != null) {
-                        cancelKey(key);
+                        cancelKey0(key);
                     } else {
                         channel.close();
                     }
@@ -1638,66 +1731,22 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     /**
      * Cancel the current <code>SelectionKey</code>
      */
-    public void cancelKey(SelectionKey key){
+    public void cancelKey(SelectionKey key) {
         if (key == null){
             return;
         }
 
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "SelectorThread.cancelKey channel=" + key.channel(), new Exception("Stacktrace"));
+        }
+        
         keepAlivePipeline.untrap(key);       
         if (!processorPipeline.expireKey(key)){
             return;
         }
 
-        if (enableNioLogging){
-            logger.log(Level.INFO,"Closing SocketChannel " + 
-                    key.channel());
-        }
-
-        Socket socket = ((SocketChannel)key.channel()).socket();
-        try{
-            if (!socket.isInputShutdown()){
-                socket.shutdownInput();
-            }
-        } catch (IOException ex){
-            ;
-        }
-        
-        try{
-            if (!socket.isOutputShutdown()){
-                socket.shutdownOutput();
-            }
-        } catch (IOException ex){
-            ;
-        }
-
-        try{
-            if (!socket.isClosed()){
-                socket.close();
-            }
-        } catch (IOException ex){
-            ;
-        } finally {
-            try{
-                // This is not needed but just to make sure the JDK isn't 
-                // leaking any fd.
-                if (key.channel().isOpen()){
-                    key.channel().close();
-                }
-            } catch (IOException ex){
-                logger.log(Level.FINEST,"selectorThread.unableToCloseKey", key);
-            }
-            if (isMonitoringEnabled() && 
-                    pipelineStat.decrementOpenConnectionsCount(key.channel())) {
-                getRequestGroupInfo().decreaseCountOpenConnections();
-            }
-        }
-
-        
-        // Set the attachement to null so the Selector.java handleConnection
-        // stop processing this key.
-        key.attach(null);
-        key.cancel();
-        key = null;
+        keysToCancel.add(key);
+        wakeup();
     }
     
     
@@ -1797,7 +1846,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
         while (iterator.hasNext()) {
             key = iterator.next();
             if (key.channel() instanceof SocketChannel){
-                cancelKey(key);
+                cancelKey0(key);
             } else {
                 key.cancel();
             }
@@ -3227,10 +3276,6 @@ public class SelectorThread extends Thread implements MBeanRegistration{
 
     public Queue<SelectionKey> getKeysToEnable() {
         return keysToEnable;
-    }
-
-    public void setKeysToEnable(Queue<SelectionKey> keysToEnable) {
-        this.keysToEnable = keysToEnable;
     }
 
     public Queue<ProcessorTask> getProcessorTasks() {

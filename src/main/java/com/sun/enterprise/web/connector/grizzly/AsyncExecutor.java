@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -86,6 +86,11 @@ public interface AsyncExecutor {
      */    
     public boolean postExecute() throws Exception;
     
+    /**
+     * finish the processing on this connection until new data come.
+     * @return true if the processing can continue.
+     */
+    public boolean finishExecute() throws Exception;
     
     /**
      * Set the <code>AsycnProcesssorTask</code>.
@@ -121,4 +126,24 @@ public interface AsyncExecutor {
      * Set the <code>AsyncHandler</code> who drive the asynchronous process.
      */
     public void setAsyncHandler(AsyncHandler asyncHandler);
+    
+    
+    /**
+     * Set the {@link ProcessorTask} used to execute the request processing.
+     * @param task a {@link ProcessorTask} 
+     */    
+    public void setProcessorTask(ProcessorTask task);
+    
+    
+    /**
+     * The {@link ProcessorTask} used to execute the request processing.
+     * @return {@link ProcessorTask} used to execute the request processing.
+     */        
+    public ProcessorTask getProcessorTask();
+
+    /**
+     * Reset
+     */
+    public void reset();
+
 }

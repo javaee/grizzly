@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,6 +67,7 @@ import java.net.SocketException;
 import java.nio.channels.SocketChannel;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.coyote.ActionCode;
 import org.apache.coyote.ActionHook;
@@ -106,6 +107,9 @@ import javax.management.ObjectName;
  */
 public class DefaultProcessorTask extends TaskBase implements Processor, 
         ActionHook, ProcessorTask {
+    private static final Logger LOGGER =
+            Logger.getLogger(DefaultProcessorTask.class.getName());
+    private static final Level LOG_LEVEL = Level.FINEST;
 
     /**
      * Associated adapter.
@@ -128,7 +132,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
     /**
      * Input.
      */
-    protected InternalInputBuffer inputBuffer = null;
+    public InternalInputBuffer inputBuffer = null;
 
 
     /**
@@ -396,6 +400,9 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
     
     private boolean useKeepAliveAlgorithm = false;
 
+    // Has processing of this object completed.
+    private boolean isProcessingCompleted = false;
+    
     // ----------------------------------------------------- Constructor ---- //
 
     public DefaultProcessorTask(){
@@ -483,7 +490,11 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
         
      
     @Override
-    public void taskEvent(TaskEvent event){
+    public void taskEvent(TaskEvent event) {
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultProcessorTask.taskEvent dpt={0} event.status={1}",
+                    new Object[]{this, event.getStatus()});
+        }
         if ( event.getStatus() == TaskEvent.START) {
             taskContext = (TaskContext)event.attachement();
             if (taskEvent == null) {
@@ -594,23 +605,46 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
     protected boolean doProcess(InputStream input, OutputStream output)
                                                             throws Exception{        
         do {
+            prepareForNextRequest();
+            
             boolean exitWhile = parseRequest(input, output, false);
             if (exitWhile) {
                 return exitWhile;
             }
             invokeAdapter();
             postResponse();  
-        } while(keepAlive && !error && inputBuffer.available() > 0);
+        } while (hasNextRequest());
         return error;
     }
 
+    public boolean hasNextRequest() {
+        return keepAlive && !error && inputBuffer.available() > 0;
+    }
+    
+    public void prepareForNextRequest() {
+        isProcessingCompleted = false;
+    }
     
     /**
      * Prepare and post the response.
      * @param input the InputStream to read bytes
      * @param output the OutputStream to write bytes
      */       
-    public void postResponse() throws Exception{
+    public void postResponse() throws Exception {
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultProcessorTask.postResponse dpt={0} isProcessingCompleted={1}",
+                    new Object[]{this, isProcessingCompleted});
+        }
+        if (isProcessingCompleted) {
+            return;
+        }
+        
+        finishResponse();
+    }
+    
+    public void finishResponse() {
+        isProcessingCompleted = true;
+        
         try {
             adapter.afterService(request,response);
         } catch (Exception ex) {
@@ -665,6 +699,11 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
      */
     public void invokeAdapter(){
         // Process the request in the adapter
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultProcessorTask.invokeAdapter adapter={0}, error={1}",
+                    new Object[]{adapter, error});
+        }
+        
         if (!error) {
             try {
                 adapter.service(request, response);
@@ -686,6 +725,11 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
                 response.setStatus(500);
                 error = true;
             }
+            
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+                LOGGER.log(LOG_LEVEL, "DefaultProcessorTask.invokeAdapter_1 status={0}, error={1}, isKeepAlive={2}",
+                        new Object[]{response.getStatus(), error, isKeepAlive()});
+            }
         }
     }
     
@@ -693,8 +737,8 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
     /**
      * Parse the request line and the http header.
      */
-    public void parseRequest() throws Exception {
-        parseRequest(taskContext.getInputStream(),
+    public boolean parseRequest() throws Exception {
+        return parseRequest(taskContext.getInputStream(),
                      taskContext.getOutputStream(), true);
     }    
     
@@ -815,15 +859,24 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
      */      
     public void postProcess(InputStream input, OutputStream output)
                                                             throws Exception {
-        if (!recycle){
+        if (error) {
+            keepAlive = false;
+            connectionHeaderValueSet = false;
+        }
+
+        if (isProcessingCompleted) {
+            return;
+        }
+   
+        if (!recycle) {
             started = false;
             inputBuffer = null;
-           outputBuffer = null;
+            outputBuffer = null;
             response = null;
             if (isMonitoringEnabled()) {
                 request.getRequestProcessor().setWorkerThreadID(0);
-                adapter.fireAdapterEvent(Adapter.CONNECTION_PROCESSING_COMPLETED, 
-                        request.getRequestProcessor());              
+                adapter.fireAdapterEvent(Adapter.CONNECTION_PROCESSING_COMPLETED,
+                        request.getRequestProcessor());
             }
             request = null;
         } else {
@@ -833,11 +886,6 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
 
         // Recycle ssl info
         sslSupport = null;
-
-        if (error){
-            keepAlive = false;
-            connectionHeaderValueSet = false;
-        }
     }
     
 
@@ -899,7 +947,12 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
 
         if (actionCode == ActionCode.ACTION_COMMIT) {
             // Commit current response
-
+            if (LOGGER.isLoggable(LOG_LEVEL)) {
+//                LOGGER.log(LOG_LEVEL, "DefaultProcessorTask.ACTION_COMMIT dpt={0} isCommitted={1}",
+//                        new Object[]{this, response.isCommitted()});
+                LOGGER.log(LOG_LEVEL, "DefaultProcessorTask.ACTION_COMMIT dpt=" + this +
+                        " isCommitted=" + response.isCommitted(), new Exception("Stacktrace"));
+            }
             if (response.isCommitted())
                 return;
                         
@@ -1891,7 +1944,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
     /**
      * Return the internal <code>Request</code> object.
      */
-    public Request getRequest(){
+    public Request getRequest() {
         return request;
     }
 
@@ -1900,16 +1953,23 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
      * Recyle this object.
      */
     @Override
-    public void recycle(){
-        if ( taskEvent != null ){
+    public void recycle() {
+        if (LOGGER.isLoggable(LOG_LEVEL)) {
+            LOGGER.log(LOG_LEVEL, "DefaultProcessorTask.recycle dpt=" + this,
+                    new Exception("Stacktrace"));
+        }
+
+        if (taskEvent != null) {
             taskEvent.setStatus(TaskEvent.START);
         }
-        
-        if ( listeners!= null && listeners.size() > 0)
+
+        if (listeners != null && !listeners.isEmpty()) {
             clearTaskListeners();
-        
+        }
+
         socket = null;
         dropConnection = false;
+        isProcessingCompleted = false;
         key = null;
     }
     

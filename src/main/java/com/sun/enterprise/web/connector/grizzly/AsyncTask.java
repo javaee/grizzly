@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,19 +51,14 @@ public interface AsyncTask extends Task{
     public final static int PRE_EXECUTE = 0;
     public final static int INTERRUPTED = 1;
     public final static int POST_EXECUTE = 2;
-    public final static int COMPLETED = 3;
-    public final static int EXECUTE = 4;    
+    public final static int FINISH = 3;
+    public final static int COMPLETED = 4;
+    public final static int EXECUTE = 5;
     
     /**
      * Get the <code>AsyncExecutor</code>.
      */
     public AsyncExecutor getAsyncExecutor();
-
-    
-    /**
-     * Return the <code>ProcessorTask</code>.
-     */
-    public ProcessorTask getProcessorTask();
 
     
     /**
@@ -73,16 +68,25 @@ public interface AsyncTask extends Task{
 
     
     /**
-     * Set the <code>AsyncExecutor</code> used by this <code>Task</code>
-     * to delegate the execution of a <code>ProcessorTask</code>.
+     * Set the {@link AsyncExecutor} used by this {@link Task}
+     * to delegate the execution of a {@link ProcessorTask}.
      */
     public void setAsyncExecutor(AsyncExecutor asyncExecutor);
 
     
-    /**
-     * Set the <code>ProcessorTask</code> that needs to be executed
-     * asynchronously.
+     /**
+     * Set the {@link ProcessorTask} used to execute the request processing.
+     * @param task a {@link ProcessorTask} 
+     * @deprecated - Use {@link AsyncExecutor#setProcessorTask}
      */
-    public void setProcessorTask(ProcessorTask processorTask);
+    public void setProcessorTask(ProcessorTask task);
+
+    
+    /**
+     * The {@link ProcessorTask} used to execute the request processing.
+     * @return {@link ProcessorTask} used to execute the request processing.
+     * @deprecated - Use {@link AsyncExecutor#getProcessorTask}
+     */
+    public ProcessorTask getProcessorTask();   
 
 }

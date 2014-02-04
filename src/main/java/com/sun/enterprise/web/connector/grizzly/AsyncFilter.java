@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,7 +42,7 @@ package com.sun.enterprise.web.connector.grizzly;
 
 /**
  * An interface marker used to execute operations before 
- * a <code>AsycnProcesssorTask</code> in pre/post or interrupted. Usualy, 
+ * a <code>AsycnProcesssorTask</code> in pre/post or interrupted. Usually, 
  * implementation of this interface is called by an instance of 
  * <code>AsyncExecutor</code>.
  *
@@ -51,11 +51,14 @@ package com.sun.enterprise.web.connector.grizzly;
  * @author Jeanfrancois Arcand
  */
 public interface AsyncFilter {
-    
+    public enum Result {NEXT, INTERRUPT, FINISH};
     /**
-     * Execute and return <code>true</code> if the next <code>AsyncFilter</code> 
-     * can be invoked. Return <code>false</code> to stop calling the 
-     * <code>AsyncFilter</code>.
+     * Execute and return {@link Result}.
+     * {@link Result#NEXT}: next <tt>AsyncFilter</tt> should be executed;
+     * {@link Result#INTERRUPT}: interrupts the execution, filter is becoming responsible for finishing the processing;
+     * {@link Result#FINISH}: finish the async execution (skip the rest of the filters).
+     *
+     * @return {@link Result}
      */
-    public boolean doFilter(AsyncExecutor asyncExecutor);
+    public Result doFilter(AsyncExecutor asyncExecutor);
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -98,6 +98,7 @@ public class InternalOutputBuffer
 
     
     // START GlassFish Issue 798
+
     /**
      * Create a new InternalOutputBuffer and configure the enable/disable the 
      * socketBuffer mechanism.
@@ -105,9 +106,9 @@ public class InternalOutputBuffer
     public InternalOutputBuffer(Response response, int headerBufferSize, 
             boolean useSocketBuffer) {
         
-        this(response,headerBufferSize);
+        this(response, headerBufferSize);
         this.useSocketBuffer = useSocketBuffer;
-        if ( useSocketBuffer ){
+        if (useSocketBuffer) {
             socketBuffer.allocate(headerBufferSize, headerBufferSize);
         }
     }
@@ -121,7 +122,6 @@ public class InternalOutputBuffer
 
         this.response = response;
         headers = response.getMimeHeaders();
-
 
         buf = new byte[headerBufferSize];
 
@@ -139,10 +139,9 @@ public class InternalOutputBuffer
 
     }
 
+    protected InternalOutputBuffer() {}
 
-    // -------------------------------------------------------------- Variables
 
-    // START GlassFish Issue 646
     /**
      * Logger.
      */
@@ -161,7 +160,12 @@ public class InternalOutputBuffer
 
     // ----------------------------------------------------- Instance Variables
 
-
+    /**
+     * The last {@link OutputFilter} to be added to the activeFilters list.
+     */
+    private OutputFilter lastOutputFilter = null;
+    
+    
     /**
      * Associated Coyote response.
      */
@@ -288,9 +292,7 @@ public class InternalOutputBuffer
 
         OutputFilter[] newFilterLibrary = 
             new OutputFilter[filterLibrary.length + 1];
-        for (int i = 0; i < filterLibrary.length; i++) {
-            newFilterLibrary[i] = filterLibrary[i];
-        }
+        System.arraycopy(filterLibrary, 0, newFilterLibrary, 0, filterLibrary.length);
         newFilterLibrary[filterLibrary.length] = filter;
         filterLibrary = newFilterLibrary;
 
@@ -321,6 +323,15 @@ public class InternalOutputBuffer
 
 
     /**
+     * Add the last {@link OutputFilter} that will be invoked when processing
+     * the writing of the response bytes.
+     */
+    public void addLastOutputFilter(OutputFilter lastOutputFilter) {
+        this.lastOutputFilter = lastOutputFilter;
+    }
+
+
+    /**
      * Add an output filter to the filter library.
      */
     public void addActiveFilter(OutputFilter filter) {
@@ -329,8 +340,9 @@ public class InternalOutputBuffer
             filter.setBuffer(outputStreamOutputBuffer);
         } else {
             for (int i = 0; i <= lastActiveFilter; i++) {
-                if (activeFilters[i] == filter)
+                if (activeFilters[i] == filter) {
                     return;
+                }
             }
             filter.setBuffer(activeFilters[lastActiveFilter]);
         }
@@ -338,7 +350,6 @@ public class InternalOutputBuffer
         activeFilters[++lastActiveFilter] = filter;
 
         filter.setResponse(response);
-
     }
 
 
@@ -370,6 +381,22 @@ public class InternalOutputBuffer
     }
 
   
+    // START GlassFish Issue 646
+
+    /**
+     * Flush the buffer.
+     */
+    protected void flush(boolean isFull) throws IOException {
+        // Sending the response header buffer
+        realWriteBytes(buf, 0, pos);
+
+        if (isFull) {
+            pos = 0;
+        }
+    }
+    // END GlassFish Issue 646
+
+
     /**
      * Reset current response.
      * 
@@ -377,8 +404,9 @@ public class InternalOutputBuffer
      */
     public void reset() {
 
-        if (committed)
+        if (committed) {
             throw new IllegalStateException(/*FIXME:Put an error message*/);
+        }
 
         // Recycle Request object
         response.recycle();
@@ -395,6 +423,11 @@ public class InternalOutputBuffer
         // Recycle Request object
         response.recycle();
         socketBuffer.recycle();
+
+        // Recycle filters
+        for (int i = 0; i <= lastActiveFilter; i++) {
+            activeFilters[i].recycle();
+        }
 
         outputStream = null;
         pos = 0;
@@ -415,7 +448,9 @@ public class InternalOutputBuffer
 
         // Recycle Request object
         response.recycle();
-        socketBuffer.recycle();
+        if (socketBuffer != null) {
+            socketBuffer.recycle();
+        }
 
         // Recycle filters
         for (int i = 0; i <= lastActiveFilter; i++) {
@@ -434,10 +469,11 @@ public class InternalOutputBuffer
     /**
      * End request.
      * 
-     * @throws IOException an undelying I/O error occured
+     * @throws IOException an underlying I/O error occurred
      */
     public void endRequest()
         throws IOException {
+
 
         if (!committed) {
 
@@ -448,11 +484,13 @@ public class InternalOutputBuffer
 
         }
 
-        if (finished)
+        if (finished) {
             return;
+        }
 
-        if (lastActiveFilter != -1)
+        if (lastActiveFilter != -1) {
             activeFilters[lastActiveFilter].end();
+        }
 
         if (useSocketBuffer) {
             socketBuffer.flushBuffer();
@@ -472,8 +510,8 @@ public class InternalOutputBuffer
     public void sendAck()
         throws IOException {
 
-        if (!committed){
-            realWriteBytes(Constants.ACK_BYTES,0,
+        if (!committed) {
+            realWriteBytes(Constants.ACK_BYTES, 0,
                         Constants.ACK_BYTES.length);
         }
     }
@@ -623,10 +661,15 @@ public class InternalOutputBuffer
 
         }
 
-        if (lastActiveFilter == -1)
+        if (lastOutputFilter != null && activeFilters[0] != lastOutputFilter) {
+            addActiveFilter(lastOutputFilter);
+        }
+
+        if (lastActiveFilter == -1) {
             return outputStreamOutputBuffer.doWrite(chunk, res);
-        else
+        } else {
             return activeFilters[lastActiveFilter].doWrite(chunk, res);
+        }
 
     }
 
@@ -645,6 +688,7 @@ public class InternalOutputBuffer
         committed = true;
         response.setCommitted(true);
 
+        /* GlassFish Issue 646
         if (pos > 0) {
             // Sending the response header buffer
             if (useSocketBuffer) {
@@ -652,7 +696,13 @@ public class InternalOutputBuffer
             } else {
                 outputStream.write(buf, 0, pos);
             }
+            flush(false);
+        }*/
+        // START GlassFish Issue 646
+        if (pos > 0) {
+            flush(false);
         }
+        // END GlassFish Issue 646
 
     }
 
@@ -687,17 +737,15 @@ public class InternalOutputBuffer
      * @param bc data to be written
      */
     protected void write(ByteChunk bc) {
-
-        // Writing the byte chunk to the output buffer
-        System.arraycopy(bc.getBytes(), bc.getStart(), buf, pos,
-                         bc.getLength());
-        pos = pos + bc.getLength();
-
+        try {
+            realWriteBytes(bc.getBytes(), bc.getStart(), bc.getLength());
+        } catch (IOException ex) {
+        }
     }
 
 
     /**
-     * This method will write the contents of the specyfied char 
+     * This method will write the contents of the specified char
      * buffer to the output stream, without filtering. This method is meant to
      * be used to write the response header.
      * 
@@ -710,18 +758,24 @@ public class InternalOutputBuffer
         char[] cbuf = cc.getBuffer();
         for (int i = start; i < end; i++) {
             char c = cbuf[i];
-            // Note:  This is clearly incorrect for many strings,
-            // but is the only consistent approach within the current
-            // servlet framework.  It must suffice until servlet output
-            // streams properly encode their output.
-            if ((c <= 31) && (c != 9)) {
-                c = ' ';
-            } else if (c == 127) {
+            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
                 c = ' ';
             }
+
+            if (pos >= buf.length) {
+                try {
+                    flush(true);
+                } catch (IOException e) {
+                }
+            }
+
             buf[pos++] = (byte) c;
         }
 
+        try {
+            flush(true);
+        } catch (IOException ex) {
+        }
     }
 
 
@@ -732,12 +786,11 @@ public class InternalOutputBuffer
      * 
      * @param b data to be written
      */
-    public void write(byte[] b) {
-
-        // Writing the byte chunk to the output buffer
-        System.arraycopy(b, 0, buf, pos, b.length);
-        pos = pos + b.length;
-
+    protected void write(byte[] b) {
+        try {
+            realWriteBytes(b, 0, b.length);
+        } catch (IOException ex) {
+    }
     }
 
 
@@ -749,26 +802,55 @@ public class InternalOutputBuffer
      * @param s data to be written
      */
     protected void write(String s) {
+        write(s, false);
+    }
 
-        if (s == null)
+
+    /**
+     * This method will write the contents of the specyfied String to the
+     * output stream, without filtering. This method is meant to be used to
+     * write the response header.
+     *
+     * @param s             data to be written
+     * @param replacingCRLF replacing char with lower byte that is \n or \r
+     */
+    protected void write(String s, boolean replacingCRLF) {
+
+        if (s == null) {
             return;
+        }
 
         // From the Tomcat 3.3 HTTP/1.0 connector
         int len = s.length();
         for (int i = 0; i < len; i++) {
-            char c = s.charAt (i);
+            char c = s.charAt(i);
             // Note:  This is clearly incorrect for many strings,
             // but is the only consistent approach within the current
             // servlet framework.  It must suffice until servlet output
             // streams properly encode their output.
-            if ((c <= 31) && (c != 9)) {
-                c = ' ';
-            } else if (c == 127) {
+            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
                 c = ' ';
             }
-            buf[pos++] = (byte) c;
+
+            byte b = (byte) c;
+            if (replacingCRLF && (b == 10 || b == 13)) {  // \n or \r
+                b = 32; // space
+            }
+
+            if (pos >= buf.length) {
+                try {
+                    flush(true);
+                } catch (IOException e) {
+                }
+            }
+
+            buf[pos++] = b;
         }
 
+        try {
+            flush(true);
+        } catch (IOException ex) {
+        }
     }
 
 
@@ -790,9 +872,13 @@ public class InternalOutputBuffer
      * Callback to write data from the buffer.
      */
     public void realWriteBytes(byte cbuf[], int off, int len)
-        throws IOException {
+            throws IOException {
         if (len > 0) {
-            outputStream.write(cbuf, off, len);
+            if (useSocketBuffer) {
+                socketBuffer.append(cbuf, off, len);
+            } else {
+                outputStream.write(cbuf, off, len);
+            }
         }
     }
 
@@ -804,7 +890,7 @@ public class InternalOutputBuffer
      * This class is an output buffer which will write data to an output
      * stream.
      */
-    protected class OutputStreamOutputBuffer 
+    public class OutputStreamOutputBuffer
         implements OutputBuffer {
 
 
@@ -814,18 +900,13 @@ public class InternalOutputBuffer
         public int doWrite(ByteChunk chunk, Response res) 
             throws IOException {
 
-            if (useSocketBuffer) {
-                socketBuffer.append(chunk.getBuffer(), chunk.getStart(), 
+            realWriteBytes(chunk.getBuffer(), chunk.getStart(),
                                    chunk.getLength());
-            } else {
-                outputStream.write(chunk.getBuffer(), chunk.getStart(), 
-                                   chunk.getLength());
-            }
             return chunk.getLength();
-
         }
 
 
     }
+
 
 }
