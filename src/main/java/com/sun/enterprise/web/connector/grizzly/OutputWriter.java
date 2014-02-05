@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -100,14 +100,16 @@ public class OutputWriter {
                     nWrite += len;
                 } else {
                     attempts++;
-                    if ( writeSelector == null ){
+                    if (writeSelector == null) {
                         writeSelector = SelectorFactory.getSelector();
-                        if ( writeSelector == null){
+                        if (writeSelector == null) {
                             // Continue using the main one.
                             continue;
                         }
                         key = socketChannel.register(writeSelector,
-                             SelectionKey.OP_WRITE);
+                                SelectionKey.OP_WRITE);
+                    } else {
+                        writeSelector.selectedKeys().clear();
                     }
 
                     long startTime = System.currentTimeMillis();
@@ -177,12 +179,14 @@ public class OutputWriter {
                     elapsedTime = 0;
                     nWrite += len;
                 } else {
-                    if ( writeSelector == null ){
+                    if (writeSelector == null) {
                         writeSelector = SelectorFactory.getSelector();
-                        if ( writeSelector == null){
+                        if (writeSelector == null) {
                             // Continue using the main one.
                             continue;
                         }
+                    } else {
+                        writeSelector.selectedKeys().clear();
                     }
 
                     key = socketChannel.register(writeSelector,
