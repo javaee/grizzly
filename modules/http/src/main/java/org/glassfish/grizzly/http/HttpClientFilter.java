@@ -143,7 +143,6 @@ public class HttpClientFilter extends HttpCodecFilter {
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         Buffer input = ctx.getMessage();
         final Connection connection = ctx.getConnection();
-        HttpContext.newInstance(ctx, connection, connection, connection);
         ClientHttpResponseImpl httpResponse = httpResponseInProcessAttr.get(connection);
         if (httpResponse == null) {
             httpResponse = ClientHttpResponseImpl.create();
@@ -154,6 +153,10 @@ public class HttpClientFilter extends HttpCodecFilter {
             httpResponseInProcessAttr.set(connection, httpResponse);
         }
 
+        HttpContext.newInstance(connection,
+                connection, connection, httpResponse.getRequest())
+                .attach(ctx);
+        
         return handleRead(ctx, httpResponse);
     }
 

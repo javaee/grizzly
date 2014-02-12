@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -495,7 +495,11 @@ public final class SpdySession {
                                             final HttpContent httpContent) {
         final FilterChainContext upstreamContext =
                         upstreamChain.obtainFilterChainContext(connection);
-        HttpContext.newInstance(upstreamContext, spdyStream, spdyStream, spdyStream);
+
+        final HttpContext httpContext = httpContent.getHttpHeader()
+                .getProcessingState().getHttpContext();
+        httpContext.attach(upstreamContext);
+        
         handlerFilter.onHttpContentParsed(httpContent, upstreamContext);
         final HttpHeader header = httpContent.getHttpHeader();
         if (httpContent.isLast()) {
@@ -513,6 +517,11 @@ public final class SpdySession {
                              final HttpPacket message) {
         final FilterChainContext upstreamContext =
                 upstreamChain.obtainFilterChainContext(connection);
+        
+        final HttpContext httpContext = message.getHttpHeader()
+                .getProcessingState().getHttpContext();
+        httpContext.attach(upstreamContext);
+        
         sendMessageUpstream(spdyStream, message, upstreamContext);
     }
 
@@ -537,7 +546,6 @@ public final class SpdySession {
         upstreamContext.setMessage(message);
         upstreamContext.setAddressHolder(addressHolder);
 
-        HttpContext.newInstance(upstreamContext, spdyStream, spdyStream, spdyStream);
         ProcessorExecutor.execute(upstreamContext.getInternalContext());
     }
 

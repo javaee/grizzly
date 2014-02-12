@@ -184,7 +184,7 @@ public class OutputBuffer {
         }
         this.sendfileEnabled = sendfileEnabled;
         this.ctx = ctx;
-        httpContext = HttpContext.get(ctx);
+        httpContext = outputHeader.getProcessingState().getHttpContext();
         connection = ctx.getConnection();
         memoryManager = ctx.getMemoryManager();
     }

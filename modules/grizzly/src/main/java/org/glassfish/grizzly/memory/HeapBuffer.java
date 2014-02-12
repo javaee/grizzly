@@ -120,7 +120,7 @@ public class HeapBuffer implements Buffer {
 
     @Override
     public void trim() {
-        checkDispose() ;
+        checkDispose();
         flip();
     }
     

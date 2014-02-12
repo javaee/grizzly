@@ -110,6 +110,8 @@ public final class SelectorRunner implements Runnable {
                 Selectors.newSelector(transport.getSelectorProvider()));
     }
     
+    volatile boolean hasPendingTasks;
+    
     private SelectorRunner(final NIOTransport transport,
             final Selector selector) {
         this.transport = transport;
@@ -123,13 +125,13 @@ public final class SelectorRunner implements Runnable {
     }
 
     void addPendingTask(final SelectorHandlerTask task) {
-
         pendingTasks.offer(task);
+        hasPendingTasks = true;
 
         wakeupSelector();
     }
 
-    public void wakeupSelector() {
+    private void wakeupSelector() {
         final Selector localSelector = getSelector();
         if (localSelector != null &&
                 selectorWakeupFlag.compareAndSet(false, true)) {
@@ -419,6 +421,7 @@ public final class SelectorRunner implements Runnable {
     }
 
     public Queue<SelectorHandlerTask> getPendingTasks() {
+        hasPendingTasks = false;
         return pendingTasks;
     }
 

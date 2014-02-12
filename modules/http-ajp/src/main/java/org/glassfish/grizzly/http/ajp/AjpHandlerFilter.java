@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -198,7 +198,7 @@ public class AjpHandlerFilter extends BaseFilter {
             return ctx.getStopAction();
         }
 
-            final int type = extractType(ctx, message);
+        final int type = extractType(ctx, message);
 
         switch (type) {
             case AjpConstants.JK_AJP13_FORWARD_REQUEST:
@@ -313,8 +313,9 @@ public class AjpHandlerFilter extends BaseFilter {
     private NextAction processData(final FilterChainContext ctx,
             final Buffer messageContent) {
 
-        final HttpContext context = HttpContext.get(ctx);
-        final AjpHttpRequest httpRequestPacket = httpRequestInProcessAttr.get(context);
+        final AjpHttpRequest httpRequestPacket = httpRequestInProcessAttr.get(
+                ctx.getConnection());
+        httpRequestPacket.getProcessingState().getHttpContext().attach(ctx);
 
         if (messageContent.hasRemaining()) {
             // Skip the content length field - we know the size from the packet header
@@ -370,8 +371,14 @@ public class AjpHandlerFilter extends BaseFilter {
 
         final AjpHttpRequest httpRequestPacket =
                 AjpHttpRequest.create();
+        final HttpContext httpContext = HttpContext.newInstance(connection,
+                connection, connection, httpRequestPacket)
+                .attach(ctx);
+        
         httpRequestPacket.setConnection(connection);
 
+        httpRequestPacket.getProcessingState().setHttpContext(httpContext);
+        
         AjpMessageUtils.decodeRequest(content, httpRequestPacket,
                 isTomcatAuthentication);
 
@@ -381,8 +388,7 @@ public class AjpHandlerFilter extends BaseFilter {
                 throw new IllegalStateException("Secret doesn't match");
             }
         }
-        HttpContext context = HttpContext.get(ctx);
-        httpRequestInProcessAttr.set(context, httpRequestPacket);
+        httpRequestInProcessAttr.set(httpContext, httpRequestPacket);
         ctx.setMessage(HttpContent.builder(httpRequestPacket).build());
 
         final long contentLength = httpRequestPacket.getContentLength();
@@ -518,21 +524,10 @@ public class AjpHandlerFilter extends BaseFilter {
     }
 
     private int extractType(final FilterChainContext ctx, final Buffer buffer) {
-        final int type;
-        HttpContext context = HttpContext.get(ctx);
-        if (context == null) {
-            final Connection connection = ctx.getConnection();
-            context = HttpContext.newInstance(ctx, connection, connection, connection);
-        }
-        if (!httpRequestInProcessAttr.isSet(context)) {
-            // if request is no in process - it should be a new Ajp message
-            type = buffer.get() & 0xFF;
-        } else {
-            // Ajp Data Packet
-            type = AjpConstants.JK_AJP13_DATA;
-        }
-
-        return type;
-
+        return !httpRequestInProcessAttr.isSet(ctx.getConnection()) ?
+                // if request is no in process - it should be a new Ajp message
+                buffer.get() & 0xFF :
+                // Ajp Data Packet
+                AjpConstants.JK_AJP13_DATA;
     }
 }

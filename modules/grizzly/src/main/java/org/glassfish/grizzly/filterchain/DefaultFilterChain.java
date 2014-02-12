@@ -41,6 +41,7 @@ package org.glassfish.grizzly.filterchain;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -69,10 +70,6 @@ import org.glassfish.grizzly.utils.NullaryFunction;
 @SuppressWarnings("deprecation")
 public final class DefaultFilterChain extends ListFacadeFilterChain {
 
-    public enum FILTER_STATE_TYPE {
-        INCOMPLETE, UNPARSED
-    }
-    
     private final FiltersStateFactory filtersStateFactory =
             new FiltersStateFactory();
     
@@ -118,7 +115,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     /**
      * Execute this FilterChain.
      * @param ctx {@link FilterChainContext} processing context
-     * @throws java.lang.Exception
      */
     @Override
     public ProcessorResult execute(FilterChainContext ctx) {
@@ -142,9 +138,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                     case FilterExecution.REEXECUTE_TYPE:
                         ctx = execution.getContext();
                         
-                        final int idx = indexOfRemainder(
-                                filtersState,
-                                ctx.getOperation(), ctx.getStartIdx(), end);
+                        final int idx = filtersState.peekUnparsedIdx(
+                                ctx.getOperation());
                         if (idx != -1) {
                             // if there is a remainder associated with the connection
                             // rerun the filter chain with the new context right away
@@ -157,8 +152,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         // keeping the current Context
                         return ProcessorResult.createReregister(ctx.internalContext);
                 }
-            } while (prepareRemainder(ctx, filtersState,
-                    ctx.getStartIdx(), end));
+            } while (prepareRemainder(ctx, filtersState));
         } catch (Throwable e) {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_FILTERCHAIN_EXCEPTION(), e);
@@ -222,12 +216,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
             if (chunk != null) {
                 // Store the remainder
-                final FILTER_STATE_TYPE type = invokeAction.isIncomplete() ?
-                        FILTER_STATE_TYPE.INCOMPLETE :
-                        FILTER_STATE_TYPE.UNPARSED;
                 storeMessage(ctx,
                         filtersState,
-                        type,
+                        invokeAction.isIncomplete(),
                         i,
                         chunk,
                         invokeAction.getAppender());
@@ -246,12 +237,16 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
                 // If the next action is StopAction and there is some data to store for the processed Filter - store it
                 final StopAction stopAction = (StopAction) lastNextAction;
-                storeMessage(ctx,
-                        filtersState,
-                        FILTER_STATE_TYPE.INCOMPLETE,
-                        i,
-                        stopAction.getIncompleteChunk(),
-                        stopAction.getAppender());
+                
+                final Object chunk = stopAction.getIncompleteChunk();
+                if (chunk != null) {
+                    storeMessage(ctx,
+                            filtersState,
+                            true,
+                            i,
+                            chunk,
+                            stopAction.getAppender());
+                }
                 break;
             case ForkAction.TYPE:
                 final ForkAction forkAction =
@@ -303,11 +298,10 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * Locates a message remainder in the {@link FilterChain}, associated with the
      * {@link Connection} and prepares the {@link Context} for remainder processing.
      */
-    protected static boolean prepareRemainder(final FilterChainContext ctx,
-            final FiltersState filtersState, final int start, final int end) {
+    private static boolean prepareRemainder(final FilterChainContext ctx,
+            final FiltersState filtersState) {
 
-        final int idx = indexOfRemainder(filtersState, ctx.getOperation(),
-                start, end);
+        final int idx = filtersState.peekUnparsedIdx(ctx.getOperation());
         
         if (idx != -1) {
             ctx.setFilterIdx(idx);
@@ -316,26 +310,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
         
         return false;
-    }
-    
-    /**
-     * Locates a message remainder in the {@link FilterChain}, associated with the
-     * {@link Connection}.
-     */
-    protected static int indexOfRemainder(final FiltersState filtersState,
-            final Operation operation, final int start, final int end) {
-
-        final int add = (end - start > 0) ? 1 : -1;
-        
-        for (int i = end - add; i != start - add; i -= add) {
-            final FilterStateElement element = filtersState.get(operation, i);
-            if (element != null
-                    && element.getType() == FILTER_STATE_TYPE.UNPARSED) {
-                return i;
-            }
-        }
-        
-        return -1;
     }
     
     @Override
@@ -369,8 +343,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final FiltersState filtersState = obtainFiltersState(connection);
 
             do {
-                if (!prepareRemainder(context, filtersState,
-                        0, context.getEndIdx())) {
+                if (!prepareRemainder(context, filtersState)) {
                     context.setFilterIdx(0);
                     context.setMessage(null);
                 }
@@ -533,25 +506,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     private void checkStoredMessage(final FilterChainContext ctx,
             final FiltersState filtersState, final int filterIdx) {
 
-        final Operation operation = ctx.getOperation();
-        final FilterStateElement filterState;
-
-        // Check if there is any data stored for the current Filter
-        if (filtersState != null && (filterState = filtersState.get(operation, filterIdx)) != null &&
-                filterState.isValid) {
-            Object storedMessage = filterState.getState();
-            final Object currentMessage = ctx.getMessage();
-            if (currentMessage != null) {
-                final Appender appender = filterState.getAppender();
-                if (appender != null) {
-                    storedMessage = appender.append(storedMessage, currentMessage);
-                } else {
-                    storedMessage = ((Appendable) storedMessage).append(currentMessage);
-                }
-            }
-            
-            filterState.reset();
-            ctx.setMessage(storedMessage);
+        if (filtersState != null) {
+            ctx.setMessage(filtersState.append(ctx.getOperation(),
+                    filterIdx, ctx.getMessage()));
         }
     }
 
@@ -568,21 +525,14 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * @return
      */
     private <M> void storeMessage(final FilterChainContext ctx,
-            final FiltersState filtersState, final FILTER_STATE_TYPE type,
+            final FiltersState filtersState, final boolean isIncomplete,
             final int filterIdx, final M messageToStore,
             final Appender<M> appender) {
+        
+        assert messageToStore != null;
 
-        if (messageToStore != null) {
-            final Operation operation = ctx.getOperation();
-
-            FilterStateElement elem = filtersState.get(operation, filterIdx);
-            if (elem != null) {
-                elem.set(type, messageToStore, appender);
-            } else {
-                elem = FilterStateElement.create(type, messageToStore, appender);
-                filtersState.set(operation, filterIdx, elem);
-            }
-        }
+        filtersState.set(ctx.getOperation(), filterIdx, isIncomplete,
+                messageToStore, appender);
     }
 
     private void notifyComplete(final FilterChainContext context) {
@@ -618,134 +568,170 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
     }
 
-    static final class FiltersState {
+    private static final class FiltersState {
         private static final int OPERATIONS_NUM = Operation.values().length;
 
+        private final int[][] unparsedIdxStack;
         private final FilterStateElement[][] state;
 
         public FiltersState(int filtersNum) {
-            this.state = new FilterStateElement[OPERATIONS_NUM][filtersNum];
+            unparsedIdxStack = new int[OPERATIONS_NUM][4]; // zero idx reserved as an array len
+            state = new FilterStateElement[OPERATIONS_NUM][filtersNum];
         }
 
         public FilterStateElement get(final Operation operation,
                 final int filterIndex) {
-            return state[operation.ordinal()][filterIndex];
+            final int opIdx = operation.ordinal();
+            final FilterStateElement elem = state[opIdx][filterIndex];
+            if (elem != null && elem.isValid) {
+                if (!elem.isIncomplete) {
+                    popUnparsedIdx(opIdx);
+                }
+                
+                return elem;
+            }
+            
+            return null;
         }
 
         public void set(final Operation operation, final int filterIndex,
-                final FilterStateElement stateElement) {
-            state[operation.ordinal()][filterIndex] = stateElement;
-        }
-
-        public int indexOf(final Operation operation,
-                final FILTER_STATE_TYPE type) {
-            return indexOf(operation, type, 0);
-        }
-
-        public int indexOf(final Operation operation,
-                final FILTER_STATE_TYPE type, final int start) {
-            final int eventIdx = operation.ordinal();
-            final int length = state[eventIdx].length;
-
-            for (int i = start; i < length; i++) {
-                final FilterStateElement filterState;
-                if ((filterState = state[eventIdx][i]) != null
-                        && filterState.getType() == type) {
-                    return i;
-                }
+                final boolean isIncomplete, final Object messageToStore,
+            final Appender appender) {
+            final int opIdx = operation.ordinal();
+            
+            FilterStateElement elem = state[opIdx][filterIndex];
+            if (elem != null) {
+                elem.set(isIncomplete, messageToStore, appender);
+            } else {
+                state[opIdx][filterIndex] = FilterStateElement.create(isIncomplete,
+                        messageToStore, appender);
             }
-
-            return -1;
-        }
-
-        public int lastIndexOf(final IOEvent event,
-                final FILTER_STATE_TYPE type, final int end) {
-            final int eventIdx = event.ordinal();
-
-            for (int i = end - 1; i >= 0; i--) {
-                final FilterStateElement filterState;
-                if ((filterState = state[eventIdx][i]) != null
-                        && filterState.getType() == type) {
-                    return i;
-                }
+            
+            if (!isIncomplete) {
+                pushUnparsedIdx(opIdx, filterIndex);
             }
-
-            return -1;
         }
 
-        public int lastIndexOf(final IOEvent event,
-                final FILTER_STATE_TYPE type) {
-            return lastIndexOf(event, type, state[event.ordinal()].length);
+        public void pushUnparsedIdx(final int opIdx,
+                final int filterIdx) {
+            int[] opStack = unparsedIdxStack[opIdx];
+            final int len = opStack[0];
+            
+            if (len == opStack.length - 1) {
+                opStack = Arrays.copyOf(opStack, len * 3 / 2 + 1);
+                unparsedIdxStack[opIdx] = opStack;
+            }
+            
+            opStack[len + 1] = filterIdx;
+            opStack[0]++;
+        }
+        
+        public int popUnparsedIdx(final int opIdx) {
+            final int[] opStack = unparsedIdxStack[opIdx];
+            final int len = opStack[0];
+            
+            if (len == 0) {
+                return -1;
+            }
+            
+            opStack[0]--;
+            return opStack[len];
+        }
+        
+        public int peekUnparsedIdx(final Operation operation) {
+            final int opIdx = operation.ordinal();
+            final int[] opStack = unparsedIdxStack[opIdx];
+            final int len = opStack[0];
+            
+            if (len == 0) {
+                return -1;
+            }
+            
+            return opStack[len];
+        }        
+
+        private Object append(final Operation operation, final int filterIdx,
+                final Object currentMessage) {
+            
+            // Check if there is any data stored for the current Filter
+            final FilterStateElement filterState = get(operation, filterIdx);
+            return filterState != null ?
+                    filterState.append(currentMessage) :
+                    currentMessage;
         }
     }
 
-    static final class FilterStateElement {
+    private static final class FilterStateElement {
 
-        public static FilterStateElement create(
-                final FILTER_STATE_TYPE type,
+        static FilterStateElement create(
+                final boolean isIncomplete,
                 final Object remainder) {
             if (remainder instanceof Buffer) {
-                return create(type, (Buffer) remainder,
+                return create(isIncomplete, (Buffer) remainder,
                         Buffers.getBufferAppender(true));
             } else {
-                return create(type, (Appendable) remainder);
+                return create(isIncomplete, (Appendable) remainder);
             }
         }
 
-        public static FilterStateElement create(
-                final FILTER_STATE_TYPE type, final Appendable state) {
-            return new FilterStateElement(type, state);
+        static FilterStateElement create(
+                final boolean isIncomplete, final Appendable state) {
+            return new FilterStateElement(isIncomplete, state);
         }
 
-        public static <E> FilterStateElement create(
-                final FILTER_STATE_TYPE type,
+        static <E> FilterStateElement create(
+                final boolean isIncomplete,
                 final E state, final Appender<E> appender) {
-            return new FilterStateElement(type, state, appender);
+            return new FilterStateElement(isIncomplete, state, appender);
         }
         
-        private FILTER_STATE_TYPE type;
+        private boolean isIncomplete;
         private Object state;
         private Appender appender;
         private boolean isValid = true;
         
-        private FilterStateElement(FILTER_STATE_TYPE type, Appendable state) {
-            this.type = type;
+        private FilterStateElement(final boolean isIncomplete, Appendable state) {
+
+            assert state != null;
+            
+            this.isIncomplete = isIncomplete;
             this.state = state;
             appender = null;
         }
 
-        private <E> FilterStateElement(FILTER_STATE_TYPE type, E state, Appender<E> appender) {
-            this.type = type;
+        private <E> FilterStateElement(final boolean isIncomplete, E state, Appender<E> appender) {
+            
+            assert state != null;
+            
+            this.isIncomplete = isIncomplete;
             this.state = state;
             this.appender = appender;
         }
 
-        private FILTER_STATE_TYPE getType() {
-            return type;
-        }
-
-        public void reset() {
-            type = null;
-            state = null;
-            appender = null;
-            isValid = false;
-        }
-        
-        public <E> void set(final FILTER_STATE_TYPE type, final E state,
+        private <E> void set(final boolean isIncomplete, final E state,
                 final Appender<E> appender) {
-            this.type = type;
+            
+            assert state != null;
+            
+            this.isIncomplete = isIncomplete;
             this.state = state;
             this.appender = appender;
             
             isValid = true;
         }
         
-        public Object getState() {
-            return state;
-        }
+        private Object append(final Object currentMessage) {
+            final Object resultMessage = currentMessage != null ?
+                    (appender != null ?
+                        appender.append(state, currentMessage) :
+                        ((Appendable) state).append(currentMessage)) :
+                    state;
 
-        public Appender getAppender() {
-            return appender;
+            state = null;
+            appender = null;
+            isValid = false;
+
+            return resultMessage;
         }
     }
     

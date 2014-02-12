@@ -739,11 +739,6 @@ public class NetworkListener {
 
         shutdownFuture = Futures.createSafeFuture();
 
-        final HttpCodecFilter codecFilter = getHttpCodecFilter();
-        if (codecFilter != null) {
-            codecFilter.prepareForShutdown();
-        }
-
         getHttpServerFilter().prepareForShutdown(shutdownCompletionHandler);
 
         transport.shutdown(gracePeriod, timeUnit);
