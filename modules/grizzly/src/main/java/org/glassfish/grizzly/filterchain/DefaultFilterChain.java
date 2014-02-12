@@ -344,11 +344,15 @@ public final class DefaultFilterChain implements FilterChain {
                 
                 // If the next action is StopAction and there is some data to store for the processed Filter - store it
                 final StopAction stopAction = (StopAction) lastNextAction;
-                storeMessage(ctx,
-                             false,
-                             current,
-                             stopAction.getIncompleteChunk(),
-                             stopAction.getAppender());
+                
+                final Object chunk = stopAction.getIncompleteChunk();
+                if (chunk != null) {
+                    storeMessage(ctx,
+                                 false,
+                                 current,
+                                 stopAction.getIncompleteChunk(),
+                                 stopAction.getAppender());
+                }
                 break;
             case ForkAction.TYPE:
                 assert lastNextAction != null;
@@ -642,17 +646,17 @@ public final class DefaultFilterChain implements FilterChain {
             final boolean isUnparsed,
             final FilterReg filterReg, final M messageToStore,
             final Appender<M> appender) {
+        
+        assert messageToStore != null;
 
-        if (messageToStore != null) {
-            filterReg.isEverHadState = true;
-            
-            final FilterState state = ctx.getConnection().getFilterChainState()
-                    .obtainFilterState(filterReg, ctx.getEvent());
-            
-            state.setAppender(appender);
-            state.setRemainder(messageToStore);
-            state.setUnparsed(isUnparsed);
-        }
+        filterReg.isEverHadState = true;
+
+        final FilterState state = ctx.getConnection().getFilterChainState()
+                .obtainFilterState(filterReg, ctx.getEvent());
+
+        state.setAppender(appender);
+        state.setRemainder(messageToStore);
+        state.setUnparsed(isUnparsed);
     }
 
     private void notifyComplete(final FilterChainContext context) {

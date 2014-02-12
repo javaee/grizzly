@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -1018,6 +1018,12 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     private void sendUpstream(final SpdySession spdySession,
             final SpdyStream spdyStream, final HttpHeader httpHeader,
             final boolean isExpectContent) {
+        
+        final HttpRequestPacket spdyReq = spdyStream.getSpdyRequest();
+        final HttpContext httpContext = HttpContext.newInstance(spdyStream,
+                spdyStream, spdyStream, spdyReq);
+        spdyReq.getProcessingState().setHttpContext(httpContext);
+
         if (threadPool == null) {
             spdySession.sendMessageUpstream(spdyStream,
                     HttpContent.builder(httpHeader)

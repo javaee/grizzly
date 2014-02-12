@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,6 +58,13 @@ public final class ProcessingState {
      * </p>
      */
     boolean error;
+
+    /**
+     * <p>
+     * References {@link HttpContext} associated with the processing.
+     * </p>
+     */
+    HttpContext httpContext;
 
     /**
      * <p>
@@ -118,7 +125,27 @@ public final class ProcessingState {
         this.keepAlive = keepAlive;
     }
 
+    /**
+     * <p>
+     * Returns {@link HttpContext} associated with the processing.
+     * </p>
+     *
+     * @return {@link HttpContext} associated with the processing.
+     */    
+    public HttpContext getHttpContext() {
+        return httpContext;
+    }
 
+    /**
+     * <p>
+     * Sets the {@link HttpContext} associated with the processing.
+     * </p>
+     *
+     * @param httpContext {@link HttpContext}.
+     */
+    public void setHttpContext(final HttpContext httpContext) {
+        this.httpContext = httpContext;
+    }
 
     /**
      * <p>
@@ -128,6 +155,7 @@ public final class ProcessingState {
     public void recycle() {
         keepAlive = false;
         error = false;
+        httpContext = null;
     }
 
 }

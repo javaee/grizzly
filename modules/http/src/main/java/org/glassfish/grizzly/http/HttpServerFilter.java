@@ -124,12 +124,10 @@ public class HttpServerFilter extends HttpCodecFilter {
     private byte[] defaultResponseContentTypeBytes;
     private byte[] defaultResponseContentTypeBytesNoCharset;
     
-    private final boolean processKeepAlive;
+    private final boolean allowKeepAlive;
     private int maxRequestHeaders;
     private int maxResponseHeaders;
     
-    private boolean isShuttingDown;
-
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
      */
@@ -223,8 +221,8 @@ public class HttpServerFilter extends HttpCodecFilter {
                         new KeepAliveWorker(keepAlive), new KeepAliveResolver()) :
                 null;
 
-        this.keepAlive = keepAlive;
-        this.processKeepAlive = keepAlive != null;
+        this.allowKeepAlive = keepAlive != null;
+        this.keepAlive = allowKeepAlive ? new KeepAliveConfig(keepAlive) : null;
 
         if (defaultResponseContentType != null && !defaultResponseContentType.isEmpty()) {
             setDefaultResponseContentType(defaultResponseContentType);
@@ -254,16 +252,9 @@ public class HttpServerFilter extends HttpCodecFilter {
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
         final Buffer input = ctx.getMessage();
         final Connection connection = ctx.getConnection();
-        HttpContext context = HttpContext.get(ctx);
-        if (context == null) {
-            context = HttpContext.newInstance(ctx, connection, connection, connection);
-        }
-        ServerHttpRequestImpl httpRequest = httpRequestInProcessAttr.get(context);
+        ServerHttpRequestImpl httpRequest = httpRequestInProcessAttr.get(connection);
+        
         if (httpRequest == null) {
-            if (isShuttingDown) {
-                return gracefullyCloseConnection(ctx);
-            }
-            
             final boolean isSecureLocal = isSecure(connection);
             httpRequest = ServerHttpRequestImpl.create();
             httpRequest.initialize(connection, this, input.position(), maxHeadersSize, maxRequestHeaders);
@@ -273,36 +264,41 @@ public class HttpServerFilter extends HttpCodecFilter {
             response.getHeaders().setMaxNumHeaders(maxResponseHeaders);
             httpRequest.setResponse(response);
             response.setRequest(httpRequest);
-            if (processKeepAlive) {
-                KeepAliveContext keepAliveContext = keepAliveContextAttr.get(context);
+            
+            final HttpContext httpContext = HttpContext.newInstance(
+                    connection, connection, connection, httpRequest)
+                    .attach(ctx);
+            
+            httpRequest.getProcessingState().setHttpContext(httpContext);
+
+            if (allowKeepAlive) {
+                KeepAliveContext keepAliveContext = keepAliveContextAttr.get(httpContext);
                 if (keepAliveContext == null) {
                     keepAliveContext = new KeepAliveContext(connection);
-                    keepAliveContextAttr.set(context, keepAliveContext);
+                    keepAliveContextAttr.set(httpContext, keepAliveContext);
+                } else if (keepAliveQueue != null) {
+                    keepAliveQueue.remove(keepAliveContext);
                 }
-                keepAliveContext.request = httpRequest;
+                
                 final int requestsProcessed = keepAliveContext.requestsProcessed;
                 if (requestsProcessed > 0) {
                     KeepAliveConfig.notifyProbesHit(keepAlive,
                                               connection,
                                               requestsProcessed);
                 }
-                if (keepAliveQueue != null) {
-                    keepAliveQueue.remove(keepAliveContext);
-                }
+                
+                
             }
-            httpRequestInProcessAttr.set(context, httpRequest);
+            httpRequestInProcessAttr.set(httpContext, httpRequest);
         } else if (httpRequest.isContentBroken()) {
             // if payload of the current/last HTTP request associated with the
             // Connection is broken - shutdownNow processing here
             return ctx.getStopAction();
+        } else {
+            httpRequest.getProcessingState().getHttpContext().attach(ctx);
         }
 
         return handleRead(ctx, httpRequest);
-    }
-
-    private ServerHttpRequestImpl getHttpRequestInProcess(final FilterChainContext ctx) {
-        final HttpContext context = HttpContext.get(ctx);
-        return httpRequestInProcessAttr.get(context);
     }
 
     @Override
@@ -696,9 +692,9 @@ public class HttpServerFilter extends HttpCodecFilter {
                     connectionValueDC.equalsIgnoreCaseLowerCase(CLOSE_BYTES));
 
             if (!isConnectionClose) {
-                state.keepAlive = isHttp11 ||
+                state.keepAlive = allowKeepAlive && (isHttp11 ||
                         (connectionValueDC != null &&
-                        connectionValueDC.equalsIgnoreCaseLowerCase(KEEPALIVE_BYTES));
+                        connectionValueDC.equalsIgnoreCaseLowerCase(KEEPALIVE_BYTES)));
             }
         }
         
@@ -716,9 +712,8 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         final boolean error = request.getProcessingState().error;
         if (!error) {
-            HttpContext context = HttpContext.get(ctx);
+            final HttpContext context = httpHeader.getProcessingState().getHttpContext();
             httpRequestInProcessAttr.remove(context);
-
         }
         return error;
     }
@@ -930,7 +925,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             // HTTP 1.1 response with chunking disabled and no content-length having been set.
             // Close the connection to signal the response as being complete.
             state.keepAlive = false;
-        } else if (!checkKeepAliveRequestsCount(ctx)) {
+        } else if (!checkKeepAliveRequestsCount(state.getHttpContext())) {
             // We processed max allowed HTTP requests over the keep alive connection
             state.keepAlive = false;
         }
@@ -1003,8 +998,10 @@ public class HttpServerFilter extends HttpCodecFilter {
         
         if (event.type() == RESPONSE_COMPLETE_EVENT.type() && c.isOpen()) {
 
-            if (processKeepAlive && !isShuttingDown) {
-                final HttpContext context = HttpContext.get(ctx);
+            final HttpContext context = HttpContext.get(ctx);
+            final HttpRequestPacket httpRequest = context.getRequest();
+            
+            if (allowKeepAlive) {
                 final KeepAliveContext keepAliveContext =
                         keepAliveContextAttr.get(context);
                 if (keepAliveQueue != null) {
@@ -1013,18 +1010,11 @@ public class HttpServerFilter extends HttpCodecFilter {
                             TimeUnit.SECONDS);
                 }
                 
-                final HttpRequestPacket httpRequest = keepAliveContext.request;
                 final boolean isStayAlive = isKeepAlive(httpRequest, keepAliveContext);
-                keepAliveContext.request = null;
 
                 processResponseComplete(ctx, httpRequest, isStayAlive);
             } else {
-                final HttpRequestPacket httpRequest = getHttpRequestInProcess(ctx);
-                if (httpRequest != null) {
-                    processResponseComplete(ctx, httpRequest, false);
-                }
-                
-                flushAndClose(ctx);
+                processResponseComplete(ctx, httpRequest, false);
             }
             
             return ctx.getStopAction();
@@ -1032,22 +1022,47 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         return ctx.getInvokeAction();
     }
+    
+    @Override
+    public NextAction handleClose(final FilterChainContext ctx) throws IOException {
+        final ServerHttpRequestImpl httpRequest =
+                httpRequestInProcessAttr.get(ctx.getConnection());
+        if (httpRequest != null && !httpRequest.isContentBroken()) {
+            // if we still have HTTP request in progress and this HTTP request
+            // doesn't have specified TransferEncoder - it means we parse
+            // it till EOF... so now it's time to notify that this packet has
+            // been parsed completely
+            if (httpRequest.isExpectContent() &&
+                    httpRequest.getTransferEncoding() == null) {
+                
+                httpRequest.setExpectContent(false);
+                // notify processed. If packet has transfer encoding - the notification should be called elsewhere
+                onHttpPacketParsed(httpRequest, ctx);
+            }
+        }
+
+        return ctx.getInvokeAction();
+    }
+
+    
+    private boolean isUnlimitedKeepAlive() {
+        return keepAlive.getIdleTimeoutInSeconds() < 0 &&
+                keepAlive.getMaxRequestsCount() < 0;
+    }
 
     private void processResponseComplete(final FilterChainContext ctx,
             final HttpRequestPacket httpRequest, final boolean isStayAlive)
             throws IOException {
         
-        final boolean hasTransferEncoding = httpRequest.getTransferEncoding() != null;
-
         if (httpRequest.isExpectContent()) {
-            if (hasTransferEncoding && !httpRequest.isContentBroken()) {
+            if (!httpRequest.isContentBroken()) {
                 // If transfer encoding is defined and we can determine the message body length
                 // we will check HTTP keep-alive settings once remainder is fully read
                 httpRequest.setSkipRemainder(true);
             } else {
-                // if we can not determine the message body length - assume this packet as processed
+                // if the packet is broken notify it's been parsed and
+                // close the connection
                 httpRequest.setExpectContent(false);
-                // notify processed. If packet has transfer encoding - the notification should be called elsewhere
                 onHttpPacketParsed(httpRequest, ctx);
                 // no matter it's keep-alive or not - we close the connection
                 flushAndClose(ctx);
@@ -1069,15 +1084,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         return HttpContent.builder(response).last(true).build();
     }
 
-    /**
-     * Method, which might be optionally called to prepare the filter for
-     * shutdown.
-     */
-    @Override
-    public void prepareForShutdown() {
-        isShuttingDown = true;
-    }
-    
     private void setDefaultResponseContentType(final String contentType) {
         this.defaultResponseContentType = contentType;
         if (contentType != null) {
@@ -1126,14 +1132,12 @@ public class HttpServerFilter extends HttpCodecFilter {
         return isKeepAlive;
     }
 
-    private boolean checkKeepAliveRequestsCount(final FilterChainContext ctx) {
-        final HttpContext context = HttpContext.get(ctx);
-        final KeepAliveContext keepAliveContext = keepAliveContextAttr.get(context);
-
-        boolean firstCheck = (processKeepAlive && keepAliveContext != null);
-        if (!firstCheck) {
-            return true;
+    private boolean checkKeepAliveRequestsCount(final HttpContext httpContext) {
+        if (!allowKeepAlive) {
+            return false;
         }
+        
+        final KeepAliveContext keepAliveContext = keepAliveContextAttr.get(httpContext);
         keepAliveContext.requestsProcessed++;
         final int maxRequestCount = keepAlive.getMaxRequestsCount();
         return (maxRequestCount == -1 || keepAliveContext.requestsProcessed <= maxRequestCount);
@@ -1170,8 +1174,6 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         private volatile long keepAliveTimeoutMillis = DelayedExecutor.UNSET_TIMEOUT;
         private int requestsProcessed;
-        private HttpRequestPacket request;
-
     } // END KeepAliveContext
 
 

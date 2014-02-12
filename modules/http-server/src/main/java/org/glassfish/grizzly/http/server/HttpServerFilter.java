@@ -168,6 +168,11 @@ public class HttpServerFilter extends BaseFilter
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
           throws IOException {
+        
+        // every message coming to HttpServerFilter#handleRead has to have
+        // HttpContext associated with the FilterChainContext
+        assert HttpContext.get(ctx) != null; 
+        
         final Object message = ctx.getMessage();
         final Connection connection = ctx.getConnection();
 
@@ -175,7 +180,8 @@ public class HttpServerFilter extends BaseFilter
 
             // Otherwise cast message to a HttpContent
             final HttpContent httpContent = (HttpContent) message;
-            final HttpContext context = HttpContext.get(ctx);
+            final HttpContext context = httpContent.getHttpHeader()
+                    .getProcessingState().getHttpContext();
             Request handlerRequest = httpRequestInProgress.get(context);
 
             if (handlerRequest == null) {
@@ -363,7 +369,9 @@ public class HttpServerFilter extends BaseFilter
             final Response response)
             throws IOException {
 
-        final HttpContext context = HttpContext.get(ctx);
+        final HttpContext context = request.getRequest()
+                .getProcessingState().getHttpContext();
+        
         httpRequestInProgress.remove(context);
         response.finish();
         request.onAfterService();

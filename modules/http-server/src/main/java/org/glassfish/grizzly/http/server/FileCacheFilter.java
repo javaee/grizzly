@@ -284,7 +284,7 @@ public class FileCacheFilter extends BaseFilter {
             this.fc = fc;
             this.remaining = size;
             
-            final HttpContext httpContext = HttpContext.get(ctx);
+            final HttpContext httpContext = response.getProcessingState().getHttpContext();
             assert httpContext != null;
             output = httpContext.getOutputSink();
         }

@@ -63,8 +63,6 @@ class SpdyResponse extends HttpResponsePacket implements SpdyHeader {
         return spdyResponse;
     }
     
-    final ProcessingState processingState = new ProcessingState();
-
     /**
      * Char encoding parsed flag.
      */
@@ -72,7 +70,7 @@ class SpdyResponse extends HttpResponsePacket implements SpdyHeader {
 
     @Override
     public ProcessingState getProcessingState() {
-        return processingState;
+        return getRequest().getProcessingState();
     }
     
     @Override
@@ -127,8 +125,6 @@ class SpdyResponse extends HttpResponsePacket implements SpdyHeader {
     @Override
     protected void reset() {
         contentTypeParsed = false;
-        
-        processingState.recycle();
         
         super.reset();
     }

@@ -95,6 +95,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
                 lifeCycleHandler, isEmptyRecord);
     }
 
+    @SuppressWarnings("unchecked")
     protected void set(final Connection connection, final WritableMessage message,
             final CompletionHandler completionHandler,
             final Object dstAddress,

@@ -286,7 +286,9 @@ public class DefaultSelectorHandler implements SelectorHandler {
             throws IOException {
 
         return processPendingTaskQueue(selectorRunner, selectorRunner.obtainPostponedTasks())
-                && processPendingTaskQueue(selectorRunner, selectorRunner.getPendingTasks());
+                &&
+                (!selectorRunner.hasPendingTasks ||
+                processPendingTaskQueue(selectorRunner, selectorRunner.getPendingTasks()));
     }
 
     private boolean processPendingTaskQueue(final SelectorRunner selectorRunner,
