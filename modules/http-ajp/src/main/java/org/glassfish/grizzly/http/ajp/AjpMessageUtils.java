@@ -476,7 +476,7 @@ final class AjpMessageUtils {
 
     private static final int BODY_CHUNK_HEADER_SIZE = 7;
     private static final int MAX_BODY_CHUNK_CONTENT_SIZE =
-            AjpConstants.SUGGESTED_MAX_PAYLOAD_SIZE - BODY_CHUNK_HEADER_SIZE - 1; // -1 becaise of terminating \0
+            AjpConstants.SUGGESTED_MAX_PAYLOAD_SIZE - BODY_CHUNK_HEADER_SIZE - 1; // -1 because of terminating \0
     public static Buffer appendContentAndTrim(final MemoryManager memoryManager,
             Buffer dstBuffer, Buffer httpContentBuffer) {
         Buffer resultBuffer = null;
