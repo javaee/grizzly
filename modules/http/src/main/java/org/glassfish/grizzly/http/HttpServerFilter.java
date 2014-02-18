@@ -994,27 +994,29 @@ public class HttpServerFilter extends HttpCodecFilter {
     public NextAction handleEvent(final FilterChainContext ctx,
             final Event event) throws IOException {
 
-        final Connection c = ctx.getConnection();
-        
-        if (event.type() == RESPONSE_COMPLETE_EVENT.type() && c.isOpen()) {
+        if (event.type() == RESPONSE_COMPLETE_EVENT.type()) {
 
-            final HttpContext context = HttpContext.get(ctx);
-            final HttpRequestPacket httpRequest = context.getRequest();
-            
-            if (allowKeepAlive) {
-                final KeepAliveContext keepAliveContext =
-                        keepAliveContextAttr.get(context);
-                if (keepAliveQueue != null) {
-                    keepAliveQueue.add(keepAliveContext,
-                            keepAlive.getIdleTimeoutInSeconds(),
-                            TimeUnit.SECONDS);
+            if (ctx.getConnection().isOpen()) {
+                final HttpContext context = HttpContext.get(ctx);
+                final HttpRequestPacket httpRequest = context.getRequest();
+
+                if (allowKeepAlive) {
+                    if (keepAliveQueue != null) {
+                        final KeepAliveContext keepAliveContext =
+                                keepAliveContextAttr.get(context);
+
+                        keepAliveQueue.add(keepAliveContext,
+                                keepAlive.getIdleTimeoutInSeconds(),
+                                TimeUnit.SECONDS);
+                    }
+
+                    final boolean isStayAlive =
+                            httpRequest.getProcessingState().isKeepAlive();
+
+                    processResponseComplete(ctx, httpRequest, isStayAlive);
+                } else {
+                    processResponseComplete(ctx, httpRequest, false);
                 }
-                
-                final boolean isStayAlive = isKeepAlive(httpRequest, keepAliveContext);
-
-                processResponseComplete(ctx, httpRequest, isStayAlive);
-            } else {
-                processResponseComplete(ctx, httpRequest, false);
             }
             
             return ctx.getStopAction();
@@ -1065,12 +1067,14 @@ public class HttpServerFilter extends HttpCodecFilter {
                 httpRequest.setExpectContent(false);
                 onHttpPacketParsed(httpRequest, ctx);
                 // no matter it's keep-alive or not - we close the connection
-                flushAndClose(ctx);
+                httpRequest.getProcessingState().getHttpContext().close();
+//                flushAndClose(ctx);
             }
         } else if (!isStayAlive) {
             // if we don't expect more data on the request and it's not in keep-alive mode
             // close it
-            flushAndClose(ctx);
+            httpRequest.getProcessingState().getHttpContext().close();
+//            flushAndClose(ctx);
         } /* else {
             we don't expect more data on the request, but it's keep-alive
         }*/
@@ -1113,35 +1117,27 @@ public class HttpServerFilter extends HttpCodecFilter {
                status == 505 /* SC_VERSION_NOT_SUPPORTED */;
     }
 
-    private boolean isKeepAlive(final HttpRequestPacket request,
-                                final KeepAliveContext keepAliveContext) {
-
-        final boolean isKeepAlive = request.getProcessingState().isStayAlive();
-
-        if (isKeepAlive && keepAliveContext != null) {
-            if (keepAliveContext.requestsProcessed == 1) {
-                if (isKeepAlive) { // New keep-alive connection
-                    KeepAliveConfig.notifyProbesConnectionAccepted(keepAlive,
-                            keepAliveContext.connection);
-                } else { // Refused keep-alive connection
-                    KeepAliveConfig.notifyProbesRefused(keepAlive, keepAliveContext.connection);
-                }
-            }
-        }
-        
-        return isKeepAlive;
-    }
-
     private boolean checkKeepAliveRequestsCount(final HttpContext httpContext) {
         if (!allowKeepAlive) {
             return false;
         }
         
         final KeepAliveContext keepAliveContext = keepAliveContextAttr.get(httpContext);
-        keepAliveContext.requestsProcessed++;
+        final int requestsProcessed = keepAliveContext.requestsProcessed++;
         final int maxRequestCount = keepAlive.getMaxRequestsCount();
-        return (maxRequestCount == -1 || keepAliveContext.requestsProcessed <= maxRequestCount);
+        final boolean isKeepAlive = (maxRequestCount == -1 ||
+                keepAliveContext.requestsProcessed <= maxRequestCount);
+        
+        if (requestsProcessed == 0) {
+            if (isKeepAlive) { // New keep-alive connection
+                KeepAliveConfig.notifyProbesConnectionAccepted(keepAlive,
+                        keepAliveContext.connection);
+            } else { // Refused keep-alive connection
+                KeepAliveConfig.notifyProbesRefused(keepAlive, keepAliveContext.connection);
+            }
+        }
 
+        return isKeepAlive;
     }
 
     private void sendBadRequestResponse(final FilterChainContext ctx,
@@ -1160,7 +1156,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         final HttpContent errorHttpResponse = customizeErrorResponse(response);
         final Buffer resBuf = encodeHttpPacket(ctx, errorHttpResponse);
         ctx.write(resBuf);
-        ctx.flush(FLUSH_AND_CLOSE_HANDLER);
+        response.getProcessingState().getHttpContext().close();
     }
 
     // ---------------------------------------------------------- Nested Classes

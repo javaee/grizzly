@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,12 +60,14 @@ import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectionProbe;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.WritableMessage;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
@@ -75,6 +78,7 @@ import org.glassfish.grizzly.filterchain.DefaultFilterChainState;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainState;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
@@ -109,6 +113,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     // Semaphor responsible for connect/close notification
     protected final AtomicReference<Object> connectCloseSemaphor =
             new AtomicReference<Object>();
+    
+    // isCloseScheduled, "null" value means the connection hasn't been scheduled for
+    // the graceful shutdown
+    private final AtomicBoolean isCloseScheduled = new AtomicBoolean();
     
     // closeReasonAtomic, "null" value means the connection is open.
     protected final AtomicReference<CloseReason> closeReasonAtomic =
@@ -462,38 +470,94 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         
         return null;
     }
-    
 
     @Override
-    public GrizzlyFuture<Closeable> close() {
-        
+    public void terminateSilently() {
+        terminate0(null, CloseReason.LOCALLY_CLOSED_REASON);
+    }
+
+    @Override
+    public GrizzlyFuture<Closeable> terminate() {
         final FutureImpl<Closeable> future = Futures.createSafeFuture();
-        close(Futures.toCompletionHandler(future),
+        terminate0(Futures.toCompletionHandler(future),
                 CloseReason.LOCALLY_CLOSED_REASON);
         
         return future;
     }
 
     @Override
-    public void close(final CompletionHandler<Closeable> completionHandler) {
-        close(completionHandler, CloseReason.LOCALLY_CLOSED_REASON);
+    public void terminateWithReason(final CloseReason closeReason) {
+        terminate0(null, closeReason);
     }
+
+    @Override
+    public GrizzlyFuture<Closeable> close() {
         
+        final FutureImpl<Closeable> future = Futures.createSafeFuture();
+        terminate0(Futures.toCompletionHandler(future),
+                CloseReason.LOCALLY_CLOSED_REASON);
+        
+        return future;
+    }
+       
     @Override
     @SuppressWarnings("unchecked")
     public final void closeSilently() {
-        close(null, CloseReason.LOCALLY_CLOSED_REASON);
+        closeGracefully0(null, CloseReason.LOCALLY_CLOSED_REASON);
     }
 
     @Override
     public void closeWithReason(final CloseReason closeReason) {
-        close(null, closeReason);
+        closeGracefully0(null, closeReason);
+    }
+    
+    @SuppressWarnings("unchecked")
+    protected void closeGracefully0(
+            final CompletionHandler<Closeable> completionHandler,
+            CloseReason closeReason) {
+        if (isCloseScheduled.compareAndSet(false, true)) {
+            
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                // replace close reason: clone the original value and add stacktrace
+                closeReason = new CloseReason(closeReason.getType(),
+                        new IOException("Connection is closed at",
+                                closeReason.getCause()));
+            }
+            
+            final CloseReason finalReason = closeReason;
+            
+            transport.getWriter(this).write(this, Buffers.EMPTY_BUFFER,
+                    new EmptyCompletionHandler<WriteResult<WritableMessage, SocketAddress>>() {
+
+                @Override
+                public void completed(final WriteResult<WritableMessage, SocketAddress> result) {
+                    terminate0(completionHandler, finalReason);
+                }
+
+                @Override
+                public void failed(final Throwable throwable) {
+                    terminate0(completionHandler, finalReason);
+                }
+                
+            });
+        } else {
+            if (completionHandler != null) {
+                addCloseListener(new CloseListener() {
+
+                    @Override
+                    public void onClosed(Closeable closable, CloseReason reason) throws IOException {
+                        completionHandler.completed(NIOConnection.this);
+                    }
+                });
+            }
+        }
     }
     
 
-    protected void close(final CompletionHandler<Closeable> completionHandler,
+    protected void terminate0(final CompletionHandler<Closeable> completionHandler,
             final CloseReason closeReason) {
         
+        isCloseScheduled.set(true);
         if (closeReasonAtomic.compareAndSet(null, closeReason)) {
             
             if (LOGGER.isLoggable(Level.FINEST)) {
@@ -513,7 +577,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 @Override
                 public boolean run() {
                     try {
-                        close0();
+                        doClose();
                     } catch (IOException e) {
                         LOGGER.log(Level.FINE, "Error during connection close", e);
                     }
@@ -531,7 +595,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 @Override
                 public void failed(final Throwable throwable) {
                     try {
-                        close0();
+                        doClose();
                     } catch (Exception ignored) {
                     }
 
@@ -546,7 +610,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     /**
      * Do the actual connection close.
      */
-    protected void close0() throws IOException {
+    protected void doClose() throws IOException {
         ((NIOTransport) transport).closeConnection(this);
     }
     
@@ -695,40 +759,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     /**
-     * Notify registered {@link ConnectionProbe}s about the IO Event enabled event.
-     *
-     * @param connection the <tt>Connection</tt> event occurred on.
-     * @param serviceEvent the {@link ServiceEvent}.
-     */
-//    protected static void notifyServiceEventEnabled(NIOConnection connection,
-//        ServiceEvent serviceEvent) {
-//        final ConnectionProbe[] probes =
-//            connection.monitoringConfig.getProbesUnsafe();
-//        if (probes != null) {
-//            for (ConnectionProbe probe : probes) {
-//                probe.onServiceEventEnableEvent(connection, serviceEvent);
-//            }
-//        }
-//    }
-
-    /**
-     * Notify registered {@link ConnectionProbe}s about the IO Event disabled event.
-     *
-     * @param connection the <tt>Connection</tt> event occurred on.
-     * @param serviceEvent the {@link ServiceEvent}.
-     */
-//    protected static void notifyServiceEventDisabled(NIOConnection connection,
-//        ServiceEvent serviceEvent) {
-//        final ConnectionProbe[] probes =
-//            connection.monitoringConfig.getProbesUnsafe();
-//        if (probes != null) {
-//            for (ConnectionProbe probe : probes) {
-//                probe.onServiceEventDisableEvent(connection, serviceEvent);
-//            }
-//        }
-//    }
-
-    /**
      * Notify registered {@link ConnectionProbe}s about the close event.
      *
      * @param connection the <tt>Connection</tt> event occurred on.
@@ -780,21 +810,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         }
     }
 
-//    @Override
-//    public void simulateKeyInterest(final ServiceEvent serviceEvent) throws IOException {
-//        final SelectorHandler selectorHandler = transport.getSelectorHandler();
-//        switch (serviceEvent) {
-//            case WRITE:
-//                selectorHandler.enque(selectorRunner, writeSimulatorRunnable, null);
-//                break;
-//            case READ:
-//                selectorHandler.enque(selectorRunner, readSimulatorRunnable, null);
-//                break;
-//            default:
-//                throw new IllegalArgumentException("We support only READ and WRITE events. Got " + serviceEvent);
-//        }
-//    }
-//    
     public final void registerKeyInterest(final int interest) throws IOException {
         if (interest == 0 || !isOpen()) {
             return;
@@ -807,7 +822,11 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
     
     public final void deregisterKeyInterest(final int interest) throws IOException {
-        if (interest == 0) {
+        if (interest == 0 ||
+                // don't register OP_READ for a connection scheduled to be closed
+                (interest == SelectionKey.OP_READ && isCloseScheduled.get()) ||
+                // don't register any OP for a closed connection
+                closeReasonAtomic.get() != null) {
             return;
         }
         

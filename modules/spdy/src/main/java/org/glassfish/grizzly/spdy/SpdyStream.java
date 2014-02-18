@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -322,21 +322,37 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
 
     @Override
-    public GrizzlyFuture<Closeable> close() {
+    public GrizzlyFuture<Closeable> terminate() {
         final FutureImpl<Closeable> future = Futures.createSafeFuture();
-        close(Futures.toCompletionHandler(future));
+        close0(Futures.toCompletionHandler(future),
+                CloseReason.LOCALLY_CLOSED_REASON, false);
         
         return future;
     }
 
     @Override
-    public void close(final CompletionHandler<Closeable> completionHandler) {
-        close(completionHandler, CloseReason.LOCALLY_CLOSED_REASON);
+    public void terminateSilently() {
+        close0(null, CloseReason.LOCALLY_CLOSED_REASON, false);
     }
 
-    void close(
+    @Override
+    public GrizzlyFuture<Closeable> close() {
+        final FutureImpl<Closeable> future = Futures.createSafeFuture();
+        close0(Futures.toCompletionHandler(future),
+                CloseReason.LOCALLY_CLOSED_REASON, true);
+        
+        return future;
+    }
+
+    @Override
+    public void closeSilently() {
+        close0(null, CloseReason.LOCALLY_CLOSED_REASON, true);
+    }
+
+    void close0(
             final CompletionHandler<Closeable> completionHandler,
-            final CloseReason closeReason) {
+            final CloseReason closeReason,
+            final boolean isCloseOutputGracefully) {
         
         if (closeReasonFlag.compareAndSet(null, closeReason)) {
             
@@ -347,8 +363,13 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
             
             // Terminate the input, dicard already bufferred data
             inputBuffer.terminate(termination);
-            // Terminate the output, discard all the pending data in the output buffer
-            outputSink.terminate(termination);
+            
+            if (isCloseOutputGracefully) {
+                outputSink.close();
+            } else {
+                // Terminate the output, discard all the pending data in the output buffer
+                outputSink.terminate(termination);
+            }
             
             notifyCloseListeners();
 
@@ -369,7 +390,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
                 new Termination(TerminationType.PEER_CLOSE, CLOSED_BY_PEER_STRING) {
                     @Override
                     public void doTask() {
-                        close(null, CloseReason.REMOTELY_CLOSED_REASON);
+                        close0(null, CloseReason.REMOTELY_CLOSED_REASON, false);
                     }
                 });
     }
@@ -482,7 +503,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     void offerInputData(final Buffer data, final boolean isLast)
             throws SpdyStreamException {
         if (!isSynFrameRcv) {
-            close(null, CloseReason.LOCALLY_CLOSED_REASON);
+            close0(null, CloseReason.LOCALLY_CLOSED_REASON, false);
             
             throw new SpdyStreamException(getStreamId(),
                     RstStreamFrame.PROTOCOL_ERROR, "DataFrame came before SynReply");

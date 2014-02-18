@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -114,7 +114,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 ((TCPNIOConnection) connection).onWrite(buffer, written);
             } catch (IOException e) {
                 // Mark connection as closed remotely.
-                ((TCPNIOConnection) connection).close(null,
+                ((TCPNIOConnection) connection).terminate0(null,
                         new CloseReason(CloseType.REMOTELY, e));
                 throw e;
             }
@@ -164,7 +164,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             return update(queueRecord, written);
         } catch (IOException e) {
             // Mark connection as closed remotely.
-            ((TCPNIOConnection) connection).close(null,
+            ((TCPNIOConnection) connection).terminate0(null,
                     new CloseReason(CloseType.REMOTELY, e));
             throw e;
         } finally {

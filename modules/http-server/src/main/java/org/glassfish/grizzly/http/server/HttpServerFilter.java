@@ -294,14 +294,17 @@ public class HttpServerFilter extends BaseFilter
      * @param error error, which occurred during <tt>FilterChain</tt> execution
      */
     @Override
-    public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
+    public void exceptionOccurred(final FilterChainContext ctx,
+            final Throwable error) {
         final HttpContext context = HttpContext.get(ctx);
-        final Request request = httpRequestInProgress.get(context);
+        if (context != null) {
+            final Request request = httpRequestInProgress.get(context);
 
-        if (request != null) {
-            final ReadHandler handler = request.getInputBuffer().getReadHandler();
-            if (handler != null) {
-                handler.onError(error);
+            if (request != null) {
+                final ReadHandler handler = request.getInputBuffer().getReadHandler();
+                if (handler != null) {
+                    handler.onError(error);
+                }
             }
         }
     }

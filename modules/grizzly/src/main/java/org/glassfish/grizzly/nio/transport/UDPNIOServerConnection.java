@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -96,8 +96,16 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
     }
     
     @Override
-    public void close(
-            final CompletionHandler<Closeable> completionHandler) {
+    protected void closeGracefully0(
+            final CompletionHandler<Closeable> completionHandler,
+            final CloseReason closeReason) {
+        terminate0(completionHandler, closeReason);
+    }
+
+
+    @Override
+    protected void terminate0(final CompletionHandler<Closeable> completionHandler,
+            final CloseReason closeReason) {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("UDPNIOServerConnection might be only closed by calling unbind().");
         }
@@ -106,10 +114,10 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
             completionHandler.completed(this);
         }
     }
-
+    
     public void unbind(
             final CompletionHandler<Closeable> completionHandler) {
-        super.close(completionHandler);
+        super.terminate0(completionHandler, CloseReason.LOCALLY_CLOSED_REASON);
     }
 
     @Override

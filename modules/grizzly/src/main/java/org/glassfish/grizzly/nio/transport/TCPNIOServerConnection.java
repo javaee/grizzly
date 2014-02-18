@@ -49,6 +49,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.CloseReason;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
@@ -257,6 +259,12 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         return transport.getWriteBufferSize();
     }
 
+    @Override
+    protected void closeGracefully0(final CompletionHandler<Closeable> completionHandler,
+            final CloseReason closeReason) {
+        terminate0(completionHandler, closeReason);
+    }
+    
     @Override
     @SuppressWarnings("unchecked")
     protected void resetProperties() {
