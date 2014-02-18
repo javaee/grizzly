@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -476,7 +476,7 @@ final class AjpMessageUtils {
 
     private static final int BODY_CHUNK_HEADER_SIZE = 7;
     private static final int MAX_BODY_CHUNK_CONTENT_SIZE =
-            AjpConstants.MAX_READ_SIZE - BODY_CHUNK_HEADER_SIZE - 1; // -1 becaise of terminating \0
+            AjpConstants.SUGGESTED_MAX_PAYLOAD_SIZE - BODY_CHUNK_HEADER_SIZE - 1; // -1 becaise of terminating \0
     public static Buffer appendContentAndTrim(final MemoryManager memoryManager,
             Buffer dstBuffer, Buffer httpContentBuffer) {
         Buffer resultBuffer = null;

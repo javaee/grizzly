@@ -496,7 +496,7 @@ public class AjpHandlerFilter extends BaseFilter {
             buffer.put((byte) 'B');
             buffer.putShort((short) 3);
             buffer.put(AjpConstants.JK_AJP13_GET_BODY_CHUNK);
-            buffer.putShort((short) AjpConstants.MAX_READ_SIZE);
+            buffer.putShort((short) AjpConstants.SUGGESTED_MAX_PAYLOAD_SIZE);
 
             buffer.flip();
             buffer.allowBufferDispose(true);
