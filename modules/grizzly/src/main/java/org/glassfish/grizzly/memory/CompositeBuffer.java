@@ -153,7 +153,7 @@ public abstract class CompositeBuffer implements Buffer {
         /**
          * Method is responsible to examine/change one single Buffer's byte.
          * @param setter {@link Setter}
-         * @return <tt>true</tt>, if we want bulk processing shutdownNow, or <tt>false</tt>
+         * @return <tt>true</tt>, if we want bulk processing stop, or <tt>false</tt>
          *          to continue processing.
          */
         boolean processByte(byte value, Setter setter);

@@ -84,7 +84,7 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
  * {@link org.glassfish.grizzly.memory.ByteBufferManager} is that this implementation doesn't use ThreadLocal pools
  * and as such, doesn't suffer from the memory fragmentation/reallocation cycle that can impact the ThreadLocal versions.
  *
- * @since 3.0
+ * @since 2.3.11
  */
 public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware {
 

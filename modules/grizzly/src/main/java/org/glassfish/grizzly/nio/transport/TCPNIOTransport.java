@@ -780,13 +780,10 @@ public class TCPNIOTransport extends NIOTransport {
             final Buffer buffer = (Buffer) message;
 
             try {
-                if (buffer.isComposite()) {
-                    written = TCPNIOUtils.writeCompositeBuffer(connection,
-                            (CompositeBuffer) buffer);
-                } else {
-                    written = TCPNIOUtils.writeSimpleBuffer(connection,
-                            buffer);
-                }
+                written = buffer.isComposite() ?
+                        TCPNIOUtils.writeCompositeBuffer(connection,
+                            (CompositeBuffer) buffer) :
+                        TCPNIOUtils.writeSimpleBuffer(connection, buffer);
 
                 final boolean hasWritten = (written >= 0);
 
