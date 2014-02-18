@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,6 +51,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -60,6 +61,7 @@ import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
@@ -99,7 +101,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             new AtomicReference<Object>();
     
     // closeTypeFlag, "null" value means the connection is open.
-    protected final AtomicReference<CloseReason> closeReasonAtomic =
+    private final AtomicBoolean isCloseScheduled = new AtomicBoolean();
+    
+    private final AtomicReference<CloseReason> closeReasonAtomic =
             new AtomicReference<CloseReason>();
     
     protected volatile boolean isBlocking;
@@ -433,36 +437,106 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         
         return null;
     }
-    
 
     @Override
-    public GrizzlyFuture<Closeable> close() {
-        
+    public void terminateSilently() {
+        close0(null, CloseReason.LOCALLY_CLOSED_REASON);
+    }
+
+    @Override
+    public GrizzlyFuture<Closeable> terminate() {
         final FutureImpl<Closeable> future = Futures.createSafeFuture();
-        close(Futures.toCompletionHandler(future));
+        close0(Futures.toCompletionHandler(future),
+                CloseReason.LOCALLY_CLOSED_REASON);
         
         return future;
     }
 
     @Override
+    public void terminateWithReason(final IOException reason) {
+        close0(null, new CloseReason(
+                org.glassfish.grizzly.CloseType.LOCALLY, reason));
+    }
+
+    @Override
+    public GrizzlyFuture<Closeable> close() {
+        
+        final FutureImpl<Closeable> future = Futures.createSafeFuture();
+        close0(Futures.toCompletionHandler(future),
+                CloseReason.LOCALLY_CLOSED_REASON);
+        
+        return future;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @deprecated please use {@link #close()} with the following {@link
+     *  GrizzlyFuture#addCompletionHandler(org.glassfish.grizzly.CompletionHandler)} call
+     */
+    @Override
     public void close(final CompletionHandler<Closeable> completionHandler) {
-        close0(completionHandler, CloseReason.LOCALLY_CLOSED_REASON);
+        closeGracefully0(completionHandler, CloseReason.LOCALLY_CLOSED_REASON);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public final void closeSilently() {
-        close0(null, CloseReason.LOCALLY_CLOSED_REASON);
+        closeGracefully0(null, CloseReason.LOCALLY_CLOSED_REASON);
     }
     
     @Override
-    public void closeWithReason(final CloseReason closeReason) {
-        close0(null, closeReason);
+    public void closeWithReason(final IOException reason) {
+        closeGracefully0(null, new CloseReason(
+                org.glassfish.grizzly.CloseType.LOCALLY, reason));
+    }
+    
+    @SuppressWarnings("unchecked")
+    protected void closeGracefully0(
+            final CompletionHandler<Closeable> completionHandler,
+            CloseReason closeReason) {
+        if (isCloseScheduled.compareAndSet(false, true)) {
+            
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                // replace close reason: clone the original value and add stacktrace
+                closeReason = new CloseReason(closeReason.getType(),
+                        new IOException("Connection is closed at",
+                                closeReason.getCause()));
+            }
+            
+            final CloseReason finalReason = closeReason;
+            
+            transport.getWriter(this).write(this, Buffers.EMPTY_BUFFER,
+                    new EmptyCompletionHandler<WriteResult<Buffer, SocketAddress>>() {
+
+                @Override
+                public void completed(final WriteResult<Buffer, SocketAddress> result) {
+                    close0(completionHandler, finalReason);
+                }
+
+                @Override
+                public void failed(final Throwable throwable) {
+                    close0(completionHandler, finalReason);
+                }
+                
+            });
+        } else {
+            if (completionHandler != null) {
+                addCloseListener(new org.glassfish.grizzly.CloseListener() {
+
+                    @Override
+                    public void onClosed(final Closeable closeable,
+                            final ICloseType type) throws IOException {
+                        completionHandler.completed(NIOConnection.this);
+                    }
+                });
+            }
+        }
     }
     
     protected void close0(final CompletionHandler<Closeable> completionHandler,
             final CloseReason closeReason) {
         
+        isCloseScheduled.set(true);
         if (closeReasonAtomic.compareAndSet(null, closeReason)) {
             
             if (LOGGER.isLoggable(Level.FINEST)) {
@@ -763,7 +837,11 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public final void enableIOEvent(final IOEvent ioEvent) throws IOException {
         final int interest = ioEvent.getSelectionKeyInterest();
-        if (interest == 0 || !isOpen()) {
+        if (interest == 0 ||
+                // don't register OP_READ for a connection scheduled to be closed
+                (ioEvent == IOEvent.READ && isCloseScheduled.get()) ||
+                // don't register any OP for a closed connection
+                closeReasonAtomic.get() != null) {
             return;
         }
         

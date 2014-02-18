@@ -102,7 +102,7 @@ public class HttpContext implements AttributeStorage {
     }
 
     public void close() {
-        closeable.close(null);
+        closeable.closeSilently();
     }
     
     public static HttpContext newInstance(

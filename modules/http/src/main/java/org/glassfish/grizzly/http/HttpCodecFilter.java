@@ -46,11 +46,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.util.Ascii;
@@ -110,9 +107,6 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
      */
     static final byte[] CRLF_BYTES = {(byte) '\r', (byte) '\n'};
 
-    protected static final CompletionHandler<WriteResult> FLUSH_AND_CLOSE_HANDLER =
-            new FlushAndCloseHandler();
-    
     private final ArraySet<TransferEncoding> transferEncodings =
             new ArraySet<TransferEncoding>(TransferEncoding.class);
     
@@ -1159,7 +1153,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                 if (isLast) {
                     onHttpPacketParsed(httpHeader, ctx);
                     if (!httpHeader.getProcessingState().isStayAlive()) {
-                        return gracefullyCloseConnection(ctx);
+                        httpHeader.getProcessingState().getHttpContext().close();
+                        return ctx.getStopAction();
                     }
                 }
                 if (remainderBuffer != null) {
@@ -1740,41 +1735,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         return SSLUtils.getSSLEngine(connection) != null;
     }
 
-    /**
-     * Flush the {@link FilterChainContext} and close the associated {@link Connection}.
-     */
-    protected static void flushAndClose(final FilterChainContext ctx) {
-        // no matter it's keep-alive or not - we close the connection
-        ctx.flush(FLUSH_AND_CLOSE_HANDLER);
-    }
-        
-    protected static NextAction gracefullyCloseConnection(
-            final FilterChainContext ctx) {
-        flushAndClose(ctx);
-        
-        // we skip the processing and let connection to be closed
-        final NextAction suspendAction = ctx.getSuspendAction();
-        ctx.completeAndRecycle();
-        return suspendAction;
-    }
-    
     // ---------------------------------------------------------- Nested Classes
-
-    private static class FlushAndCloseHandler
-            extends EmptyCompletionHandler<WriteResult> {
-
-        @Override
-        public void completed(final WriteResult wr) {
-
-            try {
-                wr.getConnection().closeSilently();
-            } finally {
-                wr.recycle();
-            }
-
-        }
-
-    } // END FlushAndCloseHandler
     
     public static final class HeaderParsingState {
         public int packetLimit;

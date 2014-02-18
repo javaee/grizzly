@@ -286,6 +286,12 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     }
 
     @Override
+    protected void closeGracefully0(final CompletionHandler<Closeable> completionHandler,
+            final CloseReason closeReason) {
+        close0(completionHandler, closeReason);
+    }
+    
+    @Override
     @SuppressWarnings("unchecked")
     protected void resetProperties() {
         localSocketAddressHolder = Holder.lazyHolder(

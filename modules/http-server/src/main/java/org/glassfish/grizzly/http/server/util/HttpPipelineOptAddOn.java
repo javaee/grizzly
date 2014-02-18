@@ -132,6 +132,7 @@ public class HttpPipelineOptAddOn implements AddOn {
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
             final Plug plug = plugAttr.get(ctx);
             // check if the output plug is installed
@@ -283,6 +284,7 @@ public class HttpPipelineOptAddOn implements AddOn {
             /**
              * flushes buffered data
              */
+            @SuppressWarnings("unchecked")
             private void flush() {
                 if (isPlugged && buffer != null) {
                     isWrittenInThisThread = true;
@@ -337,6 +339,7 @@ public class HttpPipelineOptAddOn implements AddOn {
             }
 
             @Override
+            @SuppressWarnings("unchecked")
             public void completed(final Object result) {
                 for (int i = 0; i < sz; i++) {
                     handlers[i].completed(result);
@@ -344,6 +347,7 @@ public class HttpPipelineOptAddOn implements AddOn {
             }
 
             @Override
+            @SuppressWarnings("unchecked")
             public void updated(final Object result) {
                 for (int i = 0; i < sz; i++) {
                     handlers[i].updated(result);

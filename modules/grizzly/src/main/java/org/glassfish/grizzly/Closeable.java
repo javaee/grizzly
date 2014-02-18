@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,13 +43,45 @@ package org.glassfish.grizzly;
 /**
  * General asynchronous closable interface.
  * 
+ * <tt>Closeable</tt> interface contains two sets of methods: close* and terminate*,
+ * so interface implementations can provide graceful and abrupt releasing of resources.
+ * 
  * @author Alexey Stashok
  */
 public interface Closeable {
+    /**
+     * Closes this stream and releases any system resources associated with it.
+     * 
+     * If the stream is already closed then invoking this 
+     * method has no effect.
+     * Use this method, when no completion notification is needed.
+     */
+    public void terminateSilently();
 
     /**
-     * Closes this stream and releases any system resources associated
-     * with it. If the stream is already closed then invoking this 
+     * Closes this stream and releases any system resources associated with it.
+     * If the stream is already closed then invoking this 
+     * method has no effect. 
+     *
+     * @return {@link java.util.concurrent.Future}, which could be checked in case, if close operation
+     *         will be run asynchronously
+     */
+    public GrizzlyFuture<Closeable> terminate();
+    
+    /**
+     * Gracefully (if supported by the implementation) closes this stream and
+     * releases any system resources associated with it.
+     * 
+     * If the stream is already closed then invoking this 
+     * method has no effect.
+     * Use this method, when no completion notification is needed.
+     */
+    public void closeSilently();
+
+    /**
+     * Gracefully (if supported by the implementation) closes this stream and
+     * releases any system resources associated with it.
+     * If the stream is already closed then invoking this 
      * method has no effect. 
      *
      * @return {@link java.util.concurrent.Future}, which could be checked in case, if close operation
@@ -58,12 +90,17 @@ public interface Closeable {
     public GrizzlyFuture<Closeable> close();
     
     /**
-     * Closes this stream and releases any system resources associated
-     * with it. If the stream is already closed then invoking this 
+     * Gracefully closes this stream and releases any system resources associated
+     * with it.
+     * This operation waits for all pending output data to be flushed before
+     * closing the stream.
+     * If the stream is already closed then invoking this 
      * method has no effect. 
      *
      * @param completionHandler {@link CompletionHandler} to be called, when
-     *  the stream is closed.
+     *  the stream is closed
+     * @deprecated please use {@link #close()} with the following {@link
+     *  GrizzlyFuture#addCompletionHandler(org.glassfish.grizzly.CompletionHandler)} call
      */
     public void close(CompletionHandler<Closeable> completionHandler);
     
@@ -79,6 +116,8 @@ public interface Closeable {
      * Remove the {@link CloseListener}.
      *
      * @param closeListener {@link CloseListener}.
+     * @return <tt>true</tt> if the listener was successfully removed, or
+     *         <tt>false</tt> otherwise.
      */
     boolean removeCloseListener(CloseListener closeListener);
 }

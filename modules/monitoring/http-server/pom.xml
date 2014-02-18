@@ -92,7 +92,8 @@
                             *,
                         </Import-Package>
                         <Export-Package>
-                            org.glassfish.grizzly.jmx.*;version=${project.version},
+                            org.glassfish.grizzly.http.server.filecache.jmx.*;version=${project.version},
+                            org.glassfish.grizzly.http.server.jmx.*;version=${project.version},
                         </Export-Package>
                     </instructions>
                 </configuration>

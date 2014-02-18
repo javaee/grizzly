@@ -157,9 +157,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_FILTERCHAIN_EXCEPTION(), e);
             throwChain(ctx, executor, e);
-            ctx.getConnection().closeWithReason(
-                    new CloseReason(CloseType.LOCALLY,
-                            Exceptions.makeIOException(e)));
+            ctx.getConnection().closeWithReason(Exceptions.makeIOException(e));
 
             return ProcessorResult.createError(e);
         }
@@ -594,9 +592,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             return null;
         }
 
-        public void set(final Operation operation, final int filterIndex,
-                final boolean isIncomplete, final Object messageToStore,
-            final Appender appender) {
+        public <M> void set(final Operation operation, final int filterIndex,
+                final boolean isIncomplete, final M messageToStore,
+            final Appender<M> appender) {
             final int opIdx = operation.ordinal();
             
             FilterStateElement elem = state[opIdx][filterIndex];
@@ -612,7 +610,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             }
         }
 
-        public void pushUnparsedIdx(final int opIdx,
+        private void pushUnparsedIdx(final int opIdx,
                 final int filterIdx) {
             int[] opStack = unparsedIdxStack[opIdx];
             final int len = opStack[0];
@@ -626,7 +624,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             opStack[0]++;
         }
         
-        public int popUnparsedIdx(final int opIdx) {
+        private int popUnparsedIdx(final int opIdx) {
             final int[] opStack = unparsedIdxStack[opIdx];
             final int len = opStack[0];
             
@@ -720,6 +718,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             isValid = true;
         }
         
+        @SuppressWarnings("unchecked")
         private Object append(final Object currentMessage) {
             final Object resultMessage = currentMessage != null ?
                     (appender != null ?
