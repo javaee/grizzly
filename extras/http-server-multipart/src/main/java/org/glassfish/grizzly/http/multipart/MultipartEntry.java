@@ -54,8 +54,8 @@ import org.glassfish.grizzly.http.util.Header;
 /**
  * Abstraction represents single multipart entry, its functionality is pretty
  * similar to {@link Request}.
- * In order to read multipart entry data it's possible to use either {@link #getInputStream()}
- * or {@link #getReader()} depends on whether we want to operate with binary or
+ * In order to read multipart entry data it's possible to use either {@link #getNIOInputStream()}
+ * or {@link #getNIOReader()} depends on whether we want to operate with binary or
  * {@link String} data.
  * 
  * @since 2.0.1
@@ -120,14 +120,7 @@ public class MultipartEntry {
         this.requestInputStream = parentInputStream;
     }
 
-    /**
-     * @deprecated use {@link #getInputStream()}.
-     */
     public NIOInputStream getNIOInputStream() {
-        return getInputStream();
-    }
-    
-    public NIOInputStream getInputStream() {
         if (usingReader)
             throw new IllegalStateException("MultipartEntry is in the character mode");
 
@@ -140,14 +133,7 @@ public class MultipartEntry {
         return inputStream;
     }
 
-    /**
-     * @deprecated use {@link #getInputStream()}.
-     */
     public NIOReader getNIOReader() {
-        return getReader();
-    }
-    
-    public NIOReader getReader() {
         if (usingInputStream)
             throw new IllegalStateException("MultipartEntry is in the binary mode");
 
