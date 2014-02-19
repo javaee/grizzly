@@ -310,7 +310,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
     /**
      * Append available bytes to the input stream
      */
-    void onDataCame() {
+    void onDataCame() throws Exception {
         if (handler == null) return;
         
         try {
@@ -328,6 +328,7 @@ final class MultipartEntryNIOInputStream extends NIOInputStream {
                 } catch (IOException ee) {
                 }
             }
+            throw e;
         }
     }
 

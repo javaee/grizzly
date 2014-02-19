@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -96,7 +96,7 @@ public class MultipartReadHandler implements ReadHandler {
         this.requestCompletionHandler = completionHandler;
         this.multipartContext = multipartContext;
         this.boundary = multipartContext.getBoundary();
-        this.parentInputStream = request.getNIOInputStream();
+        this.parentInputStream = request.getInputStream();
 
         multipartMixedCompletionHandler = null;
         multipartMixedEntry = null;
@@ -114,7 +114,7 @@ public class MultipartReadHandler implements ReadHandler {
         this.multipartContext = multipartContext;
         this.boundary = multipartContext.getBoundary();
 
-        this.parentInputStream = parentMultipartEntry.getNIOInputStream();
+        this.parentInputStream = parentMultipartEntry.getInputStream();
 
         request = null;
         requestCompletionHandler = null;
@@ -240,7 +240,7 @@ public class MultipartReadHandler implements ReadHandler {
     }
 
     @SuppressWarnings({"ResultOfMethodCallIgnored"})
-    private void feedMultipartEntry() {
+    private void feedMultipartEntry() throws Exception {
 //        int available = 0;
         boolean isComplete;
         
@@ -346,9 +346,9 @@ public class MultipartReadHandler implements ReadHandler {
         state = State.START_BODY;
 
         if (isMultipartMixed) {
-            multipartEntry.initialize(multipartMixedEntry.getNIOInputStream());
+            multipartEntry.initialize(multipartMixedEntry.getInputStream());
         } else {
-            multipartEntry.initialize(request.getNIOInputStream());
+            multipartEntry.initialize(request.getInputStream());
         }
         
         final String contentType = multipartEntry.getHeader(Header.ContentType);
