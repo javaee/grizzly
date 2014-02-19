@@ -107,12 +107,12 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
     protected void closeGracefully0(
             final CompletionHandler<Closeable> completionHandler,
             final CloseReason closeReason) {
-        close0(completionHandler, closeReason);
+        terminate0(completionHandler, closeReason);
     }
 
 
     @Override
-    protected void close0(final CompletionHandler<Closeable> completionHandler,
+    protected void terminate0(final CompletionHandler<Closeable> completionHandler,
             final CloseReason closeReason) {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("UDPNIOServerConnection might be only closed by calling unbind().");
@@ -125,7 +125,7 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
     
     public void unbind(
             final CompletionHandler<Closeable> completionHandler) {
-        super.close0(completionHandler, CloseReason.LOCALLY_CLOSED_REASON);
+        super.terminate0(completionHandler, CloseReason.LOCALLY_CLOSED_REASON);
     }
 
     @Override

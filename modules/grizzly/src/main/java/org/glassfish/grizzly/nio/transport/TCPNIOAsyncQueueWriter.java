@@ -116,7 +116,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 ((TCPNIOConnection) connection).onWrite(buffer, written);
             } catch (IOException e) {
                 // Mark connection as closed remotely.
-                ((TCPNIOConnection) connection).close0(null,
+                ((TCPNIOConnection) connection).terminate0(null,
                         new CloseReason(CloseType.REMOTELY, e));
                 throw e;
             }
@@ -166,7 +166,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             return update(queueRecord, written);
         } catch (IOException e) {
             // Mark connection as closed remotely.
-            ((TCPNIOConnection) connection).close0(null,
+            ((TCPNIOConnection) connection).terminate0(null,
                     new CloseReason(CloseType.REMOTELY, e));
             throw e;
         } finally {

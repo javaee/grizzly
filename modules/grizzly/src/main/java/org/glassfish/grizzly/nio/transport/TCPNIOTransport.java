@@ -620,7 +620,7 @@ public final class TCPNIOTransport extends NIOTransport implements
             } else if (read < 0) {
                 final IOException e = new EOFException();
                 // Mark connection as closed remotely.
-                tcpConnection.close0(null,
+                tcpConnection.terminate0(null,
                         new CloseReason(CloseType.REMOTELY, e));
                 throw e;
             }
@@ -640,7 +640,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                 if (read < 0) {
                     final IOException e = new EOFException();
                     // Mark connection as closed remotely.
-                    tcpConnection.close0(null,
+                    tcpConnection.terminate0(null,
                             new CloseReason(CloseType.REMOTELY, e));
                     throw e;
                 }
@@ -686,7 +686,7 @@ public final class TCPNIOTransport extends NIOTransport implements
                 }
             } catch (IOException e) {
                 // Mark connection as closed remotely.
-                connection.close0(null,
+                connection.terminate0(null,
                         new CloseReason(CloseType.REMOTELY, e));
                 throw e;
             }

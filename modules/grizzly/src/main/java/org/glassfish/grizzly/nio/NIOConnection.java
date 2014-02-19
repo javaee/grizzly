@@ -440,13 +440,13 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public void terminateSilently() {
-        close0(null, CloseReason.LOCALLY_CLOSED_REASON);
+        terminate0(null, CloseReason.LOCALLY_CLOSED_REASON);
     }
 
     @Override
     public GrizzlyFuture<Closeable> terminate() {
         final FutureImpl<Closeable> future = Futures.createSafeFuture();
-        close0(Futures.toCompletionHandler(future),
+        terminate0(Futures.toCompletionHandler(future),
                 CloseReason.LOCALLY_CLOSED_REASON);
         
         return future;
@@ -454,7 +454,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public void terminateWithReason(final IOException reason) {
-        close0(null, new CloseReason(
+        terminate0(null, new CloseReason(
                 org.glassfish.grizzly.CloseType.LOCALLY, reason));
     }
 
@@ -462,7 +462,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public GrizzlyFuture<Closeable> close() {
         
         final FutureImpl<Closeable> future = Futures.createSafeFuture();
-        close0(Futures.toCompletionHandler(future),
+        closeGracefully0(Futures.toCompletionHandler(future),
                 CloseReason.LOCALLY_CLOSED_REASON);
         
         return future;
@@ -510,12 +510,12 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
                 @Override
                 public void completed(final WriteResult<Buffer, SocketAddress> result) {
-                    close0(completionHandler, finalReason);
+                    terminate0(completionHandler, finalReason);
                 }
 
                 @Override
                 public void failed(final Throwable throwable) {
-                    close0(completionHandler, finalReason);
+                    terminate0(completionHandler, finalReason);
                 }
                 
             });
@@ -533,7 +533,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         }
     }
     
-    protected void close0(final CompletionHandler<Closeable> completionHandler,
+    protected void terminate0(final CompletionHandler<Closeable> completionHandler,
             final CloseReason closeReason) {
         
         isCloseScheduled.set(true);
@@ -556,7 +556,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 @Override
                 public boolean run() {
                     try {
-                        transport.closeConnection(NIOConnection.this);
+                        doClose();
                     } catch (IOException e) {
                         LOGGER.log(Level.FINE, "Error during connection close", e);
                     }
@@ -574,7 +574,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 @Override
                 public void failed(final Throwable throwable) {
                     try {
-                        transport.closeConnection(NIOConnection.this);
+                        doClose();
                     } catch (Exception ignored) {
                     }
 
@@ -584,6 +584,13 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         } else {
             Futures.notifyResult(null, completionHandler, this);
         }
+    }
+
+    /**
+     * Do the actual connection close.
+     */
+    protected void doClose() throws IOException {
+        ((NIOTransport) transport).closeConnection(this);
     }
 
     /**
