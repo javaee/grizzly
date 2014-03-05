@@ -446,7 +446,18 @@ public final class TCPNIOTransport extends NIOTransport implements
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_TCPNODELAY_EXCEPTION(isTcpNoDelay()), e);
         }
-        socket.setReuseAddress(isReuseAddress());
+        
+        try {
+            socket.setReuseAddress(isReuseAddress());
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(isReuseAddress()), e);
+        }
+
+        try {
+            socket.setSoTimeout(getClientSocketSoTimeout());
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(getClientSocketSoTimeout()), e);
+        }    
     }
 
     @Override
