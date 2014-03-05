@@ -590,7 +590,7 @@ public class TCPNIOTransport extends NIOTransport {
             LOGGER.log(Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_SOCKET_TCPNODELAY_EXCEPTION(tcpNoDelay), e);
         }
-
+        
         final boolean reuseAddress = isReuseAddress();
         try {
             socket.setReuseAddress(reuseAddress);
@@ -598,6 +598,13 @@ public class TCPNIOTransport extends NIOTransport {
             LOGGER.log(Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
         }
+
+        final int clientSocketSoTimeout = getClientSocketSoTimeout();
+        try {
+            socket.setSoTimeout(clientSocketSoTimeout);
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(getClientSocketSoTimeout()), e);
+        }    
     }
 
     public int getLinger() {

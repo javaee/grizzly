@@ -839,12 +839,12 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * given {@link String} into this buffer.
      *
      * <p> In other words, an invocation of this method of the form
-     * <tt>dst.put(src)</tt> has exactly the same effect as
+     * <tt>dst.put8BitString(src)</tt> has exactly the same effect as
      * the loop
      *
      * <pre>
-     *     for (int i = 0; i < s.length(); i++)
-     *         dst.put((byte) s.charAt(i)); </pre>
+     *     for (int i = 0; i < src.length(); i++)
+     *         dst.put((byte) src.charAt(i)); </pre>
      *
      * except that it first checks that there is sufficient space in this
      * buffer and it is potentially much more efficient. </p>

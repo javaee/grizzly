@@ -92,7 +92,7 @@ public abstract class NIOTransport extends AbstractTransport
     public static final int DEFAULT_SERVER_SOCKET_SO_TIMEOUT = 0;
 
     public static final boolean DEFAULT_REUSE_ADDRESS = true;
-    public static final int DEFAULT_CLIENT_SOCKET_SO_TIMEOUT = -1;
+    public static final int DEFAULT_CLIENT_SOCKET_SO_TIMEOUT = 0;
     public static final int DEFAULT_CONNECTION_TIMEOUT =
             SocketConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
     public static final int DEFAULT_SELECTOR_RUNNER_COUNT = -1;
@@ -347,6 +347,10 @@ public abstract class NIOTransport extends AbstractTransport
 
     @SuppressWarnings({"UnusedDeclaration"})
     public void setClientSocketSoTimeout(final int socketTimeout) {
+        if (socketTimeout < 0) {
+            throw new IllegalArgumentException("socketTimeout can't be negative value");
+        }
+        
         this.clientSocketSoTimeout = socketTimeout;
         notifyProbesConfigChanged(this);
     }
@@ -367,6 +371,10 @@ public abstract class NIOTransport extends AbstractTransport
 
     @SuppressWarnings({"UnusedDeclaration"})
     public void setServerSocketSoTimeout(final int serverSocketSoTimeout) {
+        if (serverSocketSoTimeout < 0) {
+            throw new IllegalArgumentException("socketTimeout can't be negative value");
+        }
+        
         this.serverSocketSoTimeout = serverSocketSoTimeout;
         notifyProbesConfigChanged(this);
     }
