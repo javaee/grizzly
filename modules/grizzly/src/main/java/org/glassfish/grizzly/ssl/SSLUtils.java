@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -97,22 +97,23 @@ public final class SSLUtils {
 
     public static SSLConnectionContext getSslConnectionContext(
             final Connection connection) {
-        SSLConnectionContext sslCtx = SSL_CTX_ATTR.get(connection);
-        if (sslCtx == null) {
-            sslCtx = new SSLConnectionContext(connection);
-            SSL_CTX_ATTR.set(connection, sslCtx);
-        }
-        
-        return sslCtx;
+        return SSL_CTX_ATTR.get(connection);
     }
-    
+
     public static SSLEngine getSSLEngine(final Connection connection) {
-        return getSslConnectionContext(connection).getSslEngine();
+        final SSLConnectionContext sslCtx = getSslConnectionContext(connection);
+        return sslCtx == null ? null : sslCtx.getSslEngine();
     }
 
     public static void setSSLEngine(final Connection connection,
-            SSLEngine sslEngine) {
-        getSslConnectionContext(connection).configure(sslEngine);
+            final SSLEngine sslEngine) {
+        SSLConnectionContext ctx = getSslConnectionContext(connection);
+        if (ctx == null) { // set first time outside of standard SSLFilter
+            ctx = new SSLConnectionContext(connection);
+            SSL_CTX_ATTR.set(connection, ctx);
+        }
+
+        ctx.configure(sslEngine);
     }
 
     /*
@@ -346,7 +347,7 @@ public final class SSLUtils {
         return buffer;
     }
     
-    static Buffer allocateInputBuffer(final SSLConnectionContext sslCtx) {
+    public static Buffer allocateInputBuffer(final SSLConnectionContext sslCtx) {
         
         final SSLEngine sslEngine = sslCtx.getSslEngine();
         if (sslEngine == null) {
@@ -402,7 +403,7 @@ public final class SSLUtils {
 
     }
     
-    static Buffer allowDispose(final Buffer buffer) {
+    public static Buffer allowDispose(final Buffer buffer) {
         if (buffer == null) {
             return null;
         }

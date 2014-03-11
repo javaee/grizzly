@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -125,6 +125,14 @@ public class SSLFilter extends SSLBaseFilter {
                 Attribute.create("SSLFilter-SSLHandshakeContextAttr");
     }
 
+    /**
+     * @return {@link SSLEngineConfigurator} used by the filter to create new
+     *      {@link SSLEngine} for client-side {@link Connection}s
+     */
+    public SSLEngineConfigurator getClientSSLEngineConfigurator() {
+        return clientSSLEngineConfigurator;
+    }
+
     // ----------------------------------------------------- Methods from Filter
 
     @Override
@@ -137,7 +145,7 @@ public class SSLFilter extends SSLBaseFilter {
 
         synchronized (connection) {
             final SSLConnectionContext sslCtx =
-                    getSslConnectionContext(connection);
+                    obtainSslConnectionContext(connection);
             
             final SSLEngine sslEngine = sslCtx.getSslEngine();
             if (sslEngine != null && !isHandshaking(sslEngine)) {
@@ -145,7 +153,8 @@ public class SSLFilter extends SSLBaseFilter {
                         super.handleWrite(ctx) :
                         accurateWrite(ctx, true);
             } else {
-                if (sslEngine == null) {
+                if (sslEngine == null ||
+                        !handshakeContextAttr.isSet(connection)) {
                     handshake(connection,
                             null,
                             null, clientSSLEngineConfigurator, ctx);
@@ -225,13 +234,13 @@ public class SSLFilter extends SSLBaseFilter {
                           final SSLEngineConfigurator sslEngineConfigurator,
                           final FilterChainContext context)
     throws IOException {
-        final SSLConnectionContext sslCtx = getSslConnectionContext(connection);
+        final SSLConnectionContext sslCtx = obtainSslConnectionContext(connection);
         SSLEngine sslEngine = sslCtx.getSslEngine();
         
         if (sslEngine == null) {
             sslEngine = sslEngineConfigurator.createSSLEngine();
             sslCtx.configure(sslEngine);
-        } else {
+        } else if (!isHandshaking(sslEngine)) { // if handshake haven't been started
             sslEngineConfigurator.configure(sslEngine);
         }
         
