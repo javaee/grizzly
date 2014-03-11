@@ -117,5 +117,6 @@
         <module>bundles</module>
         <module>http-servlet-extras</module>
         <module>connection-pool</module>
+        <module>tls-sni</module>
     </modules>
 </project>

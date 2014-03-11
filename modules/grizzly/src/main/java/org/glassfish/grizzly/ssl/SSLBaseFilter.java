@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -99,12 +99,9 @@ public class SSLBaseFilter extends BaseFilter {
             final MemoryManager mm = sslCtx.getConnection()
                     .getTransport().getMemoryManager();
             
-            if (oldBuffer == null) {
-                return mm.allocate(newSize);
-            } else {
-                return mm.reallocate(oldBuffer,
-                        newSize);
-            }
+            return oldBuffer == null ?
+                    mm.allocate(newSize) :
+                    mm.reallocate(oldBuffer, newSize);
         }
     };
     
@@ -162,6 +159,14 @@ public class SSLBaseFilter extends BaseFilter {
         }
     }
 
+    /**
+     * @return {@link SSLEngineConfigurator} used by the filter to create new
+     *      {@link SSLEngine} for server-side {@link Connection}s
+     */
+    public SSLEngineConfigurator getServerSSLEngineConfigurator() {
+        return serverSSLEngineConfigurator;
+    }
+    
     public void addHandshakeListener(final HandshakeListener listener) {
         handshakeListeners.add(listener);
     }
@@ -198,7 +203,8 @@ public class SSLBaseFilter extends BaseFilter {
     }
 
     
-    public TransportFilter createOptimizedTransportFilter(final TransportFilter childFilter) {
+    protected TransportFilter createOptimizedTransportFilter(
+            final TransportFilter childFilter) {
         return new SSLTransportFilterWrapper(childFilter);
     }
 
@@ -802,6 +808,22 @@ public class SSLBaseFilter extends BaseFilter {
         return x509Certs;
     }
 
+    protected SSLConnectionContext obtainSslConnectionContext(
+            final Connection connection) {
+        SSLConnectionContext sslCtx = SSL_CTX_ATTR.get(connection);
+        if (sslCtx == null) {
+            sslCtx = createSslConnectionContext(connection);
+            SSL_CTX_ATTR.set(connection, sslCtx);
+        }
+        
+        return sslCtx;
+    }
+    
+    protected SSLConnectionContext createSslConnectionContext(
+            final Connection connection) {
+        return new SSLConnectionContext(connection);
+    }
+
     private FilterChainContext obtainProtocolChainContext(
             final FilterChainContext ctx,
             final FilterChain completeProtocolFilterChain) {
@@ -942,8 +964,8 @@ public class SSLBaseFilter extends BaseFilter {
         public void onComplete(Connection connection);
     }
     
-    private final class SSLTransportFilterWrapper extends TransportFilter {
-        private final TransportFilter transportFilter;
+    protected class SSLTransportFilterWrapper extends TransportFilter {
+        protected final TransportFilter transportFilter;
 
         public SSLTransportFilterWrapper(final TransportFilter transportFilter) {
             this.transportFilter = transportFilter;
@@ -1022,7 +1044,7 @@ public class SSLBaseFilter extends BaseFilter {
         @Override
         public Buffer clone(final Connection connection,
                 final Buffer originalMessage) {
-            final SSLConnectionContext sslCtx = obtainSslConnectionContext(connection);
+            final SSLConnectionContext sslCtx = getSslConnectionContext(connection);
 
             final int copyThreshold = sslCtx.getNetBufferSize() / 2;
 

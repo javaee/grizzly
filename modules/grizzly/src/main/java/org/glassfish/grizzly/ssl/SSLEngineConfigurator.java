@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -169,7 +169,7 @@ public class SSLEngineConfigurator {
     }
 
     /**
-     * Create and configure {@link SSLEngine}, basing on current settings.
+     * Create and configure {@link SSLEngine} using this context configuration.
      * 
      * @return {@link SSLEngine}.
      */
@@ -183,6 +183,36 @@ public class SSLEngineConfigurator {
         }
         
         final SSLEngine sslEngine = sslContext.createSSLEngine();
+        configure(sslEngine);
+
+        return sslEngine;
+    }
+
+    /**
+     * Create and configure {@link SSLEngine} using this context configuration
+     * using advisory peer information.
+     * <P>
+     * Applications using this factory method are providing hints
+     * for an internal session reuse strategy.
+     * <P>
+     * Some cipher suites (such as Kerberos) require remote hostname
+     * information, in which case peerHost needs to be specified.
+     * 
+     * @param   peerHost the non-authoritative name of the host
+     * @param   peerPort the non-authoritative port
+     * 
+     * @return {@link SSLEngine}.
+     */
+    public SSLEngine createSSLEngine(final String peerHost, final int peerPort) {
+        if (sslContext == null) {
+            synchronized(sync) {
+                if (sslContext == null) {
+                    sslContext = sslContextConfiguration.createSSLContext();
+                }
+            }
+        }
+        
+        final SSLEngine sslEngine = sslContext.createSSLEngine(peerHost, peerPort);
         configure(sslEngine);
 
         return sslEngine;

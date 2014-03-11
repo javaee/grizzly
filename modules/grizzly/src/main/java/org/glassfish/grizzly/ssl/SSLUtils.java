@@ -97,17 +97,6 @@ public final class SSLUtils {
     private static final int MIN_VERSION = 0x0300;
     private static final int MAX_MAJOR_VERSION = 0x03;
 
-    static SSLConnectionContext obtainSslConnectionContext(
-            final Connection connection) {
-        SSLConnectionContext sslCtx = SSL_CTX_ATTR.get(connection);
-        if (sslCtx == null) {
-            sslCtx = new SSLConnectionContext(connection);
-            SSL_CTX_ATTR.set(connection, sslCtx);
-        }
-        
-        return sslCtx;
-    }
-    
     public static SSLConnectionContext getSslConnectionContext(
             final Connection connection) {
         return SSL_CTX_ATTR.get(connection);
@@ -119,8 +108,14 @@ public final class SSLUtils {
     }
 
     public static void setSSLEngine(final Connection connection,
-            SSLEngine sslEngine) {
-        obtainSslConnectionContext(connection).configure(sslEngine);
+            final SSLEngine sslEngine) {
+        SSLConnectionContext ctx = getSslConnectionContext(connection);
+        if (ctx == null) { // set first time outside of standard SSLFilter
+            ctx = new SSLConnectionContext(connection);
+            SSL_CTX_ATTR.set(connection, ctx);
+        }
+
+        ctx.configure(sslEngine);
     }
 
     /*
@@ -354,7 +349,7 @@ public final class SSLUtils {
         return buffer;
     }
     
-    static Buffer allocateInputBuffer(final SSLConnectionContext sslCtx) {
+    public static Buffer allocateInputBuffer(final SSLConnectionContext sslCtx) {
         
         final SSLEngine sslEngine = sslCtx.getSslEngine();
         if (sslEngine == null) {
@@ -410,7 +405,7 @@ public final class SSLUtils {
 
     }
     
-    static Buffer allowDispose(final Buffer buffer) {
+    public static Buffer allowDispose(final Buffer buffer) {
         if (buffer == null) {
             return null;
         }
