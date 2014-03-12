@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.threadpool;
 
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
 
 /**
  * Need to evaluate queue size limit perf implications on this fixedpool variant.
@@ -49,11 +49,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * in heavy load situations.
  *
  * @author gustav trede
+ * @author Tigran Mkrtchyan
  */
 final class QueueLimitedThreadPool extends FixedThreadPool {
 
-    private final int maxQueuedTasks;
-    private final AtomicInteger queueSize = new AtomicInteger();
+    private final Semaphore queuePermits;
 
     /**
      * @param config the {@link ThreadPoolConfig} to configure this pool.
@@ -64,7 +64,7 @@ final class QueueLimitedThreadPool extends FixedThreadPool {
             throw new IllegalArgumentException("maxQueuedTasks < 0");
         }
 
-        this.maxQueuedTasks = config.getQueueLimit();
+        queuePermits = new Semaphore(config.getQueueLimit());
     }
 
     @Override
@@ -72,29 +72,28 @@ final class QueueLimitedThreadPool extends FixedThreadPool {
         if (command == null) { // must nullcheck to ensure queuesize is valid
             throw new IllegalArgumentException("Runnable task is null");
         }
-        if (running) {
-            if (queueSize.incrementAndGet() <= maxQueuedTasks
-                    && workQueue.offer(command)) {
-                onTaskQueued(command);
-                return;
-            }
-            onTaskQueueOverflow();
-            return;
-        }
-        throw new RejectedExecutionException("ThreadPool is not running");
-    }
 
-    @Override
-    protected void onTaskQueueOverflow() {
-        queueSize.decrementAndGet();
-        super.onTaskQueueOverflow();
+        if (!running) {
+            throw new RejectedExecutionException("ThreadPool is not running");
+        }
+
+        if (!queuePermits.tryAcquire()) {
+            onTaskQueueOverflow();
+        }
+
+        if (!workQueue.offer(command)) {
+            queuePermits.release();
+            onTaskQueueOverflow();
+        }
+
+        onTaskQueued(command);
     }
 
     @Override
     protected final void beforeExecute(final Worker worker, final Thread t,
             final Runnable r) {
         super.beforeExecute(worker, t, r);
-        queueSize.decrementAndGet();
+        queuePermits.release();
     }
 }
 
