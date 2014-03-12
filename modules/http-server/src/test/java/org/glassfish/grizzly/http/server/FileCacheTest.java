@@ -572,6 +572,7 @@ public class FileCacheTest {
             c.write(request2);
             final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
 
+            assertNotNull(response2);
             assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
             assertTrue("empty body is expected", !response2.getContent().hasRemaining());
         }
