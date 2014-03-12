@@ -63,7 +63,7 @@ public final class ReusableFuture<V> implements FutureImpl<V> {
     }
 
     protected void reset() {
-        innerFuture = Futures.<V>createUnsafeFuture();
+        innerFuture = Futures.<V>createSafeFuture();
     }
 
     @Override
