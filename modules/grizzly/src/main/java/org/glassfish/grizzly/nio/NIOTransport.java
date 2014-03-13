@@ -72,6 +72,7 @@ import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.AbstractThreadPool;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.Futures;
 
 /**
@@ -195,8 +196,10 @@ public abstract class NIOTransport extends AbstractTransport
     public void setSelectorRunnersCount(final int selectorRunnersCount) {
         if (selectorRunnersCount > 0) {
             this.selectorRunnersCount = selectorRunnersCount;
-            kernelPoolConfig.setCorePoolSize(selectorRunnersCount);
-            kernelPoolConfig.setMaxPoolSize(selectorRunnersCount);
+            if (kernelPoolConfig != null) {
+                kernelPoolConfig.setCorePoolSize(selectorRunnersCount)
+                                .setMaxPoolSize(selectorRunnersCount);
+            }
             notifyProbesConfigChanged(this);
         }
     }
@@ -414,7 +417,16 @@ public abstract class NIOTransport extends AbstractTransport
             }
 
             if (kernelPool == null) {
+                if (kernelPoolConfig == null) {
+                    kernelPoolConfig = ThreadPoolConfig.defaultConfig()
+                            .setCorePoolSize(selectorRunnersCnt)
+                            .setMaxPoolSize(selectorRunnersCnt)
+                            .setPoolName("grizzly-nio-kernel");
+                }
                 kernelPoolConfig.setMemoryManager(memoryManager);
+                if (kernelPoolConfig.getCorePoolSize() < selectorRunnersCnt) {
+                    throw new IllegalStateException("The min threads count of the kernel ThreadPool has to be larger or equal to the selectorRunnersCount");
+                }
                 setKernelPool0(
                         GrizzlyExecutorService.createInstance(
                                 kernelPoolConfig));
