@@ -196,7 +196,8 @@ public abstract class NIOTransport extends AbstractTransport
     public void setSelectorRunnersCount(final int selectorRunnersCount) {
         if (selectorRunnersCount > 0) {
             this.selectorRunnersCount = selectorRunnersCount;
-            if (kernelPoolConfig != null) {
+            if (kernelPoolConfig != null &&
+                    kernelPoolConfig.getMaxPoolSize() < selectorRunnersCount) {
                 kernelPoolConfig.setCorePoolSize(selectorRunnersCount)
                                 .setMaxPoolSize(selectorRunnersCount);
             }
@@ -424,8 +425,8 @@ public abstract class NIOTransport extends AbstractTransport
                             .setPoolName("grizzly-nio-kernel");
                 }
                 kernelPoolConfig.setMemoryManager(memoryManager);
-                if (kernelPoolConfig.getCorePoolSize() < selectorRunnersCnt) {
-                    throw new IllegalStateException("The min threads count of the kernel ThreadPool has to be larger or equal to the selectorRunnersCount");
+                if (kernelPoolConfig.getMaxPoolSize() < selectorRunnersCnt) {
+                    throw new IllegalStateException("The max threads count of the kernel ThreadPool has to be larger or equal to the selectorRunnersCount");
                 }
                 setKernelPool0(
                         GrizzlyExecutorService.createInstance(
@@ -444,8 +445,8 @@ public abstract class NIOTransport extends AbstractTransport
                 }
             }
 
-                /* By default TemporarySelector pool size should be equal
-                to the number of processing threads */
+            /* By default TemporarySelector pool size should be equal
+            to the number of processing threads */
             int selectorPoolSize =
                     TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
             if (workerThreadPool instanceof AbstractThreadPool) {
