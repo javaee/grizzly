@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -313,14 +313,10 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
         NIOTransport transport = create();
         transport.setIOStrategy(ioStrategy);
         if (workerConfig != null) {
-            transport.setWorkerThreadPoolConfig(workerConfig);
+            transport.setWorkerThreadPoolConfig(workerConfig.copy());
         }
-        ThreadPoolConfig kernelLocal = kernelConfig;
-        if (kernelLocal != null) {
-            transport.setKernelThreadPoolConfig(kernelLocal);
-        } else {
-            kernelLocal = ThreadPoolConfig.newConfig();
-            transport.setKernelThreadPoolConfig(kernelLocal);
+        if (kernelConfig != null) {
+            transport.setKernelThreadPoolConfig(kernelConfig.copy());
         }
         transport.setSelectorProvider(selectorProvider);
         transport.setSelectorHandler(selectorHandler);
@@ -344,20 +340,6 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
 
     // ------------------------------------------------------- Protected Methods
-
-
-    /**
-     * <p>
-     * Configure the {@link org.glassfish.grizzly.nio.SelectorRunner} pool's
-     * default core and max pool size.
-     * </p>
-     * @param config
-     */
-    protected ThreadPoolConfig configSelectorPool(final ThreadPoolConfig config) {
-        final int runnerCount = getRunnerCount();
-        config.setPoolName("Grizzly-kernel");
-        return config.setCorePoolSize(runnerCount).setMaxPoolSize(runnerCount);
-    }
 
     /**
      * See: <a href="http://www.angelikalanger.com/GenericsFAQ/FAQSections/ProgrammingIdioms.html#FAQ205">http://www.angelikalanger.com/GenericsFAQ/FAQSections/ProgrammingIdioms.html#FAQ205</a>
