@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,6 +51,10 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import static junit.framework.Assert.assertEquals;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
+import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
 public class ThreadPoolsTest {
 
@@ -74,4 +78,47 @@ public class ThreadPoolsTest {
         assertEquals("Pool did not properly initialize threads based on core pool size configuration.", 5, ((Map) workers.get(fixedThreadPool)).size());
     }
 
+    @Test
+    public void testCustomThreadPoolSameThreadStrategy() throws Exception {
+
+        final int poolSize = Math.max(Runtime.getRuntime().availableProcessors()/2, 1);
+        final ThreadPoolConfig poolCfg = ThreadPoolConfig.defaultConfig();
+        poolCfg.setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
+
+        final TCPNIOTransport tcpTransport = TCPNIOTransportBuilder.newInstance()
+                .setReuseAddress(true)
+                .setIOStrategy(SameThreadIOStrategy.getInstance())
+                .setSelectorThreadPoolConfig(poolCfg)
+                .setWorkerThreadPoolConfig(null)
+                .build();
+        try {
+            tcpTransport.start();
+        } finally {
+            tcpTransport.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testCustomThreadPoolWorkerThreadStrategy() throws Exception {
+
+        final int selectorPoolSize =  Math.max(Runtime.getRuntime().availableProcessors()/2, 1);
+        final ThreadPoolConfig selectorPoolCfg = ThreadPoolConfig.defaultConfig();
+        selectorPoolCfg.setCorePoolSize(selectorPoolSize).setMaxPoolSize(selectorPoolSize);
+
+        final int workerPoolSize = Runtime.getRuntime().availableProcessors() * 2 ;
+        final ThreadPoolConfig workerPoolCfg = ThreadPoolConfig.defaultConfig();
+        workerPoolCfg.setCorePoolSize(workerPoolSize).setMaxPoolSize(workerPoolSize);
+
+       final TCPNIOTransport tcpTransport = TCPNIOTransportBuilder.newInstance()
+                .setReuseAddress(true)
+                .setIOStrategy(WorkerThreadIOStrategy.getInstance())
+                .setSelectorThreadPoolConfig(selectorPoolCfg)
+                .setWorkerThreadPoolConfig(workerPoolCfg)
+                .build();
+        try {
+            tcpTransport.start();
+        } finally {
+            tcpTransport.shutdownNow();
+        }
+    }    
 }

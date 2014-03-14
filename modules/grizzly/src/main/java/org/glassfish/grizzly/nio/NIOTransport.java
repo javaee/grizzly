@@ -423,11 +423,15 @@ public abstract class NIOTransport extends AbstractTransport
                             .setCorePoolSize(selectorRunnersCnt)
                             .setMaxPoolSize(selectorRunnersCnt)
                             .setPoolName("grizzly-nio-kernel");
+                } else if (kernelPoolConfig.getMaxPoolSize() < selectorRunnersCnt) {
+                    LOGGER.log(Level.INFO, "Adjusting kernel thread pool to max "
+                            + "size {0} to handle configured number of SelectorRunners",
+                            selectorRunnersCnt);
+                    kernelPoolConfig.setCorePoolSize(selectorRunnersCnt)
+                            .setMaxPoolSize(selectorRunnersCnt);
                 }
+
                 kernelPoolConfig.setMemoryManager(memoryManager);
-                if (kernelPoolConfig.getMaxPoolSize() < selectorRunnersCnt) {
-                    throw new IllegalStateException("The max threads count of the kernel ThreadPool has to be larger or equal to the selectorRunnersCount");
-                }
                 setKernelPool0(
                         GrizzlyExecutorService.createInstance(
                                 kernelPoolConfig));
