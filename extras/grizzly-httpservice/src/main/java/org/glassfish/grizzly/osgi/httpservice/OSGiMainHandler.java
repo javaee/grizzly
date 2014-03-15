@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,7 +57,6 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.util.MappingData;
-import org.glassfish.grizzly.http.util.HttpStatus;
 
 /**
  * OSGi Main HttpHandler.
@@ -438,10 +437,11 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             Servlet servlet, HttpContext httpContext, Dictionary initparams) {
         OSGiServletHandler osgiServletHandler;
 
-        if (mapper.containsContext(httpContext) && mapper.getContext(httpContext) != null) {
+        List<OSGiServletHandler> servletHandlers =
+                mapper.getContext(httpContext);
+        if (servletHandlers != null) {
             logger.debug("Reusing ServletHandler");
             // new servlet handler for same configuration, different servlet and alias
-            List<OSGiServletHandler> servletHandlers = mapper.getContext(httpContext);
             osgiServletHandler = servletHandlers.get(0).newServletHandler(servlet);
             servletHandlers.add(osgiServletHandler);
         } else {
@@ -457,16 +457,22 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             } else {
                 params = new HashMap<String, String>(0);
             }
-            OSGiServletContext servletContext = mapper.getServletContext(httpContext);
+
+            servletHandlers = new ArrayList<OSGiServletHandler>(1);
+            mapper.addContext(httpContext, servletHandlers);
+            
+            final OSGiServletContext servletContext =
+                    mapper.getServletContext(httpContext);
+
+            assert servletContext != null;
+
             osgiServletHandler =
                     new OSGiServletHandler(servlet,
                                            httpContext,
                                            servletContext,
                                            params,
                                            logger);
-            ArrayList<OSGiServletHandler> servletHandlers = new ArrayList<OSGiServletHandler>(1);
             servletHandlers.add(osgiServletHandler);
-            mapper.addContext(httpContext, servletHandlers);
             osgiServletHandler.setFilterChainFactory(servletContext.getFilterChainFactory());
 
         }
