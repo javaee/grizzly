@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.osgi.httpservice;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -70,11 +69,11 @@ class OSGiCleanMapper {
     private static final Set<Servlet> registeredServlets = new HashSet<Servlet>(16);
 
     private Set<String> localAliases = new HashSet<String>(4);
-    private HashMap<HttpContext, ArrayList<OSGiServletHandler>> contextServletHandlerMap =
-            new HashMap<HttpContext, ArrayList<OSGiServletHandler>>(3);
+    private final HashMap<HttpContext, List<OSGiServletHandler>> contextServletHandlerMap =
+            new HashMap<HttpContext, List<OSGiServletHandler>>(3);
     private final Logger logger;
 
-    protected Map<HttpContext, OSGiServletContext> httpContextToServletContextMap =
+    protected final Map<HttpContext, OSGiServletContext> httpContextToServletContextMap =
                 new HashMap<HttpContext, OSGiServletContext>();
 
 
@@ -272,11 +271,22 @@ class OSGiCleanMapper {
         return contextServletHandlerMap.get(httpContext);
     }
 
-    public void addContext(HttpContext httpContext, ArrayList<OSGiServletHandler> servletHandlers) {
-        contextServletHandlerMap.put(httpContext, servletHandlers);
-        httpContextToServletContextMap.put(httpContext, new OSGiServletContext(httpContext, logger));
+    public void addContext(final HttpContext httpContext,
+            final List<OSGiServletHandler> servletHandlers) {
+        addContext(httpContext, null, servletHandlers);
     }
 
+    public void addContext(final HttpContext httpContext,
+            OSGiServletContext servletCtx,
+            final List<OSGiServletHandler> servletHandlers) {
+        if (servletCtx == null) {
+            servletCtx = new OSGiServletContext(httpContext, logger);
+        }
+        
+        contextServletHandlerMap.put(httpContext, servletHandlers);
+        httpContextToServletContextMap.put(httpContext, servletCtx);
+    }
+    
     public OSGiServletContext getServletContext(final HttpContext httpContext) {
         return httpContextToServletContextMap.get(httpContext);
     }
