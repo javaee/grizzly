@@ -8,6 +8,10 @@ atlassian-ide-plugin.xml
 target
 .idea
 hotspot.log
+nbactions.xml
+.classpath
+.project
+.settings/
 modules/bundles/comet/src
 modules/bundles/core/src
 modules/bundles/http/src
