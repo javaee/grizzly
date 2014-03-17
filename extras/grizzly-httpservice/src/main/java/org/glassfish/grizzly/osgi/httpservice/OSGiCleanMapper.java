@@ -271,11 +271,22 @@ class OSGiCleanMapper {
         return contextServletHandlerMap.get(httpContext);
     }
 
-    public void addContext(HttpContext httpContext, List<OSGiServletHandler> servletHandlers) {
-        contextServletHandlerMap.put(httpContext, servletHandlers);
-        httpContextToServletContextMap.put(httpContext, new OSGiServletContext(httpContext, logger));
+    public void addContext(final HttpContext httpContext,
+            final List<OSGiServletHandler> servletHandlers) {
+        addContext(httpContext, null, servletHandlers);
     }
 
+    public void addContext(final HttpContext httpContext,
+            OSGiServletContext servletCtx,
+            final List<OSGiServletHandler> servletHandlers) {
+        if (servletCtx == null) {
+            servletCtx = new OSGiServletContext(httpContext, logger);
+        }
+        
+        contextServletHandlerMap.put(httpContext, servletHandlers);
+        httpContextToServletContextMap.put(httpContext, servletCtx);
+    }
+    
     public OSGiServletContext getServletContext(final HttpContext httpContext) {
         return httpContextToServletContextMap.get(httpContext);
     }

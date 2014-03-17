@@ -459,7 +459,9 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             }
 
             servletHandlers = new ArrayList<OSGiServletHandler>(1);
-            mapper.addContext(httpContext, servletHandlers);
+            mapper.addContext(httpContext,
+                    mapper.getServletContext(httpContext),
+                    servletHandlers);
             
             final OSGiServletContext servletContext =
                     mapper.getServletContext(httpContext);
@@ -474,7 +476,6 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
                                            logger);
             servletHandlers.add(osgiServletHandler);
             osgiServletHandler.setFilterChainFactory(servletContext.getFilterChainFactory());
-
         }
 
         return osgiServletHandler;
