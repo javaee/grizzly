@@ -55,17 +55,34 @@ public class SNIConfig {
     final boolean isClientConfig;
 
     /**
-     * @return server-side SNI configuration builder
+     * @param sslEngineConfigurator {@link SSLEngineConfigurator},
+     *          or <tt>null</tt> for the default configuration
+     * @return server-side SNI configuration
      */
-    public static SNIServerConfigBuilder serverConfigBuilder() {
-        return new SNIServerConfigBuilder();
+    public static SNIConfig newServerConfig(
+        final SSLEngineConfigurator sslEngineConfigurator) {
+        return new SNIConfig(sslEngineConfigurator, null, false);
     }
-
+    
     /**
-     * @return client-side SNI configuration builder
+     * @param host the SNI host name to be sent to a server, or <tt>null</tt>
+     *          to not use SNI extension
+     * @return client-side SNI configuration
      */
-    public static SNIClientConfigBuilder clientConfigBuilder() {
-        return new SNIClientConfigBuilder();
+    public static SNIConfig newClientConfig(final String host) {
+        return new SNIConfig(null, host, true);
+    }
+    
+    /**
+     * @param host the SNI host name to be sent to a server, or <tt>null</tt>
+     *          to not use SNI extension
+     * @param sslEngineConfigurator {@link SSLEngineConfigurator},
+     *          or <tt>null</tt> for the default configuration
+     * @return client-side SNI configuration
+     */
+    public static SNIConfig newClientConfig(final String host,
+        final SSLEngineConfigurator sslEngineConfigurator) {
+        return new SNIConfig(sslEngineConfigurator, host, true);
     }
 
     private SNIConfig(final SSLEngineConfigurator engineConfig,
@@ -74,51 +91,4 @@ public class SNIConfig {
         this.host = host;
         this.isClientConfig = isClientConfig;
     }
-
-
-    public static class SNIServerConfigBuilder {
-        private SSLEngineConfigurator sslEngineConfigurator;
-
-        public SNIServerConfigBuilder sslEngineConfigurator(
-                final SSLEngineConfigurator config) {
-            this.sslEngineConfigurator = config;
-            return this;
-        }
-        
-        public SNIConfig build() {
-            if (sslEngineConfigurator == null) {
-                throw new IllegalStateException("SNIConfig has to have non-null SSLEngineConfigurator");
-            }
-            
-            return new SNIConfig(sslEngineConfigurator, null, false);
-        }
-    }
-
-    public static class SNIClientConfigBuilder {
-        private SSLEngineConfigurator sslEngineConfigurator;
-        private String host;
-        
-        public SNIClientConfigBuilder sslEngineConfigurator(
-                final SSLEngineConfigurator config) {
-            this.sslEngineConfigurator = config;
-            return this;
-        }
-        
-        public SNIClientConfigBuilder host(final String host) {
-            this.host = host;
-            return this;
-        }
-        
-        public SNIConfig build() {
-            if (sslEngineConfigurator == null) {
-                throw new IllegalStateException("SNIConfig has to have non-null SSLEngineConfigurator");
-            }
-            
-            if (host == null) {
-                throw new IllegalStateException("SNIConfig has to have non-null host");
-            }
-
-            return new SNIConfig(sslEngineConfigurator, host, true);
-        }
-    }    
 }

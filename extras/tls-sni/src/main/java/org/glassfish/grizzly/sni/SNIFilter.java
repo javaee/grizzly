@@ -188,14 +188,12 @@ public class SNIFilter extends SSLFilter {
             if (sniConfig != null && !sniConfig.isClientConfig) {
                 throw new IllegalStateException("SNIConfig has to represent client config, not a server one");
             }
+
+            host = sniConfig != null ? sniConfig.host : null;
+            configurator = sniConfig != null && sniConfig.sslEngineConfigurator != null ?
+                    sniConfig.sslEngineConfigurator :
+                    getClientSSLEngineConfigurator();
             
-            if (sniConfig != null) {
-                host = sniConfig.host;
-                configurator = sniConfig.sslEngineConfigurator;
-            } else {
-                host = null;
-                configurator = getClientSSLEngineConfigurator();
-            }
         } else {
             // if resolver is not set - try to set default SNI host, based
             // on Connection's peer address
@@ -274,7 +272,7 @@ public class SNIFilter extends SSLFilter {
                 }
                 
                 final SSLEngineConfigurator configurator =
-                        sniConfig != null ?
+                        sniConfig != null && sniConfig.sslEngineConfigurator != null ?
                         sniConfig.sslEngineConfigurator :
                         getServerSSLEngineConfigurator();
                 
