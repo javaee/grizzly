@@ -101,9 +101,7 @@ public class SNITest {
             public SNIConfig resolve(Connection connection, String hostname) {
                 sniHostAttr.set(connection, hostname);
                 
-                return SNIConfig.serverConfigBuilder()
-                        .sslEngineConfigurator(sslServerEngineConfig)
-                        .build();
+                return SNIConfig.newServerConfig(sslServerEngineConfig);
             }
         });
         
@@ -111,10 +109,8 @@ public class SNITest {
 
             @Override
             public SNIConfig resolve(Connection connection) {
-                return SNIConfig.clientConfigBuilder()
-                        .sslEngineConfigurator(sslClientEngineConfig)
-                        .host(sniHostValue)
-                        .build();
+                return SNIConfig.newClientConfig(sniHostValue,
+                        sslClientEngineConfig);
             }
         });
 
