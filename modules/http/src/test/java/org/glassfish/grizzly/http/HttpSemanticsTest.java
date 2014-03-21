@@ -274,7 +274,6 @@ public class HttpSemanticsTest extends TestCase {
                 .uri("/path")
                 .header("Host", "localhost:" + PORT)
                 .protocol("HTTP/1.0")
-                .chunked(true)
                 .build();
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
@@ -385,6 +384,94 @@ public class HttpSemanticsTest extends TestCase {
         });
     }
 
+    public void testHttpGetWithPayloadDisabled() throws Throwable {
+
+        final HttpRequestPacket header = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .contentLength(10)
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .build();
+
+        final HttpContent chunk1 = HttpContent.builder(header)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "0123456789"))
+                .build();
+        
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(400);
+        result.addHeader("Connection", "close");
+        result.addHeader("Content-Length", "0");
+        result.setStatusMessage("bad request");
+        result.appendContent("");
+        doTest(new ClientFilter(chunk1, result, 1000), new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent requestContent = ctx.getMessage();
+                if (!requestContent.isLast()) {
+                    return ctx.getStopAction(requestContent);
+                }
+                
+                HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+
+                final Buffer payload = requestContent.getContent();
+                
+                HttpContent responseContent = response.httpContentBuilder().
+                        content(payload).last(requestContent.isLast()).build();
+                ctx.write(responseContent);
+                return ctx.getStopAction();
+            }
+        });
+    }
+    
+    public void testHttpGetWithPayloadEnabled() throws Throwable {
+
+        // allow payload for GET
+        httpServerFilter.setAllowPayloadForUndefinedHttpMethods(true);
+        
+        final HttpRequestPacket header = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .contentLength(10)
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .build();
+
+        final HttpContent chunk1 = HttpContent.builder(header)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "0123456789"))
+                .build();
+        
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("!Connection", "close");
+        result.addHeader("!Transfer-Encoding", "chunked");
+        result.addHeader("Content-Length", "10");
+        result.setStatusMessage("ok");
+        result.appendContent("0123456789");
+        doTest(new ClientFilter(chunk1, result, 1000), new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent requestContent = ctx.getMessage();
+                if (!requestContent.isLast()) {
+                    return ctx.getStopAction(requestContent);
+                }
+                
+                HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+
+                final Buffer payload = requestContent.getContent();
+                
+                HttpContent responseContent = response.httpContentBuilder().
+                        content(payload).last(requestContent.isLast()).build();
+                ctx.write(responseContent);
+                return ctx.getStopAction();
+            }
+        });
+    }
+    
     public void testUpgradeIgnoresTransferEncoding() throws Throwable {
 
         final HttpRequestPacket header = HttpRequestPacket.builder()
