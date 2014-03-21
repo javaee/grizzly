@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -77,6 +77,7 @@ import org.glassfish.grizzly.utils.Futures;
 
 import static junit.framework.Assert.assertEquals;
 import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.util.HeaderValue;
 
 /**
@@ -1254,7 +1255,8 @@ public class HttpInputStreamsTest extends TestCase {
                 .method(method)
                 .protocol(Protocol.HTTP_1_1)
                 .uri("/path")
-                .chunked(content == null)
+                .chunked(content == null &&
+                        Method.valueOf(method).getPayloadExpectation() == Method.PayloadExpectation.ALLOWED)
                 .header("Host", "localhost");
         if (content != null) {
             assert contentBuffer != null;

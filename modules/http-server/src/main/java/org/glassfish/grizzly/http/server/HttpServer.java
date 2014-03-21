@@ -651,7 +651,9 @@ public class HttpServer {
             for (ContentEncoding contentEncoding : contentEncodings) {
                 httpServerCodecFilter.addContentEncoding(contentEncoding);
             }
-
+            httpServerCodecFilter.setAllowPayloadForUndefinedHttpMethods(
+                    serverConfig.isAllowPayloadForUndefinedHttpMethods());
+            
             httpServerCodecFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());
             builder.add(httpServerCodecFilter);

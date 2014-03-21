@@ -128,6 +128,11 @@ public class HttpServerFilter extends HttpCodecFilter {
     private int maxRequestHeaders;
     private int maxResponseHeaders;
     
+    // flag, which enables/disables payload support for HTTP methods,
+    // for which HTTP spec doesn't clearly state whether they support payload.
+    // Known "undefined" methods are: GET, HEAD, DELETE
+    private boolean allowPayloadForUndefinedHttpMethods;
+    
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
      */
@@ -231,6 +236,32 @@ public class HttpServerFilter extends HttpCodecFilter {
         this.maxResponseHeaders = maxResponseHeaders;
     }
     
+    // ----------------------------------------------------------- Configuration
+    
+    /**
+     * The flag, which enables/disables payload support for HTTP methods,
+     * for which HTTP spec doesn't clearly state whether they support payload.
+     * Known "undefined" methods are: GET, HEAD, DELETE.
+     * 
+     * @return <tt>true</tt> if "undefined" methods support payload, or <tt>false</tt> otherwise
+     * @since 2.3.12
+     */
+    public boolean isAllowPayloadForUndefinedHttpMethods() {
+        return allowPayloadForUndefinedHttpMethods;
+    }
+
+    /**
+     * The flag, which enables/disables payload support for HTTP methods,
+     * for which HTTP spec doesn't clearly state whether they support payload.
+     * Known "undefined" methods are: GET, HEAD, DELETE.
+     * 
+     * @param allowPayloadForUndefinedHttpMethods <tt>true</tt> if "undefined" methods support payload, or <tt>false</tt> otherwise
+     * @since 2.3.12
+     */
+    public void setAllowPayloadForUndefinedHttpMethods(boolean allowPayloadForUndefinedHttpMethods) {
+        this.allowPayloadForUndefinedHttpMethods = allowPayloadForUndefinedHttpMethods;
+    }
+
     // ----------------------------------------------------------- Parsing
     
     /**
@@ -677,8 +708,19 @@ public class HttpServerFilter extends HttpCodecFilter {
         
         final PayloadExpectation payloadExpectation = method.getPayloadExpectation();
         if (payloadExpectation != PayloadExpectation.NOT_ALLOWED) {
-            request.setExpectContent(
-                    request.getContentLength() != -1 || request.isChunked());
+            final boolean hasPayload =
+                    request.getContentLength() > 0 || request.isChunked();
+            
+            if (hasPayload && payloadExpectation == PayloadExpectation.UNDEFINED &&
+                    !allowPayloadForUndefinedHttpMethods) {
+                // if payload is not allowed for the "undefined" methods
+                state.error = true;
+                // Send 400; Bad Request
+                HttpStatus.BAD_REQUEST_400.setValues(response);
+                return;
+            }
+            
+            request.setExpectContent(hasPayload);
         } else {
             request.setExpectContent(method == Method.CONNECT);
         }
