@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -71,7 +71,7 @@ public class ServerConfiguration extends ServerFilterConfiguration {
     final List<HttpHandler> orderedHandlers =
             new LinkedList<HttpHandler>();
 
-    private Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
+    private final Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
 
     private final HttpServerMonitoringConfig monitoringConfig = new HttpServerMonitoringConfig();
 
@@ -81,6 +81,12 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
     private boolean jmxEnabled;
 
+    // flag, which enables/disables payload support for HTTP methods,
+    // for which HTTP spec doesn't clearly state whether they support payload.
+    // Known "undefined" methods are: GET, HEAD, DELETE
+    private boolean allowPayloadForUndefinedHttpMethods;
+    
+    
     final Object handlersSync = new Object();
     
     // ------------------------------------------------------------ Constructors
@@ -272,5 +278,29 @@ public class ServerConfiguration extends ServerFilterConfiguration {
         return jmxEventListeners;
         
     }
+    
+    /**
+     * The flag, which enables/disables payload support for HTTP methods,
+     * for which HTTP spec doesn't clearly state whether they support payload.
+     * Known "undefined" methods are: GET, HEAD, DELETE.
+     * 
+     * @return <tt>true</tt> if "undefined" methods support payload, or <tt>false</tt> otherwise
+     * @since 2.2.22
+     */
+    public boolean isAllowPayloadForUndefinedHttpMethods() {
+        return allowPayloadForUndefinedHttpMethods;
+    }
+
+    /**
+     * The flag, which enables/disables payload support for HTTP methods,
+     * for which HTTP spec doesn't clearly state whether they support payload.
+     * Known "undefined" methods are: GET, HEAD, DELETE.
+     * 
+     * @param allowPayloadForUndefinedHttpMethods <tt>true</tt> if "undefined" methods support payload, or <tt>false</tt> otherwise
+     * @since 2.2.22
+     */
+    public void setAllowPayloadForUndefinedHttpMethods(boolean allowPayloadForUndefinedHttpMethods) {
+        this.allowPayloadForUndefinedHttpMethods = allowPayloadForUndefinedHttpMethods;
+    }    
 
 } // END ServerConfiguration

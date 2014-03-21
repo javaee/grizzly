@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -100,7 +100,7 @@ public class HttpRequestParseTest extends TestCase {
                 new HashMap<String, Pair<String, String>>();
         headers.put("Host", new Pair<String,String>("localhost", "localhost"));
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
-        doHttpRequestTest("GET", "/index.html", "HTTP/1.1", headers, "\r\n");
+        doHttpRequestTest("POST", "/index.html", "HTTP/1.1", headers, "\r\n");
     }
 
     public void testMultiLineHeaders() throws Exception {
@@ -109,7 +109,7 @@ public class HttpRequestParseTest extends TestCase {
         headers.put("Host", new Pair<String,String>("localhost", "localhost"));
         headers.put("Multi-line", new Pair<String,String>("first\r\n          second\r\n       third", "first second third"));
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
-        doHttpRequestTest("GET", "/index.html", "HTTP/1.1", headers, "\r\n");
+        doHttpRequestTest("POST", "/index.html", "HTTP/1.1", headers, "\r\n");
     }
 
     public void testHeadersN() throws Exception {
@@ -118,7 +118,7 @@ public class HttpRequestParseTest extends TestCase {
         headers.put("Host", new Pair<String,String>("localhost", "localhost"));
         headers.put("Multi-line", new Pair<String,String>("first\r\n          second\n       third", "first second third"));
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
-        doHttpRequestTest("GET", "/index.html", "HTTP/1.1", headers, "\n");
+        doHttpRequestTest("POST", "/index.html", "HTTP/1.1", headers, "\n");
     }
 
     public void testCompleteURI() throws Exception {
@@ -126,7 +126,7 @@ public class HttpRequestParseTest extends TestCase {
                 new HashMap<String, Pair<String, String>>();
         headers.put("Host", new Pair<String,String>(null, "localhost:8180"));
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
-        doHttpRequestTest(new Pair<String, String>("GET", "GET"),
+        doHttpRequestTest(new Pair<String, String>("POST", "POST"),
                 new Pair<String, String>("http://localhost:8180/index.html", "/index.html"),
                 new Pair<String,String>("HTTP/1.1", "HTTP/1.1"), headers, "\n");
     }
@@ -136,7 +136,7 @@ public class HttpRequestParseTest extends TestCase {
                 new HashMap<String, Pair<String, String>>();
         headers.put("Host", new Pair<String,String>(null, "localhost:8180"));
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
-        doHttpRequestTest(new Pair<String, String>("GET", "GET"),
+        doHttpRequestTest(new Pair<String, String>("POST", "POST"),
                 new Pair<String, String>("http://localhost:8180", "/"),
                 new Pair<String,String>("HTTP/1.1", "HTTP/1.1"), headers, "\n");
     }

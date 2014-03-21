@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -89,8 +89,10 @@ import org.glassfish.grizzly.memory.Buffers;
 public class HttpSemanticsTest extends TestCase {
 
     public static final int PORT = 19004;
-    private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
+    private static final int MAX_HEADERS_SIZE = 8192;
 
+    private HttpServerFilter httpServerFilter =
+            new HttpServerFilter(false, MAX_HEADERS_SIZE, new KeepAlive(), null);
 
     // ------------------------------------------------------------ Test Methods
 
@@ -278,7 +280,6 @@ public class HttpSemanticsTest extends TestCase {
                 .uri("/path")
                 .header("Host", "localhost:" + PORT)
                 .protocol("HTTP/1.0")
-                .chunked(true)
                 .build();
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
@@ -389,6 +390,94 @@ public class HttpSemanticsTest extends TestCase {
         });
     }
 
+    public void testHttpGetWithPayloadDisabled() throws Throwable {
+
+        final HttpRequestPacket header = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .contentLength(10)
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .build();
+
+        final HttpContent chunk1 = HttpContent.builder(header)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "0123456789"))
+                .build();
+        
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(400);
+        result.addHeader("Connection", "close");
+        result.addHeader("Content-Length", "0");
+        result.setStatusMessage("bad request");
+        result.appendContent("");
+        doTest(new ClientFilter(chunk1, result, 1000), new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent requestContent = ctx.getMessage();
+                if (!requestContent.isLast()) {
+                    return ctx.getStopAction(requestContent);
+                }
+                
+                HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+
+                final Buffer payload = requestContent.getContent();
+                
+                HttpContent responseContent = response.httpContentBuilder().
+                        content(payload).last(requestContent.isLast()).build();
+                ctx.write(responseContent);
+                return ctx.getStopAction();
+            }
+        });
+    }
+    
+    public void testHttpGetWithPayloadEnabled() throws Throwable {
+
+        // allow payload for GET
+        httpServerFilter.setAllowPayloadForUndefinedHttpMethods(true);
+        
+        final HttpRequestPacket header = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .contentLength(10)
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .build();
+
+        final HttpContent chunk1 = HttpContent.builder(header)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "0123456789"))
+                .build();
+        
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("!Connection", "close");
+        result.addHeader("!Transfer-Encoding", "chunked");
+        result.addHeader("Content-Length", "10");
+        result.setStatusMessage("ok");
+        result.appendContent("0123456789");
+        doTest(new ClientFilter(chunk1, result, 1000), new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent requestContent = ctx.getMessage();
+                if (!requestContent.isLast()) {
+                    return ctx.getStopAction(requestContent);
+                }
+                
+                HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+
+                final Buffer payload = requestContent.getContent();
+                
+                HttpContent responseContent = response.httpContentBuilder().
+                        content(payload).last(requestContent.isLast()).build();
+                ctx.write(responseContent);
+                return ctx.getStopAction();
+            }
+        });
+    }
+    
     public void testUpgradeIgnoresTransferEncoding() throws Throwable {
 
         final HttpRequestPacket header = HttpRequestPacket.builder()
@@ -396,7 +485,7 @@ public class HttpSemanticsTest extends TestCase {
                 .uri("/path")
                 .contentLength(1)
                 .header(Header.TransferEncoding, "chunked")
-                .header(Header.Server, "localhost:" + PORT)
+                .header(Header.Host, "somehost:" + PORT)
                 .header(Header.Upgrade, "test")
                 .protocol("HTTP/1.1")
                 .build();
@@ -418,6 +507,7 @@ public class HttpSemanticsTest extends TestCase {
         result.setStatusMessage("Switching Protocols");
         result.addHeader("Connection", "Upgrade");
         result.addHeader("Upgrade", "test");
+        result.addHeader("X-Request-Server-Name", "somehost");
         result.addHeader("!Transfer-Encoding", "");
         result.addHeader("!ContentLength", "");
         result.appendContent(testMsg);
@@ -436,6 +526,7 @@ public class HttpSemanticsTest extends TestCase {
                 if (packetCounter++ == 0) {
                     response.setStatus(HttpStatus.SWITCHING_PROTOCOLS_101);
                     response.setHeader(Header.Connection, "Upgrade");
+                    response.setHeader("X-Request-Server-Name", request.serverName().toString());
                     response.setHeader(Header.Upgrade, request.getHeader(Header.Upgrade));
                 }
                 
@@ -534,13 +625,6 @@ public class HttpSemanticsTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
     
-    private void reportThreadErrors() throws Throwable {
-        Throwable t = exception.getResult();
-        if (t != null) {
-            throw t;
-        }
-    }
-
     private void doTest(Object request, ExpectedResult expectedResults, Filter serverFilter)
             throws Throwable {
         final ClientFilter clientFilter = new ClientFilter(request,
@@ -554,7 +638,7 @@ public class HttpSemanticsTest extends TestCase {
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(1024));
-        filterChainBuilder.add(new HttpServerFilter(false, 8192, new KeepAlive(), null));
+        filterChainBuilder.add(httpServerFilter);
         filterChainBuilder.add(serverFilter);
         FilterChain filterChain = filterChainBuilder.build();
 
@@ -588,7 +672,6 @@ public class HttpSemanticsTest extends TestCase {
         } finally {
             transport.stop();
             ctransport.stop();
-            reportThreadErrors();
         }
     }
 
@@ -704,15 +787,16 @@ public class HttpSemanticsTest extends TestCase {
                             assertEquals(entry.getValue().toLowerCase(),
                                          response.getHeader(entry.getKey()).toLowerCase());
                         } else {
-                            assertFalse("Header should not be present: " + entry.getKey().substring(1),
-                                       response.containsHeader(entry.getKey().substring(1)));
+                            final String headerName = entry.getKey().substring(1);
+                            assertFalse("Header should not be present: " + headerName +
+                                    " but header exists w/ value=" + response.getHeader(headerName),
+                                       response.containsHeader(headerName));
                         }
                     }
                 }
                 testResult.result(Boolean.TRUE);
             } catch (Throwable t) {
-                testResult.result(Boolean.FALSE);
-                exception.result(t);
+                testResult.failure(t);
             }
         }
 
@@ -767,6 +851,11 @@ public class HttpSemanticsTest extends TestCase {
         }
 
         public void addHeader(String name, String value) {
+            if (name.startsWith("!")) {
+                expectedHeaders.remove(name.substring(1));
+            } else {
+                expectedHeaders.remove("!" + name);
+            }
             expectedHeaders.put(name, value);
         }
 

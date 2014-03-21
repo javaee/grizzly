@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,15 +54,15 @@ public final class Method {
     public static final Method OPTIONS =
             new Method("OPTIONS", PayloadExpectation.ALLOWED);
     public static final Method GET =
-            new Method("GET", PayloadExpectation.NOT_ALLOWED); // Even though it is UNDEFINED
+            new Method("GET", PayloadExpectation.UNDEFINED);
     public static final Method HEAD =
-            new Method("HEAD", PayloadExpectation.NOT_ALLOWED); // Even though it is UNDEFINED
+            new Method("HEAD", PayloadExpectation.UNDEFINED);
     public static final Method POST
             = new Method("POST", PayloadExpectation.ALLOWED);
     public static final Method PUT
             = new Method("PUT", PayloadExpectation.ALLOWED);
     public static final Method DELETE
-            = new Method("DELETE", PayloadExpectation.NOT_ALLOWED); // Even though it is UNDEFINED
+            = new Method("DELETE", PayloadExpectation.UNDEFINED);
     public static final Method TRACE
             = new Method("TRACE", PayloadExpectation.NOT_ALLOWED);
     public static final Method CONNECT

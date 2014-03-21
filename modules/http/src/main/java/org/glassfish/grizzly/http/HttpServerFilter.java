@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -132,7 +132,12 @@ public class HttpServerFilter extends HttpCodecFilter {
     private String defaultResponseContentType;
     private int maxRequestHeaders;
     private int maxResponseHeaders;
-
+    
+    // flag, which enables/disables payload support for HTTP methods,
+    // for which HTTP spec doesn't clearly state whether they support payload.
+    // Known "undefined" methods are: GET, HEAD, DELETE
+    private boolean allowPayloadForUndefinedHttpMethods;
+    
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
      *
@@ -257,6 +262,31 @@ public class HttpServerFilter extends HttpCodecFilter {
     public void setDefaultResponseContentType(String defaultResponseContentType) {
         this.defaultResponseContentType = defaultResponseContentType;
     }
+
+    /**
+     * The flag, which enables/disables payload support for HTTP methods,
+     * for which HTTP spec doesn't clearly state whether they support payload.
+     * Known "undefined" methods are: GET, HEAD, DELETE.
+     * 
+     * @return <tt>true</tt> if "undefined" methods support payload, or <tt>false</tt> otherwise
+     * @since 2.2.22
+     */
+    public boolean isAllowPayloadForUndefinedHttpMethods() {
+        return allowPayloadForUndefinedHttpMethods;
+    }
+
+    /**
+     * The flag, which enables/disables payload support for HTTP methods,
+     * for which HTTP spec doesn't clearly state whether they support payload.
+     * Known "undefined" methods are: GET, HEAD, DELETE.
+     * 
+     * @param allowPayloadForUndefinedHttpMethods <tt>true</tt> if "undefined" methods support payload, or <tt>false</tt> otherwise
+     * @since 2.2.22
+     */
+    public void setAllowPayloadForUndefinedHttpMethods(boolean allowPayloadForUndefinedHttpMethods) {
+        this.allowPayloadForUndefinedHttpMethods = allowPayloadForUndefinedHttpMethods;
+    }
+
     
     // ----------------------------------------------------------- Parsing
     
@@ -640,21 +670,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         // set the default chunking mode
         request.getResponse().setChunkingAllowed(isUpgraded || isChunkingEnabled());
         
-        // If it's upgraded HTTP - don't check semantics
-        if (isUpgraded) {
-            return;
-        }
-
-        final Method method = request.getMethod();
-        
-        final PayloadExpectation payloadExpectation = method.getPayloadExpectation();
-        if (payloadExpectation != Method.PayloadExpectation.NOT_ALLOWED) {
-            request.setExpectContent(
-                    request.getContentLength() != -1 || request.isChunked());
-        } else {
-            request.setExpectContent(method == Method.CONNECT);
-        }
-
         if (request.getHeaderParsingState().contentLengthsDiffer) {
             request.getProcessingState().error = true;
             return;
@@ -685,17 +700,61 @@ public class HttpServerFilter extends HttpCodecFilter {
                     uriBC.setStart(uriBCStart + slashPos);
                     uriBC.setEnd(uriBC.getEnd());
                 }
-                hostDC = headers.setValue("host");
+                hostDC = headers.setValue(Header.Host);
                 hostDC.set(uriBC, uriBCStart + pos + 3, uriBCStart + slashPos);
             }
 
         }
 
+        // --------------------------
+
+        if (hostDC == null) {
+            hostDC = headers.getValue(Header.Host);
+        }
+
         final boolean isHttp11 = protocol == Protocol.HTTP_1_1;
 
+        // Check host header
+        if (isHttp11 && (hostDC == null || hostDC.isNull())) {
+            state.error = true;
+            return;
+        }
+        
+        parseHost(hostDC, request, response, state);
+
+        if (isHttp11 && request.serverName().getLength() == 0) {
+            state.error = true;
+            return;
+        }
+        
+        // If it's upgraded HTTP - don't check semantics
+        if (isUpgraded) {
+            return;
+        }        
+        
+        final Method method = request.getMethod();
+        
+        final PayloadExpectation payloadExpectation = method.getPayloadExpectation();
+        if (payloadExpectation != PayloadExpectation.NOT_ALLOWED) {
+            final boolean hasPayload =
+                    request.getContentLength() > 0 || request.isChunked();
+            
+            if (hasPayload && payloadExpectation == PayloadExpectation.UNDEFINED &&
+                    !allowPayloadForUndefinedHttpMethods) {
+                // if payload is not allowed for the "undefined" methods
+                state.error = true;
+                // Send 400; Bad Request
+                HttpStatus.BAD_REQUEST_400.setValues(response);
+                return;
+            }
+            
+            request.setExpectContent(hasPayload);
+        } else {
+            request.setExpectContent(method == Method.CONNECT);
+        }
+        
         // ------ Set keep-alive flag
-        if (request.isExpectContent() &&
-                !request.isChunked() && request.getContentLength() == -1) {
+        if (method == Method.CONNECT) {
             state.keepAlive = false;
         } else {
             final DataChunk connectionValueDC = headers.getValue(Header.Connection);
@@ -707,24 +766,6 @@ public class HttpServerFilter extends HttpCodecFilter {
                         (connectionValueDC != null &&
                         connectionValueDC.equalsIgnoreCaseLowerCase(KEEPALIVE_BYTES));
             }
-        }
-        // --------------------------
-
-        if (hostDC == null) {
-            hostDC = headers.getValue(Header.Host);
-        }
-
-        // Check host header
-        if (hostDC == null && isHttp11) {
-            state.error = true;
-            return;
-        }
-
-        parseHost(hostDC, request, response, state);
-
-        if (isHttp11 && request.serverName().getLength() == 0) {
-            state.error = true;
-            return;
         }
         
         if (request.requiresAcknowledgement()) {
