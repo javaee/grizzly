@@ -50,11 +50,15 @@ package com.sun.enterprise.web.connector.grizzly;
  *
  * @author Jeanfrancois Arcand
  */
-public interface AsyncFilter {
+public interface AsyncFilter2 {
+    public enum Result {NEXT, INTERRUPT, FINISH};
     /**
-     * Execute and return <code>true</code> if the next <code>AsyncFilter</code> 
-     * can be invoked. Return <code>false</code> to stop calling the 
-     * <code>AsyncFilter</code>.
+     * Execute and return {@link Result}.
+     * {@link Result#NEXT}: next <tt>AsyncFilter</tt> should be executed;
+     * {@link Result#INTERRUPT}: interrupts the execution, filter is becoming responsible for finishing the processing;
+     * {@link Result#FINISH}: finish the async execution (skip the rest of the filters).
+     *
+     * @return {@link Result}
      */
-    public boolean doFilter(AsyncExecutor asyncExecutor);
+    public Result doFilter(AsyncExecutor asyncExecutor);
 }

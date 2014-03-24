@@ -41,7 +41,7 @@
 package com.sun.enterprise.web.connector.grizzly.async;
 
 import com.sun.enterprise.web.connector.grizzly.AsyncExecutor;
-import com.sun.enterprise.web.connector.grizzly.AsyncFilter;
+import com.sun.enterprise.web.connector.grizzly.AsyncFilter2;
 import com.sun.enterprise.web.connector.grizzly.AsyncHandler;
 import com.sun.enterprise.web.connector.grizzly.AsyncTask;
 import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
@@ -90,8 +90,8 @@ public class DefaultAsyncHandler implements AsyncHandler{
      * The <code>AsyncFilter</code> to execute asynchronous operations on 
      * a <code>ProcessorTask</code>.
      */
-    private ArrayList<AsyncFilter> asyncFilters = 
-            new ArrayList<AsyncFilter>();   
+    private ArrayList<AsyncFilter2> asyncFilters = 
+            new ArrayList<AsyncFilter2>();   
     
     
     /**
@@ -138,7 +138,7 @@ public class DefaultAsyncHandler implements AsyncHandler{
             asyncExecutor.setAsyncTask(asyncTask);
             asyncExecutor.setAsyncHandler(this);
             
-            for (AsyncFilter l : asyncFilters){
+            for (AsyncFilter2 l : asyncFilters){
                 asyncExecutor.addAsyncFilter(l);
             }
         }
@@ -238,7 +238,7 @@ public class DefaultAsyncHandler implements AsyncHandler{
     /**
      * Add an <code>AsyncFilter</code>
      */
-    public void addAsyncFilter(AsyncFilter asyncFilter) {
+    public void addAsyncFilter(AsyncFilter2 asyncFilter) {
         asyncFilters.add(asyncFilter);
     }
 
@@ -246,7 +246,7 @@ public class DefaultAsyncHandler implements AsyncHandler{
     /**
      * Remove an <code>AsyncFilter</code>
      */
-    public boolean removeAsyncFilter(AsyncFilter asyncFilter) {
+    public boolean removeAsyncFilter(AsyncFilter2 asyncFilter) {
         return asyncFilters.remove(asyncFilter);
     }
 }

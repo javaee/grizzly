@@ -42,11 +42,14 @@ package com.sun.enterprise.web.connector.grizzly.async;
 
 import com.sun.enterprise.web.connector.grizzly.AsyncExecutor;
 import com.sun.enterprise.web.connector.grizzly.AsyncFilter;
+import com.sun.enterprise.web.connector.grizzly.AsyncFilter2;
 import com.sun.enterprise.web.connector.grizzly.AsyncHandler;
 import com.sun.enterprise.web.connector.grizzly.AsyncTask;
 import com.sun.enterprise.web.connector.grizzly.ProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -73,7 +76,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * The <code>AsyncFilter</code> to execute asynchronous operations on 
      * a <code>ProcessorTask</code>.
      */
-    private final static ArrayList<AsyncFilter> sharedAsyncFilters =
+    private final static ArrayList<AsyncFilter2> sharedAsyncFilters =
             loadFilters();
 
     
@@ -91,12 +94,17 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     
     
     /**
-     * The <code>AsyncFilter</code> to execute asynchronous operations on 
+     * The <code>AsyncFilter2</code> to execute asynchronous operations on 
      * a <code>ProcessorTask</code>.
      */
-    private final ArrayList<AsyncFilter> asyncFilters =
-            new ArrayList<AsyncFilter>(sharedAsyncFilters);
+    private final ArrayList<AsyncFilter2> asyncFilters =
+            new ArrayList<AsyncFilter2>(sharedAsyncFilters);
     
+    /**
+     * The {@link AsyncFilter} to {@link AsyncFilter2} mapping.
+     */
+    private final Map<AsyncFilter, AsyncFilter2> oldToNewAsyncFilterMapping =
+            new HashMap<AsyncFilter, AsyncFilter2>(2);
     
     /**
      * The <code>AsyncHandler</code> associated with this object.
@@ -173,15 +181,15 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
             if (LOGGER.isLoggable(LOG_LEVEL)) {
                 LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.interrupt_2");
             }
-            final AsyncFilter.Result result = invokeFilters();
-            if (result == AsyncFilter.Result.NEXT) {
+            final AsyncFilter2.Result result = invokeFilters();
+            if (result == AsyncFilter2.Result.NEXT) {
                 if (LOGGER.isLoggable(LOG_LEVEL)) {
                     LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.interrupt_3");
                 }
                 return execute();
             }
 
-            return result == AsyncFilter.Result.FINISH;
+            return result == AsyncFilter2.Result.FINISH;
         }
     }
     
@@ -209,27 +217,27 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     /**
      * Invoke the <code>AsyncFilter</code>
      */
-    private AsyncFilter.Result invokeFilters() {
+    private AsyncFilter2.Result invokeFilters() {
         if (LOGGER.isLoggable(LOG_LEVEL)) {
             LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.invokeFilters apt={0}",
                     new Object[]{asyncProcessorTask});
         }
-        for (AsyncFilter asyncFilter : asyncFilters) {
+        for (AsyncFilter2 asyncFilter : asyncFilters) {
             if (LOGGER.isLoggable(LOG_LEVEL)) {
                 LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.invokeFilters.doFilter apt={0}, filter={1}",
                         new Object[]{asyncProcessorTask, asyncFilter});
             }
-            final AsyncFilter.Result result = asyncFilter.doFilter(this);
+            final AsyncFilter2.Result result = asyncFilter.doFilter(this);
             if (LOGGER.isLoggable(LOG_LEVEL)) {
                 LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.invokeFilters.doFilter apt={0}, filter={1}, result={2}",
                         new Object[]{asyncProcessorTask, asyncFilter, result});
             }
-            if (result != AsyncFilter.Result.NEXT) {
+            if (result != AsyncFilter2.Result.NEXT) {
                 return result;
             }
         }
 
-        return AsyncFilter.Result.NEXT;
+        return AsyncFilter2.Result.NEXT;
     }
     
     
@@ -314,14 +322,33 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * Add an {@link AsyncFilter}
      */
     public void addAsyncFilter(AsyncFilter asyncFilter) {
-        asyncFilters.add(asyncFilter);
+        final AsyncFilter2 asyncFilter2 = adapt(asyncFilter);
+        oldToNewAsyncFilterMapping.put(asyncFilter, asyncFilter2);
+        asyncFilters.add(asyncFilter2);
     }
 
     
     /**
      * Remove an {@link AsyncFilter}
      */
-    public boolean removeAsyncFilter(AsyncFilter asyncFilter) {
+    public boolean removeAsyncFilter(final AsyncFilter asyncFilter) {
+        final AsyncFilter2 asyncFilter2 =
+                oldToNewAsyncFilterMapping.remove(asyncFilter);
+        return asyncFilter2 != null && asyncFilters.remove(asyncFilter2);
+    }
+
+    /**
+     * Add an {@link AsyncFilter2}
+     */
+    public void addAsyncFilter(AsyncFilter2 asyncFilter) {
+        asyncFilters.add(asyncFilter);
+    }
+
+    
+    /**
+     * Remove an {@link AsyncFilter2}
+     */
+    public boolean removeAsyncFilter(AsyncFilter2 asyncFilter) {
         return asyncFilters.remove(asyncFilter);
     }
     
@@ -362,13 +389,13 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     /**
      * Load the list of <code>AsynchFilter</code>.
      */
-    protected static ArrayList<AsyncFilter> loadFilters(){
-        ArrayList<AsyncFilter> al = new ArrayList<AsyncFilter>();
+    protected static ArrayList<AsyncFilter2> loadFilters(){
+        ArrayList<AsyncFilter2> al = new ArrayList<AsyncFilter2>();
         if ( System.getProperty(ASYNC_FILTER) != null){
             StringTokenizer st = new StringTokenizer(
                     System.getProperty(ASYNC_FILTER),",");
             while (st.hasMoreTokens()){
-                AsyncFilter filter = (AsyncFilter) loadInstance(st.nextToken());
+                AsyncFilter2 filter = loadInstance(st.nextToken());
                 if (filter != null) {
                     al.add(filter);
                 }
@@ -380,17 +407,22 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     /**
      * Instantiate a class based on a property.
      */
-    private static AsyncFilter loadInstance(String property){        
-        Class className;                               
-        try{                              
-            className = Class.forName(property);
-            return (AsyncFilter)className.newInstance();
-        } catch (ClassNotFoundException ex){
-            SelectorThread.logger().log(Level.WARNING,ex.getMessage(),ex);
-        } catch (InstantiationException ex){
-            SelectorThread.logger().log(Level.WARNING,ex.getMessage(),ex);            
-        } catch (IllegalAccessException ex){
-            SelectorThread.logger().log(Level.WARNING,ex.getMessage(),ex);            
+    private static AsyncFilter2 loadInstance(String property){        
+        try {
+            final Class clazz = Class.forName(property);
+            if (AsyncFilter2.class.isAssignableFrom(clazz)) {
+                return (AsyncFilter2) clazz.newInstance();
+            } else if (AsyncFilter.class.isAssignableFrom(clazz)) {
+                return adapt((AsyncFilter) clazz.newInstance());
+            } else {
+                SelectorThread.logger().log(Level.WARNING, "Unknown AsyncFilter type {0}", clazz);
+            }
+        } catch (ClassNotFoundException ex) {
+            SelectorThread.logger().log(Level.WARNING, ex.getMessage(), ex);
+        } catch (InstantiationException ex) {
+            SelectorThread.logger().log(Level.WARNING, ex.getMessage(), ex);
+        } catch (IllegalAccessException ex) {
+            SelectorThread.logger().log(Level.WARNING, ex.getMessage(), ex);
         }
         return null;
     }   
@@ -407,5 +439,16 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
         executeAdapterPhase.set(false);
         commitResponsePhase.set(false);
         finishResponsePhase.set(false);
+    }
+    
+    private static AsyncFilter2 adapt(final AsyncFilter oldAsyncFilter) {
+        return new AsyncFilter2() {
+
+            public AsyncFilter2.Result doFilter(AsyncExecutor asyncExecutor) {
+                return oldAsyncFilter.doFilter(asyncExecutor) ?
+                        AsyncFilter2.Result.NEXT :
+                        AsyncFilter2.Result.INTERRUPT;
+            }
+        };
     }
 }

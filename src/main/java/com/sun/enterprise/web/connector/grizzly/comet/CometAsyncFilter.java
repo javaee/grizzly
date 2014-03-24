@@ -41,7 +41,7 @@
 package com.sun.enterprise.web.connector.grizzly.comet;
 
 import com.sun.enterprise.web.connector.grizzly.AsyncExecutor;
-import com.sun.enterprise.web.connector.grizzly.AsyncFilter;
+import com.sun.enterprise.web.connector.grizzly.AsyncFilter2;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import com.sun.enterprise.web.connector.grizzly.async.AsyncProcessorTask;
 import java.io.IOException;
@@ -59,7 +59,7 @@ import java.util.logging.Logger;
  *
  * @author Jeanfrancois Arcand
  */
-public class CometAsyncFilter implements AsyncFilter {       
+public class CometAsyncFilter implements AsyncFilter2 {       
  
     /**
      * Main logger
@@ -75,21 +75,21 @@ public class CometAsyncFilter implements AsyncFilter {
 
     
     /**
-     * Execute the Comet {@link AsyncFilter} by delegating the work to the 
+     * Execute the Comet {@link AsyncFilter2} by delegating the work to the 
      * {@link CometEngine}. At this stage, the request has already
      * been interrupted.
      */
-    public AsyncFilter.Result doFilter(AsyncExecutor asyncExecutor) {
+    public AsyncFilter2.Result doFilter(AsyncExecutor asyncExecutor) {
         AsyncProcessorTask apt = (AsyncProcessorTask)asyncExecutor.getAsyncTask();
         CometEngine cometEngine = CometEngine.getEngine();
         try {
             if (!cometEngine.handle(apt)) {
-                return AsyncFilter.Result.FINISH;
+                return AsyncFilter2.Result.FINISH;
             }
         } catch (IOException ex) {
             logger.log(Level.SEVERE, "CometAsyncFilter", ex);
         }
         
-        return AsyncFilter.Result.INTERRUPT;
+        return AsyncFilter2.Result.INTERRUPT;
     }
 }

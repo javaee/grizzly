@@ -108,12 +108,22 @@ public interface AsyncExecutor {
      * Add a <code>AsyncFilter</code>
      */
     public void addAsyncFilter(AsyncFilter asyncFilter);
+
+    /**
+     * Remove an <code>AsyncFilter</code>
+     */
+    public boolean removeAsyncFilter(AsyncFilter asyncFilter);
+
+    /**
+     * Add a <code>AsyncFilter</code>
+     */
+    public void addAsyncFilter(AsyncFilter2 asyncFilter);
     
     
     /**
      * Remove an <code>AsyncFilter</code>
      */
-    public boolean removeAsyncFilter(AsyncFilter asyncFilter);
+    public boolean removeAsyncFilter(AsyncFilter2 asyncFilter);
     
         
     /**
