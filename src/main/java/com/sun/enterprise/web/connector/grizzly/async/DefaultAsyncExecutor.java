@@ -182,14 +182,10 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
                 LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.interrupt_2");
             }
             final AsyncFilter2.Result result = invokeFilters();
-            if (result == AsyncFilter2.Result.NEXT) {
-                if (LOGGER.isLoggable(LOG_LEVEL)) {
-                    LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.interrupt_3");
-                }
-                return execute();
-            }
 
-            return result == AsyncFilter2.Result.FINISH;
+            // this code is changed after backporting from 1.9.x to
+            // preserve backwards compatibility
+            return result != AsyncFilter2.Result.INTERRUPT;
         }
     }
     
@@ -322,7 +318,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * Add an {@link AsyncFilter}
      */
     public void addAsyncFilter(AsyncFilter asyncFilter) {
-        final AsyncFilter2 asyncFilter2 = adapt(asyncFilter);
+        final AsyncFilter2 asyncFilter2 = AsyncFilterAdapter.adapt(asyncFilter);
         oldToNewAsyncFilterMapping.put(asyncFilter, asyncFilter2);
         asyncFilters.add(asyncFilter2);
     }
@@ -413,7 +409,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
             if (AsyncFilter2.class.isAssignableFrom(clazz)) {
                 return (AsyncFilter2) clazz.newInstance();
             } else if (AsyncFilter.class.isAssignableFrom(clazz)) {
-                return adapt((AsyncFilter) clazz.newInstance());
+                return AsyncFilterAdapter.adapt((AsyncFilter) clazz.newInstance());
             } else {
                 SelectorThread.logger().log(Level.WARNING, "Unknown AsyncFilter type {0}", clazz);
             }
@@ -439,16 +435,5 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
         executeAdapterPhase.set(false);
         commitResponsePhase.set(false);
         finishResponsePhase.set(false);
-    }
-    
-    private static AsyncFilter2 adapt(final AsyncFilter oldAsyncFilter) {
-        return new AsyncFilter2() {
-
-            public AsyncFilter2.Result doFilter(AsyncExecutor asyncExecutor) {
-                return oldAsyncFilter.doFilter(asyncExecutor) ?
-                        AsyncFilter2.Result.NEXT :
-                        AsyncFilter2.Result.INTERRUPT;
-            }
-        };
     }
 }

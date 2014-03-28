@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,71 +38,27 @@
  * holder.
  */
 
-package com.sun.enterprise.web.connector.grizzly;
+
+package com.sun.enterprise.web.connector.grizzly.async;
+
+import com.sun.enterprise.web.connector.grizzly.AsyncExecutor;
+import com.sun.enterprise.web.connector.grizzly.AsyncFilter;
+import com.sun.enterprise.web.connector.grizzly.AsyncFilter2;
 
 /**
- * When asynchronous request processing is enabled, the 
- * <code>Task</code> must delegate the execution of the request 
- * processing to an implementation of this interface.
+ * Converts {@link AsyncFilter} to {@link AsyncFilter2}.
  * 
- * @author Jeanfrancois Arcand
+ * @author Alexey Stashok
  */
-public interface AsyncHandler {
-    
-    /**
-     * Handle a <code>Task</code> execution. 
-     */
-    public void handle(Task task);
-    
-    
-    /**
-     * Add the <code>Task</code> to the interrupted queue. 
-     */
-    public void addToInterruptedQueue(AsyncTask task);
-    
-    
-    /**
-     * Remove the <code>Task</code> from the interrupted queue.
-     */
-    public void removeFromInterruptedQueue(AsyncTask task);  
-    
-    
-    /**
-     * Set the <code>AsyncExecutor</code> used by this object.
-     */
-    public void setAsyncExecutorClassName(String asyncExecutorClassName);
-    
-    
-    /**
-     * Get the code>AsyncExecutor</code> used by this object.
-     */
-    public String getAsyncExecutorClassName();
-    
-    
-    /**
-     * Add an {@link AsyncFilter2}
-     */
-    public void addAsyncFilter(AsyncFilter2 asyncFilter);
-    
-    
-    /**
-     * Remove an {@link AsyncFilter2}
-     */
-    public boolean removeAsyncFilter(AsyncFilter2 asyncFilter);
-    
-    /**
-     * Add an {@link AsyncFilter}
-     */
-    public void addAsyncFilter(AsyncFilter asyncFilter);
+class AsyncFilterAdapter {
+    public static AsyncFilter2 adapt(final AsyncFilter oldAsyncFilter) {
+        return new AsyncFilter2() {
 
-    
-    /**
-     * Remove an {@link AsyncFilter}
-     */
-    public boolean removeAsyncFilter(final AsyncFilter asyncFilter);
-    
-    /**
-     * Return a <code>Task</code> 
-     */
-    public void returnTask(AsyncTask task);
+            public AsyncFilter2.Result doFilter(AsyncExecutor asyncExecutor) {
+                return oldAsyncFilter.doFilter(asyncExecutor) ?
+                        AsyncFilter2.Result.NEXT :
+                        AsyncFilter2.Result.INTERRUPT;
+            }
+        };
+    }
 }

@@ -41,6 +41,7 @@
 package com.sun.enterprise.web.connector.grizzly.async;
 
 import com.sun.enterprise.web.connector.grizzly.AsyncExecutor;
+import com.sun.enterprise.web.connector.grizzly.AsyncFilter;
 import com.sun.enterprise.web.connector.grizzly.AsyncFilter2;
 import com.sun.enterprise.web.connector.grizzly.AsyncHandler;
 import com.sun.enterprise.web.connector.grizzly.AsyncTask;
@@ -48,6 +49,8 @@ import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
 import com.sun.enterprise.web.connector.grizzly.ProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.Task;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -93,6 +96,11 @@ public class DefaultAsyncHandler implements AsyncHandler{
     private ArrayList<AsyncFilter2> asyncFilters = 
             new ArrayList<AsyncFilter2>();   
     
+    /**
+     * The {@link AsyncFilter} to {@link AsyncFilter2} mapping.
+     */
+    private final Map<AsyncFilter, AsyncFilter2> oldToNewAsyncFilterMapping =
+            new HashMap<AsyncFilter, AsyncFilter2>(2);    
     
     /**
      * The <code>AsyncExecutor</code> class name to use.
@@ -236,7 +244,7 @@ public class DefaultAsyncHandler implements AsyncHandler{
     
     
     /**
-     * Add an <code>AsyncFilter</code>
+     * Add an {@link AsyncFilter2}
      */
     public void addAsyncFilter(AsyncFilter2 asyncFilter) {
         asyncFilters.add(asyncFilter);
@@ -244,9 +252,28 @@ public class DefaultAsyncHandler implements AsyncHandler{
 
     
     /**
-     * Remove an <code>AsyncFilter</code>
+     * Remove an {@link AsyncFilter2}
      */
     public boolean removeAsyncFilter(AsyncFilter2 asyncFilter) {
         return asyncFilters.remove(asyncFilter);
     }
+    
+    /**
+     * Add an {@link AsyncFilter}
+     */
+    public void addAsyncFilter(AsyncFilter asyncFilter) {
+        final AsyncFilter2 asyncFilter2 = AsyncFilterAdapter.adapt(asyncFilter);
+        oldToNewAsyncFilterMapping.put(asyncFilter, asyncFilter2);
+        asyncFilters.add(asyncFilter2);
+    }
+
+    
+    /**
+     * Remove an {@link AsyncFilter}
+     */
+    public boolean removeAsyncFilter(final AsyncFilter asyncFilter) {
+        final AsyncFilter2 asyncFilter2 =
+                oldToNewAsyncFilterMapping.remove(asyncFilter);
+        return asyncFilter2 != null && asyncFilters.remove(asyncFilter2);
+    }    
 }
