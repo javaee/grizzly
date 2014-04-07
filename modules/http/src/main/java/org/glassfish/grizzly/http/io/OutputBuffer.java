@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.io;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -52,6 +53,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -1253,7 +1255,16 @@ public class OutputBuffer implements OutputSink {
 
 
         public void detach() {
-            outputBuffer = null;
+            final OutputBuffer obLocal = outputBuffer;
+            if (obLocal != null) {
+                outputBuffer = null;
+                // call in the current thread, because otherwise handler executed
+                // in the different thread may deal with recycled Request/Response objects
+                onError0(obLocal,
+                        obLocal.connection.isOpen() ?
+                            new CancellationException() :
+                            new EOFException());
+            }
         }
         
         @Override

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -735,7 +735,7 @@ public class InputBuffer {
      *
      * This method shouldn't be invoked by developers directly.
      */
-    public void finished() {
+    protected void finished() {
         if (!contentRead) {
             contentRead = true;
             final ReadHandler localHandler = handler;
@@ -971,13 +971,12 @@ public class InputBuffer {
         final ReadHandler localHandler = handler;
         if (localHandler != null) {
             handler = null;
-            if (connection.isOpen()) {
-                invokeErrorHandlerOnProperThread(localHandler,
-                                                 new CancellationException());
-            } else {
-                invokeErrorHandlerOnProperThread(localHandler,
-                                                 new EOFException());
-            }
+            // call in the current thread, because otherwise handler executed
+            // in the different thread may deal with recycled Request/Response objects
+            localHandler.onError(
+                    connection.isOpen()
+                    ? new CancellationException()
+                    : new EOFException());
         }
     }
 
