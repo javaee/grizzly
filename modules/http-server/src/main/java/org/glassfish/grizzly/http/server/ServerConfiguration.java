@@ -62,10 +62,7 @@ public class ServerConfiguration extends ServerFilterConfiguration {
     private static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(-1);
 
     private static final HttpHandlerRegistration[] ROOT_MAPPING = {
-        HttpHandlerRegistration.bulder()
-        .contextPath("")
-        .urlPattern("/")
-        .build()
+        HttpHandlerRegistration.ROOT
     };
 
     // Non-exposed
