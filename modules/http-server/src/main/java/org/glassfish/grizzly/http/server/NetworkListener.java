@@ -687,9 +687,8 @@ public class NetworkListener {
         transport.addShutdownListener(new GracefulShutdownListener() {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
-                final FutureImpl<NetworkListener> shutdownFutureLocal =
-                        shutdownFuture;
-                        shutdownCompletionHandler =
+                final FutureImpl<NetworkListener> shutdownFutureLocal = shutdownFuture;
+                shutdownCompletionHandler =
                         new EmptyCompletionHandler<HttpServerFilter>() {
                             @Override
                             public void completed(final HttpServerFilter filter) {
@@ -701,6 +700,7 @@ public class NetworkListener {
                                 }
                             }
                         };
+
                 getHttpServerFilter().prepareForShutdown(shutdownCompletionHandler);
             }
 

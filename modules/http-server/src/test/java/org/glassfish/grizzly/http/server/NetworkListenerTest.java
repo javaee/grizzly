@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,9 +48,12 @@ import java.net.URL;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 
 import org.glassfish.grizzly.PortRange;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.utils.Futures;
 import org.junit.Test;
 import static org.junit.Assert.*;
 /**
@@ -150,6 +153,27 @@ public class NetworkListenerTest {
         } finally {
             server.shutdownNow();
         }
+    }
+    
+    @Test
+    public void testImmediateGracefulShutdown() throws Exception {
+        HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+        server.start();
+
+        final FutureImpl<Boolean> future = Futures.createSafeFuture();
+        server.shutdown().addCompletionHandler(new EmptyCompletionHandler<HttpServer>() {
+            @Override
+            public void completed(HttpServer arg) {
+                future.result(true);
+            }
+
+            @Override
+            public void failed(Throwable error) {
+                future.failure(error);
+            }
+        });
+
+        future.get(10, TimeUnit.SECONDS);
     }
     
     @Test
