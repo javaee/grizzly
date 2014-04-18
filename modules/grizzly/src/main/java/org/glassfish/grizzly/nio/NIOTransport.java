@@ -615,8 +615,16 @@ public abstract class NIOTransport extends AbstractTransport
 
     protected void finalizeShutdown() {
         if (shutdownService != null && !shutdownService.isShutdown()) {
+            final boolean isInterrupted = Thread.currentThread().isInterrupted();
             shutdownService.shutdownNow();
             shutdownService = null;
+            
+            if (!isInterrupted) {
+                // if we're in shutdown thread and prev status was "not-interrupted" -
+                // clear the interrupted flag, which might have been set
+                // when we shutdownNow() the shutdownService.
+                Thread.interrupted();
+            }
         }
 
         notifyProbesBeforeStop(this);
