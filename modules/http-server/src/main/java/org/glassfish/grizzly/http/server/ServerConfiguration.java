@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http.server;
 
 
 import java.util.Collections;
+import java.util.HashMap;
 import org.glassfish.grizzly.http.server.jmxbase.JmxEventListener;
 
 import java.util.Iterator;
@@ -60,13 +61,18 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
     private static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(-1);
 
-    private static final String[] ROOT_MAPPING = {"/"};
+    private static final HttpHandlerRegistration[] ROOT_MAPPING = {
+        HttpHandlerRegistration.bulder()
+        .contextPath("")
+        .urlPattern("/")
+        .build()
+    };
 
     // Non-exposed
 
-    final Map<HttpHandler, String[]> handlers =
-            DataStructures.<HttpHandler, String[]>getConcurrentMap();
-    private final Map<HttpHandler, String[]> unmodifiableHandlers =
+    final Map<HttpHandler, HttpHandlerRegistration[]> handlers =
+            DataStructures.<HttpHandler, HttpHandlerRegistration[]>getConcurrentMap();
+    private final Map<HttpHandler, HttpHandlerRegistration[]> unmodifiableHandlers =
             Collections.unmodifiableMap(handlers);
     final List<HttpHandler> orderedHandlers =
             new LinkedList<HttpHandler>();
@@ -99,6 +105,40 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
     // ---------------------------------------------------------- Public Methods
 
+    /**
+     * Adds the specified {@link HttpHandler} as a root handler.
+     *
+     * @param httpHandler a {@link HttpHandler}
+     */
+    public void addHttpHandler(final HttpHandler httpHandler) {
+        addHttpHandler(httpHandler, ROOT_MAPPING);
+    }
+
+    /**
+     * Adds the specified {@link HttpHandler}
+     * with its associated mapping(s). Requests will be dispatched to a
+     * {@link HttpHandler} based on these mapping
+     * values.
+     *
+     * @param httpHandler a {@link HttpHandler}
+     * @param mappings    context path mapping information.
+     */
+    public void addHttpHandler(final HttpHandler httpHandler,
+            final String... mappings) {
+        if (mappings == null || mappings.length == 0) {
+            addHttpHandler(httpHandler, ROOT_MAPPING);
+            return;
+        }
+        
+        final HttpHandlerRegistration[] registrations =
+                new HttpHandlerRegistration[mappings.length];
+        
+        for (int i = 0; i < mappings.length; i++) {
+            registrations[i] = HttpHandlerRegistration.fromString(mappings[i]);
+        }
+        
+        addHttpHandler(httpHandler, registrations);
+    }
 
     /**
      * Adds the specified {@link HttpHandler}
@@ -109,9 +149,10 @@ public class ServerConfiguration extends ServerFilterConfiguration {
      * @param httpHandler a {@link HttpHandler}
      * @param mapping        context path mapping information.
      */
-    public void addHttpHandler(final HttpHandler httpHandler, String... mapping) {
+    public void addHttpHandler(final HttpHandler httpHandler,
+            HttpHandlerRegistration... mapping) {
         synchronized (handlersSync) {
-            if (mapping == null) {
+            if (mapping == null || mapping.length == 0) {
                 mapping = ROOT_MAPPING;
             }
 
@@ -123,7 +164,7 @@ public class ServerConfiguration extends ServerFilterConfiguration {
             instance.onAddHttpHandler(httpHandler, mapping);
         }
     }
-
+    
     /**
      *
      * Removes the specified {@link HttpHandler}.
@@ -149,11 +190,48 @@ public class ServerConfiguration extends ServerFilterConfiguration {
      * Please note, the returned map is read-only.
      *
      * @return the {@link HttpHandler} map.
+     * @deprecated please use {@link #getHttpHandlersMap()}
      */
     public Map<HttpHandler, String[]> getHttpHandlers() {
-        return unmodifiableHandlers;
+        final Map<HttpHandler, String[]> map = new HashMap<HttpHandler, String[]>(
+                unmodifiableHandlers.size());
+        
+        for (Map.Entry<HttpHandler, HttpHandlerRegistration[]> entry : unmodifiableHandlers.entrySet()) {
+            final HttpHandlerRegistration[] regs = entry.getValue();
+            final String[] strRegs = new String[regs.length];
+            
+            for (int i = 0; i < regs.length; i++) {
+                final String contextPath = regs[i].getContextPath();
+                final String urlPattern = regs[i].getUrlPattern();
+                
+                if (contextPath == null) {
+                    strRegs[i] = urlPattern;
+                } else if (urlPattern == null) {
+                    strRegs[i] = contextPath;
+                } else if (contextPath.endsWith("/") && urlPattern.startsWith("/")) {
+                    strRegs[i] = contextPath.substring(0, contextPath.length() - 1) + urlPattern;
+                } else {
+                    strRegs[i] = contextPath + urlPattern;
+                }
+            }
+            
+            map.put(entry.getKey(), strRegs);
+        }
+        
+        return Collections.unmodifiableMap(map);
     }
 
+    /**
+     *
+     * Returns the {@link HttpHandler} map.
+     * Please note, the returned map is read-only.
+     *
+     * @return the {@link HttpHandler} map.
+     */
+    public Map<HttpHandler, HttpHandlerRegistration[]> getHttpHandlersWithMapping() {
+        return unmodifiableHandlers;
+    }
+    
     /**
      * Get the web server monitoring config.
      * 
@@ -301,6 +379,6 @@ public class ServerConfiguration extends ServerFilterConfiguration {
      */
     public void setAllowPayloadForUndefinedHttpMethods(boolean allowPayloadForUndefinedHttpMethods) {
         this.allowPayloadForUndefinedHttpMethods = allowPayloadForUndefinedHttpMethods;
-    }    
-
+    }
+    
 } // END ServerConfiguration

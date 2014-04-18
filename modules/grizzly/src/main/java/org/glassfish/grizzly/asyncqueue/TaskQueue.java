@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -95,7 +95,10 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
     }
 
     /**
-     * Gets the current processing task and reserves its place.
+     * Pools the current processing task.
+     * Note: after this operation call, any element could be put at the head of the queue
+     * using {@link #setCurrentElement(org.glassfish.grizzly.asyncqueue.AsyncQueueRecord)}
+     * without overwriting any existing queue element.
      *
      * @return the current processing task
      */
@@ -104,6 +107,27 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
         return current != null ? current : queue.poll();
     }
 
+    /**
+     * Get the current processing task, if the current in not set, take the
+     * task from the queue.
+     * Note: after this operation call, the current element could be removed
+     * from the queue using {@link #setCurrentElement(org.glassfish.grizzly.asyncqueue.AsyncQueueRecord)}
+     * and passing <tt>null</tt> as a parameter, this is a little bit more optimal
+     * alternative to {@link #poll()}.
+     * 
+     * @return the current processing task
+     */
+    public E peek() {
+        E current = currentElement.get();
+        if (current == null) {
+            current = queue.poll();
+            if (current != null) {
+                currentElement.set(current);
+            }
+        }
+        return current;
+    }
+    
     /**
      * Reserves memory space in the queue.
      *
@@ -143,27 +167,6 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
         return spaceInBytes.get();
     }
 
-    /**
-     * Get the current processing task, if the current in not set, take the
-     * task from the queue.
-     * 
-     * @return the current processing task
-     */
-    public E obtainCurrentElement() {
-        final E current = currentElement.get();
-        return current != null ? current : queue.poll();
-    }
-
-    /**
-     * Gets the current processing task and reserves its place.
-     * 
-     * @return the current processing task
-     */
-    public E obtainCurrentElementAndReserve() {
-        E current = currentElement.getAndSet(null);
-        return current != null ? current : queue.poll();
-    }
-    
     /**
      * Get the queue of tasks, which will be processed asynchronously
      * @return the queue of tasks, which will be processed asynchronously

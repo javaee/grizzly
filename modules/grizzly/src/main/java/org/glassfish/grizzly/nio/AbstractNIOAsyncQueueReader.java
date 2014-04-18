@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -195,7 +195,7 @@ public abstract class AbstractNIOAsyncQueueReader
         
         try {
             while ((queueRecord =
-                    connectionQueue.obtainCurrentElementAndReserve()) != null) {
+                    connectionQueue.poll()) != null) {
 
                 final ReadResult currentResult = queueRecord.getCurrentResult();
                 doRead(nioConnection, queueRecord);
@@ -283,7 +283,7 @@ public abstract class AbstractNIOAsyncQueueReader
                 cachedEOFException = error;
             }
             AsyncReadQueueRecord record;
-            while ((record = readQueue.obtainCurrentElementAndReserve()) != null) {
+            while ((record = readQueue.poll()) != null) {
                 record.notifyFailure(error);
             }
         }

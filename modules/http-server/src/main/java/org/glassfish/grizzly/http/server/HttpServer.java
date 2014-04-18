@@ -306,8 +306,8 @@ public class HttpServer {
 
         synchronized (serverConfig.handlersSync) {
             for (final HttpHandler httpHandler : serverConfig.orderedHandlers) {
-                final String[] mappings = serverConfig.handlers.get(httpHandler);
-                httpHandlerChain.addHandler(httpHandler, mappings);
+                httpHandlerChain.addHandler(httpHandler,
+                        serverConfig.handlers.get(httpHandler));
             }
         }
         httpHandlerChain.start();
@@ -821,9 +821,10 @@ public class HttpServer {
     /**
      * Modifies handlers mapping during runtime.
      */
-    synchronized void onAddHttpHandler(HttpHandler httpHandler, String[] mapping) {
+    synchronized void onAddHttpHandler(HttpHandler httpHandler,
+            final HttpHandlerRegistration[] registrations) {
         if (isStarted()) {
-            httpHandlerChain.addHandler(httpHandler, mapping);
+            httpHandlerChain.addHandler(httpHandler, registrations);
         }
     }
 
