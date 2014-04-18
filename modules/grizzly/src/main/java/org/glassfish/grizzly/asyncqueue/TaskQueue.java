@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -111,21 +111,35 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
     /**
      * Get the current processing task, if the current in not set, take the
      * task from the queue.
+     * Note: after this operation call, the current element could be removed
+     * from the queue using {@link #setCurrentElement(org.glassfish.grizzly.asyncqueue.AsyncQueueRecord)}
+     * and passing <tt>null</tt> as a parameter, this is a little bit more optimal
+     * alternative to {@link #poll()}.
      * 
      * @return the current processing task
      */
     public E peek() {
-        final E current = currentElement.get();
-        return current != null ? current : queue.poll();
+        E current = currentElement.get();
+        if (current == null) {
+            current = queue.poll();
+            if (current != null) {
+                currentElement.set(current);
+            }
+        }
+        return current;
     }
-
+        
     /**
-     * Gets the current processing task and reserves its place.
+     * Returns the current processing task and removes it from the queue.
      * 
-     * @return the current processing task
+     * Note: after this operation call, any element could be put at the head of the queue
+     * using {@link #setCurrentElement(org.glassfish.grizzly.asyncqueue.AsyncQueueRecord)}
+     * without overwriting any existing queue element.
+     *
+     * @return the current processing task and removes it from the queue.
      */
     public E poll() {
-        E current = currentElement.getAndSet(null);
+        final E current = currentElement.getAndSet(null);
         return current != null ? current : queue.poll();
     }
     
