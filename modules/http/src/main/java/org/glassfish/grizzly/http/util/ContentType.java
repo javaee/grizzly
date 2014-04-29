@@ -248,6 +248,7 @@ public class ContentType {
         
         // if there's prepared String - convert it to a byte array
         if (compiledContentType != null) {
+            checkArray(compiledContentType.length());
             compiledContentTypeArray = toCheckedByteArray(compiledContentType, array, 0);
             len = compiledContentType.length();
             return compiledContentTypeArray;
@@ -257,6 +258,7 @@ public class ContentType {
             // if we have unparsed content-type and no charset set independently -
             // convert the unparsedContentType to a byte array
             if (quotedCharsetValue == null) {
+                checkArray(unparsedContentType.length());
                 compiledContentTypeArray = toCheckedByteArray(unparsedContentType, array, 0);
                 return compiledContentTypeArray;
             }
@@ -276,9 +278,7 @@ public class ContentType {
             // if isCharsetSet - build a content-type array: mimeType + CHARSET_BYTES + quotedCharsetValue
             final int qcssz = quotedCharsetValue.length();
             final int len = mtsz + qcssz + CHARSET_BYTES.length;
-            if (len > array.length) {
-                array = new byte[array.length * 2];
-            }
+            checkArray(len);
 
             toCheckedByteArray(mimeType, array, 0);
             System.arraycopy(CHARSET_BYTES, 0, array, mtsz, CHARSET_BYTES.length);
@@ -288,8 +288,9 @@ public class ContentType {
             this.len = len;
         } else {
             // otherwise build the array based on mimeType only
+            checkArray(mtsz);
             toCheckedByteArray(mimeType, array, 0);
-            this.len = mimeType.length();
+            this.len = mtsz;
         }
 
         compiledContentTypeArray = array;
@@ -590,6 +591,12 @@ public class ContentType {
         
         return toCheckedByteArray(charset, contentType,
                 mimeType.length + CHARSET_BYTES.length);
+    }
+
+    private void checkArray(final int len) {
+        if (len > array.length) {
+            array = new byte[len << 1];
+        }
     }
     
     /**
