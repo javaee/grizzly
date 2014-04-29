@@ -134,6 +134,43 @@ public class ContentTypeTest {
                                 Charsets.ASCII_CHARSET));
         assertEquals("text/plain", ct.getMimeType());
         assertEquals("UTF-16", ct.getCharacterEncoding());
+
+        ct.reset();
+        
+        final String longCt = "text/plain;aaa=aaa1;bbb=bbb1;charset=UTF-8;ccc=ccc1;ddd=ddd1;eee=eee1;fff=fff1";
+        final String longMt = longCt.replace("charset=UTF-8;", "");
+        
+        // test long content-type
+        ct.set(longCt);
+        
+        assertEquals(longCt,
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
+        assertEquals(longMt, ct.getMimeType());
+        assertEquals("UTF-8", ct.getCharacterEncoding());
+        
+        ct.reset();
+
+        // test long content-type
+        ct.setCharacterEncoding("charset=Shift_Jis");
+        ct.set(longCt);
+        
+        assertEquals(longMt + ";charset=UTF-8",
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
+        assertEquals(longMt, ct.getMimeType());
+        assertEquals("UTF-8", ct.getCharacterEncoding());
+
+        ct.reset();
+        
+        ct.setMimeType(longMt);
+        ct.setCharacterEncoding("UTF-16");
+        
+        assertEquals(longMt + ";charset=UTF-16",
+                     new String(ct.getByteArray(), 0, ct.getArrayLen(),
+                                Charsets.ASCII_CHARSET));
+        assertEquals(longMt, ct.getMimeType());
+        assertEquals("UTF-16", ct.getCharacterEncoding());
         
     }
 }
