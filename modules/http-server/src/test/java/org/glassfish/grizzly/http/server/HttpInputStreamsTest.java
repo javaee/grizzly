@@ -67,6 +67,7 @@ import java.nio.CharBuffer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.Buffers;
@@ -1331,7 +1332,12 @@ public class HttpInputStreamsTest extends TestCase {
             connection = connectFuture.get(30, TimeUnit.SECONDS);
             for (int i = 0; i < count; i++) {
                 connection.write(requestBuilder.build());
-                testResultQueue.poll(30, TimeUnit.SECONDS).get();
+                final Future<Boolean> result =
+                        testResultQueue.poll(30, TimeUnit.SECONDS);
+                if (result == null) {
+                    throw new TimeoutException();
+                }
+                result.get();
             }
         } finally {
             // Close the client connection
