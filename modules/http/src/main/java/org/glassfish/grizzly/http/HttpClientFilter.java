@@ -152,11 +152,25 @@ public class HttpClientFilter extends HttpCodecFilter {
             httpResponse.setSecure(isSecure(connection));
             httpResponseInProcessAttr.set(connection, httpResponse);
         }
-
-        HttpContext.newInstance(connection,
-                connection, connection, httpResponse.getRequest())
-                .attach(ctx);
         
+        final HttpRequestPacket request = httpResponse.getRequest();
+        HttpContext httpCtx;
+        if (request != null) {
+            httpCtx = request.getProcessingState().getHttpContext();
+            if (httpCtx == null) {
+                httpCtx = HttpContext.newInstance(connection,
+                        connection, connection, request);
+                request.getProcessingState().setHttpContext(httpCtx);
+            }
+
+        } else {
+            // normally it shouldn't happen, but we use this path in tests to
+            // check HttpResponsePacket parsing
+            httpCtx = HttpContext.newInstance(connection,
+                    connection, connection, null);
+        }
+        
+        httpCtx.attach(ctx);
         return handleRead(ctx, httpResponse);
     }
 
