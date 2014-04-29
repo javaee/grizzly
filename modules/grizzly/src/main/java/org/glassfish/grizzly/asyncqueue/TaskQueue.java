@@ -126,6 +126,13 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
                 currentElement.set(current);
             }
         }
+        
+        if (current != null &&
+                isClosed && currentElement.compareAndSet(current, null)) {
+            current.notifyFailure(new IOException("Connection closed"));
+            return null;
+        }
+        
         return current;
     }
         
@@ -214,10 +221,23 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
      */
     public void setCurrentElement(final E task) {
         currentElement.set(task);
+        
+        if (task != null && isClosed && currentElement.compareAndSet(task, null)) {
+            task.notifyFailure(new IOException("Connection closed"));
+        }
     }
 
     public boolean compareAndSetCurrentElement(final E expected, final E newValue) {
-        return currentElement.compareAndSet(expected, newValue);
+        if (currentElement.compareAndSet(expected, newValue)) {
+            if (newValue != null && isClosed && currentElement.compareAndSet(newValue, null)) {
+                newValue.notifyFailure(new IOException("Connection closed"));
+                return false;
+            }
+            
+            return true;
+        }
+        
+        return false;
     }
 
 
@@ -237,6 +257,9 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
      */
     public void offer(final E task) {
         queue.offer(task);
+        if (isClosed && queue.remove(task)) {
+            task.notifyFailure(new IOException("Connection closed"));
+        }
     }
     
     public boolean isEmpty() {        

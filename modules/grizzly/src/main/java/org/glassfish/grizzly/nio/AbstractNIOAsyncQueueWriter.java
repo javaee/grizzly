@@ -220,7 +220,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                     writeTaskQueue.setCurrentElement(queueRecord);
                     enqueOnReadyNotification(nioConnection);  // Enqueue async onReady() call
                 } else {
-                    offerToTaskQueue(nioConnection, queueRecord, writeTaskQueue);
+                    writeTaskQueue.offer(queueRecord);
                 }
 
                 return;
@@ -266,7 +266,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 enqueOnReadyNotification(nioConnection);
 //                enableWriteInterest(connection);
             } else {
-                offerToTaskQueue(nioConnection, queueRecord, writeTaskQueue);
+                writeTaskQueue.offer(queueRecord);
             }
         } catch (IOException e) {
             if (isLogFine) {
@@ -402,18 +402,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                     nioConnection, queueRecord);
         }
     }
-    
-    protected static void offerToTaskQueue(
-            final NIOConnection nioConnection,
-            final AsyncWriteQueueRecord queueRecord,
-            final TaskQueue<AsyncWriteQueueRecord> taskQueue) {
         
-        taskQueue.offer(queueRecord);
-        if (!nioConnection.isOpen() && taskQueue.remove(queueRecord)) {
-            onWriteFailure(nioConnection, queueRecord, new IOException("Connection is closed"));
-        }
-    }
-    
     private static WritableMessage notifyThreadContextSwitch(
             final Connection connection,
             final LifeCycleHandler lifeCycleHandler,
