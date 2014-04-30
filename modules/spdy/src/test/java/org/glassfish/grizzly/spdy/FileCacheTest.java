@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -107,11 +107,13 @@ public class FileCacheTest extends AbstractSpdyTest {
     public static final int PORT = 18891;
     private HttpServer httpServer;
 
+    private final SpdyVersion spdyVersion;
     private final SpdyMode spdyMode;
     private final boolean isSecure;
     
-    public FileCacheTest(final SpdyMode spdyMode,
+    public FileCacheTest(final SpdyVersion spdyVersion, final SpdyMode spdyMode,
             final boolean isSecure) {
+        this.spdyVersion = spdyVersion;
         this.spdyMode = spdyMode;
         this.isSecure = isSecure;
     }
@@ -403,7 +405,7 @@ public class FileCacheTest extends AbstractSpdyTest {
 
 
     private void configureHttpServer() throws Exception {
-        httpServer = createServer(null, PORT, spdyMode, isSecure, true);
+        httpServer = createServer(null, PORT, spdyVersion, spdyMode, isSecure, true);
         httpServer.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(-1);
     }
 
@@ -418,7 +420,7 @@ public class FileCacheTest extends AbstractSpdyTest {
     throws Exception {
 
         final FilterChain clientChain =
-                createClientFilterChainAsBuilder(spdyMode, isSecure,
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure,
                 new HttpMessageFilter(inQueue))
                 .build();
 

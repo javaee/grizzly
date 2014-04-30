@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -89,11 +89,14 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
     private static final Logger LOGGER = Grizzly.logger(NIOOutputSinksTest.class);
     private static final int PORT = 9339;
 
+    private final SpdyVersion spdyVersion;
     private final SpdyMode spdyMode;
     private final boolean isSecure;
     
-    public NIOOutputSinksTest(final SpdyMode spdyMode,
+    public NIOOutputSinksTest(final SpdyVersion spdyVersion,
+            final SpdyMode spdyMode,
             final boolean isSecure) {
+        this.spdyVersion = spdyVersion;
         this.spdyMode = spdyMode;
         this.isSecure = isSecure;
     }
@@ -111,7 +114,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         
         FilterChainBuilder filterChainBuilder =
-                createClientFilterChainAsBuilder(spdyMode, isSecure);
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new BaseFilter() {
 
             private int bytesRead;
@@ -262,7 +265,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
 
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder =
-                createClientFilterChainAsBuilder(spdyMode, isSecure);
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new BaseFilter() {
 
             private int bytesRead;
@@ -379,7 +382,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         
         FilterChainBuilder filterChainBuilder =
-                createClientFilterChainAsBuilder(spdyMode, isSecure);
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new BaseFilter() {
 
             private int bytesRead;
@@ -534,7 +537,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder =
-                createClientFilterChainAsBuilder(spdyMode, isSecure);
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new BaseFilter() {
 
             private int bytesRead;
@@ -642,7 +645,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         final int size = 1024;        
         
         FilterChainBuilder filterChainBuilder =
-                createClientFilterChainAsBuilder(spdyMode, isSecure);
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new BaseFilter() {
 
             @Override
@@ -763,7 +766,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         final FutureImpl<String> parseResult = SafeFutureImpl.create();
         
         FilterChainBuilder filterChainBuilder =
-                createClientFilterChainAsBuilder(spdyMode, isSecure);
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new BaseFilter() {
             private final StringBuilder sb = new StringBuilder();
             
@@ -871,7 +874,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
 
         final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.<HttpHeader>create();
         final FilterChainBuilder filterChainBuilder =
-                createClientFilterChainAsBuilder(spdyMode, isSecure);
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new BaseFilter() {
 
             @Override
@@ -1006,7 +1009,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                 
         final FutureImpl<Integer> parseResult = SafeFutureImpl.<Integer>create();
         FilterChainBuilder filterChainBuilder =
-                createClientFilterChainAsBuilder(spdyMode, isSecure);
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new BaseFilter() {
             private int bytesRead;
 
@@ -1173,7 +1176,8 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
     }
     
     private HttpServer createWebServer(final HttpHandler httpHandler) {
-        final HttpServer httpServer = createServer(null, PORT, spdyMode, isSecure,
+        final HttpServer httpServer = createServer(null, PORT, spdyVersion,
+                spdyMode, isSecure,
                 HttpHandlerRegistration.of(httpHandler, "/path/*"));
         
         final NetworkListener listener = httpServer.getListener("grizzly");

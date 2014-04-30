@@ -192,7 +192,7 @@ public class TestMain {
                 }, "/post");
 
         server.getServerConfiguration().addHttpHandler(
-                new StaticHttpHandler("/home/oleksiys/Downloads"), "/download");
+                new StaticHttpHandler("/Users/oleksiys/Downloads"), "/download");
         
         try {
             server.start();

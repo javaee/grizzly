@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -84,7 +84,8 @@ public class NetworkListenerTest extends AbstractSpdyTest {
                 new LinkedBlockingQueue<HttpContent>();
         
         final FilterChain filterChain =
-                createClientFilterChainAsBuilder(SpdyMode.PLAIN, true,
+                createClientFilterChainAsBuilder(SpdyVersion.SPDY_3_1,
+                        SpdyMode.PLAIN, true,
                 new BaseFilter() {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
@@ -100,7 +101,8 @@ public class NetworkListenerTest extends AbstractSpdyTest {
                 .setProcessor(filterChain)
                 .build();
 
-        final HttpServer server = createServer(null, PORT, SpdyMode.PLAIN, true,
+        final HttpServer server = createServer(null, PORT, SpdyVersion.SPDY_3_1,
+                SpdyMode.PLAIN, true,
                 HttpHandlerRegistration.of(new HttpHandler() {
                     @Override
                     public void service(Request request, Response response) throws Exception {

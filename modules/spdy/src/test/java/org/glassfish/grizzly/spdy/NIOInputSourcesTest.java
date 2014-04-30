@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -104,11 +104,14 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
     private static final char[] ALPHA = "abcdefghijklmnopqrstuvwxyz".toCharArray();
     private static final int PORT = 18301;
 
+    private final SpdyVersion spdyVersion;
     private final SpdyMode spdyMode;
     private final boolean isSecure;
     
-    public NIOInputSourcesTest(final SpdyMode spdyMode,
+    public NIOInputSourcesTest(final SpdyVersion spdyVersion,
+            final SpdyMode spdyMode,
             final boolean isSecure) {
+        this.spdyVersion = spdyVersion;
         this.spdyMode = spdyMode;
         this.isSecure = isSecure;
     }
@@ -513,7 +516,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         clientTransport.setProcessor(
-                createClientFilterChain(spdyMode, isSecure));
+                createClientFilterChain(spdyVersion, spdyMode, isSecure));
         
         final HttpHandler httpHandler = new HttpHandler() {
 
@@ -608,7 +611,8 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 
 
     private HttpServer createWebServer(final HttpHandler httpHandler) {
-        final HttpServer httpServer = createServer(null, PORT, spdyMode, isSecure,
+        final HttpServer httpServer = createServer(null, PORT, spdyVersion,
+                spdyMode, isSecure,
                 HttpHandlerRegistration.of(httpHandler, "/path/*"));
         
         final NetworkListener listener = httpServer.getListener("grizzly");
@@ -676,7 +680,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
             server.start();
             
             FilterChain clientFilterChain =
-                    createClientFilterChain(spdyMode, isSecure, filter);
+                    createClientFilterChain(spdyVersion, spdyMode, isSecure, filter);
             
             clientTransport.setProcessor(clientFilterChain);
             clientTransport.start();

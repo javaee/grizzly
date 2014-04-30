@@ -56,19 +56,15 @@ import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.AttributeStorage;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
-import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.OutputSink;
-import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
@@ -103,14 +99,11 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     
     private final SpdySession spdySession;
     
-    private volatile int peerWindowSize = -1;
-    private volatile int localWindowSize = -1;
-    
     private final AttributeHolder attributes =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createSafeAttributeHolder();
 
-    final SpdyInputBuffer inputBuffer;
-    final SpdyOutputSink outputSink;
+    final StreamInputBuffer inputBuffer;
+    final StreamOutputSink outputSink;
     
     // closeTypeFlag, "null" value means the connection is open.
     final AtomicReference<CloseType> closeTypeFlag =
@@ -147,20 +140,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         return null;
     }
 
-    static SpdyStream create(final SpdySession spdySession,
-            final HttpRequestPacket spdyRequest,
-            final int streamId, final int associatedToStreamId,
-            final int priority, final int slot,
-            final boolean isUnidirectional) {
-        final SpdyStream spdyStream = new SpdyStream(spdySession, spdyRequest,
-                streamId, associatedToStreamId, priority, slot, isUnidirectional);
-        
-        HTTP_RQST_SPDY_STREAM_ATTR.set(spdyRequest, spdyStream);
-        
-        return spdyStream;
-    }
-    
-    private SpdyStream(final SpdySession spdySession,
+    protected SpdyStream(final SpdySession spdySession,
             final HttpRequestPacket spdyRequest,
             final int streamId, final int associatedToStreamId,
             final int priority, final int slot,
@@ -173,8 +153,10 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         this.slot = slot;
         this.isUnidirectional = isUnidirectional;
         
-        inputBuffer = new SpdyInputBuffer(this);
-        outputSink = new SpdyOutputSink(this);
+        inputBuffer = new StreamInputBuffer(this);
+        outputSink = new StreamOutputSink(this);
+        
+        HTTP_RQST_SPDY_STREAM_ATTR.set(spdyRequest, this);
     }
 
     SpdySession getSpdySession() {
@@ -182,13 +164,18 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
 
     public int getPeerWindowSize() {
-        return peerWindowSize != -1 ? peerWindowSize :
-                spdySession.getPeerInitialWindowSize();
+        return spdySession.getPeerStreamWindowSize();
     }
 
     public int getLocalWindowSize() {
-        return localWindowSize != -1 ? localWindowSize :
-                spdySession.getLocalInitialWindowSize();
+        return spdySession.getLocalStreamWindowSize();
+    }
+    
+    /**
+     * @return the number of writes (not bytes), that haven't reached network layer
+     */
+    public int getUnflushedWritesCount() {
+        return outputSink.getUnflushedWritesCount() ;
     }
     
     public HttpRequestPacket getSpdyRequest() {
@@ -259,11 +246,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
 
     @Override
-    public void notifyCanWrite(WriteHandler handler, int length) {
-
-    }
-
-    @Override
+    @Deprecated
     public boolean canWrite(int length) {
         return canWrite();
     }
@@ -286,43 +269,22 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
 
     @Override
-    public void notifyCanWrite(WriteHandler writeHandler) {
+    @Deprecated
+    public void notifyCanWrite(final WriteHandler handler, final int length) {
+        notifyCanWrite(handler);
+    }
+    
+    @Override
+    public void notifyCanWrite(final WriteHandler writeHandler) {
         // pass peer-window-size as max, even though these values are independent.
         // later we may want to decouple outputQueue's max-size and peer-window-size
         outputSink.outputQueue.notifyWritePossible(writeHandler, getPeerWindowSize());
     }
 
-    void onPeerWindowUpdate(final int delta) throws SpdyStreamException {
-        outputSink.onPeerWindowUpdate(delta);
+    StreamOutputSink getOutputSink() {
+        return outputSink;
     }
     
-    void writeDownStream(final HttpPacket httpPacket) throws IOException {
-        outputSink.writeDownStream(httpPacket, null);
-    }
-    
-    void writeDownStream(final Source resource) throws IOException {
-        outputSink.writeDownStream(resource);
-    }
-
-    void writeDownStream(final HttpPacket httpPacket,
-                         final FilterChainContext ctx,
-                         final CompletionHandler<WriteResult> completionHandler)
-    throws IOException {
-        outputSink.writeDownStream(httpPacket, ctx, completionHandler);
-    }
-    
-    @SuppressWarnings("unchecked")
-    void writeDownStream(final HttpPacket httpPacket,
-                         final FilterChainContext ctx,
-                         final CompletionHandler<WriteResult> completionHandler,
-                         final MessageCloner messageCloner)
-            throws IOException {
-        outputSink.writeDownStream(httpPacket,
-                                   ctx,
-                                   completionHandler,
-                                   messageCloner);
-    }
-
     @Override
     public GrizzlyFuture<Closeable> terminate() {
         final FutureImpl<Closeable> future = Futures.createSafeFuture();
@@ -477,26 +439,6 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         }
     }
     
-    /**
-     * On first received data frame we have to figure out the peer
-     * window size used for this stream.
-     */
-    void onDataFrameReceive() {
-        if (peerWindowSize == -1) {
-            peerWindowSize = spdySession.getPeerInitialWindowSize();
-        }
-    }
-    
-    /**
-     * On first sent data frame we have to figure out our local
-     * window size used for this stream.
-     */
-    void onDataFrameSend() {
-        if (localWindowSize == -1) {
-            localWindowSize = spdySession.getLocalInitialWindowSize();
-        }
-    }
-
     void onSynFrameRcv() throws SpdyStreamException {
         if (!isSynFrameRcv) {
             isSynFrameRcv = true;
@@ -510,17 +452,25 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     private Buffer cachedInputBuffer;
     private boolean cachedIsLast;
     
-    void offerInputData(final Buffer data, final boolean isLast)
-            throws SpdyStreamException {
+    SpdyStreamException assertCanAcceptData() {
+        if (isUnidirectional() && isLocallyInitiatedStream()) {
+            return new SpdyStreamException(getStreamId(),
+                    RstStreamFrame.PROTOCOL_ERROR,
+                    "Data frame received on unidirectional stream");
+        }
+
         if (!isSynFrameRcv) {
             close0(null, true, false);
             
-            throw new SpdyStreamException(getStreamId(),
-                    RstStreamFrame.PROTOCOL_ERROR, "DataFrame came before SynReply");
+            return new SpdyStreamException(getStreamId(),
+                    RstStreamFrame.PROTOCOL_ERROR, "DataFrame came before Syn frame");
         }
         
-        onDataFrameReceive();
-        
+        return null;
+    }
+    
+    void offerInputData(final Buffer data, final boolean isLast)
+            throws SpdyStreamException {
         final boolean isFirstBufferCached = (cachedInputBuffer == null);
         cachedIsLast |= isLast;
         cachedInputBuffer = Buffers.appendBuffers(
@@ -545,7 +495,13 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
                 ((CompositeBuffer) cachedInputBufferLocal).disposeOrder(DisposeOrder.LAST_TO_FIRST);
             }
             
-            inputBuffer.offer(cachedInputBufferLocal, cachedIsLastLocal);
+            final int size = cachedInputBufferLocal.remaining();
+            if (!inputBuffer.offer(cachedInputBufferLocal, cachedIsLastLocal)) {
+                // if we can't add this buffer to the stream input buffer -
+                // we have to release the part of connection window allocated
+                // for the buffer
+                spdySession.sendWindowUpdate(size);
+            }
         }
     }
     

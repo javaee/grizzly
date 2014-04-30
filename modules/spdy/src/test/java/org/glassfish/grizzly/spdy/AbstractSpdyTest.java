@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -79,11 +79,15 @@ public abstract class AbstractSpdyTest {
     public static Collection<Object[]> getSpdyModes() {
         final Collection<Object[]> modes = new LinkedList<Object[]>();
         
-        modes.add(new Object[] {SpdyMode.PLAIN, Boolean.FALSE});
-        modes.add(new Object[] {SpdyMode.PLAIN, Boolean.TRUE});
+//        modes.add(new Object[] {SpdyVersion.SPDY_3, SpdyMode.PLAIN, Boolean.FALSE});
+//        modes.add(new Object[] {SpdyVersion.SPDY_3, SpdyMode.PLAIN, Boolean.TRUE});
+        
+        modes.add(new Object[] {SpdyVersion.SPDY_3_1, SpdyMode.PLAIN, Boolean.FALSE});
+        modes.add(new Object[] {SpdyVersion.SPDY_3_1, SpdyMode.PLAIN, Boolean.TRUE});
         
         if (NextProtoNegSupport.isEnabled()) {
-            modes.add(new Object[] {SpdyMode.NPN, Boolean.TRUE});
+//            modes.add(new Object[] {SpdyVersion.SPDY_3, SpdyMode.NPN, Boolean.TRUE});
+            modes.add(new Object[] {SpdyVersion.SPDY_3_1, SpdyMode.NPN, Boolean.TRUE});
         } else {
             LOGGER.info("NPN is not supported by this JDK, so NPN mode will be skipped");
         }
@@ -94,15 +98,17 @@ public abstract class AbstractSpdyTest {
     protected SpdyAddOn spdyAddon;
     
     protected HttpServer createServer(final String docRoot, final int port,
+            final SpdyVersion spdyVersion,
             final SpdyMode spdyMode,
             final boolean isSecure,
             final HttpHandlerRegistration... registrations) {
         
-        return createServer(docRoot, port, spdyMode, isSecure, false,
-                registrations);
+        return createServer(docRoot, port, spdyVersion, spdyMode, isSecure,
+                false, registrations);
     }
     
     protected HttpServer createServer(final String docRoot, final int port,
+            final SpdyVersion spdyVersion,
             final SpdyMode spdyMode,
             final boolean isSecure,
             final boolean isFileCacheEnabled,
@@ -118,7 +124,7 @@ public abstract class AbstractSpdyTest {
             listener.setSSLEngineConfig(getServerSSLEngineConfigurator());
         }
 
-        spdyAddon = new SpdyAddOn(spdyMode);
+        spdyAddon = new SpdyAddOn(spdyMode, spdyVersion);
         listener.registerAddOn(spdyAddon);
         
         ServerConfiguration sconfig = server.getServerConfiguration();
@@ -132,16 +138,18 @@ public abstract class AbstractSpdyTest {
     
 
     protected static FilterChain createClientFilterChain(
+            final SpdyVersion spdyVersion,
             final SpdyMode spdyMode,
             final boolean isSecure,
             final Filter... clientFilters) {
         
-        return createClientFilterChainAsBuilder(spdyMode, isSecure,
+        return createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure,
                 clientFilters).build();
     }
     
 
     protected static FilterChainBuilder createClientFilterChainAsBuilder(
+            final SpdyVersion spdyVersion,
             final SpdyMode spdyMode,
             final boolean isSecure,
             final Filter... clientFilters) {
@@ -153,7 +161,7 @@ public abstract class AbstractSpdyTest {
         }
         
         builder.add(new SpdyFramingFilter())
-                .add(new SpdyHandlerFilter(spdyMode));
+                .add(new SpdyHandlerFilter(spdyMode, spdyVersion));
         
         if (clientFilters != null) {
             for (Filter clientFilter : clientFilters) {

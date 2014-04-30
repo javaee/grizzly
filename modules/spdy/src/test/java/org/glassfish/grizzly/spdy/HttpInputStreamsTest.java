@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -88,11 +88,14 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     private static final int PORT = 18300;
 
 
+    private final SpdyVersion spdyVersion;
     private final SpdyMode spdyMode;
     private final boolean isSecure;
     
-    public HttpInputStreamsTest(final SpdyMode spdyMode,
+    public HttpInputStreamsTest(final SpdyVersion spdyVersion,
+            final SpdyMode spdyMode,
             final boolean isSecure) {
+        this.spdyVersion = spdyVersion;
         this.spdyMode = spdyMode;
         this.isSecure = isSecure;
     }
@@ -1254,7 +1257,8 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
         final Filter clientFilter = new ClientFilter(request, chunkSize, testResult);
         
-        final HttpServer server = createServer("/tmp", PORT, spdyMode, isSecure,
+        final HttpServer server = createServer("/tmp", PORT, spdyVersion,
+                spdyMode, isSecure,
                 HttpHandlerRegistration.of(new SimpleResponseHttpHandler(strategy, testResult), "/*"));
         
         TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
@@ -1263,7 +1267,8 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
             server.start();
             
             final FilterChain clientFilterChain =
-                    createClientFilterChain(spdyMode, isSecure, clientFilter);
+                    createClientFilterChain(spdyVersion, spdyMode, isSecure,
+                            clientFilter);
             
             ctransport.setProcessor(clientFilterChain);
 

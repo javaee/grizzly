@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -292,7 +292,8 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
             server.start();
             
             final FilterChain clientFilterChain =
-                    createClientFilterChain(SpdyMode.PLAIN, false);
+                    createClientFilterChain(SpdyVersion.SPDY_3_1,
+                            SpdyMode.PLAIN, false);
             setMaxConcurrentStreams(clientFilterChain, maxConcurrentStreams);
             clientTransport.setProcessor(clientFilterChain);
 
@@ -756,7 +757,8 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
             
             server.start();
             final FilterChainBuilder clientFilterChainBuilder =
-                    createClientFilterChainAsBuilder(SpdyMode.PLAIN, false);
+                    createClientFilterChainAsBuilder(SpdyVersion.SPDY_3_1,
+                            SpdyMode.PLAIN, false);
             
             clientFilterChainBuilder.add(new BaseFilter() {
                 @Override
@@ -1047,7 +1049,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 
                 try {
                     for (int i = 0; i < 1023; i++) {
-                        uSpdyStream.writeDownStream(
+                        uSpdyStream.getOutputSink().writeDownStream(
                                 HttpContent.builder(uRequest)
                                 .content(Buffers.wrap(mm, "A"))
                                 .last(false)
@@ -1055,6 +1057,8 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
 
                         Thread.sleep(200);
                     }
+                    uStreamCloseFuture.failure(new IllegalStateException(
+                            "Exception had to be thrown"));
                 } catch (IOException e) {
                     uStreamCloseFuture.result(Boolean.TRUE);
                 }
@@ -1124,12 +1128,13 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
     }
     
     private HttpServer createServer(final HttpHandlerRegistration... registrations) {
-        return createServer(".", PORT, SpdyMode.PLAIN, false, registrations);
+        return createServer(".", PORT, SpdyVersion.SPDY_3_1, SpdyMode.PLAIN,
+                false, registrations);
     }
     
     private static FilterChainBuilder createRawClientFilterChainAsBuilder() {
         final FilterChainBuilder builder = createClientFilterChainAsBuilder(
-                SpdyMode.PLAIN, false);
+                SpdyVersion.SPDY_3_1, SpdyMode.PLAIN, false);
         final int handlerIdx = builder.indexOfType(SpdyHandlerFilter.class);
         if (handlerIdx != -1) {
             builder.remove(handlerIdx);
