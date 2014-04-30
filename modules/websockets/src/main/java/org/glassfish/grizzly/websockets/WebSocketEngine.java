@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,6 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.server.util.Mapper;
-import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
@@ -106,12 +105,22 @@ public class WebSocketEngine {
 
 
     public WebSocketApplication getApplication(HttpRequestPacket request) {
-        return getApplication(request, true);
+        return getApplication(request, mapper).app;
     }
 
-    public WebSocketApplication getApplication(HttpRequestPacket request,
-            final boolean checkPrivateMapper) {
-        if (checkPrivateMapper) {
+    private WebSocketApplicationReg getApplication(
+            final HttpRequestPacket request,
+            Mapper mapper) {
+        
+        final boolean isGlassfishMapper;
+        if (mapper == null) {
+            mapper = this.mapper;
+            isGlassfishMapper = false;
+        } else {
+            isGlassfishMapper = true;
+        }
+        
+        if (mapper != null) {
             // try the Mapper first...
             MappingData data = new MappingData();
             try {
@@ -120,7 +129,9 @@ public class WebSocketEngine {
                                     data,
                                     0);
                 if (data.wrapper != null) {
-                    return (WebSocketApplication) data.wrapper;
+                    data.isGlassfish = isGlassfishMapper;
+                    return new WebSocketApplicationReg(
+                            (WebSocketApplication) data.wrapper, data);
                 }
             } catch (Exception e) {
                 if (logger.isLoggable(Level.SEVERE)) {
@@ -131,7 +142,7 @@ public class WebSocketEngine {
 
         for (WebSocketApplication application : applications) {
             if (application.upgrade(request)) {
-                return application;
+                return new WebSocketApplicationReg(application, null);
             }
         }
         
@@ -148,13 +159,12 @@ public class WebSocketEngine {
             Mapper mapper) throws IOException {
         final HttpRequestPacket request =
                 (HttpRequestPacket) requestContent.getHttpHeader();
-        final WebSocketApplication app =
-                WebSocketEngine.getEngine().getApplication(request,
-                mapper == null);
+        final WebSocketApplicationReg reg =
+                WebSocketEngine.getEngine().getApplication(request, mapper);
         
         WebSocket socket = null;
         try {
-            if (app != null) {
+            if (reg != null) {
                 final ProtocolHandler protocolHandler = loadHandler(request.getHeaders());
                 if (protocolHandler == null) {
                     handleUnsupportedVersion(ctx, request);
@@ -163,9 +173,11 @@ public class WebSocketEngine {
                 final Connection connection = ctx.getConnection();
                 protocolHandler.setFilterChainContext(ctx);
                 protocolHandler.setConnection(connection);
-                protocolHandler.setMapper(mapper);
+                protocolHandler.setMappingData(reg.mappingData);
                 
                 ctx.setMessage(null); // remove the message from the context, so underlying layers will not try to update it.
+                
+                final WebSocketApplication app = reg.app;
                 socket = app.createSocket(protocolHandler, request, app);
                 WebSocketHolder holder =
                         WebSocketHolder.set(connection, protocolHandler, socket);
@@ -325,4 +337,14 @@ public class WebSocketEngine {
         return ctx;
     }
 
+    private static class WebSocketApplicationReg {
+        private final WebSocketApplication app;
+        private final MappingData mappingData;
+
+        public WebSocketApplicationReg(final WebSocketApplication app,
+                final MappingData mappingData) {
+            this.app = app;
+            this.mappingData = mappingData;
+        }
+    }
 }
