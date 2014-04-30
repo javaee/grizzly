@@ -702,6 +702,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                             if (repliesGot == normalRequestsCounter) {
                                 return;
                             }
+                        case WindowUpdateFrame.TYPE:
                         case SettingsFrame.TYPE:
                         case RstStreamFrame.TYPE:
                             break;
