@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,7 +41,6 @@ package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
 import java.security.Principal;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -54,14 +53,9 @@ import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
-import org.glassfish.grizzly.http.server.util.Mapper;
-import org.glassfish.grizzly.http.server.util.MappingData;
-import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.servlet.HttpServletRequestImpl;
 import org.glassfish.grizzly.servlet.HttpServletResponseImpl;
 import org.glassfish.grizzly.servlet.WebappContext;
-import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.websockets.glassfish.GlassfishSupport;
 
 @SuppressWarnings({"StringContatenationInLoop"})
@@ -95,10 +89,10 @@ public class DefaultWebSocket extends SimpleWebSocket {
                 final HttpServletResponseImpl grizzlyServletResponse =
                         HttpServletResponseImpl.create();
                 
-                final Mapper mapper = protocolHandler.getMapper();
+                final WebSocketMappingData mappingData = protocolHandler.getMappingData();
                 
                 grizzlyServletRequest.initialize(grizzlyRequest,
-                        grizzlyServletResponse, mapper);
+                        grizzlyServletResponse, mappingData);
                 grizzlyServletResponse.initialize(grizzlyResponse, grizzlyServletRequest);
                 
                 servletRequest = grizzlyServletRequest;
@@ -170,15 +164,19 @@ public class DefaultWebSocket extends SimpleWebSocket {
         
         public void initialize(Request request,
                 HttpServletResponseImpl servletResponse,
-                Mapper mapper) throws IOException {
+                WebSocketMappingData mappingData) throws IOException {
             
-            if (mapper != null) {
-                final MappingData mappingData = updatePaths(request, mapper);
+            if (mappingData != null) {
+                updatePaths(mappingData);
+            } else {
+                contextPath = request.getContextPath();
+            }
+            
+            if (mappingData != null && mappingData.isGlassfish) {
                 glassfishSupport = new GlassfishSupport(mappingData.context,
                         mappingData.wrapper, this);
             } else {
                 glassfishSupport = new GlassfishSupport();
-                contextPath = request.getContextPath();
             }
             
             super.initialize(request, servletResponse,
@@ -248,37 +246,10 @@ public class DefaultWebSocket extends SimpleWebSocket {
             return pathInfo;
         }
 
-        private MappingData updatePaths(final Request request,
-                final Mapper mapper) {
-            
-            try {
-                final RequestURIRef uriRef = request.getRequest().getRequestURIRef();
-                final DataChunk decodedURI = uriRef.getDecodedRequestURIBC(true, true, Charsets.UTF8_CHARSET);
-
-                final MappingData mappingData = request.obtainMappingData();
-
-                mapper.mapUriWithSemicolon(request.getRequest(),
-                        decodedURI,
-                        mappingData,
-                        0);
-                
-                
-                pathInfo = mappingData.pathInfo.toString();
-                servletPath = mappingData.wrapperPath.toString();
-                contextPath = mappingData.contextPath.toString();
-
-                return mappingData;
-            } catch (Exception e) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Unable to map request", e);
-                }
-                
-                pathInfo = null;
-                servletPath = null;
-                contextPath = null;
-            }
-
-            return null;
+        private void updatePaths(final WebSocketMappingData mappingData) {
+            pathInfo = mappingData.pathInfo.toString();
+            servletPath = mappingData.wrapperPath.toString();
+            contextPath = mappingData.contextPath.toString();
         }
 
         private void checkGlassfishAuth() {

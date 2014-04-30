@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,7 +54,6 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.server.util.Mapper;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
@@ -71,7 +70,7 @@ public abstract class ProtocolHandler {
     protected Charset utf8 = new StrictUtf8();
     protected CharsetDecoder currentDecoder = utf8.newDecoder();
     protected ByteBuffer remainder;
-    protected Mapper mapper;
+    protected WebSocketMappingData mappingData;
     
     public ProtocolHandler(boolean maskData) {
         this.maskData = maskData;
@@ -108,12 +107,12 @@ public abstract class ProtocolHandler {
         this.ctx = ctx;
     }
 
-    protected Mapper getMapper() {
-        return mapper;
+    protected WebSocketMappingData getMappingData() {
+        return mappingData;
     }
 
-    protected void setMapper(Mapper mapper) {
-        this.mapper = mapper;
+    protected void setMappingData(WebSocketMappingData mappingData) {
+        this.mappingData = mappingData;
     }
 
     public WebSocket getWebSocket() {
