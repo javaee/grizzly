@@ -122,7 +122,7 @@ public class WebSocketEngine {
         
         if (mapper != null) {
             // try the Mapper first...
-            MappingData data = new MappingData();
+            final WebSocketMappingData data = new WebSocketMappingData();
             try {
                 mapper.mapUriWithSemicolon(request,
                         request.getRequestURIRef().getDecodedRequestURIBC(),
@@ -339,10 +339,10 @@ public class WebSocketEngine {
 
     private static class WebSocketApplicationReg {
         private final WebSocketApplication app;
-        private final MappingData mappingData;
+        private final WebSocketMappingData mappingData;
 
         public WebSocketApplicationReg(final WebSocketApplication app,
-                final MappingData mappingData) {
+                final WebSocketMappingData mappingData) {
             this.app = app;
             this.mappingData = mappingData;
         }

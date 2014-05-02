@@ -40,12 +40,14 @@
 
 package org.glassfish.grizzly.websockets;
 
+import org.glassfish.grizzly.http.server.util.MappingData;
+
 /**
  * Mapping information to be filled out during
  * the {@link WebSocketApplication} discovery.
  * 
  * @author Alexey Stashok
  */
-public class MappingData extends org.glassfish.grizzly.http.server.util.MappingData {
+public class WebSocketMappingData extends MappingData {
     public boolean isGlassfish;
 }

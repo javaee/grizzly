@@ -87,7 +87,8 @@ public class DefaultWebSocket extends SimpleWebSocket {
                 final HttpServletResponseImpl grizzlyServletResponse =
                         HttpServletResponseImpl.create();
                 
-                final MappingData mappingData = protocolHandler.getMappingData();
+                final WebSocketMappingData mappingData =
+                        protocolHandler.getMappingData();
                 
                 grizzlyServletRequest.initialize(grizzlyRequest,
                         grizzlyServletResponse, mappingData);
@@ -160,9 +161,9 @@ public class DefaultWebSocket extends SimpleWebSocket {
         private String contextPath;
         private boolean isUserPrincipalUpdated;
         
-        public void initialize(Request request,
-                HttpServletResponseImpl servletResponse,
-                MappingData mappingData) throws IOException {
+        public void initialize(final Request request,
+                final HttpServletResponseImpl servletResponse,
+                final WebSocketMappingData mappingData) throws IOException {
             
             if (mappingData != null) {
                 updatePaths(mappingData);
@@ -244,7 +245,7 @@ public class DefaultWebSocket extends SimpleWebSocket {
             return pathInfo;
         }
 
-        private void updatePaths(final MappingData mappingData) {
+        private void updatePaths(final WebSocketMappingData mappingData) {
             
             pathInfo = mappingData.pathInfo.toString();
             servletPath = mappingData.wrapperPath.toString();

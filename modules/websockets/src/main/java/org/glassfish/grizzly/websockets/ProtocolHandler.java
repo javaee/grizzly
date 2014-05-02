@@ -70,7 +70,7 @@ public abstract class ProtocolHandler {
     protected Charset utf8 = new StrictUtf8();
     protected CharsetDecoder currentDecoder = utf8.newDecoder();
     protected ByteBuffer remainder;
-    protected MappingData mappingData;
+    protected WebSocketMappingData mappingData;
     
     public ProtocolHandler(boolean maskData) {
         this.maskData = maskData;
@@ -107,11 +107,11 @@ public abstract class ProtocolHandler {
         this.ctx = ctx;
     }
 
-    protected MappingData getMappingData() {
+    protected WebSocketMappingData getMappingData() {
         return mappingData;
     }
 
-    protected void setMappingData(MappingData mappingData) {
+    protected void setMappingData(final WebSocketMappingData mappingData) {
         this.mappingData = mappingData;
     }
 
