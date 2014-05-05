@@ -79,7 +79,7 @@ public final class ProcessorExecutor {
                     break;
 
                 case TERMINATE:
-                    terminate(context);
+                    terminate(context, result.getData());
                     break;
 
                 case ERROR:
@@ -128,11 +128,12 @@ public final class ProcessorExecutor {
         }
     }
 
-    private static void terminate(final Context context) throws IOException {
+    private static void terminate(final Context context,
+            final Object type) throws IOException {
         final int sz = context.lifeCycleListeners.size();
         final EventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
         for (int i = 0; i < sz; i++) {
-            listeners[i].onTerminate(context);
+            listeners[i].onTerminate(context, type);
         }
     }
 

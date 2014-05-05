@@ -108,11 +108,13 @@ public class FileCacheTest extends AbstractSpdyTest {
     public static final int PORT = 18891;
     private HttpServer httpServer;
 
+    private final SpdyVersion spdyVersion;
     private final SpdyMode spdyMode;
     private final boolean isSecure;
     
-    public FileCacheTest(final SpdyMode spdyMode,
+    public FileCacheTest(final SpdyVersion spdyVersion, final SpdyMode spdyMode,
             final boolean isSecure) {
+        this.spdyVersion = spdyVersion;
         this.spdyMode = spdyMode;
         this.isSecure = isSecure;
     }
@@ -404,7 +406,7 @@ public class FileCacheTest extends AbstractSpdyTest {
 
 
     private void configureHttpServer() throws Exception {
-        httpServer = createServer(null, PORT, spdyMode, isSecure, true);
+        httpServer = createServer(null, PORT, spdyVersion, spdyMode, isSecure, true);
         httpServer.getListener("grizzly").getKeepAliveConfig().setIdleTimeoutInSeconds(-1);
     }
 
@@ -419,7 +421,7 @@ public class FileCacheTest extends AbstractSpdyTest {
     throws Exception {
 
         final FilterChain clientChain =
-                createClientFilterChainAsBuilder(spdyMode, isSecure,
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure,
                 new HttpMessageFilter(inQueue))
                 .build();
 

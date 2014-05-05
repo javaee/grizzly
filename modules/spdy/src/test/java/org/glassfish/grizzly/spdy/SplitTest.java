@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -87,11 +87,14 @@ import static org.junit.Assert.*;
 public class SplitTest extends AbstractSpdyTest {
     private static final int PORT = 18302;
     
+    private final SpdyVersion spdyVersion;
     private final SpdyMode spdyMode;
     private final boolean isSecure;
     
-    public SplitTest(final SpdyMode spdyMode,
+    public SplitTest(final SpdyVersion spdyVersion,
+            final SpdyMode spdyMode,
             final boolean isSecure) {
+        this.spdyVersion = spdyVersion;
         this.spdyMode = spdyMode;
         this.isSecure = isSecure;
     }
@@ -177,7 +180,8 @@ public class SplitTest extends AbstractSpdyTest {
             final FutureImpl<HttpContent> testResultFuture = SafeFutureImpl.create();
 
             server.start();
-            clientTransport.setFilterChain(createClientFilterChain(spdyMode, isSecure,
+            clientTransport.setFilterChain(createClientFilterChain(spdyVersion,
+                    spdyMode, isSecure,
                     new ClientFilter(testResultFuture)));
 
             clientTransport.start();
@@ -202,7 +206,8 @@ public class SplitTest extends AbstractSpdyTest {
 
     private HttpServer createWebServer(final HttpHandler... httpHandlers) {
 
-        final HttpServer server = createServer(null, PORT, spdyMode, isSecure);
+        final HttpServer server = createServer(null, PORT, spdyVersion,
+                spdyMode, isSecure);
         final NetworkListener listener = server.getListener("grizzly");
         listener.getKeepAliveConfig().setIdleTimeoutInSeconds(-1);
 

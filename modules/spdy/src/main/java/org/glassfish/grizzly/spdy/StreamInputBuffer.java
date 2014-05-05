@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,7 +49,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpBrokenContent;
@@ -66,8 +65,8 @@ import static org.glassfish.grizzly.spdy.Constants.*;
  *
  * @author oleksiys
  */
-final class SpdyInputBuffer {
-    private static final Logger LOGGER = Grizzly.logger(SpdyInputBuffer.class);
+final class StreamInputBuffer {
+    private static final Logger LOGGER = Grizzly.logger(StreamInputBuffer.class);
     
     private static final long NULL_CONTENT_LENGTH = Long.MIN_VALUE;
     
@@ -77,20 +76,23 @@ final class SpdyInputBuffer {
     
     // true, if the input is closed
     private final AtomicBoolean isInputClosed = new AtomicBoolean();
-    // the termination flag. When is not null contains the reason why input was terminated
+    // the termination flag. When is not null contains the reason why input was terminated.
+    // when the flag is not null - poll0() will return -1.
     private final AtomicReference<Termination> closeFlag =
             new AtomicReference<Termination>();
+    private final Object terminateSync = new Object();
     
     private final SpdyStream spdyStream;
     private final SpdySession spdySession;
     
-    private final AtomicBoolean expectInputSwitch = new AtomicBoolean();
+    private final Object expectInputSwitchSync = new Object();
+    private boolean expectInputSwitch;
     
     private final AtomicInteger unackedReadBytes  = new AtomicInteger();
     
     private long remainingContentLength = NULL_CONTENT_LENGTH;
     
-    SpdyInputBuffer(final SpdyStream spdyStream) {
+    StreamInputBuffer(final SpdyStream spdyStream) {
         this.spdyStream = spdyStream;
         spdySession = spdyStream.getSpdySession();
     }
@@ -116,40 +118,54 @@ final class SpdyInputBuffer {
         }
         
         // Switch on the "expect more input" flag
-        expectInputSwitch.set(true);
+        switchOnExpectInput();
         
-        final int readyBuffersCount = inputQueueSize.get();
-        
-        // If we have more input data to process and "expect more input" flag is still on -
-        // pass the data upstream
-        if (readyBuffersCount > 0 &&
-                expectInputSwitch.getAndSet(false)) {
-            passPayloadUpstream(null, readyBuffersCount);
+        // Check if we have more input data to process - try to obtain the
+        // expectInputSwitch again and process data
+        final int queueSize;
+        if ((queueSize = switchOffExpectInputIfQueueNotEmpty()) > 0) {
+            passPayloadUpstream(null, queueSize);
         }
     }
     
     /**
      * The method is called, when new input data arrives.
      */
-    void offer(final Buffer data, final boolean isLast) {
+    boolean offer(final Buffer data, final boolean isLast) {
         if (isInputClosed.get()) {
             // if input is closed - just ignore the message
             data.tryDispose();
             
-            return;
+            return false;
         }
+        
+        final boolean isLastData = isLast | checkContentLength(data.remaining());
         
         // create InputElement and add it to the input queue
         // we double check if this is the last frame (considering content-length header if any)
-        offer0(new InputElement(data,
-                isLast | checkContentLength(data.remaining()), false));
+        final InputElement element = new InputElement(data, isLastData, false);
+        offer0(element);
+        
+        if (isLastData) {
+            // mark the input buffer as closed
+            isInputClosed.set(true);
+        }
+        
+        // if the stream had been terminated by this time but the element wasn't
+        // read - dispose the buffer and return false
+        if (isClosed() && inputQueue.remove(element)) {
+            data.tryDispose();
+            return false;
+        }
+        
+        return true;
     }
 
     /**
      * The private method, which adds new InputElement to the input queue
      */
     private void offer0(final InputElement inputElement) {
-        if (expectInputSwitch.getAndSet(false)) {
+        if (switchOffExpectInput()) {
             // if "expect more input" switch is on - pass current input queue content upstream
             passPayloadUpstream(inputElement, inputQueueSize.get());
         } else {
@@ -158,13 +174,13 @@ final class SpdyInputBuffer {
                 // Should never happen, but findbugs complains
                 throw new IllegalStateException("New element can't be added");
             }
+
             inputQueueSize.incrementAndGet();
-            
-            final int readyBuffersCount = inputQueueSize.get();
+
+            final int readyBuffersCount;
 
             // double check if "expect more input" flag is still off
-            if (readyBuffersCount > 0 &&
-                    expectInputSwitch.getAndSet(false)) {
+            if ((readyBuffersCount = switchOffExpectInputIfQueueNotEmpty()) > 0) {
                 // if not - pass the input queue content upstream
                 passPayloadUpstream(null, readyBuffersCount);
             }
@@ -246,64 +262,65 @@ final class SpdyInputBuffer {
         }
         
         Buffer buffer;
-        InputElement inputElement;
-        
-        // get the current input queue size
-        final int inputQueueSizeNow = inputQueueSize.getAndSet(0);
-        
-        if (inputQueueSizeNow <= 0) {
-            // if there is no element available - block
-            try {
-                inputElement = inputQueue.poll(spdySession.getConnection()
-                        .getBlockingReadTimeout(TimeUnit.MILLISECONDS),
-                        TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                throw new IOException("Blocking read was interrupted");
-            }
+        synchronized (terminateSync) { // most of the time it will be uncontended sync
+            InputElement inputElement;
 
-            if (inputElement == null) {
-                // timeout expired
-                throw new IOException("Blocking read timeout");
-            } else {
-                // Due to asynchronous inputQueueSize update - the inputQueueSizeNow may be < 0.
-                // It means the inputQueueSize.getAndSet(0); above, may unitentionally increase the counter.
-                // So, once we read a Buffer - we have to properly restore the counter value.
-                // Normally it had to be inputQueueSize.decremenetAndGet(); , but we have to
-                // take into account fact described above.
-                inputQueueSize.addAndGet(inputQueueSizeNow - 1);
+            // get the current input queue size
+            final int inputQueueSizeNow = inputQueueSize.getAndSet(0);
+
+            if (inputQueueSizeNow <= 0) {
+                // if there is no element available - block
+                try {
+                    inputElement = inputQueue.poll(spdySession.getConnection()
+                            .getBlockingReadTimeout(TimeUnit.MILLISECONDS),
+                            TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    throw new IOException("Blocking read was interrupted");
+                }
+
+                if (inputElement == null) {
+                    // timeout expired
+                    throw new IOException("Blocking read timeout");
+                } else {
+                    // Due to asynchronous inputQueueSize update - the inputQueueSizeNow may be < 0.
+                    // It means the inputQueueSize.getAndSet(0); above, may unitentionally increase the counter.
+                    // So, once we read a Buffer - we have to properly restore the counter value.
+                    // Normally it had to be inputQueueSize.decremenetAndGet(); , but we have to
+                    // take into account fact described above.
+                    inputQueueSize.addAndGet(inputQueueSizeNow - 1);
+
+                    checkEOF(inputElement);
+                    buffer = inputElement.toBuffer();
+                }
+            } else if (inputQueueSizeNow == 1) {
+                // if there is one element available
+                inputElement = inputQueue.poll();
 
                 checkEOF(inputElement);
                 buffer = inputElement.toBuffer();
-            }
-        } else if (inputQueueSizeNow == 1) {
-            // if there is one element available
-            inputElement = inputQueue.poll();
-            
-            checkEOF(inputElement);
-            buffer = inputElement.toBuffer();
-        } else {
-            // if there are more than 1 elements available
-            final CompositeBuffer compositeBuffer =
-                    CompositeBuffer.newBuffer(spdySession.getMemoryManager());
+            } else {
+                // if there are more than 1 elements available
+                final CompositeBuffer compositeBuffer =
+                        CompositeBuffer.newBuffer(spdySession.getMemoryManager());
 
-            for (int i = 0; i < inputQueueSizeNow; i++) {
-                final InputElement currentElement = inputQueue.poll();
-                checkEOF(currentElement);
-                
-                if (!currentElement.isService) {
-                    compositeBuffer.append(currentElement.toBuffer());
-                }
-                
-                if (currentElement.isLast) {
-                    break;
-                }
-            }
-            compositeBuffer.allowBufferDispose(true);
-            compositeBuffer.allowInternalBuffersDispose(true);
+                for (int i = 0; i < inputQueueSizeNow; i++) {
+                    final InputElement currentElement = inputQueue.poll();
+                    checkEOF(currentElement);
 
-            buffer = compositeBuffer;
+                    if (!currentElement.isService) {
+                        compositeBuffer.append(currentElement.toBuffer());
+                    }
+
+                    if (currentElement.isLast) {
+                        break;
+                    }
+                }
+                compositeBuffer.allowBufferDispose(true);
+                compositeBuffer.allowInternalBuffersDispose(true);
+
+                buffer = compositeBuffer;
+            }
         }
-        
         
         // send window_update notification
         sendWindowUpdate(buffer);
@@ -311,15 +328,6 @@ final class SpdyInputBuffer {
         return buffer;
     }    
 
-    /**
-     * Marks the input buffer as closed by adding Termination input element to the input queue.
-     */
-    void close() {
-        close(spdyStream.closeReasonFlag.get().getType() == CloseType.REMOTELY ?
-                PEER_CLOSE_TERMINATION :
-                LOCAL_CLOSE_TERMINATION);
-    }
-    
     /**
      * Graceful input buffer close.
      * 
@@ -347,6 +355,28 @@ final class SpdyInputBuffer {
         }
         
         if (isSet) {
+            
+            int szToRelease = 0;
+            synchronized (terminateSync) {
+                // remove all elements from the queue,
+                // count the data amount, which hasn't been read and
+                // release correspondent number of bytes in the session
+                // control flow window
+                InputElement element;
+                
+                while ((element = inputQueue.poll()) != null) {
+                    if (!element.isService) {
+                        final Buffer buffer = element.toBuffer();
+                        szToRelease += buffer.remaining();
+                        buffer.tryDispose();
+                    }
+                }
+            }
+            
+            if (szToRelease > 0) {
+                spdySession.sendWindowUpdate(szToRelease);
+            }
+            
             spdyStream.onInputClosed();
         }
     }
@@ -371,11 +401,6 @@ final class SpdyInputBuffer {
                                       : (Termination) inputElement.content;
             
             if (closeFlag.compareAndSet(null, termination)) {
-                // create appropriate terminationFlag info
-                closeFlag.set(termination);
-
-                // mark the input buffer as closed
-                isInputClosed.set(true);
 
                 // Let termination run some logic if needed.
                 termination.doTask();
@@ -390,17 +415,20 @@ final class SpdyInputBuffer {
      * Sends WINDOW_UPDATE message to the peer based on data, which has been processed.
      */
     private void sendWindowUpdate(final Buffer data) {
-        sendWindowUpdate(data, false);
+        sendWindowUpdate(data != null ? data.remaining() : 0, false);
     }
     
     /**
      * Sends WINDOW_UPDATE message to the peer based on data, which has been processed.
-     * @param data 
+     * @param delta 
      * @param isForce if <tt>true</tt> the WINDOW_UPDATE message will be sent regardless of the current unacked bytes count.
      */
-    private void sendWindowUpdate(final Buffer data, final boolean isForce) {
+    private void sendWindowUpdate(final int delta, final boolean isForce) {
+        
+        spdySession.sendWindowUpdate(delta);
+        
         final int currentUnackedBytes =
-                unackedReadBytes.addAndGet(data != null ? data.remaining() : 0);
+                unackedReadBytes.addAndGet(delta);
         final int windowSize = spdyStream.getLocalWindowSize();
         
         // if not forced - send update window message only in case currentUnackedBytes > windowSize / 2
@@ -440,6 +468,35 @@ final class SpdyInputBuffer {
         return false;
     }
 
+    private boolean switchOffExpectInput() {
+        synchronized (expectInputSwitchSync) {
+            if (expectInputSwitch) {
+                expectInputSwitch = false;
+                return true;
+            }
+            
+            return false;
+        }
+    }
+
+    private int switchOffExpectInputIfQueueNotEmpty() {
+        synchronized (expectInputSwitchSync) {
+            final int queueSize;
+            if (expectInputSwitch && (queueSize = inputQueueSize.get()) > 0) {
+                expectInputSwitch = false;
+                return queueSize;
+            }
+            
+            return 0;
+        }
+    }
+
+    private void switchOnExpectInput() {
+        synchronized (expectInputSwitchSync) {
+            expectInputSwitch = true;
+        }
+    }
+    
     /**
      * Builds {@link HttpContent} based on passed payload {@link Buffer}.
      * If the payload size is <tt>0</tt> and the input buffer has been terminated -

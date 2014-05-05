@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,14 +39,17 @@
  */
 package org.glassfish.grizzly.spdy;
 
+import org.glassfish.grizzly.spdy.utils.ChunkedCompletionHandler;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WritableMessage;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueRecord;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
@@ -59,7 +62,6 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.spdy.SpdyStream.Termination;
-import org.glassfish.grizzly.spdy.frames.DataFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.spdy.frames.SynReplyFrame;
 import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
@@ -75,8 +77,13 @@ import static org.glassfish.grizzly.spdy.Constants.*;
  * 
  * @author Alexey Stashok
  */
-final class SpdyOutputSink {
-    private static final int ATOMIC_QUEUE_RECORD_SIZE = 1;
+final class StreamOutputSink {
+    private static final Logger LOGGER = Grizzly.logger(StreamOutputSink.class);
+    private static final Level LOGGER_LEVEL = Level.INFO;
+
+    private static final int MAX_OUTPUT_QUEUE_SIZE = 65536;
+
+    private static final int ZERO_QUEUE_RECORD_SIZE = 1;
     
     private static final OutputQueueRecord TERMINATING_QUEUE_RECORD =
             new OutputQueueRecord(null, null, null, true, true);
@@ -85,8 +92,9 @@ final class SpdyOutputSink {
     final TaskQueue<OutputQueueRecord> outputQueue =
             TaskQueue.createTaskQueue();
     
-    // number of sent bytes, which are still unconfirmed by server via (WINDOW_UPDATE) message
-    private final AtomicInteger unconfirmedBytes = new AtomicInteger();
+    // the space (in bytes) in flow control window, that still could be used.
+    // in other words the number of bytes, which could be sent to the peer
+    private final AtomicInteger availStreamWindowSize;
 
     // true, if last output frame has been queued
     private volatile boolean isLastFrameQueued;
@@ -105,27 +113,41 @@ final class SpdyOutputSink {
     // flush handlers queue
     private BundleQueue<CompletionHandler<SpdyStream>> flushHandlersQueue;
     
-    private List<SpdyFrame> tmpOutputList;
-    
-    SpdyOutputSink(final SpdyStream spdyStream) {
+    StreamOutputSink(final SpdyStream spdyStream) {
         this.spdyStream = spdyStream;
         spdySession = spdyStream.getSpdySession();
+        availStreamWindowSize = new AtomicInteger(spdyStream.getPeerWindowSize());
+    }
+
+    public boolean canWrite() {
+        return outputQueue.size() < MAX_OUTPUT_QUEUE_SIZE;
+    }
+
+    public void notifyWritePossible(final WriteHandler writeHandler) {
+        outputQueue.notifyWhenOperable(writeHandler, MAX_OUTPUT_QUEUE_SIZE);
+    }
+    
+    public void assertReady() throws IOException {
+        // if the last frame (fin flag == 1) has been queued already - throw an IOException
+        if (isTerminated()) {
+            throw new IOException(terminationFlag.getDescription());
+        } else if (isLastFrameQueued) {
+            throw new IOException("Write beyond end of stream");
+        }
     }
 
     /**
-     * The method is called by Spdy Filter once WINDOW_UPDATE message comes from the peer.
+     * The method is called by Spdy Filter once WINDOW_UPDATE message comes
+     * for this {@link SpdyStream}.
      * 
      * @param delta the delta.
      */
     public void onPeerWindowUpdate(final int delta) throws SpdyStreamException {
-        // update the unconfirmed bytes counter
-        final int unconfirmedBytesNow = unconfirmedBytes.addAndGet(-delta);
-        
-        // get the current peer's window size limit
-        final int windowSizeLimit = spdyStream.getPeerWindowSize();
+        // update the available window size
+        availStreamWindowSize.addAndGet(delta);
         
         // try to write until window limit allows
-        while (isWantToWrite(unconfirmedBytesNow, windowSizeLimit) &&
+        while (isWantToWrite() &&
                 !outputQueue.isEmpty()) {
             
             // pick up the first output record in the queue
@@ -145,11 +167,11 @@ final class SpdyOutputSink {
             }
             
             final FlushCompletionHandler completionHandler =
-                    outputQueueRecord.aggrCompletionHandler;
+                    outputQueueRecord.chunkedCompletionHandler;
             AggregatingLifeCycleHandler lifeCycleHandler =
                     outputQueueRecord.lifeCycleHandler;
             boolean isLast = outputQueueRecord.isLast;
-            final boolean isAtomic = outputQueueRecord.isAtomic;
+            final boolean isZeroSizeData = outputQueueRecord.isZeroSizeData;
             final Source resource = outputQueueRecord.resource;
             
             // check if output record's buffer is fitting into window size
@@ -164,7 +186,7 @@ final class SpdyOutputSink {
                 // Create output record for the chunk to be stored
                 outputQueueRecord.reset(resource, completionHandler,
                         lifeCycleHandler, isLast);
-                outputQueueRecord.incCompletionCounter();
+                outputQueueRecord.incChunksCounter();
                 
                 // reset isLast for the current chunk
                 isLast = false;
@@ -178,25 +200,20 @@ final class SpdyOutputSink {
                     (dataChunkToSend.hasRemaining() || isLast)) {
                 final int dataChunkToSendSize = dataChunkToSend.remaining();
                 
-                final DataFrame dataFrame = DataFrame.builder()
-                        .data(dataChunkToSend).last(isLast)
-                        .streamId(spdyStream.getStreamId()).build();
-
                 // send a spdydata frame
-                writeDownStream(dataFrame, completionHandler,
+                writeDownStream0(null, dataChunkToSend, completionHandler,
                         lifeCycleHandler, isLast);
                 
-                
-                // update unconfirmed bytes counter
-                unconfirmedBytes.addAndGet(dataChunkToSendSize);
+                // update the available window size bytes counter
+                availStreamWindowSize.addAndGet(-dataChunkToSendSize);
                 releaseWriteQueueSpace(dataChunkToSendSize,
-                        isAtomic, outputQueueRecord == null);
+                        isZeroSizeData, outputQueueRecord == null);
                 
-                outputQueue.onSizeDecreased(windowSizeLimit);
-            } else if (isAtomic && outputQueueRecord == null) {
+                outputQueue.onSizeDecreased(MAX_OUTPUT_QUEUE_SIZE);
+            } else if (isZeroSizeData && outputQueueRecord == null) {
                 // if it's atomic and no remainder left - don't forget to release ATOMIC_QUEUE_RECORD_SIZE
                 releaseWriteQueueSpace(0, true, true);
-                outputQueue.onSizeDecreased(ATOMIC_QUEUE_RECORD_SIZE);
+                outputQueue.onSizeDecreased(MAX_OUTPUT_QUEUE_SIZE);
             }
             
             if (outputQueueRecord != null) {
@@ -205,6 +222,15 @@ final class SpdyOutputSink {
                 break;
             }
         }
+    }
+    
+    public void writeDownStream(final HttpPacket httpPacket) throws IOException {
+        assertReady();
+        
+        // Write the message starting at upstream FilterChain, because it has
+        // to pass SpdyHandlerFilter
+        spdySession.getUpstreamChain().write(spdySession.getConnection(), null,
+                httpPacket, null, null);
     }
     
     /**
@@ -250,21 +276,16 @@ final class SpdyOutputSink {
      */
     synchronized void writeDownStream(final HttpPacket httpPacket,
                                       final FilterChainContext ctx,
-            CompletionHandler<WriteResult> completionHandler,
+            final CompletionHandler<WriteResult> completionHandler,
             LifeCycleHandler lifeCycleHandler)
             throws IOException {
-        
-        // if the last frame (fin flag == 1) has been queued already - throw an IOException
-        if (isTerminated()) {
-            throw new IOException(terminationFlag.getDescription());
-        } else if (isLastFrameQueued) {
-            throw new IOException("Write beyond end of stream");
-        }
+        assert ctx != null;
+
+        assertReady();
         
         final HttpHeader httpHeader = spdyStream.getOutputHttpHeader();
         final HttpContent httpContent = HttpContent.isContent(httpPacket) ? (HttpContent) httpPacket : null;
         
-        int framesAvailFlag = 0;
         SpdyFrame headerFrame = null;
         OutputQueueRecord outputQueueRecord = null;
         
@@ -275,53 +296,22 @@ final class SpdyOutputSink {
             // If HTTP header hasn't been commited - commit it
             if (!httpHeader.isCommitted()) {
                 // do we expect any HTTP payload?
-                final boolean isNoContent = !httpHeader.isExpectContent() ||
+                final boolean isNoPayload = !httpHeader.isExpectContent() ||
                         (httpContent != null && httpContent.isLast() &&
                         !httpContent.getContent().hasRemaining());
-
-                // encode HTTP packet header
-                if (!httpHeader.isRequest()) {
-                    final Buffer compressedSynStreamHeaders;
-                    if (!spdyStream.isUnidirectional()) {
-                        final Buffer compressedHeaders =
-                                SpdyEncoderUtils.encodeSynReplyHeadersAndLock(
-                                spdySession, (HttpResponsePacket) httpHeader);
-                        headerFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
-                                last(isNoContent).compressedHeaders(compressedHeaders).build();
-                    } else {
-                        compressedSynStreamHeaders =
-                                SpdyEncoderUtils.encodeUnidirectionalSynStreamHeadersAndLock(
-                                spdyStream, (SpdyResponse) httpHeader);
-
-                        headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
-                                associatedStreamId(spdyStream.getAssociatedToStreamId()).
-                                unidirectional(true).
-                                last(isNoContent).compressedHeaders(compressedSynStreamHeaders).build();
-                    }
-                } else {
-                    final Buffer compressedHeaders =
-                            SpdyEncoderUtils.encodeSynStreamHeadersAndLock(spdyStream,
-                            (HttpRequestPacket) httpHeader);
-                    headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
-                            associatedStreamId(spdyStream.getAssociatedToStreamId()).
-                            unidirectional(spdyStream.isUnidirectional()).
-                            last(isNoContent).compressedHeaders(compressedHeaders).build();
-                    if (ctx != null) {
-                        spdySession.handlerFilter.onHttpHeadersEncoded(httpHeader, ctx);
-                    }
-                }
+                
+                headerFrame = encodeHttpHeader(ctx, httpHeader, isNoPayload);
 
                 isDeflaterLocked = true;
                 httpHeader.setCommitted(true);
-                framesAvailFlag = 1;
 
-                if (isNoContent || httpContent == null) {
+                if (isNoPayload || httpContent == null) {
                     // if we don't expect any HTTP payload, mark this frame as
                     // last and return
                     unflushedWritesCounter.incrementAndGet();
-                    writeDownStream(headerFrame,
+                    writeDownStream0(headerFrame, null,
                             new FlushCompletionHandler(completionHandler),
-                            lifeCycleHandler, isNoContent);
+                            lifeCycleHandler, isNoPayload);
                     return;
                 }
             }
@@ -331,14 +321,12 @@ final class SpdyOutputSink {
                 return;
             }
             
-            SpdyFrame dataFrame = null;
+            spdySession.handlerFilter.onHttpContentEncoded(httpContent, ctx);
+
+            Buffer dataToSend = null;
             boolean isLast = httpContent.isLast();
             Buffer data = httpContent.getContent();
             final int dataSize = data.remaining();
-
-            if (ctx != null) {
-                spdySession.handlerFilter.onHttpContentEncoded(httpContent, ctx);
-            }
 
             if (isLast && dataSize == 0) {
                 close();
@@ -351,8 +339,8 @@ final class SpdyOutputSink {
             AggregatingLifeCycleHandler aggrLifeCycleHandler = null;
             
 
-            final boolean isAtomic = (dataSize == 0);
-            final int spaceToReserve = isAtomic ? ATOMIC_QUEUE_RECORD_SIZE : dataSize;
+            final boolean isZeroSizeData = (dataSize == 0);
+            final int spaceToReserve = isZeroSizeData ? ZERO_QUEUE_RECORD_SIZE : dataSize;
 
             // Check if output queue is not empty - add new element
             if (reserveWriteQueueSpace(spaceToReserve) > spaceToReserve) {
@@ -370,10 +358,7 @@ final class SpdyOutputSink {
                         Source.factory(spdyStream)
                             .createBufferSource(data),
                         flushCompletionHandler, aggrLifeCycleHandler,
-                        isLast, isAtomic);
-                // Should be called before flushing headerFrame, so
-                // FlushCompletionHanlder will not pass completed event to the parent
-                outputQueueRecord.incCompletionCounter();
+                        isLast, isZeroSizeData);
 
                 outputQueue.offer(outputQueueRecord);
 
@@ -384,7 +369,6 @@ final class SpdyOutputSink {
                     return;
                 }
 
-                outputQueueRecord.decCompletionCounter();
                 outputQueueRecord = null;
             }
 
@@ -395,6 +379,7 @@ final class SpdyOutputSink {
             // check if output record's buffer is fitting into window size
             // if not - split it into 2 parts: part to send, part to keep in the queue
             final int fitWindowLen = checkOutputWindow(remaining);
+            
             // if there is a chunk to store
             if (fitWindowLen < remaining) {
                 aggrLifeCycleHandler = AggregatingLifeCycleHandler.create(
@@ -407,13 +392,14 @@ final class SpdyOutputSink {
                 
                 final Buffer dataChunkToStore = splitOutputBufferIfNeeded(
                         data, fitWindowLen);
+
                 // Create output record for the chunk to be stored
                 outputQueueRecord = new OutputQueueRecord(
                         Source.factory(spdyStream)
                             .createBufferSource(dataChunkToStore),
                         flushCompletionHandler, aggrLifeCycleHandler,
-                        isLast, isAtomic);
-                outputQueueRecord.incCompletionCounter();
+                        isLast, isZeroSizeData);
+
                 // reset completion handler and isLast for the current chunk
                 isLast = false;
             }
@@ -421,47 +407,33 @@ final class SpdyOutputSink {
             // if there is a chunk to send
             if (data != null &&
                     (data.hasRemaining() || isLast)) {
-                spdyStream.onDataFrameSend();
 
                 final int dataChunkToSendSize = data.remaining();
 
-                // update unconfirmed bytes counter
-                unconfirmedBytes.addAndGet(dataChunkToSendSize);
+                // update the available window size bytes counter
+                availStreamWindowSize.addAndGet(-dataChunkToSendSize);
                 releaseWriteQueueSpace(dataChunkToSendSize,
-                        isAtomic, outputQueueRecord == null);
+                        isZeroSizeData, outputQueueRecord == null);
 
-                // encode spdydata frame
-                dataFrame = DataFrame.builder()
-                        .streamId(spdyStream.getStreamId())
-                        .data(data).last(isLast)
-                        .build();
-                framesAvailFlag |= 2;
+                dataToSend = data;
             }
 
             lifeCycleHandler = aggrLifeCycleHandler == null
                     ? lifeCycleHandler
                     : aggrLifeCycleHandler;
-
-            switch (framesAvailFlag) {
-                case 0: break;  // buffer is full, can't write any byte
-                    
-//                case 1: means there are only headers to be commited.
-//                    We process this situation in the beginning on the method
-//                    and return. So "1"-case should never reach this point.
-                    
-                case 2: {
-                    writeDownStream(dataFrame, flushCompletionHandler,
-                            lifeCycleHandler, isLast);
-                    break;
+            
+            // if there's anything to send - send it
+            if (headerFrame != null || dataToSend != null) {
+                
+                // if another part of data is stored in the queue -
+                // we have to increase CompletionHandler counter to avoid
+                // premature notification
+                if (outputQueueRecord != null) {
+                    outputQueueRecord.incChunksCounter();
                 }
-
-                case 3: {
-                    writeDownStream(asList(headerFrame, dataFrame),
-                            flushCompletionHandler, lifeCycleHandler, isLast);
-                    break;
-                }
-
-                default: throw new IllegalStateException("Unexpected write mode");
+                
+                writeDownStream0(headerFrame, dataToSend, flushCompletionHandler,
+                        lifeCycleHandler, isLast);
             }
             
         } finally {
@@ -476,7 +448,7 @@ final class SpdyOutputSink {
         
         addOutputQueueRecord(outputQueueRecord);
     }
-    
+
     /**
      * Send the data represented by the {@link Source} to the {@link SpdyStream}.
      * Unlike {@link #writeDownStream(org.glassfish.grizzly.http.HttpPacket, org.glassfish.grizzly.filterchain.FilterChainContext)} ,
@@ -488,15 +460,12 @@ final class SpdyOutputSink {
      * @param source {@link Source} to send
      * @throws IOException 
      */
-    synchronized void writeDownStream(final Source source)
-            throws IOException {
-
-        // if the last frame (fin flag == 1) has been queued already - throw an IOException
-        if (isTerminated()) {
-            throw new IOException(terminationFlag.getDescription());
-        } else if (isLastFrameQueued) {
-            throw new IOException("Write beyond end of stream");
-        }
+    synchronized void writeDownStream(final Source source,
+            final FilterChainContext ctx) throws IOException {
+        
+        assert ctx != null;
+        
+        assertReady();
 
         isLastFrameQueued = true;
         
@@ -516,47 +485,21 @@ final class SpdyOutputSink {
             // We assume HTTP header hasn't been commited
             
             // do we expect any HTTP payload?
-            final boolean isNoContent =
+            final boolean isNoPayload =
                     !httpHeader.isExpectContent() ||
                     source == null || !source.hasRemaining();
 
-            // encode HTTP packet header
-            if (!httpHeader.isRequest()) {
-                final Buffer compressedSynStreamHeaders;
-                if (!spdyStream.isUnidirectional()) {
-                    final Buffer compressedHeaders =
-                            SpdyEncoderUtils.encodeSynReplyHeadersAndLock(
-                            spdySession, (HttpResponsePacket) httpHeader);
-                    headerFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
-                            last(isNoContent).compressedHeaders(compressedHeaders).build();
-                } else {
-                    compressedSynStreamHeaders =
-                            SpdyEncoderUtils.encodeUnidirectionalSynStreamHeadersAndLock(
-                            spdyStream, (SpdyResponse) httpHeader);
-
-                    headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
-                            associatedStreamId(spdyStream.getAssociatedToStreamId()).
-                            unidirectional(true).
-                            last(isNoContent).compressedHeaders(compressedSynStreamHeaders).build();                }
-            } else {
-                final Buffer compressedSynStreamHeaders =
-                        SpdyEncoderUtils.encodeSynStreamHeadersAndLock(
-                        spdyStream, (HttpRequestPacket) httpHeader);
-
-                headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
-                        associatedStreamId(spdyStream.getAssociatedToStreamId()).
-                        last(isNoContent).compressedHeaders(compressedSynStreamHeaders).build();
-            }
+            headerFrame = encodeHttpHeader(ctx, httpHeader, isNoPayload);
 
             isDeflaterLocked = true;
             httpHeader.setCommitted(true);
 
-            if (isNoContent) {
+            if (isNoPayload) {
                 unflushedWritesCounter.incrementAndGet();
                 // if we don't expect any HTTP payload, mark this frame as
                 // last and return
-                writeDownStream(headerFrame, new FlushCompletionHandler(null),
-                        null, isNoContent);
+                writeDownStream0(headerFrame, null, new FlushCompletionHandler(null),
+                        null, isNoPayload);
                 return;
             }
 
@@ -568,7 +511,7 @@ final class SpdyOutputSink {
             }
 
             // our element is first in the output queue
-            reserveWriteQueueSpace(ATOMIC_QUEUE_RECORD_SIZE);
+            reserveWriteQueueSpace(ZERO_QUEUE_RECORD_SIZE);
 
             boolean isLast = true;
 
@@ -586,23 +529,15 @@ final class SpdyOutputSink {
 
             final Buffer bufferToSend = source.read(fitWindowLen);
             
-            spdyStream.onDataFrameSend();
-
             final int dataChunkToSendSize = bufferToSend.remaining();
 
-            // update unconfirmed bytes counter
-            unconfirmedBytes.addAndGet(dataChunkToSendSize);
+            // update the available window size bytes counter
+            availStreamWindowSize.addAndGet(-dataChunkToSendSize);
             releaseWriteQueueSpace(dataChunkToSendSize, true,
                     outputQueueRecord == null);
 
-            // encode spdydata frame
-            final SpdyFrame dataFrame = DataFrame.builder()
-                    .streamId(spdyStream.getStreamId())
-                    .data(bufferToSend).last(isLast)
-                    .build();
-
             unflushedWritesCounter.incrementAndGet();
-            writeDownStream(asList(headerFrame, dataFrame),
+            writeDownStream0(headerFrame, bufferToSend,
                     new FlushCompletionHandler(null), null, isLast);
         
         } finally {
@@ -664,18 +599,7 @@ final class SpdyOutputSink {
      */
     private int checkOutputWindow(final long size) {
         // take a snapshot of the current output window state
-        final int unconfirmedBytesNow = unconfirmedBytes.get();
-        final int windowSizeLimit = spdyStream.getPeerWindowSize();
-
-        // Check if data chunk is overflowing the output window
-        if (unconfirmedBytesNow + size > windowSizeLimit) { // Window overflowed
-            final int dataSizeAllowedToSend = windowSizeLimit - unconfirmedBytesNow;
-
-            // Split data chunk into 2 chunks - one to be sent now and one to be stored in the output queue
-            return dataSizeAllowedToSend;
-        }
-
-        return (int) size;
+        return Math.min(availStreamWindowSize.get(), (int) size);
     }
     
     private Buffer splitOutputBufferIfNeeded(final Buffer buffer,
@@ -688,63 +612,25 @@ final class SpdyOutputSink {
     }
     
     void writeWindowUpdate(final int currentUnackedBytes) {
-        WindowUpdateFrame frame =
-                WindowUpdateFrame.builder().streamId(spdyStream.getStreamId()).
-                        delta(currentUnackedBytes).build();
-        writeDownStream0(frame, null);
+        spdySession.getOutputSink().writeDownStream(
+                WindowUpdateFrame.builder()
+                        .streamId(spdyStream.getStreamId())
+                        .delta(currentUnackedBytes)
+                        .build());
     }
     
-    private void writeDownStream(final SpdyFrame frame,
+    private void writeDownStream0(final SpdyFrame headerFrame,
+            final Buffer data,
             final CompletionHandler<WriteResult> completionHandler,
             final LifeCycleHandler lifeCycleHandler,
             final boolean isLast) {
-        writeDownStream0(frame, completionHandler, lifeCycleHandler);
+        
+        spdySession.getOutputSink().writeDataDownStream(spdyStream, headerFrame,
+                data, completionHandler, lifeCycleHandler, isLast);
         
         if (isLast) {
             terminate(OUT_FIN_TERMINATION);
         }
-    }
-    
-    private void writeDownStream0(final SpdyFrame frame,
-            final CompletionHandler<WriteResult> completionHandler,
-            final LifeCycleHandler lifeCycleHandler) {
-        spdySession.getDownstreamChain().write(spdySession.getConnection(),
-                null, frame, completionHandler, lifeCycleHandler);
-    }
-    
-    private void writeDownStream0(final SpdyFrame frame,
-            final CompletionHandler<WriteResult> completionHandler) {
-        spdySession.getDownstreamChain().write(spdySession.getConnection(),
-                null, frame, completionHandler, null);
-    }
-
-    private void writeDownStream(final List<SpdyFrame> frames,
-            final CompletionHandler<WriteResult> completionHandler,
-            final LifeCycleHandler lifeCycleHandler,
-            final boolean isLast) {
-        writeDownStream0(frames, completionHandler, lifeCycleHandler);
-        
-        if (isLast) {
-            terminate(OUT_FIN_TERMINATION);
-        }
-    }
-
-    private void writeDownStream0(final List<SpdyFrame> frames,
-            final CompletionHandler<WriteResult> completionHandler,
-            final LifeCycleHandler lifeCycleHandler) {
-        spdySession.getDownstreamChain().write(spdySession.getConnection(),
-                null, frames, completionHandler, lifeCycleHandler);
-    }
-
-    private List<SpdyFrame> asList(final SpdyFrame frame1, final SpdyFrame frame2) {
-        if (tmpOutputList == null) {
-            tmpOutputList = new ArrayList<SpdyFrame>(4);
-        }
-        
-        tmpOutputList.add(frame1);
-        tmpOutputList.add(frame2);
-        
-        return tmpOutputList;
     }
     
     /**
@@ -760,10 +646,10 @@ final class SpdyOutputSink {
                 return;
             }
             
-            outputQueue.reserveSpace(ATOMIC_QUEUE_RECORD_SIZE);
+            outputQueue.reserveSpace(ZERO_QUEUE_RECORD_SIZE);
             outputQueue.offer(TERMINATING_QUEUE_RECORD);
             
-            if (outputQueue.size() == ATOMIC_QUEUE_RECORD_SIZE &&
+            if (outputQueue.size() == ZERO_QUEUE_RECORD_SIZE &&
                     outputQueue.remove(TERMINATING_QUEUE_RECORD)) {
                 writeEmptyFin();
             }
@@ -787,29 +673,74 @@ final class SpdyOutputSink {
         return isLastFrameQueued || isTerminated();
     }
     
+    /**
+     * @return the number of writes (not bytes), that haven't reached network layer
+     */
+    int getUnflushedWritesCount() {
+        return unflushedWritesCounter.get();
+    }
+    
     private boolean isTerminated() {
         return terminationFlag != null;
     }
     
     private void writeEmptyFin() {
         if (!isTerminated()) {
-            // SEND LAST
-            final DataFrame dataFrame =
-                    DataFrame.builder().streamId(spdyStream.getStreamId()).
-                            data(Buffers.EMPTY_BUFFER).last(true).build();
-            
             unflushedWritesCounter.incrementAndGet();
-            writeDownStream0(dataFrame, new FlushCompletionHandler(null));
-
-            terminate(OUT_FIN_TERMINATION);
+            writeDownStream0(null, Buffers.EMPTY_BUFFER,
+                    new FlushCompletionHandler(null), null, true);
         }
     }
 
-    private boolean isWantToWrite(final int unconfirmedBytesNow,
-            final int windowSizeLimit) {
-        return unconfirmedBytesNow < (windowSizeLimit * 3 / 4);
+    private boolean isWantToWrite() {
+        // update the available window size
+        final int availableWindowSizeBytesNow = availStreamWindowSize.get();
+
+        // get the current peer's window size limit
+        final int windowSizeLimit = spdyStream.getPeerWindowSize();
+
+        return availableWindowSizeBytesNow >= (windowSizeLimit / 4);
     }
 
+    private SpdyFrame encodeHttpHeader(final FilterChainContext ctx,
+            final HttpHeader httpHeader,
+            final boolean isLast)
+            throws IOException {
+        
+        SpdyFrame headerFrame;
+        // encode HTTP packet header
+        if (!httpHeader.isRequest()) {
+            final Buffer compressedSynStreamHeaders;
+            if (!spdyStream.isUnidirectional()) {
+                final Buffer compressedHeaders =
+                        SpdyEncoderUtils.encodeSynReplyHeadersAndLock(
+                                spdySession, (HttpResponsePacket) httpHeader);
+                headerFrame = SynReplyFrame.builder().streamId(spdyStream.getStreamId()).
+                        last(isLast).compressedHeaders(compressedHeaders).build();
+            } else {
+                compressedSynStreamHeaders =
+                        SpdyEncoderUtils.encodeUnidirectionalSynStreamHeadersAndLock(
+                                spdyStream, (SpdyResponse) httpHeader);
+                
+                headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
+                        associatedStreamId(spdyStream.getAssociatedToStreamId()).
+                        unidirectional(true).
+                        last(isLast).compressedHeaders(compressedSynStreamHeaders).build();
+            }
+        } else {
+            final Buffer compressedHeaders =
+                    SpdyEncoderUtils.encodeSynStreamHeadersAndLock(spdyStream,
+                            (HttpRequestPacket) httpHeader);
+            headerFrame = SynStreamFrame.builder().streamId(spdyStream.getStreamId()).
+                    associatedStreamId(spdyStream.getAssociatedToStreamId()).
+                    unidirectional(spdyStream.isUnidirectional()).
+                    last(isLast).compressedHeaders(compressedHeaders).build();
+            
+            spdySession.handlerFilter.onHttpHeadersEncoded(httpHeader, ctx);
+        }
+        return headerFrame;
+    }
+    
     private void addOutputQueueRecord(OutputQueueRecord outputQueueRecord)
             throws SpdyStreamException {
 
@@ -818,26 +749,19 @@ final class SpdyOutputSink {
             // set the outputQueueRecord as the current
             outputQueue.setCurrentElement(outputQueueRecord);
 
-            // update the unconfirmed bytes counter
-            final int unconfirmedBytesNow = unconfirmedBytes.get();
-
-            // get the current peer's window size limit
-            final int windowSizeLimit = spdyStream.getPeerWindowSize();
-            
-
             // check if situation hasn't changed and we can't send the data chunk now
-            if (isWantToWrite(unconfirmedBytesNow, windowSizeLimit) &&
+            if (isWantToWrite() &&
                     outputQueue.compareAndSetCurrentElement(outputQueueRecord, null)) {
                 
                 // if we can send the output record now - do that
                 
-                final FlushCompletionHandler aggrCompletionHandler =
-                        outputQueueRecord.aggrCompletionHandler;
+                final FlushCompletionHandler chunkedCompletionHandler =
+                        outputQueueRecord.chunkedCompletionHandler;
                 final AggregatingLifeCycleHandler aggrLifeCycleHandler =
                         outputQueueRecord.lifeCycleHandler;
 
                 boolean isLast = outputQueueRecord.isLast;
-                final boolean isAtomic = outputQueueRecord.isAtomic;
+                final boolean isZeroSizeData = outputQueueRecord.isZeroSizeData;
                 
                 final Source currentResource = outputQueueRecord.resource;
                 
@@ -849,9 +773,9 @@ final class SpdyOutputSink {
                 if (currentResource.hasRemaining()) {
                     // Create output record for the chunk to be stored
                     outputQueueRecord.reset(currentResource,
-                            aggrCompletionHandler, aggrLifeCycleHandler,
+                            chunkedCompletionHandler, aggrLifeCycleHandler,
                             isLast);
-                    outputQueueRecord.incCompletionCounter();
+                    outputQueueRecord.incChunksCounter();
                     
                     // reset isLast for the current chunk
                     isLast = false;
@@ -865,19 +789,16 @@ final class SpdyOutputSink {
                         (dataChunkToSend.hasRemaining() || isLast)) {
                     final int dataChunkToSendSize = dataChunkToSend.remaining();
 
-                    // encode spdydata frame
-                    final DataFrame frame = DataFrame.builder()
-                            .streamId(spdyStream.getStreamId()).
-                            data(dataChunkToSend).last(isLast).build();
-                    writeDownStream(frame, aggrCompletionHandler,
+                    writeDownStream0(null, dataChunkToSend,
+                            chunkedCompletionHandler,
                             aggrLifeCycleHandler, isLast);
                     
-                    // update unconfirmed bytes counter
-                    unconfirmedBytes.addAndGet(dataChunkToSendSize);
-                    releaseWriteQueueSpace(dataChunkToSendSize, isAtomic,
+                    // update the available window size bytes counter
+                    availStreamWindowSize.addAndGet(-dataChunkToSendSize);
+                    releaseWriteQueueSpace(dataChunkToSendSize, isZeroSizeData,
                             outputQueueRecord == null);
                     
-                } else if (isAtomic && outputQueueRecord == null) {
+                } else if (isZeroSizeData && outputQueueRecord == null) {
                     // if it's atomic and no remainder left - don't forget to release ATOMIC_QUEUE_RECORD_SIZE
                     releaseWriteQueueSpace(0, true, true);
                 }
@@ -891,46 +812,41 @@ final class SpdyOutputSink {
         return outputQueue.reserveSpace(spaceToReserve);
     }
 
-    private void releaseWriteQueueSpace(final int justSentBytes, final boolean isAtomic,
+    private void releaseWriteQueueSpace(final int justSentBytes,
+            final boolean isZeroSizeData,
             final boolean isEndOfChunk) {
         if (isEndOfChunk) {
-            outputQueue.releaseSpace(isAtomic ? ATOMIC_QUEUE_RECORD_SIZE : justSentBytes);
-        } else if (!isAtomic) {
+            outputQueue.releaseSpace(isZeroSizeData ? ZERO_QUEUE_RECORD_SIZE : justSentBytes);
+        } else if (!isZeroSizeData) {
             outputQueue.releaseSpace(justSentBytes);
         }
     }
 
-    private static class OutputQueueRecord extends AsyncQueueRecord<WriteResult>{
+    private static class OutputQueueRecord extends AsyncQueueRecord<WriteResult> {
         private Source resource;
-        private FlushCompletionHandler aggrCompletionHandler;
+        private FlushCompletionHandler chunkedCompletionHandler;
         private AggregatingLifeCycleHandler lifeCycleHandler;
         
         private boolean isLast;
         
-        private final boolean isAtomic;
+        private final boolean isZeroSizeData;
         
         public OutputQueueRecord(final Source resource,
                 final FlushCompletionHandler completionHandler,
                 final AggregatingLifeCycleHandler lifeCycleHandler,
-                final boolean isLast, final boolean isAtomic) {
+                final boolean isLast, final boolean isZeroSizeData) {
             super(null, null, null);
             
             this.resource = resource;
-            this.aggrCompletionHandler = completionHandler;
+            this.chunkedCompletionHandler = completionHandler;
             this.lifeCycleHandler = lifeCycleHandler;
             this.isLast = isLast;
-            this.isAtomic = isAtomic;
+            this.isZeroSizeData = isZeroSizeData;
         }
         
-        private void incCompletionCounter() {
-            if (aggrCompletionHandler != null) {
-                aggrCompletionHandler.counter++;
-            }
-        }
-        
-        private void decCompletionCounter() {
-            if (aggrCompletionHandler != null) {
-                aggrCompletionHandler.counter--;
+        private void incChunksCounter() {
+            if (chunkedCompletionHandler != null) {
+                chunkedCompletionHandler.incChunks();
             }
         }
 
@@ -939,7 +855,7 @@ final class SpdyOutputSink {
                 final AggregatingLifeCycleHandler lifeCycleHandler,
                 final boolean last) {
             this.resource = resource;
-            this.aggrCompletionHandler = completionHandler;
+            this.chunkedCompletionHandler = completionHandler;
             this.lifeCycleHandler = lifeCycleHandler;
             this.isLast = last;
         }
@@ -953,8 +869,8 @@ final class SpdyOutputSink {
 
         @Override
         public void notifyFailure(final Throwable e) {
-            final CompletionHandler chLocal = aggrCompletionHandler;
-            aggrCompletionHandler = null;
+            final CompletionHandler chLocal = chunkedCompletionHandler;
+            chunkedCompletionHandler = null;
             try {
                 if (chLocal != null) {
                     chLocal.failed(e);
@@ -972,7 +888,7 @@ final class SpdyOutputSink {
         public WriteResult getCurrentResult() {
             return null;
         }
-    }    
+    }
     
     /**
      * Flush {@link CompletionHandler}, which will be passed on each
@@ -981,90 +897,20 @@ final class SpdyOutputSink {
      * Usually <tt>FlushCompletionHandler</tt> is also used as a wrapper for
      * custom {@link CompletionHandler} provided by users.
      */
-    private class FlushCompletionHandler
-            implements CompletionHandler<WriteResult> {
+    private final class FlushCompletionHandler extends ChunkedCompletionHandler {
 
-        private final CompletionHandler<WriteResult> parentCompletionHandler;
-        
-        private boolean isDone;
-        private int counter = 1;
-        private long writtenSize;
-        
         public FlushCompletionHandler(
                 final CompletionHandler<WriteResult> parentCompletionHandler) {
-            this.parentCompletionHandler = parentCompletionHandler;
+            super(parentCompletionHandler);
         }
 
         @Override
-        public void cancelled() {
-            if (done()) {
-                if (parentCompletionHandler != null) {
-                    parentCompletionHandler.cancelled();
-                }
-            }
-        }
-
-        @Override
-        public void failed(Throwable throwable) {
-            if (done()) {
-                if (parentCompletionHandler != null) {
-                    parentCompletionHandler.failed(throwable);
-                }
-            }
-        }
-
-        @Override
-        public void completed(final WriteResult result) {
-            if (isDone) {
-                return;
-            }
-            
-            if (--counter == 0) {
-                done();
-                
-                final long initialWrittenSize = result.getWrittenSize();
-                writtenSize += initialWrittenSize;
-                
-                if (parentCompletionHandler != null) {
-                    try {
-                        result.setWrittenSize(writtenSize);
-                        parentCompletionHandler.completed(result);
-                    } finally {
-                        result.setWrittenSize(initialWrittenSize);
-                    }
-                }
-            } else {
-                updated(result);
-                writtenSize += result.getWrittenSize();
-            }
-        }
-
-        @Override
-        public void updated(final WriteResult result) {
-            if (parentCompletionHandler != null) {
-                final long initialWrittenSize = result.getWrittenSize();
-
-                try {
-                    result.setWrittenSize(writtenSize + initialWrittenSize);
-                    parentCompletionHandler.updated(result);
-                } finally {
-                    result.setWrittenSize(initialWrittenSize);
-                }
-            }
-        }
-        
-        private boolean done() {
-            if (isDone) {
-                return false;
-            }
-            
-            isDone = true;
-            
+        protected void done0() {
             synchronized (flushHandlersSync) { // synchronize with flush()
                 unflushedWritesCounter.decrementAndGet();
                 if (flushHandlersQueue == null ||
                         !flushHandlersQueue.nextBundle()) {
-                        return true;
+                        return;
                 }
             }
             
@@ -1082,7 +928,6 @@ final class SpdyOutputSink {
                 } catch (Exception ignored) {
                 }
             } while (hasNext);
-            return true;
         }
     }
 

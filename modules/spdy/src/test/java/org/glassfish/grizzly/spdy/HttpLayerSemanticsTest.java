@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -79,11 +79,14 @@ import static org.junit.Assert.assertTrue;
 public class HttpLayerSemanticsTest extends AbstractSpdyTest {
     private static final int PORT = 18304;
     
+    private final SpdyVersion spdyVersion;
     private final SpdyMode spdyMode;
     private final boolean isSecure;
     
-    public HttpLayerSemanticsTest(final SpdyMode spdyMode,
+    public HttpLayerSemanticsTest(final SpdyVersion spdyVersion,
+            final SpdyMode spdyMode,
             final boolean isSecure) {
+        this.spdyVersion = spdyVersion;
         this.spdyMode = spdyMode;
         this.isSecure = isSecure;
     }
@@ -160,7 +163,8 @@ public class HttpLayerSemanticsTest extends AbstractSpdyTest {
     // --------------------------------------------------------- Private Methods
     
     private HttpServer createWebServer(final HttpHandler httpHandler) {
-        final HttpServer httpServer = createServer(null, PORT, spdyMode, isSecure,
+        final HttpServer httpServer = createServer(null, PORT, spdyVersion,
+                spdyMode, isSecure,
                 AbstractSpdyTest.HttpHandlerRegistration.of(httpHandler, "/path/*"));
         
         final NetworkListener listener = httpServer.getListener("grizzly");
@@ -187,7 +191,8 @@ public class HttpLayerSemanticsTest extends AbstractSpdyTest {
 
             server.start();
             
-            clientTransport.setFilterChain(createClientFilterChain(spdyMode, isSecure,
+            clientTransport.setFilterChain(createClientFilterChain(spdyVersion,
+                    spdyMode, isSecure,
                     new ClientFilter(testResultFuture)));
 
             clientTransport.start();

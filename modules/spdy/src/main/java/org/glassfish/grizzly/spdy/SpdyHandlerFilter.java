@@ -41,6 +41,7 @@ package org.glassfish.grizzly.spdy;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +93,7 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.spdy.frames.OversizedFrame;
 import org.glassfish.grizzly.spdy.frames.ServiceFrame;
@@ -114,14 +116,18 @@ import static org.glassfish.grizzly.spdy.frames.SettingsFrame.SETTINGS_MAX_CONCU
  */
 public class SpdyHandlerFilter extends HttpBaseFilter {
     private final static Logger LOGGER = Grizzly.logger(SpdyHandlerFilter.class);
-
-    private static final ClientNpnNegotiator DEFAULT_CLIENT_NPN_NEGOTIATOR =
-            new ClientNpnNegotiator();
-
+    
+    private static final SpdyVersion[] ALL_SPDY_VERSIONS =
+            {SpdyVersion.SPDY_3_1, SpdyVersion.SPDY_3};
+    
     private static final TransferEncoding FIXED_LENGTH_ENCODING =
             new FixedLengthTransferEncoding();
 
+    private final ClientNpnNegotiator DEFAULT_CLIENT_NPN_NEGOTIATOR =
+            new ClientNpnNegotiator();
+
     private final SpdyMode spdyMode;
+    private final SpdyVersion[] supportedSpdyVersions;
     
     private final ExecutorService threadPool;
 
@@ -134,20 +140,38 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
      * @param spdyMode the {@link SpdyMode}.
      */
     public SpdyHandlerFilter(final SpdyMode spdyMode) {
-        this(spdyMode, null);
+        this(spdyMode, null, ALL_SPDY_VERSIONS);
     }
 
     /**
      * Constructs SpdyHandlerFilter.
      * 
      * @param spdyMode the {@link SpdyMode}.
-     * @param threadPool the {@link ExecutorService} to be used to process {@link SynStreamFrame} and
-     * {@link SynReplyFrame} frames, if <tt>null</tt> mentioned frames will be processed in the same thread they were parsed.
+     * @param supportedSpdyVersions SPDY versions this filter has to support
      */
     public SpdyHandlerFilter(final SpdyMode spdyMode,
-            final ExecutorService threadPool) {
+            final SpdyVersion... supportedSpdyVersions) {
+        this(spdyMode, null, supportedSpdyVersions);
+    }
+    
+    /**
+     * Constructs SpdyHandlerFilter.
+     * 
+     * @param spdyMode the {@link SpdyMode}.
+     * @param threadPool the {@link ExecutorService} to be used to process {@link SynStreamFrame} and
+     * {@link SynReplyFrame} frames, if <tt>null</tt> mentioned frames will be processed in the same thread they were parsed.
+     * @param supportedSpdyVersions SPDY versions this filter has to support
+     */
+    public SpdyHandlerFilter(final SpdyMode spdyMode,
+            final ExecutorService threadPool,
+            final SpdyVersion... supportedSpdyVersions) {
         this.spdyMode = spdyMode;
         this.threadPool = threadPool;
+        
+        this.supportedSpdyVersions =
+                (supportedSpdyVersions == null || supportedSpdyVersions.length == 0)
+                ? ALL_SPDY_VERSIONS
+                : Arrays.copyOf(supportedSpdyVersions, supportedSpdyVersions.length);
     }
 
     /**
@@ -185,7 +209,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {
         
-         final SpdySession spdySession = checkSpdySession(ctx, true);
+        final SpdySession spdySession = checkSpdySession(ctx, true);
         
         final Object message = ctx.getMessage();
 
@@ -216,7 +240,14 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                 ctx.getConnection() + " during SpdyFrame processing", e);
                     }
                     
-                    sendRstStream(ctx, e.getStreamId(), e.getRstReason());
+                    final int streamId = e.getStreamId();
+                    
+                    if (streamId == 0) {
+                        throw new SpdySessionException(0,
+                                GoAwayFrame.PROTOCOL_ERROR_STATUS);
+                    }
+                    
+                    sendRstStream(ctx, streamId, e.getRstReason());
                 }
             } else {
                 final ArrayList<SpdyFrame> framesList = (ArrayList<SpdyFrame>) message;
@@ -231,7 +262,14 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                                         ctx.getConnection() + " during SpdyFrame processing", e);
                             }
                             
-                            sendRstStream(ctx, e.getStreamId(), e.getRstReason());
+                            final int streamId = e.getStreamId();
+                            
+                            if (streamId == 0) {
+                                throw new SpdySessionException(0,
+                                        GoAwayFrame.PROTOCOL_ERROR_STATUS);
+                            }
+                            
+                            sendRstStream(ctx, streamId, e.getRstReason());
                         }
                     }
                 } finally {
@@ -454,27 +492,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         } else if (frame.getHeader().isControl()) {
             processControlFrame(spdySession, context, frame);
         } else {
-            final SpdyStream spdyStream = spdySession.getStream(frame.getHeader().getStreamId());
-            
-            if (spdyStream == null) {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "Data frame received for non-existent stream: connection={0}, frame={1}, stream={2}",
-                            new Object[]{context.getConnection(), frame, frame.getHeader().getStreamId()});
-                }
-                
-                frame.recycle();
-                
-                return;
-            }
-
-            if (spdyStream.isUnidirectional() &&
-                    spdyStream.isLocallyInitiatedStream()) {
-                throw new SpdyStreamException(spdyStream.getStreamId(),
-                        RstStreamFrame.PROTOCOL_ERROR,
-                        "Data frame received on unidirectional stream");
-            }
-            
-            processDataFrame(spdyStream, frame);
+            processDataFrame(spdySession, context, (DataFrame) frame);
         }
 
     }
@@ -532,17 +550,21 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final int streamId = updateFrame.getStreamId();
         final int delta = updateFrame.getDelta();
 
-        final SpdyStream stream = spdySession.getStream(streamId);
-        
-        if (stream != null) {
-            stream.onPeerWindowUpdate(delta);
+        if (streamId == 0) {
+            spdySession.getOutputSink().onPeerWindowUpdate(delta);
         } else {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                final StringBuilder sb = new StringBuilder(64);
-                sb.append("\nStream id=")
-                        .append(streamId)
-                        .append(" was not found. Ignoring the message.");
-                LOGGER.fine(sb.toString());
+            final SpdyStream stream = spdySession.getStream(streamId);
+
+            if (stream != null) {
+                stream.getOutputSink().onPeerWindowUpdate(delta);
+            } else {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    final StringBuilder sb = new StringBuilder(64);
+                    sb.append("\nStream id=")
+                            .append(streamId)
+                            .append(" was not found. Ignoring the message.");
+                    LOGGER.fine(sb.toString());
+                }
             }
         }
     }
@@ -578,7 +600,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                         case SettingsFrame.SETTINGS_DOWNLOAD_RETRANS_RATE:
                             break;
                         case SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE:
-                            spdySession.setPeerInitialWindowSize(settingsFrame.getSetting(i));
+                            spdySession.setPeerStreamWindowSize(settingsFrame.getSetting(i));
                             break;
                         case SettingsFrame.SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE:
                             break;
@@ -594,7 +616,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         PingFrame pingFrame = (PingFrame) frame;
 
         // Send the same ping message back
-        spdySession.writeDownStream(pingFrame);
+        spdySession.getOutputSink().writeDownStream(pingFrame);
     }
 
     private void processRstStream(final SpdySession spdySession,
@@ -819,7 +841,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
         } else {
             final TransportContext transportContext = ctx.getTransportContext();
-            spdySession.writeDownStream(message,
+            spdySession.getOutputSink().writeDownStream(message,
                     transportContext.getCompletionHandler(),
                     transportContext.getLifeCycleHandler());
         }
@@ -846,7 +868,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         } else {
             final TransportContext transportContext = ctx.getTransportContext();
 
-            spdyStream.writeDownStream(entireHttpPacket,
+            spdyStream.getOutputSink().writeDownStream(entireHttpPacket,
                                        ctx,
                                        transportContext.getCompletionHandler(),
                                        transportContext.getLifeCycleHandler());
@@ -874,7 +896,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
             }
             final TransportContext transportContext = ctx.getTransportContext();
 
-            spdyStream.writeDownStream(entireHttpPacket,
+            spdyStream.getOutputSink().writeDownStream(entireHttpPacket,
                                        ctx,
                                        transportContext.getCompletionHandler(),
                                        transportContext.getLifeCycleHandler());
@@ -895,12 +917,12 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
 
         if (!response.isCommitted()) {
             prepareOutgoingResponse(response);
-            pushAssociatedResoureses(spdyStream);
+            pushAssociatedResoureses(ctx, spdyStream);
         }
 
         final TransportContext transportContext = ctx.getTransportContext();
 
-        spdyStream.writeDownStream(entireHttpPacket,
+        spdyStream.getOutputSink().writeDownStream(entireHttpPacket,
                                    ctx,
                                    transportContext.getCompletionHandler(),
                                    transportContext.getLifeCycleHandler());
@@ -944,8 +966,6 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     @Override
     public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        
-        createSpdySession(connection, false);
 
         if (spdyMode == SpdyMode.NPN) {
             final FilterChain filterChain = connection.getFilterChain();
@@ -955,8 +975,27 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                 NextProtoNegSupport.getInstance().setClientSideNegotiator(
                         connection, getClientNpnNegotioator());
 
-                sslFilter.handshake(connection, null);
+                final NextAction suspendAction = ctx.getSuspendConnectAction();
+                ctx.suspend();
+                
+                sslFilter.handshake(connection, new EmptyCompletionHandler<SSLEngine>() {
+
+                    @Override
+                    public void completed(final SSLEngine result) {
+                        ctx.resumeNext();
+                    }
+
+                    @Override
+                    public void failed(Throwable throwable) {
+                        ctx.fail(throwable);
+                    }
+                    
+                });
+                
+                return suspendAction;
             }
+        } else {
+            createSpdySession(supportedSpdyVersions[0], connection, false);            
         }
         
         return ctx.getInvokeAction();
@@ -1000,14 +1039,19 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     /**
      * Creates {@link SpdySession} with preconfigured initial-windows-size and
      * max-concurrent-
+     * @param spdyVersion
      * @param connection
+     * @param isServer
      * @return 
      */
-    protected SpdySession createSpdySession(final Connection connection,
+    protected SpdySession createSpdySession(final SpdyVersion spdyVersion,
+            final Connection connection,
             final boolean isServer) {
         
-        final SpdySession spdySession = new SpdySession(connection, isServer, this);
-        spdySession.setLocalInitialWindowSize(initialWindowSize);
+        final SpdySession spdySession =
+                spdyVersion.newSession(connection, isServer, this);
+        
+        spdySession.setLocalStreamWindowSize(initialWindowSize);
         spdySession.setLocalMaxConcurrentStreams(maxConcurrentStreams);
         
         SpdySession.bind(connection, spdySession);
@@ -1164,7 +1208,8 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         
         SpdySession spdySession = SpdySession.get(connection);
         if (spdySession == null) {
-            spdySession = createSpdySession(connection, true);
+            spdySession = createSpdySession(supportedSpdyVersions[0],
+                    connection, true);
         }
         
         if (spdySession.initCommunication(context, isUpStream)) {
@@ -1180,7 +1225,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         final boolean isConcurrentStreamsUpdated =
                 spdySession.getLocalMaxConcurrentStreams() >= 0;
         final boolean isInitialWindowUpdated =
-                spdySession.getLocalInitialWindowSize() != DEFAULT_INITIAL_WINDOW_SIZE;
+                spdySession.getLocalStreamWindowSize() != DEFAULT_INITIAL_WINDOW_SIZE;
         
         if (isConcurrentStreamsUpdated || isInitialWindowUpdated) {
             final SettingsFrameBuilder builder = SettingsFrame.builder();
@@ -1198,15 +1243,44 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         }
     }
     
-    private static void processDataFrame(final SpdyStream spdyStream,
-            final SpdyFrame frame) throws SpdyStreamException {
+    private static void processDataFrame(final SpdySession spdySession,
+            final FilterChainContext context,
+            final DataFrame dataFrame) throws SpdyStreamException {
 
-        DataFrame dataFrame = (DataFrame) frame;
-        spdyStream.offerInputData(dataFrame.getData(), dataFrame.isFlagSet(DataFrame.FLAG_FIN));
+        final Buffer data = dataFrame.getData();
+        final SpdyStream spdyStream = spdySession.getStream(dataFrame.getHeader().getStreamId());
+
+        if (spdyStream == null) {
+
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Data frame received for non-existent stream: connection={0}, frame={1}, stream={2}",
+                        new Object[]{context.getConnection(), dataFrame, dataFrame.getHeader().getStreamId()});
+            }
+
+            final int dataSize = data.remaining();
+
+            dataFrame.recycle();
+
+            spdySession.sendWindowUpdate(dataSize);
+
+            return;
+        }
+
+        final SpdyStreamException error = spdyStream.assertCanAcceptData();
+        
+        if (error != null) {
+            final int dataSize = data.remaining();
+            dataFrame.recycle();
+            spdySession.sendWindowUpdate(dataSize);
+            
+            throw error;
+        }
+        
+        spdyStream.offerInputData(data, dataFrame.isFlagSet(DataFrame.FLAG_FIN));
     }
 
-    private void pushAssociatedResoureses(final SpdyStream spdyStream)
-            throws IOException {
+    private void pushAssociatedResoureses(final FilterChainContext ctx,
+            final SpdyStream spdyStream) throws IOException {
         final Map<String, PushResource> pushResourceMap =
                 spdyStream.getAssociatedResourcesToPush();
         
@@ -1253,7 +1327,7 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
                         pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
                         prepareOutgoingResponse(spdyResponse);
                         
-                        pushStream.writeDownStream(source);
+                        pushStream.getOutputSink().writeDownStream(source, ctx);
                     } catch (Exception e) {
                         LOGGER.log(Level.FINE,
                                 "Can not push: " + entry.getKey(), e);
@@ -1269,16 +1343,13 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private static class ClientNpnNegotiator implements ClientSideNegotiator {
+    private class ClientNpnNegotiator implements ClientSideNegotiator {
         
-        private static final String SPDY3_PROTOCOL = "spdy/3";
-
         @Override
         public boolean wantNegotiate(final SSLEngine engine) {
-            final Connection connection = NextProtoNegSupport.getConnection(engine);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "NPN wantNegotiate. Connection={0}",
-                        new Object[]{connection});
+                        new Object[]{NextProtoNegSupport.getConnection(engine)});
             }
             return true;
         }
@@ -1286,21 +1357,30 @@ public class SpdyHandlerFilter extends HttpBaseFilter {
         @Override
         public String selectProtocol(final SSLEngine engine,
                                      final LinkedHashSet<String> protocols) {
-            final Connection connection = NextProtoNegSupport.getConnection(engine);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "NPN selectProtocol. Connection={0}, protocols={1}",
-                        new Object[]{connection, protocols});
+                        new Object[]{NextProtoNegSupport.getConnection(engine), protocols});
             }
             
-            return (protocols.contains(SPDY3_PROTOCOL) ? SPDY3_PROTOCOL : "");
+            for (SpdyVersion version : supportedSpdyVersions) {
+                final String versionDef = version.toString();
+                if (protocols.contains(versionDef)) {
+                    
+                    createSpdySession(version,
+                            NextProtoNegSupport.getConnection(engine), false);
+                    
+                    return versionDef;
+                }
+            }
+            
+            return "";
         }
 
         @Override
         public void onNoDeal(final SSLEngine engine) {
-            final Connection connection = NextProtoNegSupport.getConnection(engine);
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "NPN onNoDeal. Connection={0}",
-                        new Object[]{connection});
+                        new Object[]{NextProtoNegSupport.getConnection(engine)});
             }
         }
     }

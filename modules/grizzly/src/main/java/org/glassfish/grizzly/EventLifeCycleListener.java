@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,24 +52,24 @@ public interface EventLifeCycleListener {
     /**
      * {@link Event} processing suspended.
      *
-     * @param context the {@link Context} for the current event.
-     * @throws IOException if an error occurs processing the event.
+     * @param context the {@link Context} for the current event
+     * @throws IOException if an error occurs processing the event
      */
     public void onSuspend(Context context) throws IOException;
 
     /**
      * {@link Event} processing resumed.
      *
-     * @param context the {@link Context} for the current event.
-     * @throws IOException if an error occurs processing the event.
+     * @param context the {@link Context} for the current event
+     * @throws IOException if an error occurs processing the event
      */
     public void onResume(Context context) throws IOException;
 
     /**
      * {@link Event} processing completed.
      * 
-     * @param context the {@link Context} for the current event.
-     * @throws IOException if an error occurs processing the event.
+     * @param context the {@link Context} for the current event
+     * @throws IOException if an error occurs processing the event
      */
     public void onComplete(Context context) throws IOException;
 
@@ -77,24 +77,26 @@ public interface EventLifeCycleListener {
      * Terminate {@link Event} processing in this thread, but it's going to
      * be continued later.
      *
-     * @param context the {@link Context} for the current event.
-     * @throws IOException if an error occurs processing the event.
+     * @param context the {@link Context} for the current event
+     * @param type the termination type
+     * @throws IOException if an error occurs processing the event
      */
-    public void onTerminate(Context context) throws IOException;
+    public void onTerminate(Context context, Object type) throws IOException;
 
     /**
      * Error occurred during {@link Event} processing.
      *
-     * @param context the {@link Context} for the current event.
-     * @throws IOException if an error occurs processing the event.
+     * @param context the {@link Context} for the current event
+     * @param description the error description
+     * @throws IOException if an error occurs processing the event
      */
     public void onError(Context context, Object description) throws IOException;
 
     /**
      * {@link Event} wasn't processed.
      *
-     * @param context the {@link Context} for the current event.
-     * @throws IOException if an error occurs processing the event.
+     * @param context the {@link Context} for the current event
+     * @throws IOException if an error occurs processing the event
      */
     public void onNotRun(Context context) throws IOException;
     
@@ -128,7 +130,7 @@ public interface EventLifeCycleListener {
          * {@inheritDoc}
          */
         @Override
-        public void onTerminate(Context context) throws IOException {
+        public void onTerminate(Context context, Object type) throws IOException {
         }
 
         /**

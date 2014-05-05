@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,8 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.AbstractSocketConnectorHandler;
@@ -54,6 +56,7 @@ import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.EventLifeCycleListener;
+import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
@@ -275,9 +278,13 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection CONNECT
     private static final class EnableReadHandler extends EventLifeCycleListener.Adapter {
-
+        private static final AtomicIntegerFieldUpdater<EnableReadHandler> updater =
+                AtomicIntegerFieldUpdater.newUpdater(
+                        EnableReadHandler.class, "isInitialReadEnabled");
+        
         private final CompletionHandler<Connection> completionHandler;
-
+        private volatile int isInitialReadEnabled;
+        
         private EnableReadHandler(
                 final CompletionHandler<Connection> completionHandler) {
             this.completionHandler = completionHandler;
@@ -297,9 +304,22 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 completionHandler.completed(connection);
             }
 
-            connection.registerKeyInterest(SelectionKey.OP_READ);
+            if (updater.compareAndSet(this, 0, 1)) {
+                connection.registerKeyInterest(SelectionKey.OP_READ);
+            }
         }
 
+        @Override
+        public void onTerminate(final Context context, final Object type)
+                throws IOException {
+            if (type == FilterChain.CONNECT_TERMINATE_TYPE) {
+                final NIOConnection connection = (NIOConnection) context.getConnection();
+                
+                if (updater.compareAndSet(this, 0, 1)) {
+                    connection.registerKeyInterest(SelectionKey.OP_READ);
+                }
+            }
+        }
 
         @Override
         public void onError(final Context context, final Object description)

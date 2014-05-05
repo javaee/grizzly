@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -96,6 +96,7 @@ import org.glassfish.grizzly.spdy.frames.SettingsFrame;
 import org.glassfish.grizzly.spdy.frames.SpdyFrame;
 import org.glassfish.grizzly.spdy.frames.SynReplyFrame;
 import org.glassfish.grizzly.spdy.frames.SynStreamFrame;
+import org.glassfish.grizzly.spdy.frames.WindowUpdateFrame;
 import org.glassfish.grizzly.utils.Futures;
 import org.junit.Test;
 
@@ -293,7 +294,8 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
             server.start();
             
             final FilterChain clientFilterChain =
-                    createClientFilterChain(SpdyMode.PLAIN, false);
+                    createClientFilterChain(SpdyVersion.SPDY_3_1,
+                            SpdyMode.PLAIN, false);
             setMaxConcurrentStreams(clientFilterChain, maxConcurrentStreams);
             clientTransport.setFilterChain(clientFilterChain);
 
@@ -700,6 +702,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                             if (repliesGot == normalRequestsCounter) {
                                 return;
                             }
+                        case WindowUpdateFrame.TYPE:
                         case SettingsFrame.TYPE:
                         case RstStreamFrame.TYPE:
                             break;
@@ -755,7 +758,8 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
             
             server.start();
             final FilterChainBuilder clientFilterChainBuilder =
-                    createClientFilterChainAsBuilder(SpdyMode.PLAIN, false);
+                    createClientFilterChainAsBuilder(SpdyVersion.SPDY_3_1,
+                            SpdyMode.PLAIN, false);
             
             clientFilterChainBuilder.add(new BaseFilter() {
                 @Override
@@ -1046,7 +1050,7 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
                 
                 try {
                     for (int i = 0; i < 1023; i++) {
-                        uSpdyStream.writeDownStream(
+                        uSpdyStream.getOutputSink().writeDownStream(
                                 HttpContent.builder(uRequest)
                                 .content(Buffers.wrap(mm, "A"))
                                 .last(false)
@@ -1054,6 +1058,8 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
 
                         Thread.sleep(200);
                     }
+                    uStreamCloseFuture.failure(new IllegalStateException(
+                            "Exception had to be thrown"));
                 } catch (IOException e) {
                     uStreamCloseFuture.result(Boolean.TRUE);
                 }
@@ -1122,12 +1128,13 @@ public class SpdySemanticsTest extends AbstractSpdyTest {
     }
     
     private HttpServer createServer(final HttpHandlerRegistration... registrations) {
-        return createServer(".", PORT, SpdyMode.PLAIN, false, registrations);
+        return createServer(".", PORT, SpdyVersion.SPDY_3_1, SpdyMode.PLAIN,
+                false, registrations);
     }
     
     private static FilterChain createRawClientFilterChain() {
         final FilterChain chain = createClientFilterChain(
-                SpdyMode.PLAIN, false);
+                SpdyVersion.SPDY_3_1, SpdyMode.PLAIN, false);
         final FilterReg handlerReg = chain.getRegByType(SpdyHandlerFilter.class);
         if (handlerReg != null) {
             chain.remove(handlerReg.name());

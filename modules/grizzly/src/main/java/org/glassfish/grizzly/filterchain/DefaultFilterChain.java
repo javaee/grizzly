@@ -85,6 +85,14 @@ public final class DefaultFilterChain implements FilterChain {
      * Logger
      */
     private static final Logger LOGGER = Grizzly.logger(DefaultFilterChain.class);
+    
+    // Normal termination type
+    private static final ProcessorResult NORMAL_TERMINATE =
+            ProcessorResult.createTerminate(NORMAL_TERMINATE_TYPE);
+    // Connect termination type
+    private static final ProcessorResult CONNECT_TERMINATE =
+            ProcessorResult.createTerminate(CONNECT_TERMINATE_TYPE);
+
     private static final String TAIL_NAME = "TAIL";
     private static final String HEAD_NAME = "HEAD";
     private static final String AUTO_GENERATED_NAME_MARKER = "*";
@@ -244,7 +252,9 @@ public final class DefaultFilterChain implements FilterChain {
                         executor, ctx.getFilterReg(), endReg);
                 switch (execution.type) {
                     case FilterExecution.TERMINATE_TYPE:
-                        return ProcessorResult.createTerminate();
+                        return NORMAL_TERMINATE;
+                    case FilterExecution.CONNECT_TERMINATE_TYPE:
+                        return CONNECT_TERMINATE;
                     case FilterExecution.FORK_TYPE:
                         ctx = execution.getContext();
                         isRerunFilterChain = true;
@@ -363,6 +373,8 @@ public final class DefaultFilterChain implements FilterChain {
                         forkAction.getContext());
             case SuspendAction.TYPE: // on suspend - return immediatelly
                 return FilterExecution.createTerminate();
+            case SuspendConnectAction.TYPE: // on suspend connect - return immediatelly
+                return FilterExecution.createConnectTerminate();
         }
 
         return FilterExecution.createContinue();
@@ -1353,11 +1365,14 @@ public final class DefaultFilterChain implements FilterChain {
 
         private static final int CONTINUE_TYPE = 0;
         private static final int TERMINATE_TYPE = 1;
-        private static final int FORK_TYPE = 2;
+        private static final int CONNECT_TERMINATE_TYPE = 2;
+        private static final int FORK_TYPE = 3;
         private static final FilterExecution CONTINUE =
                 new FilterExecution(CONTINUE_TYPE, null);
         private static final FilterExecution TERMINATE =
                 new FilterExecution(TERMINATE_TYPE, null);
+        private static final FilterExecution CONNECT_TERMINATE =
+                new FilterExecution(CONNECT_TERMINATE_TYPE, null);
         private final int type;
         private final FilterChainContext context;
 
@@ -1367,6 +1382,10 @@ public final class DefaultFilterChain implements FilterChain {
 
         public static FilterExecution createTerminate() {
             return TERMINATE;
+        }
+
+        public static FilterExecution createConnectTerminate() {
+            return CONNECT_TERMINATE;
         }
 
         public static FilterExecution createFork(final FilterChainContext context) {

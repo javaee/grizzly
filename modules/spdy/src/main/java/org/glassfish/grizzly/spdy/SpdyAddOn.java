@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -75,10 +75,14 @@ import org.glassfish.grizzly.filterchain.FilterReg;
  *
  */
 public class SpdyAddOn implements AddOn {
+    protected static final SpdyVersion[] ALL_SPDY_VERSIONS =
+            {SpdyVersion.SPDY_3_1, SpdyVersion.SPDY_3};
+    
     private static final Logger LOGGER = Grizzly.logger(SpdyAddOn.class);
 
-    private final SpdyMode mode;
-
+    protected final SpdyMode mode;
+    protected final SpdyVersion[] supportedSpdyVersions;
+    
     private int maxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
     private int initialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     private int maxFrameLength = DEFAULT_MAX_FRAME_SIZE;
@@ -88,12 +92,21 @@ public class SpdyAddOn implements AddOn {
     
     @SuppressWarnings("UnusedDeclaration")
     public SpdyAddOn() {
-        this(SpdyMode.NPN);
+        this(SpdyMode.NPN, ALL_SPDY_VERSIONS);
     }
 
     public SpdyAddOn(final SpdyMode mode) {
+        this(mode, ALL_SPDY_VERSIONS);
+    }    
+    
+    public SpdyAddOn(final SpdyMode mode,
+            final SpdyVersion... supportedSpdyVersions) {
         this.mode = mode;
-    }
+        this.supportedSpdyVersions =
+                (supportedSpdyVersions == null || supportedSpdyVersions.length == 0)
+                ? ALL_SPDY_VERSIONS
+                : Arrays.copyOf(supportedSpdyVersions, supportedSpdyVersions.length);
+    }    
 
     // ------------------------------------------------------ Methods From AddOn
 
@@ -104,7 +117,7 @@ public class SpdyAddOn implements AddOn {
         spdyFramingFilter = new SpdyFramingFilter();
         spdyFramingFilter.setMaxFrameLength(getMaxFrameLength());
 
-        spdyHandlerFilter = new SpdyHandlerFilter(mode);
+        spdyHandlerFilter = new SpdyHandlerFilter(mode, supportedSpdyVersions);
         spdyHandlerFilter.setInitialWindowSize(getInitialWindowSize());
         spdyHandlerFilter.setMaxConcurrentStreams(getMaxConcurrentStreams());
 
@@ -215,11 +228,21 @@ public class SpdyAddOn implements AddOn {
     protected final class ProtocolNegotiator implements ServerSideNegotiator {
 
         private static final String HTTP11 = "http/1.1";
-        private static final String SPDY3 = "spdy/3";
 
-        private final LinkedHashSet<String> supportedProtocols =
-                new LinkedHashSet<String>(Arrays.asList(SPDY3, HTTP11));
+        private final LinkedHashSet<String> supportedProtocols;
 
+        // ---------------------------------------------------- Constructors
+
+
+        public ProtocolNegotiator() {
+            supportedProtocols = new LinkedHashSet<String>(
+                    supportedSpdyVersions.length + 1);
+            for (SpdyVersion version : supportedSpdyVersions) {
+                supportedProtocols.add(version.toString());
+            }
+            
+            supportedProtocols.add(HTTP11);
+        }
 
         // ------------------------------- Methods from ServerSideNegotiator
 
@@ -242,15 +265,19 @@ public class SpdyAddOn implements AddOn {
                         new Object[]{connection, engine, protocol});
             }
 
+            final SpdyVersion spdyVersion = SpdyVersion.fromString(protocol);
+            
             // If SPDY is supported, set the spdyFilterChain on the connection.
             // If HTTP/1.1 is negotiated, then use the transport FilterChain.
-            if (SPDY3.equals(protocol)) {
+            if (spdyVersion != null) {
                 FilterChain fc = connection.getFilterChain();
                 if (fc == null) {
                     fc = connection.getTransport().getFilterChain();
                 }
                 assert (fc != null);
 
+                spdyHandlerFilter.createSpdySession(spdyVersion, connection, true);
+                
                 SSLConnectionContext sslCtx =
                         SSLUtils.getSslConnectionContext(connection);
                 final SpdyAddOn spdyAddOn = SpdyAddOn.this;

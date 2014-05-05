@@ -265,7 +265,7 @@ public class TCPNIOConnection extends NIOConnection {
     /**
      * Method will be called in order to check if failure happened before
      * {@link Connection} was reported as connected.
-     * @throws IOException
+     * @param failure
      */
     protected final void checkConnectFailed(Throwable failure) {
         final AtomicReference<ConnectResultHandler> localRef = connectHandlerRef;

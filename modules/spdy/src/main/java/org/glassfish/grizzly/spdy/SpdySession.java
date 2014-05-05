@@ -45,19 +45,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.Deflater;
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
-import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.EventLifeCycleListener;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ProcessorExecutor;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
@@ -83,10 +84,14 @@ import org.glassfish.grizzly.utils.NullaryFunction;
 import static org.glassfish.grizzly.spdy.Constants.*;
 
 /**
- *
+ * The SPDY Session abstraction.
+ * 
  * @author oleksiys
  */
-public final class SpdySession {
+public abstract class SpdySession {
+    private static final Logger LOGGER = Grizzly.logger(SpdySession.class);
+    private static final Level LOGGER_LEVEL = Level.FINE;
+
     private static final Attribute<SpdySession> SPDY_SESSION_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             SpdySession.class.getName());
@@ -118,22 +123,29 @@ public final class SpdySession {
     private volatile FilterChain upstreamChain;
     private volatile FilterChain downstreamChain;
     
-    private Map<Integer, SpdyStream> streamsMap =
+    private final Map<Integer, SpdyStream> streamsMap =
             DataStructures.<Integer, SpdyStream>getConcurrentMap();
     
+    // (Optimization) We may read several DataFrames belonging to the same
+    // SpdyStream, so in order to not process every DataFrame separately -
+    // we buffer them and only then passing for processing.
     final List<SpdyStream> streamsToFlushInput = new ArrayList<SpdyStream>();
     
     private final Object sessionLock = new Object();
     
     private CloseReason closeReason;
     
-    private int peerInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
-    private volatile int localInitialWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
+    private int peerStreamWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
+    private volatile int localStreamWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
+    
+    private volatile int localConnectionWindowSize = DEFAULT_INITIAL_WINDOW_SIZE;
     
     private volatile int localMaxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
     private int peerMaxConcurrentStreams = DEFAULT_MAX_CONCURRENT_STREAMS;
 
     private final StreamBuilder streamBuilder = new StreamBuilder();
+    
+    private final SessionOutputSink outputSink;
     
     public static SpdySession get(final Connection connection) {
         return SPDY_SESSION_ATTR.get(connection);
@@ -147,7 +159,7 @@ public final class SpdySession {
 
     final SpdyHandlerFilter handlerFilter;
 
-    
+
     public SpdySession(final Connection<?> connection,
                        final boolean isServer,
                        final SpdyHandlerFilter handlerFilter) {
@@ -171,28 +183,80 @@ public final class SpdySession {
         });
         
         connection.addCloseListener(new ConnectionCloseListener());
+        
+        this.outputSink = newOutputSink();
     }
 
-    public StreamBuilder getStreamBuilder() {
-        return streamBuilder;
+    public abstract SpdyVersion getVersion();
+    protected abstract SessionOutputSink newOutputSink();
+    protected abstract void sendWindowUpdate(final int delta);
+
+    protected SpdyStream newStream(final HttpRequestPacket spdyRequest,
+            final int streamId, final int associatedToStreamId,
+            final int priority, final int slot,
+            final boolean isUnidirectional) {
+        
+        return new SpdyStream(this, spdyRequest,
+                streamId, associatedToStreamId, priority, slot, isUnidirectional);
     }
     
-    public int getPeerInitialWindowSize() {
-        return peerInitialWindowSize;
+    boolean canWrite() {
+        return outputSink.canWrite();
+    }
+    
+    void notifyCanWrite(final WriteHandler writeHandler) {
+        outputSink.notifyCanWrite(writeHandler);
+    }
+    
+    public int getLocalStreamWindowSize() {
+        return localStreamWindowSize;
     }
 
-    void setPeerInitialWindowSize(int peerInitialWindowSize) {
-        this.peerInitialWindowSize = peerInitialWindowSize;
+    public void setLocalStreamWindowSize(int localStreamWindowSize) {
+        this.localStreamWindowSize = localStreamWindowSize;
+    }
+    
+    public int getPeerStreamWindowSize() {
+        return peerStreamWindowSize;
+    }
+    
+    void setPeerStreamWindowSize(final int peerStreamWindowSize) {
+        synchronized (sessionLock) {
+            final int delta = this.peerStreamWindowSize - peerStreamWindowSize;
+            
+            this.peerStreamWindowSize = peerStreamWindowSize;
+            
+            for (SpdyStream stream : streamsMap.values()) {
+                try {
+                    stream.getOutputSink().onPeerWindowUpdate(delta);
+                } catch (SpdyStreamException e) {
+                    if (LOGGER.isLoggable(LOGGER_LEVEL)) {
+                        LOGGER.log(LOGGER_LEVEL, "SpdyStreamException occurred on stream="
+                                + stream + " during stream window update", e);
+                    }
+
+                    outputSink.writeDownStream(
+                            RstStreamFrame.builder()
+                            .statusCode(e.getRstReason())
+                            .streamId(e.getStreamId())
+                            .build());
+                }
+            }
+        }
     }
 
-    public int getLocalInitialWindowSize() {
-        return localInitialWindowSize;
+    public int getLocalConnectionWindowSize() {
+        return localConnectionWindowSize;
     }
 
-    public void setLocalInitialWindowSize(int localInitialWindowSize) {
-        this.localInitialWindowSize = localInitialWindowSize;
+    public void setLocalConnectionWindowSize(final int localConnectionWindowSize) {
+        this.localConnectionWindowSize = localConnectionWindowSize;
     }
-
+    
+    public int getAvailablePeerConnectionWindowSize() {
+        return outputSink.getAvailablePeerConnectionWindowSize();
+    }
+    
     /**
      * Returns the maximum number of concurrent streams allowed for this session by our side.
      */
@@ -227,6 +291,10 @@ public final class SpdySession {
         return lastLocalStreamId;
     }
     
+    public StreamBuilder getStreamBuilder() {
+        return streamBuilder;
+    }
+    
     public Connection getConnection() {
         return connection;
     }
@@ -243,6 +311,10 @@ public final class SpdySession {
         return streamsMap.get(streamId);
     }
     
+    protected SessionOutputSink getOutputSink() {
+        return outputSink;
+    }
+    
     /**
      * If the session is still open - closes it and sends GOAWAY frame to a peer,
      * otherwise if the session was already closed - does nothing.
@@ -252,7 +324,7 @@ public final class SpdySession {
     public void goAway(final int statusCode) {
         final SpdyFrame goAwayFrame = setGoAwayLocally(statusCode);
         if (goAwayFrame != null) {
-            writeDownStream(goAwayFrame);
+            outputSink.writeDownStream(goAwayFrame);
         }
     }
 
@@ -321,7 +393,7 @@ public final class SpdySession {
             final int priority, final int slot, final boolean isUnidirectional)
             throws SpdySessionException {
         
-        final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
+        final SpdyStream spdyStream = newStream(spdyRequest,
                 streamId, associatedToStreamId,
                 priority, slot, isUnidirectional);
         
@@ -358,7 +430,7 @@ public final class SpdySession {
             throws SpdyStreamException {
         
         spdyRequest.setExpectContent(!fin);
-        final SpdyStream spdyStream = SpdyStream.create(this, spdyRequest,
+        final SpdyStream spdyStream = newStream(spdyRequest,
                 streamId, associatedToStreamId,
                 priority, slot, isUnidirectional);
         
@@ -386,26 +458,6 @@ public final class SpdySession {
         }
         
         return spdyStream;
-    }
-
-   
-    void writeDownStream(final SpdyFrame frame) {
-        writeDownStream(frame, null);
-    }
-    
-    void writeDownStream(final SpdyFrame frame,
-            final CompletionHandler<WriteResult> completionHandler) {
-        
-        downstreamChain.write(connection,
-                null, frame, completionHandler, null);        
-    }
-
-    <K> void writeDownStream(final K anyMessage,
-            final CompletionHandler<WriteResult> completionHandler,
-            final LifeCycleHandler lifeCycleHandler) {
-        
-        downstreamChain.write(connection,
-                null, anyMessage, completionHandler, lifeCycleHandler);        
     }
 
     boolean initCommunication(final FilterChainContext context,
@@ -486,6 +538,7 @@ public final class SpdySession {
      */
     private void closeSession() {
         connection.closeSilently();
+        outputSink.close();
     }
 
     private boolean isClosed() {

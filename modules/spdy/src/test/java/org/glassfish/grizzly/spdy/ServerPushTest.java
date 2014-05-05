@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -87,11 +87,14 @@ public class ServerPushTest extends AbstractSpdyTest {
     private static final int PORT = 8004;
     private static final Random RND = new Random();
 
+    private final SpdyVersion spdyVersion;
     private final SpdyMode spdyMode;
     private final boolean isSecure;
     
-    public ServerPushTest(final SpdyMode spdyMode,
+    public ServerPushTest(final SpdyVersion spdyVersion,
+            final SpdyMode spdyMode,
             final boolean isSecure) {
+        this.spdyVersion = spdyVersion;
         this.spdyMode = spdyMode;
         this.isSecure = isSecure;
     }
@@ -170,7 +173,7 @@ public class ServerPushTest extends AbstractSpdyTest {
                 new LinkedTransferQueue<HttpContent>();
         
         final FilterChainBuilder filterChainBuilder =
-                createClientFilterChainAsBuilder(spdyMode, isSecure);
+                createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new ClientAggregatorFilter(resultQueue));
         
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
@@ -203,7 +206,8 @@ public class ServerPushTest extends AbstractSpdyTest {
             }
         };
 
-        final HttpServer server = createServer(null, PORT, spdyMode, isSecure,
+        final HttpServer server = createServer(null, PORT, spdyVersion,
+                spdyMode, isSecure,
                 HttpHandlerRegistration.of(httpHandler, "/path/*"));
 
         final HttpRequestPacket request = HttpRequestPacket.builder()

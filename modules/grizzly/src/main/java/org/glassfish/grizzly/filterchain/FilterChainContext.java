@@ -112,11 +112,14 @@ public final class FilterChainContext implements AttributeStorage {
      * Cached {@link NextAction} instance for "Suspend action" implementation
      */
     private static final NextAction SUSPEND_ACTION = new SuspendAction();
-
     /**
      * Cached {@link NextAction} instance for "Rerun filter action" implementation
      */
     private static final NextAction RERUN_FILTER_ACTION = new RerunFilterAction();
+    /**
+     * Cached {@link NextAction} instance for "Suspend connect action" implementation
+     */
+    private static final NextAction SUSPEND_CONNECT_ACTION = new SuspendConnectAction();
 
     NextAction predefinedNextAction;
     
@@ -654,6 +657,21 @@ public final class FilterChainContext implements AttributeStorage {
         return SUSPEND_ACTION;
     }
 
+    /**
+     * @return a special {@link NextAction} for a {@link Connection} connect phase,
+     * which instructs {@link FilterChain} to suspend filter chain execution
+     * (only handleConnect), so listeners waiting for a connect operation to complete
+     * won't be notified. But at the same time the {@link Conection} will be able to
+     * process incoming data and respond
+     */
+    public NextAction getSuspendConnectAction() {
+        if (operation != Operation.CONNECT) {
+            throw new IllegalStateException("This action could be used for connect operation only");
+        }
+        
+        return SUSPEND_CONNECT_ACTION;
+    }
+    
     /**
      * Get {@link NextAction}, which instructs {@link FilterChain} to rerun the
      * filter.

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -84,11 +84,14 @@ public class HttpOutputStreamsTest extends AbstractSpdyTest {
     private static final char[] ALPHA = "abcdefghijklmnopqrstuvwxyz".toCharArray();
 
 
+    private final SpdyVersion spdyVersion;
     private final SpdyMode spdyMode;
     private final boolean isSecure;
     
-    public HttpOutputStreamsTest(final SpdyMode spdyMode,
+    public HttpOutputStreamsTest(final SpdyVersion spdyVersion,
+            final SpdyMode spdyMode,
             final boolean isSecure) {
+        this.spdyVersion = spdyVersion;
         this.spdyMode = spdyMode;
         this.isSecure = isSecure;
     }
@@ -1119,7 +1122,8 @@ public class HttpOutputStreamsTest extends AbstractSpdyTest {
                         String expectedResult)
     throws Exception {
 
-        final HttpServer server = createServer("/tmp", PORT, spdyMode, isSecure,
+        final HttpServer server = createServer("/tmp", PORT, spdyVersion,
+                spdyMode, isSecure,
                 HttpHandlerRegistration.of(new TestHttpHandler(strategy), "/*"));
         
         
@@ -1129,8 +1133,8 @@ public class HttpOutputStreamsTest extends AbstractSpdyTest {
             server.start();
 
             FilterChain clientFilterChain = createClientFilterChain(
-                    spdyMode, isSecure, new ClientFilter(parseResult));
-
+                    spdyVersion, spdyMode, isSecure, new ClientFilter(parseResult));
+                                
             ctransport.setFilterChain(clientFilterChain);
 
             ctransport.start();

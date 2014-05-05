@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,7 +48,6 @@ public class ProcessorResult {
 
     private static final ProcessorResult NOT_RUN_RESULT = new ProcessorResult(Status.NOT_RUN, null);
     private static final ProcessorResult COMPLETE_RESULT = new ProcessorResult(Status.COMPLETE, null);
-//    private static final ProcessorResult REREGISTER_RESULT = new ProcessorResult(Status.REREGISTER, null);
     private static final ProcessorResult ERROR_RESULT = new ProcessorResult(Status.ERROR, null);
     private static final ProcessorResult TERMINATE_RESULT = new ProcessorResult(Status.TERMINATE, null);
     
@@ -60,7 +59,7 @@ public class ProcessorResult {
      * Enumeration represents the status/code of {@link ProcessorResult}.
      */
     public enum Status {
-        COMPLETE, /*REREGISTER, FORK,*/ ERROR, TERMINATE, NOT_RUN
+        COMPLETE, ERROR, TERMINATE, NOT_RUN
     }
     
     /**
@@ -80,10 +79,6 @@ public class ProcessorResult {
         return create().setStatus(Status.COMPLETE).setData(newContext);
     }
 
-//    public static ProcessorResult createReregister(final Context context) {
-//        return create().setStatus(Status.REREGISTER).setData(context);
-//    }
-
     public static ProcessorResult createError() {
         return ERROR_RESULT;
     }
@@ -92,12 +87,12 @@ public class ProcessorResult {
         return create().setStatus(Status.ERROR).setData(description);
     }
 
-//    public static ProcessorResult createFork(final Context context) {
-//        return create().setStatus(Status.FORK).setData(context);
-//    }
-
     public static ProcessorResult createTerminate() {
         return TERMINATE_RESULT;
+    }
+
+    public static ProcessorResult createTerminate(final Object description) {
+        return create().setStatus(Status.TERMINATE).setData(description);
     }
 
     public static ProcessorResult createNotRun() {
