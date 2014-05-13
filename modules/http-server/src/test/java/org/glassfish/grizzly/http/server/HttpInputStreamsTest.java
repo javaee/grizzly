@@ -78,6 +78,7 @@ import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.http.util.HeaderValue;
 
 import static junit.framework.Assert.assertEquals;
+import org.glassfish.grizzly.http.Method;
 
 /**
  * Test cases to validate the behaviors of {@link org.glassfish.grizzly.http.io.NIOInputStream} and
@@ -1262,7 +1263,8 @@ public class HttpInputStreamsTest extends TestCase {
                 .method(method)
                 .protocol(Protocol.HTTP_1_1)
                 .uri("/path")
-                .chunked(content == null)
+                .chunked(content == null &&
+                        Method.valueOf(method).getPayloadExpectation() == Method.PayloadExpectation.ALLOWED)
                 .header("Host", "localhost");
         if (content != null) {
             assert contentBuffer != null;
