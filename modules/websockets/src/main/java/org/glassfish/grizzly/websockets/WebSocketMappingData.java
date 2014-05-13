@@ -49,5 +49,10 @@ import org.glassfish.grizzly.http.server.util.MappingData;
  * @author Alexey Stashok
  */
 public class WebSocketMappingData extends MappingData {
+
+    public WebSocketMappingData(final boolean isGlassfish) {
+        this.isGlassfish = isGlassfish;
+    }
+    
     public boolean isGlassfish;
 }
