@@ -163,30 +163,33 @@ public class WebSocketEngine {
         } else {
             isGlassfishMapper = true;
         }
+
+        assert mapper != null;
         
-        if (mapper != null) {
-            // try the Mapper first...
-            final WebSocketMappingData data = new WebSocketMappingData();
-            try {
-                mapper.mapUriWithSemicolon(request.serverName(),
-                        request.getRequestURIRef().getDecodedRequestURIBC(),
-                                    data,
-                                    0);
-                if (data.wrapper != null) {
-                    data.isGlassfish = isGlassfishMapper;
-                    return new WebSocketApplicationReg(
-                            (WebSocketApplication) data.wrapper, data);
-                }
-            } catch (Exception e) {
-                if (logger.isLoggable(Level.SEVERE)) {
-                    logger.log(Level.SEVERE, e.toString(), e);
-                }
+        // try the Mapper first...
+        final WebSocketMappingData data = new WebSocketMappingData(isGlassfishMapper);
+        try {
+            mapper.mapUriWithSemicolon(request.serverName(),
+                    request.getRequestURIRef().getDecodedRequestURIBC(),
+                                data,
+                                0);
+            if (data.wrapper != null && !isGlassfishMapper) {
+                // if this is Grizzly standalone mapper - the wrapper should
+                // represent WebSocketApplication
+                return new WebSocketApplicationReg(
+                        (WebSocketApplication) data.wrapper, data);
+            }
+        } catch (Exception e) {
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, e.toString(), e);
             }
         }
 
         for (WebSocketApplication application : applications) {
             if (application.upgrade(request)) {
-                return new WebSocketApplicationReg(application, null);
+                return new WebSocketApplicationReg(application,
+                        // if contextPath == null - don't return any mapping info
+                        data.contextPath.isNull() ? null : data);
             }
         }
         
