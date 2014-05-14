@@ -65,7 +65,6 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.OutputSink;
-import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -253,19 +252,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     
     @Override
     public boolean canWrite() {
-        final int peerWindowSizeNow = getPeerWindowSize();
-        
-        // TODO:  remove this inspection
-        //noinspection ConstantConditions
-        if (peerWindowSizeNow < 0) {
-            return true;
-        }
-
-        final TaskQueue taskQueue =
-                outputSink.outputQueue;
-        final int size = taskQueue.size();
-
-        return size == 0 || size < peerWindowSizeNow;
+        return outputSink.canWrite();
     }
 
     @Override
@@ -276,9 +263,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     
     @Override
     public void notifyCanWrite(final WriteHandler writeHandler) {
-        // pass peer-window-size as max, even though these values are independent.
-        // later we may want to decouple outputQueue's max-size and peer-window-size
-        outputSink.outputQueue.notifyWritePossible(writeHandler, getPeerWindowSize());
+        outputSink.notifyWritePossible(writeHandler);
     }
 
     StreamOutputSink getOutputSink() {

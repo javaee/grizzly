@@ -47,6 +47,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueRecord;
@@ -78,6 +79,8 @@ final class StreamOutputSink {
     private static final Logger LOGGER = Grizzly.logger(StreamOutputSink.class);
     private static final Level LOGGER_LEVEL = Level.INFO;
 
+    private static final int MAX_OUTPUT_QUEUE_SIZE = 65536;
+
     private static final int ZERO_QUEUE_RECORD_SIZE = 1;
     
     private static final OutputQueueRecord TERMINATING_QUEUE_RECORD =
@@ -89,7 +92,7 @@ final class StreamOutputSink {
 
         @Override
         public int getMaxQueueSize() {
-            return spdyStream.getPeerWindowSize();
+            return MAX_OUTPUT_QUEUE_SIZE;
         }
     });
     
@@ -118,6 +121,14 @@ final class StreamOutputSink {
         this.spdyStream = spdyStream;
         spdySession = spdyStream.getSpdySession();
         availStreamWindowSize = new AtomicInteger(spdyStream.getPeerWindowSize());
+    }
+
+    public boolean canWrite() {
+        return outputQueue.size() < MAX_OUTPUT_QUEUE_SIZE;
+    }
+
+    public void notifyWritePossible(final WriteHandler writeHandler) {
+        outputQueue.notifyWritePossible(writeHandler, MAX_OUTPUT_QUEUE_SIZE);
     }
 
     public void assertReady() throws IOException {
@@ -191,7 +202,8 @@ final class StreamOutputSink {
                 final int dataChunkToSendSize = dataChunkToSend.remaining();
                 
                 // send a spdydata frame
-                writeDownStream(dataChunkToSend, completionHandler, isLast);
+                writeDownStream0(null, dataChunkToSend, completionHandler,
+                        null, isLast);
                 
                 // update the available window size bytes counter
                 availStreamWindowSize.addAndGet(-dataChunkToSendSize);
@@ -299,7 +311,7 @@ final class StreamOutputSink {
                     // if we don't expect any HTTP payload, mark this frame as
                     // last and return
                     unflushedWritesCounter.incrementAndGet();
-                    writeDownStream(headerFrame, null,
+                    writeDownStream0(headerFrame, null,
                             new FlushCompletionHandler(completionHandler),
                             messageCloner, isNoPayload);
                     return;
@@ -414,7 +426,7 @@ final class StreamOutputSink {
                     outputQueueRecord.incChunksCounter();
                 }
                 
-                writeDownStream(headerFrame, dataToSend, flushCompletionHandler,
+                writeDownStream0(headerFrame, dataToSend, flushCompletionHandler,
                         isDataCloned ? null : messageCloner,
                         isLast);
             }
@@ -481,7 +493,7 @@ final class StreamOutputSink {
                 unflushedWritesCounter.incrementAndGet();
                 // if we don't expect any HTTP payload, mark this frame as
                 // last and return
-                writeDownStream(headerFrame, null, new FlushCompletionHandler(null),
+                writeDownStream0(headerFrame, null, new FlushCompletionHandler(null),
                         null, isNoPayload);
                 return;
             }
@@ -520,7 +532,7 @@ final class StreamOutputSink {
                     outputQueueRecord == null);
 
             unflushedWritesCounter.incrementAndGet();
-            writeDownStream(headerFrame, bufferToSend,
+            writeDownStream0(headerFrame, bufferToSend,
                     new FlushCompletionHandler(null), null, isLast);
         
         } finally {
@@ -602,38 +614,18 @@ final class StreamOutputSink {
                         .build());
     }
 
-    private void writeDownStream(final Buffer data,
-            final CompletionHandler<WriteResult> completionHandler,
-            final boolean isLast) {
-        writeDownStream0(null, data, completionHandler, null, isLast);
-        
-        if (isLast) {
-            terminate(OUT_FIN_TERMINATION);
-        }
-    }
-
-    private void writeDownStream(final SpdyFrame headerFrame,
-            final Buffer data,
-            final CompletionHandler<WriteResult> completionHandler,
-            final MessageCloner<Buffer> messageCloner,
-            final boolean isLast) {
-        
-        writeDownStream0(headerFrame, data, completionHandler, messageCloner,
-                isLast);
-        
-        if (isLast) {
-            terminate(OUT_FIN_TERMINATION);
-        }
-    }
-
     private void writeDownStream0(final SpdyFrame headerFrame,
             final Buffer data,
             final CompletionHandler<WriteResult> completionHandler,
             final MessageCloner<Buffer> messageCloner,
             final boolean isLast) {
-
+        
         spdySession.getOutputSink().writeDataDownStream(spdyStream, headerFrame,
                 data, completionHandler, messageCloner, isLast);
+        
+        if (isLast) {
+            terminate(OUT_FIN_TERMINATION);
+        }
     }
 
     /**
@@ -690,8 +682,8 @@ final class StreamOutputSink {
     private void writeEmptyFin() {
         if (!isTerminated()) {
             unflushedWritesCounter.incrementAndGet();
-            writeDownStream(Buffers.EMPTY_BUFFER,
-                    new FlushCompletionHandler(null), true);
+            writeDownStream0(null, Buffers.EMPTY_BUFFER,
+                    new FlushCompletionHandler(null), null, true);
         }
     }
 
@@ -790,7 +782,8 @@ final class StreamOutputSink {
                         (dataChunkToSend.hasRemaining() || isLast)) {
                     final int dataChunkToSendSize = dataChunkToSend.remaining();
 
-                    writeDownStream(dataChunkToSend, chunkedCompletionHandler, isLast);
+                    writeDownStream0(null, dataChunkToSend,
+                            chunkedCompletionHandler, null, isLast);
                     
                     // update the available window size bytes counter
                     availStreamWindowSize.addAndGet(-dataChunkToSendSize);
@@ -849,7 +842,7 @@ final class StreamOutputSink {
                 final FlushCompletionHandler completionHandler,
                 final boolean last) {
             this.resource = resource;
-            this.completionHandler = completionHandler;
+            this.chunkedCompletionHandler = completionHandler;
             this.isLast = last;
         }
         
