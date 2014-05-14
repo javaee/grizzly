@@ -1098,6 +1098,12 @@ public class HttpServerFilter extends HttpCodecFilter {
             final HttpRequestPacket httpRequest, final boolean isStayAlive)
             throws IOException {
         
+        // if this is upgraded HTTP connection - close it
+        if (!httpRequest.getUpgradeDC().isNull()) {
+            httpRequest.getProcessingState().getHttpContext().close();
+            return;
+        }
+        
         if (httpRequest.isExpectContent()) {
             if (!httpRequest.isContentBroken()) {
                 // If transfer encoding is defined and we can determine the message body length
