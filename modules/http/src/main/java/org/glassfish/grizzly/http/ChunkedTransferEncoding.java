@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,6 +65,7 @@ import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
  */
 public final class ChunkedTransferEncoding implements TransferEncoding {
     private static final int MAX_HTTP_CHUNK_SIZE_LENGTH = 16;
+    private static final int CHUNK_LENGTH_PARSED_STATE = 3;
     private static final byte[] LAST_CHUNK_CRLF_BYTES = "0\r\n".getBytes(ASCII_CHARSET);
     private static final int[] DEC = HexUtils.getDecBytes();
     
@@ -106,7 +107,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
     @Override
     @SuppressWarnings({"UnusedDeclaration"})
     public ParsingResult parsePacket(final FilterChainContext ctx,
-            final HttpHeader httpPacket, Buffer input) {
+            final HttpHeader httpPacket, Buffer buffer) {
         final HttpPacketParsing httpPacketParsing = (HttpPacketParsing) httpPacket;
 
         // Get HTTP content parsing state
@@ -118,12 +119,12 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         // Check if HTTP chunk length was parsed
         if (!isLastChunk && contentParsingState.chunkRemainder <= 0) {
             // We expect next chunk header
-            input = parseTrailerCRLF(httpPacketParsing, input);
-            if (input == null) {
+            buffer = parseTrailerCRLF(httpPacketParsing, buffer);
+            if (buffer == null) {
                 return ParsingResult.create(null, null);
             }
 
-            if (!parseHttpChunkLength(httpPacketParsing, input)) {
+            if (!parseHttpChunkLength(httpPacketParsing, buffer)) {
 
                 // It could be the header we're processing is in response
                 // to a HEAD request that is using this transfer encoding,
@@ -135,7 +136,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
                 // if not a HEAD request and we don't have enough data to
                 // parse chunk length - stop execution
-                return ParsingResult.create(null, input);
+                return ParsingResult.create(null, buffer);
             }
         } else {
             // HTTP content starts from position 0 in the input Buffer (HTTP chunk header is not part of the input Buffer)
@@ -157,10 +158,10 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             }
 
             // Check if trailer is present
-            if (!parseLastChunkTrailer(ctx, httpPacket, httpPacketParsing, input)) {
+            if (!parseLastChunkTrailer(ctx, httpPacket, httpPacketParsing, buffer)) {
                 // if yes - and there is not enough input data - stop the
                 // filterchain processing
-                return ParsingResult.create(null, input);
+                return ParsingResult.create(null, buffer);
             }
 
             // move the content start position after trailer parsing
@@ -171,16 +172,16 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         final long thisPacketRemaining =
                 contentParsingState.chunkRemainder;
         // Get the number of content bytes available in the current input Buffer
-        final int contentAvailable = input.limit() - chunkContentStart;
+        final int contentAvailable = buffer.limit() - chunkContentStart;
 
         Buffer remainder = null;
         if (contentAvailable > thisPacketRemaining) {
             // If input Buffer has part of the next message - slice it
-            remainder = input.split(
+            remainder = buffer.split(
                     (int) (chunkContentStart + thisPacketRemaining));
-            input.position(chunkContentStart);
+            buffer.position(chunkContentStart);
         } else if (chunkContentStart > 0) {
-            input.position(chunkContentStart);
+            buffer.position(chunkContentStart);
         }
 
         if (isLastChunk) {
@@ -190,16 +191,16 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
         }
 
-        input.shrink();
-        if (input.hasRemaining()) { // if input still has some data
+        buffer.shrink();
+        if (buffer.hasRemaining()) { // if input still has some data
             // recalc the HTTP chunk remaining content
-            contentParsingState.chunkRemainder -= input.remaining();
+            contentParsingState.chunkRemainder -= buffer.remaining();
         } else { // if not
-            input.tryDispose();
-            input = Buffers.EMPTY_BUFFER;
+            buffer.tryDispose();
+            buffer = Buffers.EMPTY_BUFFER;
         }
 
-        return ParsingResult.create(httpPacket.httpContentBuilder().content(input).build(), remainder);
+        return ParsingResult.create(httpPacket.httpContentBuilder().content(buffer).build(), remainder);
     }
 
     /**
@@ -263,17 +264,32 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                     parsingState.start = pos;
                     parsingState.offset = pos;
                     parsingState.packetLimit = pos + MAX_HTTP_CHUNK_SIZE_LENGTH;
-                    parsingState.state = 1;
                 }
 
-                case 1: { // Scan chunk size
+                case 1: { // Skip heading spaces (it's not allowed by the spec, but some servers put it there)
+                    final int nonSpaceIdx = skipSpaces(input,
+                            parsingState.offset, parsingState.packetLimit);
+                    if (nonSpaceIdx == -1) {
+                        parsingState.offset = input.limit();
+                        parsingState.state = 1;
+                        
+                        parsingState.checkOverflow("The chunked encoding length prefix is too large");
+                        return false;
+                    }
+                    
+                    parsingState.offset = nonSpaceIdx;
+                    parsingState.state = 2;
+                }
+                
+                case 2: { // Scan chunk size
                     int offset = parsingState.offset;
                     int limit = Math.min(parsingState.packetLimit, input.limit());
                     long value = parsingState.parsingNumericValue;
 
                     while (offset < limit) {
                         final byte b = input.get(offset);
-                        if (b == Constants.CR || b == Constants.SEMI_COLON) {
+                        if (isSpaceOrTab(b) || /*trailing spaces are not allowed by the spec, but some server put it there*/
+                                b == Constants.CR || b == Constants.SEMI_COLON) {
                             parsingState.checkpoint = offset;
                         } else if (b == Constants.LF) {
                             final ContentParsingState contentParsingState =
@@ -281,8 +297,9 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                             contentParsingState.chunkContentStart = offset + 1;
                             contentParsingState.chunkLength = value;
                             contentParsingState.chunkRemainder = value;
-                            parsingState.state = 2;
-
+                            
+                            parsingState.state = CHUNK_LENGTH_PARSED_STATE;
+                            
                             return true;
                         } else if (parsingState.checkpoint == -1) {
                             if (DEC[b & 0xFF] != -1) {
@@ -324,7 +341,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             final Buffer input) {
         final HeaderParsingState parsingState = httpPacket.getHeaderParsingState();
 
-        if (parsingState.state == 2) {
+        if (parsingState.state == CHUNK_LENGTH_PARSED_STATE) {
             while (input.hasRemaining()) {
                 if (input.get() == Constants.LF) {
                     parsingState.recycle();
