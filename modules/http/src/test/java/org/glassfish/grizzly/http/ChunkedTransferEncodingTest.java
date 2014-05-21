@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -173,12 +174,10 @@ public class ChunkedTransferEncodingTest {
         
     @Test
     public void testNoTrailerHeaders() throws Exception {
-        Map<String, Pair<String, String>> headers =
-                new HashMap<String, Pair<String, String>>();
-
         final int packetsNum = 5;
         
-        doHttpRequestTest(packetsNum, true, headers);
+        doHttpRequestTest(packetsNum, true,
+                Collections.<String, Pair<String, String>>emptyMap());
         
         for (int i = 0; i < packetsNum; i++) {
             Future<Boolean> result = resultQueue.poll(10, TimeUnit.SECONDS);
@@ -271,6 +270,32 @@ public class ChunkedTransferEncodingTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSpacesInChunkSizeHeader() throws Exception {
+        final String msg = "abc";
+        final String msgLen = Integer.toHexString(msg.length());
+        
+        httpRequestCheckFilter.setCheckParameters(
+                Buffers.wrap(connection.getTransport().getMemoryManager(), msg),
+                Collections.<String, Pair<String, String>>emptyMap());
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("POST / HTTP/1.1\r\n");
+        sb.append("Host: localhost:").append(PORT).append("\r\n");
+        sb.append("Transfer-Encoding: chunked\r\n\r\n");
+        sb.append("  ").append(msgLen).append("  ").append(eol).append(msg).append(eol);
+        sb.append("  0  ").append(eol).append(eol);
+        
+        Buffer b = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER,
+                                sb.toString(),
+                                Charsets.ASCII_CHARSET);
+        Future f = connection.write(b);
+        f.get(10, TimeUnit.SECONDS);
+        Future<Boolean> result = resultQueue.poll(10, TimeUnit.SECONDS);
+        assertTrue(result.get(10, TimeUnit.SECONDS));
+    }
+    
     @SuppressWarnings("unchecked")
     private void doHttpRequestTest(
             int packetsNum,
