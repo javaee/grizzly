@@ -218,10 +218,9 @@ public class InputBuffer {
             
             // Check if HttpContent is chunked message trailer w/ headers
             checkHttpTrailer(content);
-            inputContentBuffer = content.getContent();
+            updateInputContentBuffer(content.getContent());
             contentRead = content.isLast();
             content.recycle();
-            inputContentBuffer.allowBufferDispose(true);
             
             if (LOGGER.isLoggable(LOGGER_LEVEL)) {
                 log("InputBuffer %s initialize with ready content: %s",
@@ -1110,6 +1109,18 @@ public class InputBuffer {
         }
     }
 
+    /**
+     * Read next chunk of data in this thread, block if needed.
+     * 
+     * @return {@link HttpContent}
+     * @throws IOException 
+     */
+    protected HttpContent blockingRead() throws IOException {
+        final ReadResult rr = ctx.read();
+        final HttpContent c = (HttpContent) rr.getMessage();
+        rr.recycle();
+        return c;
+    }
 
     /**
      * <p>
@@ -1129,8 +1140,7 @@ public class InputBuffer {
         while ((requestedLen == -1 || read < requestedLen) &&
                 httpHeader.isExpectContent()) {
             
-            final ReadResult rr = ctx.read();
-            final HttpContent c = (HttpContent) rr.getMessage();
+            final HttpContent c = blockingRead();
             
             final boolean isLast = c.isLast();
             // Check if HttpContent is chunked message trailer w/ headers
@@ -1146,7 +1156,6 @@ public class InputBuffer {
             
             read += b.remaining();
             updateInputContentBuffer(b);
-            rr.recycle();
             c.recycle();
             
             if (isLast) {
@@ -1211,12 +1220,10 @@ public class InputBuffer {
         while (read < requestedLen && httpHeader.isExpectContent()) {
 
             if (isNeedMoreInput || !inputContentBuffer.hasRemaining()) {
-                final ReadResult rr = ctx.read();
-                final HttpContent c = (HttpContent) rr.getMessage();
+                final HttpContent c = blockingRead();
                 updateInputContentBuffer(c.getContent());
                 last = c.isLast();
 
-                rr.recycle();
                 c.recycle();
                 isNeedMoreInput = false;
             }
@@ -1307,10 +1314,13 @@ public class InputBuffer {
     }
 
 
-    private void updateInputContentBuffer(final Buffer buffer)  {
+    protected void updateInputContentBuffer(final Buffer buffer)  {
 
         buffer.allowBufferDispose(true);
-        if (inputContentBuffer.hasRemaining()) {
+        
+        if (inputContentBuffer == null) {
+            inputContentBuffer = buffer;
+        } else if (inputContentBuffer.hasRemaining()) {
             toCompositeInputContentBuffer().append(buffer);
         } else {
             inputContentBuffer.tryDispose();

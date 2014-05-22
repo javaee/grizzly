@@ -212,24 +212,29 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(handlerResponse);
 
-                    if (!isShuttingDown) {
-                        if (!config.isPassTraceRequest()
-                                && request.getMethod() == Method.TRACE) {
-                            onTraceRequest(handlerRequest, handlerResponse);
-                        } else {
-                            final HttpHandler httpHandlerLocal = httpHandler;
-                            if (httpHandlerLocal != null) {
-                                wasSuspended = !httpHandlerLocal.doHandle(
-                                        handlerRequest, handlerResponse);
-                            }
-                        }
-                    } else { // if we're in the shutting down phase - serve shutdown page and exit
+                    if (isShuttingDown) { // if we're in the shutting down phase - serve shutdown page and exit
                         handlerResponse.getResponse().getProcessingState().setError(true);
                         HtmlHelper.setErrorAndSendErrorPage(
                                 handlerRequest, handlerResponse,
                                 config.getDefaultErrorPageGenerator(),
                                 503, HttpStatus.SERVICE_UNAVAILABLE_503.getReasonPhrase(),
                                 "The server is being shutting down...", null);
+                    } else if (!config.isPassTraceRequest()
+                            && request.getMethod() == Method.TRACE) {
+                        onTraceRequest(handlerRequest, handlerResponse);
+                    } else if (!checkMaxPostSize(request.getContentLength())) {
+                        handlerResponse.getResponse().getProcessingState().setError(true);
+                        HtmlHelper.setErrorAndSendErrorPage(
+                                handlerRequest, handlerResponse,
+                                config.getDefaultErrorPageGenerator(),
+                                400, HttpStatus.BAD_REQUEST_400.getReasonPhrase(),
+                                "The request payload size exceeds the max post size limitation", null);
+                    } else {
+                        final HttpHandler httpHandlerLocal = httpHandler;
+                        if (httpHandlerLocal != null) {
+                            wasSuspended = !httpHandlerLocal.doHandle(
+                                    handlerRequest, handlerResponse);
+                        }
                     }
                 } catch (Exception t) {
                     LOGGER.log(Level.WARNING,
@@ -421,6 +426,17 @@ public class HttpServerFilter extends BaseFilter
                 shutdownHandler.completed(this);
             }
         }
+    }
+
+    /**
+     * @param requestContentLength
+     * @return <tt>true</tt> if request content-length doesn't exceed
+     *      the max post size limit, or <tt>false</tt> otherwise
+     */
+    private boolean checkMaxPostSize(final long requestContentLength) {
+        final long maxPostSize = config.getMaxPostSize();
+        return requestContentLength <= 0 || maxPostSize < 0 ||
+                maxPostSize >= requestContentLength;
     }
 
     /**
