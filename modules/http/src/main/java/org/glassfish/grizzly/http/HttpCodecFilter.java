@@ -116,6 +116,14 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     protected final boolean chunkingEnabled;
 
     /**
+     * The maximum request payload remainder (in bytes) HttpServerFilter will try
+     * to swallow after HTTP request processing is over in order to keep the
+     * connection alive. If the remainder is too large - HttpServerFilter will
+     * close the connection.
+     */
+    protected long maxPayloadRemainderToSkip = -1;
+    
+    /**
      * File cache probes
      */
     protected final DefaultMonitoringConfig<HttpProbe> monitoringConfig =
@@ -334,6 +342,31 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     }
 
     /**
+     * @return the maximum request payload remainder (in bytes) HttpServerFilter
+     * will try to swallow after HTTP request processing is over in order to
+     * keep the connection alive. If the remainder is too large - the connection
+     * will be closed. <tt>-1</tt> means no limits will be applied.
+     * 
+     * @since 2.3.13
+     */
+    public long getMaxPayloadRemainderToSkip() {
+        return maxPayloadRemainderToSkip;
+    }
+
+    /**
+     * Set the maximum request payload remainder (in bytes) HttpServerFilter
+     * will try to swallow after HTTP request processing is over in order to
+     * keep the connection alive. If the remainder is too large - the connection
+     * will be closed. <tt>-1</tt> means no limits will be applied.
+     * 
+     * @param maxPayloadRemainderToSkip
+     * @since 2.3.13
+     */
+    public void setMaxPayloadRemainderToSkip(long maxPayloadRemainderToSkip) {
+        this.maxPayloadRemainderToSkip = maxPayloadRemainderToSkip;
+    }
+
+    /**
      * <p>
      * Gets registered {@link TransferEncoding}s.
      * </p>
@@ -521,6 +554,12 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                     final HttpContent decodedContent = decodeContent(ctx, message);
                     if (decodedContent != null) {
                         if (httpHeader.isSkipRemainder()) {  // Do we skip the remainder?
+                            if (!checkRemainderOverflow(httpHeader,
+                                    decodedContent.getContent().remaining())) {
+                                // if remainder is too large - close the connection
+                                httpHeader.getProcessingState().getHttpContext().close();
+                            }
+                            
                             return ctx.getStopAction();
                         }
 
@@ -1155,16 +1194,27 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                     if (!httpHeader.getProcessingState().isStayAlive()) {
                         httpHeader.getProcessingState().getHttpContext().close();
                         return ctx.getStopAction();
+                    } else if (remainderBuffer != null) {
+                        // if there is a remainder with the next HTTP message - rerun this filter
+                        ctx.setMessage(remainderBuffer);
+                        return ctx.getRerunFilterAction();
                     }
-                }
-                if (remainderBuffer != null) {
-                    // if there is a remainder - rerun this filter
-                    ctx.setMessage(remainderBuffer);
-                    return ctx.getRerunFilterAction();
-                } else {
-                    // if no remainder - just stop
+                    
                     return ctx.getStopAction();
                 }
+                
+                if (!checkRemainderOverflow(httpHeader,
+                        httpContent.getContent().remaining())) {
+                    // if remainder is too large - close the connection
+                    httpHeader.getProcessingState().getHttpContext().close();
+                } else if (remainderBuffer != null) {
+                    // if there is a remainder with the next chunk - rerun this filter
+                    ctx.setMessage(remainderBuffer);
+                    return ctx.getRerunFilterAction();
+                }
+                
+                // if remainder could be still skept - just stop
+                return ctx.getStopAction();
             }
             final HttpContent decodedContent = decodeContent(ctx, httpContent);
             if (isLast) {
@@ -1735,6 +1785,25 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         return SSLUtils.getSSLEngine(connection) != null;
     }
 
+    /**
+     * 
+     * @param httpHeader
+     * @param payloadChunkSize
+     * @return <tt>true</tt>, if payload remainder read doesn't exceed the limit
+     */
+    private boolean checkRemainderOverflow(final HttpHeader httpHeader,
+            final int payloadChunkSize) {
+        if (maxPayloadRemainderToSkip < 0) {
+            return true;
+        }
+        
+        final ContentParsingState parsingState =
+                ((HttpPacketParsing) httpHeader).getContentParsingState();
+        final long newSize = (parsingState.remainderBytesRead += payloadChunkSize);
+        
+        return newSize <= maxPayloadRemainderToSkip;
+    }
+
     // ---------------------------------------------------------- Nested Classes
     
     public static final class HeaderParsingState {
@@ -1824,6 +1893,10 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         public int chunkContentStart = -1;
         public long chunkLength = -1;
         public long chunkRemainder = -1;
+        
+        // the payload bytes read after processing was complete
+        public long remainderBytesRead;
+        
         public final MimeHeaders trailerHeaders = new MimeHeaders();
 
         private Buffer[] contentDecodingRemainders = new Buffer[1];
@@ -1833,6 +1906,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             chunkContentStart = -1;
             chunkLength = -1;
             chunkRemainder = -1;
+            remainderBytesRead = 0;
             trailerHeaders.clear();
             contentDecodingRemainders = null;
 //            Arrays.fill(contentDecodingRemainders, null);
