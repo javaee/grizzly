@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -153,7 +153,6 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
             final Request request,
             final Response response) throws Exception {
 
-        File fileResource = null;
         URLConnection urlConnection = null;
         InputStream urlInputStream = null;
         
@@ -193,6 +192,8 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
             }
         }
         
+        File fileResource = null;
+        String filePath = null;
         boolean found = false;
         
         if (url != null) {
@@ -204,10 +205,12 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
                         final File welcomeFile = new File(file, "/index.html");
                         if (welcomeFile.exists() && welcomeFile.isFile()) {
                             fileResource = welcomeFile;
+                            filePath = welcomeFile.getPath();
                             found = true;
                         }
                     } else {
                         fileResource = file;
+                        filePath = file.getPath();
                         found = true;
                     }
                 }
@@ -215,23 +218,31 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
                 urlConnection = url.openConnection();
                 if ("jar".equals(url.getProtocol())) {
                     final JarURLConnection jarUrlConnection = (JarURLConnection) urlConnection;
-                    final JarEntry jarEntry = jarUrlConnection.getJarEntry();
+                    JarEntry jarEntry = jarUrlConnection.getJarEntry();
                     final JarFile jarFile = jarUrlConnection.getJarFile();
                     // check if this is not a folder
                     // we can't rely on jarEntry.isDirectory() because of http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6233323
-                    InputStream is = jarFile.getInputStream(jarEntry);
+                    InputStream is = null;
                     
-                    if (is == null) { // it's probably a folder
-                        final JarEntry welcomeJarEntry = jarFile.getJarEntry(
-                                jarEntry.getName() + "/index.html");
-                        if (welcomeJarEntry != null) {
-                            is = jarFile.getInputStream(welcomeJarEntry);
+                    if (jarEntry.isDirectory() ||
+                            (is = jarFile.getInputStream(jarEntry)) == null) { // it's probably a folder
+                        final String welcomeResource =
+                                jarEntry.getName().endsWith("/") ?
+                                jarEntry.getName() + "index.html" :
+                                jarEntry.getName() + "/index.html";
+                                
+                        jarEntry = jarFile.getJarEntry(welcomeResource);
+                        if (jarEntry != null) {
+                            is = jarFile.getInputStream(jarEntry);
                         }
                     }
                     
                     if (is != null) {
                         urlInputStream = new JarURLInputStream(jarUrlConnection,
                                 jarFile, is);
+                        
+                        assert jarEntry != null;
+                        filePath = jarEntry.getName();
                         found = true;
                     } else {
                         closeJarFileIfNeeded(jarUrlConnection, jarFile);
@@ -262,16 +273,15 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
             return true;
         }
         
+        pickupContentType(response,
+                filePath != null ? filePath : url.getPath());
+        
         if (fileResource != null) {
-            pickupContentType(response, fileResource.getPath());
-
             addToFileCache(request, response, fileResource);
             sendFile(response, fileResource);
         } else {
             assert urlConnection != null;
             
-            pickupContentType(response, url.getPath());
-
             // if it's not a jar file - we don't know what to do with that
             // so not adding it to the file cache
             if ("jar".equals(url.getProtocol())) {
