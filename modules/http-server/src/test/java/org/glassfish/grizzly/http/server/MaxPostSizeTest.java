@@ -51,7 +51,6 @@ import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.SocketConnectorHandler;
-import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;

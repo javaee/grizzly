@@ -64,13 +64,19 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseReason;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.utils.Futures;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -88,7 +94,7 @@ import static org.junit.Assert.*;
 public class SkipRemainderTest {
     public static final int PORT = 18892;
 
-    private HttpServer gws;
+    private HttpServer httpServer;
 
     @Before
     public void before() throws Exception {
@@ -98,8 +104,8 @@ public class SkipRemainderTest {
 
     @After
     public void after() throws Exception {
-        if (gws != null) {
-            gws.shutdownNow();
+        if (httpServer != null) {
+            httpServer.shutdownNow();
         }
     }
 
@@ -141,12 +147,8 @@ public class SkipRemainderTest {
                 }
             }
         });
-
-
-        byte[] content = new byte[contentSizeHalf * 2];
-        for (int i = 0; i < content.length; i++) {
-            content[i] = (byte) i;
-        }
+        
+        byte[] content = createContent(contentSizeHalf * 2);
 
         Future<Connection> connectFuture = connect("localhost", PORT, transferQueue);
         Connection connection = connectFuture.get(10, TimeUnit.SECONDS);
@@ -196,12 +198,7 @@ public class SkipRemainderTest {
                 }
             }
         });
-
-
-        byte[] content = new byte[contentSizeHalf * 2];
-        for (int i = 0; i < content.length; i++) {
-            content[i] = (byte) i;
-        }
+        byte[] content = createContent(contentSizeHalf * 2);
 
         Future<Connection> connectFuture = connect("localhost", PORT, transferQueue);
         Connection connection = connectFuture.get(10, TimeUnit.SECONDS);
@@ -263,12 +260,7 @@ public class SkipRemainderTest {
                     });
                 }
             });
-
-
-            byte[] content = new byte[contentSizeHalf * 2];
-            for (int i = 0; i < content.length; i++) {
-                content[i] = (byte) i;
-            }
+            byte[] content = createContent(contentSizeHalf * 2);
 
             Future<Connection> connectFuture = connect("localhost", PORT, transferQueue);
             Connection connection = connectFuture.get(10, TimeUnit.SECONDS);
@@ -285,6 +277,171 @@ public class SkipRemainderTest {
         }
     }
     
+    @Test
+    public void testLimitedRemainderSizeWithContentLength() throws Exception {
+        final int maxPayloadRemainderToSkip = 8192;
+
+        httpServer.getServerConfiguration()
+                .setMaxPayloadRemainderToSkip(maxPayloadRemainderToSkip);
+        final BlockingQueue<Integer> responseQueue = new ArrayBlockingQueue<Integer>(256);
+        final BlockingQueue<Future<Boolean>> requestRcvQueue = new ArrayBlockingQueue<Future<Boolean>>(256);
+        
+        startWebServer(new HttpHandler() {
+            @Override
+            public void service(Request req, Response res)
+                    throws Exception {
+                final int contentLength = req.getContentLength();
+                
+                InputStream is = req.getInputStream();
+                try {
+                    for (int i = 0; i < contentLength / 2; i++) {
+                        int c = is.read();
+                        if (c != (i % 256)) {
+                            requestRcvQueue.add(Futures.<Boolean>createReadyFuture(
+                                    new IllegalStateException("Assertion failed. Expected=" + i + " got=" + c)));
+                            
+                            return;
+                        }
+                    }
+
+                    OutputStream os = res.getOutputStream();
+                    os.write("OK".getBytes());
+                    os.flush();
+                    
+                    requestRcvQueue.add(Futures.<Boolean>createReadyFuture(Boolean.TRUE));
+                } catch (Exception e) {
+                    requestRcvQueue.add(Futures.<Boolean>createReadyFuture(e));
+                }
+            }
+        });
+        
+        Future<Connection> connectFuture = connect("localhost", PORT, responseQueue);
+        Connection connection = connectFuture.get(10, TimeUnit.SECONDS);
+
+        sendContentByHalfs(connection, createContent(maxPayloadRemainderToSkip),
+                responseQueue);
+        Future<Boolean> resultFuture = requestRcvQueue.poll(10, TimeUnit.SECONDS);
+        assertNotNull(resultFuture);
+        assertTrue(resultFuture.get());
+        
+        try {
+            sendContentByHalfs(connection, createContent(maxPayloadRemainderToSkip * 4),
+                    responseQueue);
+        } catch (Exception e) {
+            // second part of the payload may cause the exception (depending on timing)
+        }
+        
+        resultFuture = requestRcvQueue.poll(10, TimeUnit.SECONDS);
+        assertNotNull(resultFuture);
+        assertTrue(resultFuture.get());
+
+        final CountDownLatch closeLatch = new CountDownLatch(1);
+        connection.addCloseListener(new CloseListener() {
+
+            @Override
+            public void onClosed(Closeable closable, CloseReason reason) throws IOException {
+                closeLatch.countDown();
+            }
+        });
+
+        try {
+            sendContentByHalfs(connection,
+                    createContent(maxPayloadRemainderToSkip),
+                    responseQueue);
+        } catch (Exception e) {
+        }
+        
+        assertTrue(closeLatch.await(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testLimitedRemainderSizeWithChunked() throws Exception {
+        final int maxPayloadRemainderToSkip = 8192;
+
+        httpServer.getServerConfiguration()
+                .setMaxPayloadRemainderToSkip(maxPayloadRemainderToSkip);
+        final BlockingQueue<Integer> responseQueue = new ArrayBlockingQueue<Integer>(256);
+        final BlockingQueue<Future<Boolean>> requestRcvQueue = new ArrayBlockingQueue<Future<Boolean>>(256);
+        
+        startWebServer(new HttpHandler() {
+            @Override
+            public void service(Request req, Response res)
+                    throws Exception {
+                InputStream is = req.getInputStream();
+                try {
+                    for (int i = 0; i < maxPayloadRemainderToSkip; i++) {
+                        int c = is.read();
+                        
+                        if (c == -1) {
+                            break;
+                        }
+                        
+                        if (c != (i % 256)) {
+                            requestRcvQueue.add(Futures.<Boolean>createReadyFuture(
+                                    new IllegalStateException("Assertion failed. Expected=" + i + " got=" + c)));
+                            
+                            return;
+                        }
+                    }
+
+                    OutputStream os = res.getOutputStream();
+                    os.write("OK".getBytes());
+                    os.flush();
+                    
+                    requestRcvQueue.add(Futures.<Boolean>createReadyFuture(Boolean.TRUE));
+                } catch (Exception e) {
+                    requestRcvQueue.add(Futures.<Boolean>createReadyFuture(e));
+                }
+            }
+        });
+        
+        Future<Connection> connectFuture = connect("localhost", PORT, responseQueue);
+        Connection connection = connectFuture.get(10, TimeUnit.SECONDS);
+
+        sendContentByHalfs(connection, createContent(maxPayloadRemainderToSkip),
+                responseQueue, true, true);
+        Future<Boolean> resultFuture = requestRcvQueue.poll(10, TimeUnit.SECONDS);
+        assertNotNull(resultFuture);
+        assertTrue(resultFuture.get());
+        
+        try {
+            sendContentByHalfs(connection, createContent(maxPayloadRemainderToSkip * 8),
+                    responseQueue, true, true);
+        } catch (Exception e) {
+            // second part of the payload may cause the exception (depending on timing)
+        }
+        
+        resultFuture = requestRcvQueue.poll(10, TimeUnit.SECONDS);
+        assertNotNull(resultFuture);
+        assertTrue(resultFuture.get());
+
+        final CountDownLatch closeLatch = new CountDownLatch(1);
+        connection.addCloseListener(new CloseListener() {
+
+            @Override
+            public void onClosed(Closeable closable, CloseReason reason) throws IOException {
+                closeLatch.countDown();
+            }
+        });
+
+        try {
+            sendContentByHalfs(connection,
+                    createContent(maxPayloadRemainderToSkip),
+                    responseQueue, true, true);
+        } catch (Exception e) {
+        }
+        
+        assertTrue(closeLatch.await(5, TimeUnit.SECONDS));
+    }
+    
+    private byte[] createContent(final int size) {
+        byte[] content = new byte[size];
+        for (int i = 0; i < content.length; i++) {
+            content[i] = (byte) i;
+        }
+        return content;
+    }
+    
     private void sendContentByHalfs(Connection connection, byte[] content,
             final BlockingQueue<Integer> transferQueue)
             throws Exception {
@@ -294,41 +451,59 @@ public class SkipRemainderTest {
     private void sendContentByHalfs(Connection connection, byte[] content,
             final BlockingQueue<Integer> transferQueue, final boolean isKeepAlive)
             throws Exception {
+        sendContentByHalfs(connection, content, transferQueue, isKeepAlive, false);
+    }
+    private void sendContentByHalfs(Connection connection, byte[] content,
+            final BlockingQueue<Integer> transferQueue, final boolean isKeepAlive,
+            final boolean isChunked)
+            throws Exception {
 
         final MemoryManager mm = MemoryManager.DEFAULT_MEMORY_MANAGER;
         
-        final int contentSizeHalf = content.length / 2;
         final Builder packetBuilder = HttpRequestPacket.builder()
            .method("POST").uri("/hello")
            .protocol("HTTP/1.1")
-           .header("Host", "localhost")
-           .contentLength(contentSizeHalf * 2);
+           .header("Host", "localhost");
+        
+        if (!isChunked) {
+           packetBuilder.contentLength(content.length);
+        } else {
+           packetBuilder.chunked(true);
+        }
         
         if (!isKeepAlive) {
             packetBuilder.header(Header.Connection, "close");
         }
         
-        final HttpRequestPacket request1 = packetBuilder.build();
+        final HttpRequestPacket request = packetBuilder.build();
 
-        connection.write(request1);
+        connection.write(request);
 
-        final Buffer chunk1 = Buffers.wrap(mm, content, 0, contentSizeHalf);
-        final Buffer chunk2 = Buffers.wrap(mm, content, contentSizeHalf, contentSizeHalf);
-
-        final HttpContent httpContent11 = HttpContent.builder(request1)
-                .content(chunk1)
-                .build();
+        final int packetChunks = 3;
+        final int packetSz = content.length / packetChunks;
         
-        connection.write(httpContent11).get(10, TimeUnit.SECONDS);
+        int offs = 0;
+        for (int i = 0; i < packetChunks - 1; i++) {
+            final Buffer chunk = Buffers.wrap(mm, content, offs, packetSz);
+            offs += packetSz;
+            
+            final HttpContent httpContent = HttpContent.builder(request)
+                    .content(chunk)
+                    .build();
+            
+            connection.write(httpContent).get(10, TimeUnit.SECONDS);
 
-        Thread.sleep(200);
+            Thread.sleep(200);
+        }
         
-        final HttpContent httpContent12 = HttpContent.builder(request1)
-                .content(chunk2)
+        final Buffer chunk = Buffers.wrap(mm, content, offs, content.length - offs);
+
+        final HttpContent httpContent = HttpContent.builder(request)
+                .content(chunk)
                 .last(true)
                 .build();
-        
-        connection.write(httpContent12).get(10, TimeUnit.SECONDS);
+
+        connection.write(httpContent).get(10, TimeUnit.SECONDS);
         
         Thread.sleep(200);
         
@@ -346,7 +521,7 @@ public class SkipRemainderTest {
         builder.add(new HttpMessageFilter(transferQueue));
         
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
-                (TCPNIOTransport) gws.getListener("grizzly").getTransport())
+                (TCPNIOTransport) httpServer.getListener("grizzly").getTransport())
                 .filterChain(builder.build())
                 .build();
         
@@ -354,18 +529,18 @@ public class SkipRemainderTest {
     }
 
     private void configureWebServer() throws Exception {
-        gws = new HttpServer();
+        httpServer = new HttpServer();
         final NetworkListener listener =
                 new NetworkListener("grizzly",
                                     NetworkListener.DEFAULT_NETWORK_HOST,
                                     PORT);
         listener.setMaxPendingBytes(-1);
-        gws.addListener(listener);
+        httpServer.addListener(listener);
     }
 
     private void startWebServer(final HttpHandler httpHandler) throws Exception {
-        gws.getServerConfiguration().addHttpHandler(httpHandler);
-        gws.start();
+        httpServer.getServerConfiguration().addHttpHandler(httpHandler);
+        httpServer.start();
     }
 
     private static class HttpMessageFilter extends BaseFilter {

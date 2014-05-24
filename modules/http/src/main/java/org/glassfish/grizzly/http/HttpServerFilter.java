@@ -1088,12 +1088,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         return ctx.getInvokeAction();
     }
 
-    
-    private boolean isUnlimitedKeepAlive() {
-        return keepAlive.getIdleTimeoutInSeconds() < 0 &&
-                keepAlive.getMaxRequestsCount() < 0;
-    }
-
     private void processResponseComplete(final FilterChainContext ctx,
             final HttpRequestPacket httpRequest, final boolean isStayAlive)
             throws IOException {
@@ -1105,7 +1099,8 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
         
         if (httpRequest.isExpectContent()) {
-            if (!httpRequest.isContentBroken()) {
+            if (!httpRequest.isContentBroken() &&
+                    checkContentLengthRemainder(httpRequest)) {
                 // If transfer encoding is defined and we can determine the message body length
                 // we will check HTTP keep-alive settings once remainder is fully read
                 httpRequest.setSkipRemainder(true);
@@ -1205,6 +1200,19 @@ public class HttpServerFilter extends HttpCodecFilter {
         final Buffer resBuf = encodeHttpPacket(ctx, errorHttpResponse);
         ctx.write(resBuf);
         response.getProcessingState().getHttpContext().close();
+    }
+
+    /**
+     * @param httpRequest
+     * @return <tt>false</tt> if the request payload size is specified by the
+     *      content-length header and according to the request parsing state
+     *      the remaining payload size is larger than {@link #getMaxPayloadRemainderToSkip()}.
+     *      Otherwise return <tt>true</tt>
+     */
+    private boolean checkContentLengthRemainder(final HttpRequestPacket httpRequest) {
+        return maxPayloadRemainderToSkip < 0 ||
+                httpRequest.getContentLength() <= 0 ||
+                ((HttpPacketParsing) httpRequest).getContentParsingState().chunkRemainder <= maxPayloadRemainderToSkip;
     }
 
     // ---------------------------------------------------------- Nested Classes

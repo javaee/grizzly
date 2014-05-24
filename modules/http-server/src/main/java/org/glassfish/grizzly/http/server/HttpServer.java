@@ -215,6 +215,8 @@ public class HttpServer {
      * </p>
      *
      * @param name the name of the {@link NetworkListener} to remove.
+     * @return {@link NetworkListener}, that has been removed, or <tt>null</tt>
+     *      if the listener with the given name doesn't exist
      */
     public synchronized NetworkListener removeListener(final String name) {
 
@@ -653,6 +655,8 @@ public class HttpServer {
             }
             httpServerCodecFilter.setAllowPayloadForUndefinedHttpMethods(
                     serverConfig.isAllowPayloadForUndefinedHttpMethods());
+            httpServerCodecFilter.setMaxPayloadRemainderToSkip(
+                    serverConfig.getMaxPayloadRemainderToSkip());
             
             httpServerCodecFilter.getMonitoringConfig().addProbes(
                     serverConfig.getMonitoringConfig().getHttpConfig().getProbes());

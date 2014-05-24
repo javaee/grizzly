@@ -89,6 +89,13 @@ public class ServerConfiguration extends ServerFilterConfiguration {
     // Known "undefined" methods are: GET, HEAD, DELETE
     private boolean allowPayloadForUndefinedHttpMethods;
     
+    /**
+     * The maximum request payload remainder (in bytes) HttpServerFilter will try
+     * to swallow after HTTP request processing is over in order to keep the
+     * connection alive. If the remainder is too large - HttpServerFilter will
+     * close the connection.
+     */
+    private long maxPayloadRemainderToSkip = -1;
     
     final Object handlersSync = new Object();
     
@@ -378,4 +385,28 @@ public class ServerConfiguration extends ServerFilterConfiguration {
         this.allowPayloadForUndefinedHttpMethods = allowPayloadForUndefinedHttpMethods;
     }
     
+    /**
+     * @return the maximum request payload remainder (in bytes) HttpServerFilter
+     * will try to swallow after HTTP request processing is over in order to
+     * keep the connection alive. If the remainder is too large - the connection
+     * will be closed. <tt>-1</tt> means no limits will be applied.
+     * 
+     * @since 2.3.13
+     */
+    public long getMaxPayloadRemainderToSkip() {
+        return maxPayloadRemainderToSkip;
+    }
+
+    /**
+     * Set the maximum request payload remainder (in bytes) HttpServerFilter
+     * will try to swallow after HTTP request processing is over in order to
+     * keep the connection alive. If the remainder is too large - the connection
+     * will be closed. <tt>-1</tt> means no limits will be applied.
+     * 
+     * @param maxPayloadRemainderToSkip
+     * @since 2.3.13
+     */
+    public void setMaxPayloadRemainderToSkip(long maxPayloadRemainderToSkip) {
+        this.maxPayloadRemainderToSkip = maxPayloadRemainderToSkip;
+    }    
 } // END ServerConfiguration
