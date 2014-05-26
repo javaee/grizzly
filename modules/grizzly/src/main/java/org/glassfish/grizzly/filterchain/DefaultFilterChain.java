@@ -317,6 +317,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         context.setOperation(FilterChainContext.Operation.READ);
         context.getTransportContext().configureBlocking(true);
         
+        ExecutorResolver.resolve(context).initIndexes(context);
+        
         try {
             final ReadResult readResult = read(context);
             Futures.notifyResult(null, completionHandler, readResult);
