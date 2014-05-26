@@ -110,30 +110,20 @@ public class WebSocketEngine {
 
     private WebSocketApplicationReg getApplication(
             final HttpRequestPacket request,
-            Mapper mapper) {
+            final Mapper glassfishMapper) {
         
-        final boolean isGlassfishMapper;
-        if (mapper == null) {
-            mapper = this.mapper;
-            isGlassfishMapper = false;
-        } else {
-            isGlassfishMapper = true;
-        }
+        final boolean isGlassfish = glassfishMapper != null;
 
-        assert mapper != null;
+        WebSocketApplication foundWebSocketApp = null;
+        final WebSocketMappingData data = new WebSocketMappingData(isGlassfish);
         
-        // try the Mapper first...
-        final WebSocketMappingData data = new WebSocketMappingData(isGlassfishMapper);
         try {
             mapper.mapUriWithSemicolon(request,
                     request.getRequestURIRef().getDecodedRequestURIBC(),
                                 data,
                                 0);
-            if (data.wrapper != null && !isGlassfishMapper) {
-                // if this is Grizzly standalone mapper - the wrapper should
-                // represent WebSocketApplication
-                return new WebSocketApplicationReg(
-                        (WebSocketApplication) data.wrapper, data);
+            if (data.wrapper != null) {
+                foundWebSocketApp = (WebSocketApplication) data.wrapper;
             }
         } catch (Exception e) {
             if (logger.isLoggable(Level.WARNING)) {
@@ -141,15 +131,41 @@ public class WebSocketEngine {
             }
         }
 
-        for (WebSocketApplication application : applications) {
-            if (application.upgrade(request)) {
-                return new WebSocketApplicationReg(application,
-                        // if contextPath == null - don't return any mapping info
-                        data.contextPath.isNull() ? null : data);
+        if (foundWebSocketApp == null) {
+            for (WebSocketApplication application : applications) {
+                if (application.upgrade(request)) {
+                    foundWebSocketApp = application;
+                    break;
+                }
             }
         }
         
-        return null;
+        if (foundWebSocketApp == null) {
+            return null;
+        }
+        
+        if (isGlassfish) {
+            assert glassfishMapper != null;
+            
+            // do one more mapping, this time using GF Mapper to retrieve
+            // correspondent web application
+            
+            try {
+                data.recycle();
+                glassfishMapper.mapUriWithSemicolon(request,
+                        request.getRequestURIRef().getDecodedRequestURIBC(),
+                                    data,
+                                    0);
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING, e.toString(), e);
+                }
+            }
+        }
+        
+        return new WebSocketApplicationReg(foundWebSocketApp,
+                // if contextPath == null - don't return any mapping info
+                data.contextPath.isNull() ? null : data);
     }
     
     public boolean upgrade(FilterChainContext ctx, HttpContent requestContent)
