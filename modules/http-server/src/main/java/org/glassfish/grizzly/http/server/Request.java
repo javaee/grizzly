@@ -873,11 +873,11 @@ public class Request {
      * <code>null</code>.
      *
      * @param name Name of the request attribute to return
+     * @return the specified request attribute if it exists; otherwise, return
+     * <code>null</code>.
      */
-    public Object getAttribute(String name) {
-        if (name.charAt(0) == 'o'
-                && name.charAt(name.length() - 1) == 'D'
-                && SEND_FILE_ENABLED_ATTR.equals(name)) {
+    public Object getAttribute(final String name) {
+        if (SEND_FILE_ENABLED_ATTR.equals(name)) {
             return response.isSendFileEnabled();
         }
         Object attribute = request.getAttribute(name);
@@ -1265,10 +1265,7 @@ public class Request {
 
         request.setAttribute(name, value);
 
-        if (response.isSendFileEnabled()
-                && name.charAt(0) == 'o'
-                && name.charAt(name.length() - 1) == 'E'
-                && SEND_FILE_ATTR.equals(name)) {
+        if (response.isSendFileEnabled() && SEND_FILE_ATTR.equals(name)) {
             RequestUtils.handleSendFile(this);
         }
 
