@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -299,6 +299,15 @@ public class SSLAttributesTest {
         @Override
         public void service(Request request, Response response) throws Exception {
             try {
+                // Check empty attribute name (not relevant to SSL attributes)
+                assertNull(request.getAttribute(""));
+                request.setAttribute("", Boolean.TRUE);
+                assertTrue((Boolean) request.getAttribute(""));
+                request.removeAttribute("");
+                assertNull(request.getAttribute(""));
+                // -------
+                
+                
                 final Object certAttr1 = request.getAttribute(Globals.CERTIFICATES_ATTR);
                 final Object cipherSuiteAttr1 = request.getAttribute(Globals.CIPHER_SUITE_ATTR);
                 final Object keySizeAttr1 = request.getAttribute(Globals.KEY_SIZE_ATTR);
