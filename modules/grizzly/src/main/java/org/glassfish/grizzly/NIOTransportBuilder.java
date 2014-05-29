@@ -141,9 +141,11 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * {@link Runtime#availableProcessors()}.
      * 
      * @param selectorRunnersCount 
+     * @return the builder
      */
-    public void setSelectorRunnersCount(final int selectorRunnersCount) {
+    public T setSelectorRunnersCount(final int selectorRunnersCount) {
         this.selectorRunnerCount = selectorRunnersCount;
+        return getThis();
     }
 
     /**
