@@ -100,7 +100,19 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
     // ---------------------------------------------------------- Public Methods
 
-
+    /**
+     * Sets the number of {@link Selector}s to be created to serve Transport
+     * connections. <tt>-1</tt> is the default value, which lets the Transport
+     * to pick the value, usually it's equal to the number of CPU cores
+     * {@link Runtime#availableProcessors()}.
+     * 
+     * @param selectorRunnersCount 
+     */
+    public T selectorRunnersCount(final int selectorRunnersCount) {
+        this.selectorRunnerCount = selectorRunnersCount;
+        return getThis();
+    }
+    
     /**
      * Sets the {@link ThreadPoolConfig} that will be used to construct the
      *  {@link java.util.concurrent.ExecutorService} for <code>IOStrategies</code>
