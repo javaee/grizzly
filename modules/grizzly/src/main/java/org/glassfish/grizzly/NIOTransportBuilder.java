@@ -124,6 +124,27 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
     // ---------------------------------------------------------- Public Methods
 
+    /**
+     * @return the number of {@link Selector}s to be created to serve Transport
+     * connections. <tt>-1</tt> is the default value, which lets the Transport
+     * to pick the value, usually it's equal to the number of CPU cores
+     * {@link Runtime#availableProcessors()}
+     */
+    public int getSelectorRunnersCount() {
+        return selectorRunnerCount;
+    }
+
+    /**
+     * Sets the number of {@link Selector}s to be created to serve Transport
+     * connections. <tt>-1</tt> is the default value, which lets the Transport
+     * to pick the value, usually it's equal to the number of CPU cores
+     * {@link Runtime#availableProcessors()}.
+     * 
+     * @param selectorRunnersCount 
+     */
+    public void setSelectorRunnersCount(final int selectorRunnersCount) {
+        this.selectorRunnerCount = selectorRunnersCount;
+    }
 
     /**
      * @return the {@link ThreadPoolConfig} that will be used to construct the
@@ -568,17 +589,4 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
     protected abstract T getThis();
 
     protected abstract NIOTransport create();
-
-
-    // --------------------------------------------------------- Private Methods
-
-
-    /**
-     * @return the default number of {@link org.glassfish.grizzly.nio.SelectorRunner}s
-     *  that should be used.
-     */
-    private int getRunnerCount() {
-        return Runtime.getRuntime().availableProcessors();
-    }
-
 }
