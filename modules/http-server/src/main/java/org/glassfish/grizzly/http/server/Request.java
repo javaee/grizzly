@@ -702,8 +702,8 @@ public class Request {
     /**
      * Create and return a NIOInputStream to read the content
      * associated with this Request.
-     *
-     * @exception java.io.IOException if an input/output error occurs
+     * 
+     * @return {@link NIOInputStream}
      */
     public NIOInputStream createInputStream() {
 

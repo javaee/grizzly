@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,12 +39,113 @@
  */
 package org.glassfish.grizzly.websockets;
 
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import javax.servlet.ReadListener;
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 
 public final class Utils {
 
+    static final ServletInputStream NULL_SERVLET_INPUT_STREAM =
+            new ServletInputStream() {
+
+        @Override
+        public int read() throws IOException {
+            return -1;
+        }
+
+        @Override
+        public boolean isFinished() {
+            return true;
+        }
+
+        @Override
+        public boolean isReady() {
+            return true;
+        }
+
+        @Override
+        public void setReadListener(final ReadListener readListener) {
+            try {
+                readListener.onAllDataRead();
+            } catch (IOException e) {
+                readListener.onError(e);
+            }
+        }
+    };
+    
+    static final Reader NULL_READER = new Reader() {
+
+        @Override
+        public int read(char[] cbuf, int off, int len) throws IOException {
+            return -1;
+        }
+
+        @Override
+        public void close() throws IOException {
+        }
+
+    };
+    
+    static final ServletOutputStream NULL_SERVLET_OUTPUT_STREAM = new ServletOutputStream() {
+        private IOException ioe1;
+        private IOException ioe2;
+                
+        @Override
+        public boolean isReady() {
+            return true;
+        }
+
+        @Override
+        public void setWriteListener(final WriteListener writeListener) {
+            // we don't care if ioe1 will be initialized several times because of thread racing
+            if (ioe1 == null) {
+                ioe1 = new IOException("Can't write to a websocket using ServletOutputStream");
+            }
+            
+            writeListener.onError(ioe1);
+        }
+
+        @Override
+        public void write(final int b) throws IOException {
+            // we don't care if ioe2 will be initialized several times because of thread racing
+            if (ioe2 == null) {
+                ioe2 = new IOException("Can't write to a websocket using ServletOutputStream");
+            }
+            
+            throw ioe2;
+        }
+    };
+    
+    static final Writer NULL_WRITER = new Writer() {
+        private IOException ioe;
+
+        @Override
+        public void write(char[] cbuf, int off, int len) throws IOException {
+            // we don't care if ioe will be initialized several times because of thread racing
+            if (ioe == null) {
+                ioe = new IOException("Can't write to a websocket using ServletWriter");
+            }
+            
+            throw ioe;
+        }
+
+        @Override
+        public void flush() throws IOException {
+        }
+
+        @Override
+        public void close() throws IOException {
+        }
+        
+    };
+    
     public static byte[] toArray(long length) {
         long value = length;
         byte[] b = new byte[8];
