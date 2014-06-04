@@ -39,7 +39,9 @@
  */
 package org.glassfish.grizzly.websockets;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -47,6 +49,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import org.glassfish.grizzly.Buffer;
@@ -115,8 +119,8 @@ public class DefaultWebSocket implements WebSocket {
                 
                 final WSServletRequestImpl grizzlyServletRequest =
                         new WSServletRequestImpl();
-                final HttpServletResponseImpl grizzlyServletResponse =
-                        HttpServletResponseImpl.create();
+                final WSServletResponseImpl grizzlyServletResponse =
+                        new WSServletResponseImpl();
                 
                 final WebSocketMappingData mappingData =
                         protocolHandler.getMappingData();
@@ -438,6 +442,8 @@ public class DefaultWebSocket implements WebSocket {
         private String contextPath;
         private boolean isUserPrincipalUpdated;
         
+        private BufferedReader reader;
+        
         public void initialize(final Request request,
                 final HttpServletResponseImpl servletResponse,
                 final WebSocketMappingData mappingData) throws IOException {
@@ -458,8 +464,29 @@ public class DefaultWebSocket implements WebSocket {
             super.initialize(request, servletResponse,
                     new WebappContext("web-socket-ctx", contextPath));
         }
-        
-        
+
+        @Override
+        public ServletInputStream getInputStream() throws IOException {
+            if (usingReader)
+                throw new IllegalStateException("Illegal attempt to call getInputStream() after getReader() has already been called.");
+
+            usingInputStream = true;
+            return Utils.NULL_SERVLET_INPUT_STREAM;
+        }
+
+        @Override
+        public BufferedReader getReader() throws IOException {
+            if (usingInputStream)
+                throw new IllegalStateException("Illegal attempt to call getReader() after getInputStream() has already been called.");
+
+            usingReader = true;
+            //inputBuffer.checkConverter();
+            if (reader == null) {
+                reader = new BufferedReader(Utils.NULL_READER);
+            }
+
+            return reader;
+        }
 
         @Override
         protected void initSession() {
@@ -521,7 +548,7 @@ public class DefaultWebSocket implements WebSocket {
         public String getPathInfo() {
             return pathInfo;
         }
-
+        
         private void updatePaths(final WebSocketMappingData mappingData) {
             
             pathInfo = mappingData.pathInfo.toString();
@@ -535,5 +562,32 @@ public class DefaultWebSocket implements WebSocket {
                 glassfishSupport.updateUserPrincipal(WSServletRequestImpl.this.request);
             }
         }
-    } // END WSServletRequestImpl    
+    } // END WSServletRequestImpl
+    
+    private static class WSServletResponseImpl extends HttpServletResponseImpl {
+        private PrintWriter writer;
+        
+        @Override
+        public PrintWriter getWriter() throws IOException {
+            if (usingOutputStream)
+                throw new IllegalStateException("Illegal attempt to call getWriter() after getOutputStream has already been called.");
+
+            usingWriter = true;
+            if (writer == null) {
+                writer = new PrintWriter(Utils.NULL_WRITER);
+            }
+
+            return writer;
+        }
+
+        @Override
+        public ServletOutputStream getOutputStream() throws IOException {
+            if (usingWriter)
+                throw new IllegalStateException("Illegal attempt to call getOutputStream() after getWriter() has already been called.");
+
+            usingOutputStream = true;
+            return Utils.NULL_SERVLET_OUTPUT_STREAM;
+        }
+        
+    } // END WSServletResponseImpl
 }

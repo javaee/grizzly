@@ -196,7 +196,7 @@ public class WebSocketEngine {
             
             try {
                 data.recycle();
-                glassfishMapper.mapUriWithSemicolon(request,
+                glassfishMapper.mapUriWithSemicolon(request.serverName(),
                         request.getRequestURIRef().getDecodedRequestURIBC(),
                                     data,
                                     0);

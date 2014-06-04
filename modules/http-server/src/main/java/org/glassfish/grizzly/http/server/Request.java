@@ -682,8 +682,8 @@ public class Request {
     /**
      * Create and return a NIOInputStream to read the content
      * associated with this Request.
-     *
-     * @exception java.io.IOException if an input/output error occurs
+     * 
+     * @return {@link NIOInputStream}
      */
     public NIOInputStream createInputStream() {
 
@@ -1160,6 +1160,7 @@ public class Request {
      * This {@link NIOReader} will not block while reading content.
      * </p>
      *
+     * @return {@link NIOReader}
      * @throws IllegalStateException if {@link #getInputStream()} or
      *  {@link #getNIOInputStream()} has already been called for this request.
      */
