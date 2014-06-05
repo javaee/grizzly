@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -306,7 +306,7 @@ public class ChunkedInputFilter implements InputFilter {
 
         int result = 0;
         boolean eol = false;
-        boolean readDigit = false;
+        int readDigit = 0;
         boolean trailer = false;
 
         while (!eol) {
@@ -323,10 +323,10 @@ public class ChunkedInputFilter implements InputFilter {
                 trailer = true;
             } else if (!trailer) { 
                 //don't read data after the trailer
-                if (HexUtils.DEC[buf[pos]] != -1) {
-                    readDigit = true;
-                    result *= 16;
-                    result += HexUtils.DEC[buf[pos]];
+                int charValue = HexUtils.DEC[buf[pos] & 0xFF];
+                if (charValue != -1 && readDigit < 8) {
+                    readDigit++;
+                    result = (result << 4) | charValue;
                 } else {
                     //we shouldn't allow invalid, non hex characters
                     //in the chunked header
@@ -338,7 +338,7 @@ public class ChunkedInputFilter implements InputFilter {
 
         }
 
-        if (!readDigit)
+        if (readDigit == 0 || result < 0)
             return false;
 
         if (result == 0)
