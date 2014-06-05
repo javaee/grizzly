@@ -65,10 +65,12 @@ import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
  */
 public final class ChunkedTransferEncoding implements TransferEncoding {
     private static final int MAX_HTTP_CHUNK_SIZE_LENGTH = 16;
+    private static final long CHUNK_SIZE_OVERFLOW = Long.MAX_VALUE >> 4;
+    
     private static final int CHUNK_LENGTH_PARSED_STATE = 3;
     private static final byte[] LAST_CHUNK_CRLF_BYTES = "0\r\n".getBytes(ASCII_CHARSET);
     private static final int[] DEC = HexUtils.getDecBytes();
-    
+
     private final int maxHeadersSize;
 
     public ChunkedTransferEncoding(final int maxHeadersSize) {
@@ -302,8 +304,8 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                             
                             return true;
                         } else if (parsingState.checkpoint == -1) {
-                            if (DEC[b & 0xFF] != -1) {
-                                value = value * 16 + (DEC[b & 0xFF]);
+                            if (DEC[b & 0xFF] != -1 && checkOverflow(value)) {
+                                value = (value << 4) + (DEC[b & 0xFF]);
                             } else {
                                 throw new HttpBrokenContentException("Invalid byte representing a hex value within a chunk length encountered : " + b);
                             }
@@ -324,17 +326,22 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         }
     }
 
-
+    /**
+     * @param value
+     * @return <tt>false</tt> if next left bit-shift by 4 bits will cause overflow,
+     *          or <tt>true</tt> otherwise
+     */
+    private static boolean checkOverflow(final long value) {
+        return value <= CHUNK_SIZE_OVERFLOW;
+    }
+    
     private static boolean isHeadRequest(final HttpHeader header) {
 
-        HttpRequestPacket request;
-        if (header.isRequest()) {
-            request = (HttpRequestPacket) header;
-        } else {
-            request = ((HttpResponsePacket) header).getRequest();
-        }
+        final HttpRequestPacket request = header.isRequest()
+                ? (HttpRequestPacket) header
+                : ((HttpResponsePacket) header).getRequest();
+        
         return (Method.HEAD.equals(request.getMethod()));
-
     }
 
     private static Buffer parseTrailerCRLF(final HttpPacketParsing httpPacket,
