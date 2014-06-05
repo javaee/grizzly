@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,10 +67,11 @@ import org.glassfish.grizzly.Buffer;
  * @author James Todd [gonzo@eng.sun.com]
  */
 public final class Ascii {
+    private static final long OVERFLOW_LIMIT = Long.MAX_VALUE / 10;
+    
     /*
      * Character translation tables.
      */
-
     private static final byte[] toUpper = new byte[256];
     private static final byte[] toLower = new byte[256];
 
@@ -286,19 +287,12 @@ public final class Ascii {
         }
 
         long n = c - '0';
-        long m;
-
         while (--len > 0) {
-            if (!isDigit(c = b[off++])) {
-                throw new NumberFormatException();
-            }
-            m = n * 10 + c - '0';
-
-            if (m < n) {
-                // Overflow
-                throw new NumberFormatException();
+            if (isDigit(c = b[off++])
+                    && (n < OVERFLOW_LIMIT || (n == OVERFLOW_LIMIT && (c - '0') < 8))) {
+                n = n * 10 + c - '0';
             } else {
-                n = m;
+                throw new NumberFormatException();
             }
         }
 
@@ -314,19 +308,12 @@ public final class Ascii {
         }
 
         long n = c - '0';
-        long m;
-
         while (--len > 0) {
-            if (!isDigit(c = b[off++])) {
-                throw new NumberFormatException();
-            }
-            m = n * 10 + c - '0';
-
-            if (m < n) {
-                // Overflow
-                throw new NumberFormatException();
+            if (isDigit(c = b[off++])
+                    && (n < OVERFLOW_LIMIT || (n == OVERFLOW_LIMIT && (c - '0') < 8))) {
+                n = n * 10 + c - '0';
             } else {
-                n = m;
+                throw new NumberFormatException();
             }
         }
 
@@ -342,19 +329,12 @@ public final class Ascii {
         }
 
         long n = c - '0';
-        long m;
-
         while (--len > 0) {
-            if (!isDigit(c = s.charAt(off++))) {
-                throw new NumberFormatException();
-            }
-            m = n * 10 + c - '0';
-
-            if (m < n) {
-                // Overflow
-                throw new NumberFormatException();
+            if (isDigit(c = s.charAt(off++))
+                    && (n < OVERFLOW_LIMIT || (n == OVERFLOW_LIMIT && (c - '0') < 8))) {
+                n = n * 10 + c - '0';
             } else {
-                n = m;
+                throw new NumberFormatException();
             }
         }
 
@@ -377,22 +357,16 @@ public final class Ascii {
         }
 
         long n = c - '0';
-        long m;
-
         while (--len > 0) {
-            if (!isDigit(c = b.get(off++))) {
-                throw new NumberFormatException();
-            }
-            m = n * 10 + c - '0';
-
-            if (m < n) {
-                // Overflow
-                throw new NumberFormatException();
+            if (isDigit(c = b.get(off++))
+                    && (n < OVERFLOW_LIMIT || (n == OVERFLOW_LIMIT && (c - '0') < 8))) {
+                n = n * 10 + c - '0';
             } else {
-                n = m;
+                throw new NumberFormatException();
             }
         }
-        return n;
+
+        return n;        
     }
 
     public static long parseLong(final DataChunk dataChunk) {
