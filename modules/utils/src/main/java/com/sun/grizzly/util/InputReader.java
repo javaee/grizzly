@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -310,7 +310,7 @@ public class InputReader extends InputStream {
     protected  int doSecureRead() throws IOException {
         Utils.Result r = SSLUtils.doSecureRead((SocketChannel) key.channel(), 
                 sslEngine, byteBuffer, 
-                inputBB);
+                inputBB, readTimeout);
         
         byteBuffer.flip();       
         isClosed = r.isClosed;      
