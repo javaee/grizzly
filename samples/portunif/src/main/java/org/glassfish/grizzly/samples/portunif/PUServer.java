@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -75,7 +75,7 @@ import org.glassfish.grizzly.samples.portunif.subservice.SubServiceFilter;
  * @author Alexey Stashok
  */
 public class PUServer {
-    public static final int PORT = 17400;
+    static final int PORT = 17400;
 
     public static void main(String[] args) throws IOException {
         // Create PUFilter
@@ -121,7 +121,7 @@ public class PUServer {
      * @param puFilter {@link PUFilter}
      * @return configured {@link PUProtocol}
      */
-    private static PUProtocol configureAddProtocol(final PUFilter puFilter) {
+    static PUProtocol configureAddProtocol(final PUFilter puFilter) {
         // Create ADD-service ProtocolFinder
         final ProtocolFinder addProtocolFinder = new AddProtocolFinder();
 
@@ -144,7 +144,7 @@ public class PUServer {
      * @param puFilter {@link PUFilter}.
      * @return configured {@link PUProtocol}
      */
-    private static PUProtocol configureSubProtocol(final PUFilter puFilter) {
+    static PUProtocol configureSubProtocol(final PUFilter puFilter) {
         // Create SUB-service ProtocolFinder
         final ProtocolFinder subProtocolFinder = new SubProtocolFinder();
 
