@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -139,8 +139,7 @@ public class OutputWriter {
             if (len == -1) {
                 if (key == null) {
                     // create dummy key to not break notifyRemotelyClosed contract
-                    writeSelector = SelectorFactory.getSelector();
-                    key = channel.register(writeSelector, 0);
+                    key = new DummySelectionKey(channel);
                 }
 
                 notifyRemotelyClosed(key);
@@ -237,8 +236,7 @@ public class OutputWriter {
             if (len == -1) {
                 if (key == null) {
                     // create dummy key to not break notifyRemotelyClosed contract
-                    writeSelector = SelectorFactory.getSelector();
-                    key = socketChannel.register(writeSelector, 0);
+                    key = new DummySelectionKey(socketChannel);
                 }
 
                 notifyRemotelyClosed(key);
@@ -366,6 +364,48 @@ public class OutputWriter {
             if (notifier != null) {
                 notifier.notifyRemotlyClose(key);
             }
+        }
+    }
+    
+    private static final class DummySelectionKey extends SelectionKey {
+        private final SelectableChannel channel;
+
+        public DummySelectionKey(final SelectableChannel channel) {
+            this.channel = channel;
+        }
+        
+        @Override
+        public SelectableChannel channel() {
+            return channel;
+        }
+
+        @Override
+        public Selector selector() {
+            return null;
+        }
+
+        @Override
+        public int interestOps() {
+            return 0;
+        }
+
+        @Override
+        public SelectionKey interestOps(int ops) {
+            return this;
+        }
+
+        @Override
+        public int readyOps() {
+            return 0;
+        }
+
+        @Override
+        public boolean isValid() {
+            return false;
+        }
+
+        @Override
+        public void cancel() {
         }
     }
 }
