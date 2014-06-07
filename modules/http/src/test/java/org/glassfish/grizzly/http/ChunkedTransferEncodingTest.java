@@ -296,6 +296,29 @@ public class ChunkedTransferEncodingTest {
         assertTrue(result.get(10, TimeUnit.SECONDS));
     }
     
+    /**
+     * Test private method {@link ChunkedTransferEncoding#checkOverflow(long)}
+     * via reflection.
+     * 
+     * @throws Exception 
+     */
+    public void testChunkLenOverflow() throws Exception {
+        final java.lang.reflect.Method method =
+                ChunkedTransferEncoding.class.getDeclaredMethod("checkOverflow",
+                        Long.class);
+        method.setAccessible(true);
+        
+        final long cornerValue = Long.MAX_VALUE >> 4;
+        
+        final long value1 = cornerValue;
+        assertTrue((value1 << 4) > 0);
+        assertTrue((Boolean) method.invoke(null, value1));
+        
+        final long value2 = cornerValue + 1;
+        assertFalse((value2 << 4) > 0);
+        assertFalse((Boolean) method.invoke(null, value1));
+    }
+    
     @SuppressWarnings("unchecked")
     private void doHttpRequestTest(
             int packetsNum,
