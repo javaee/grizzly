@@ -550,7 +550,7 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      * @return an {@link NIOTransport} based on the builder's configuration.
      */
     public NIOTransport build() {
-        NIOTransport transport = create();
+        NIOTransport transport = create(name);
         transport.setIOStrategy(ioStrategy);
         if (workerConfig != null) {
             transport.setWorkerThreadPoolConfig(workerConfig.copy());
@@ -590,5 +590,5 @@ public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
      */
     protected abstract T getThis();
 
-    protected abstract NIOTransport create();
+    protected abstract NIOTransport create(String name);
 }

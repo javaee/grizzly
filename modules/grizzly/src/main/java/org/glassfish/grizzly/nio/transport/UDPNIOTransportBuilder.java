@@ -85,7 +85,7 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
     }
 
     @Override
-    protected NIOTransport create() {
-        return new UDPNIOTransport(getName());
+    protected NIOTransport create(final String name) {
+        return new UDPNIOTransport(name);
     }
 }

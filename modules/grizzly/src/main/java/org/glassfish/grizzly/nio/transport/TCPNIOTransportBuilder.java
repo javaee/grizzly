@@ -180,7 +180,7 @@ public class TCPNIOTransportBuilder extends NIOTransportBuilder<TCPNIOTransportB
     }
 
     @Override
-    protected NIOTransport create() {
-        return new TCPNIOTransport(getName());
+    protected NIOTransport create(final String name) {
+        return new TCPNIOTransport(name);
     }
 }
