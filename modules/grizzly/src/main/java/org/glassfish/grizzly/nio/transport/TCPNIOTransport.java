@@ -143,7 +143,7 @@ public final class TCPNIOTransport extends NIOTransport implements
     }
 
     TCPNIOTransport(final String name) {
-        super(name);
+        super(name != null ? name : DEFAULT_TRANSPORT_NAME);
         
         readBufferSize = DEFAULT_READ_BUFFER_SIZE;
         writeBufferSize = DEFAULT_WRITE_BUFFER_SIZE;

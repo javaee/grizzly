@@ -103,7 +103,7 @@ public final class UDPNIOTransport extends NIOTransport
     }
 
     public UDPNIOTransport(String name) {
-        super(name);
+        super(name != null ? name : DEFAULT_TRANSPORT_NAME);
 
         readBufferSize = -1;
         writeBufferSize = -1;
