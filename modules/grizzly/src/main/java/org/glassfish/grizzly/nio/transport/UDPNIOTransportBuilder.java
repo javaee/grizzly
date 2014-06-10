@@ -40,11 +40,8 @@
 
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.IOStrategy;
 import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.NIOTransportBuilder;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 
 
 /**
@@ -86,8 +83,8 @@ public class UDPNIOTransportBuilder extends NIOTransportBuilder<UDPNIOTransportB
     }
 
     @Override
-    protected NIOTransport create() {
-        return new UDPNIOTransport(getName());
+    protected NIOTransport create(final String name) {
+        return new UDPNIOTransport(name);
     }
 
 }
