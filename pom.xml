@@ -51,7 +51,7 @@
     <artifactId>grizzly-framework-http</artifactId>
     <packaging>jar</packaging>
     <name>grizzly-framework-http</name>
-    <version>1.0.50-SNAPSHOT</version>
+    <version>1.0.50</version>
     <url>http://grizzly.java.net</url>
     <issueManagement>
         <system>JIRA</system>
