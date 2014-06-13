@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -75,6 +75,7 @@ public class HttpStatus {
     public static final HttpStatus NOT_MODIFIED_304 = register(304, "Not Modified");
     public static final HttpStatus USE_PROXY_305 = register(305, "Use Proxy");
     public static final HttpStatus TEMPORARY_REDIRECT_307 = register(307, "Temporary Redirect");
+    public static final HttpStatus PERMANENT_REDIRECT_308 = register(308, "Permanent Redirect");
     public static final HttpStatus BAD_REQUEST_400 = register(400, "Bad Request");
     public static final HttpStatus UNAUTHORIZED_401 = register(401, "Unauthorized");
     public static final HttpStatus PAYMENT_REQUIRED_402 = register(402, "Payment Required");
