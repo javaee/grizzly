@@ -69,53 +69,6 @@ import org.glassfish.grizzly.Buffer;
 public final class Ascii {
     private static final long OVERFLOW_LIMIT = Long.MAX_VALUE / 10;
     
-    /*
-     * Character translation tables.
-     */
-    private static final byte[] toUpper = new byte[256];
-    private static final byte[] toLower = new byte[256];
-
-    /*
-     * Character type tables.
-     */
-    private static final boolean[] isAlpha = new boolean[256];
-    private static final boolean[] isUpper = new boolean[256];
-    private static final boolean[] isLower = new boolean[256];
-    private static final boolean[] isWhite = new boolean[256];
-    private static final boolean[] isDigit = new boolean[256];
-
-    /*
-     * Initialize character translation and type tables.
-     */
-    static {
-        for (int i = 0; i < 256; i++) {
-            toUpper[i] = (byte) i;
-            toLower[i] = (byte) i;
-        }
-
-        for (int lc = 'a'; lc <= 'z'; lc++) {
-            int uc = lc + 'A' - 'a';
-
-            toUpper[lc] = (byte) uc;
-            toLower[uc] = (byte) lc;
-            isAlpha[lc] = true;
-            isAlpha[uc] = true;
-            isLower[lc] = true;
-            isUpper[uc] = true;
-        }
-
-        isWhite[ ' '] = true;
-        isWhite['\t'] = true;
-        isWhite['\r'] = true;
-        isWhite['\n'] = true;
-        isWhite['\f'] = true;
-        isWhite['\b'] = true;
-
-        for (int d = '0'; d <= '9'; d++) {
-            isDigit[d] = true;
-        }
-    }
-
     /**
      * All possible chars for representing a number as a String
      */
@@ -132,7 +85,7 @@ public final class Ascii {
      * Returns the upper case equivalent of the specified ASCII character.
      */
     public static int toUpper(int c) {
-        return toUpper[c & 0xff] & 0xff;
+        return (c >= 'a' && c <= 'z') ? (c + 'A' - 'a') : (c & 0xff);
     }
 
     /**
@@ -141,7 +94,8 @@ public final class Ascii {
      */
     public static void toUpper(final byte[] bytes) {
         for (int i = 0; i < bytes.length; i++) {
-            bytes[i] = toUpper[bytes[i] & 0xff];
+            byte b = (byte)bytes[i];
+            bytes[i] = (byte)((b >= 'a' && b <= 'z') ? (b + 'A' - 'a') : b);
         }
     }
 
@@ -149,7 +103,7 @@ public final class Ascii {
      * Returns the lower case equivalent of the specified ASCII character.
      */
     public static int toLower(int c) {
-        return toLower[c & 0xff] & 0xff;
+        return (c >= 'A' && c <= 'Z') ? (c - 'A' + 'a') : (c & 0xff);
     }
 
     /**
@@ -158,7 +112,8 @@ public final class Ascii {
      */
     public static void toLower(final byte[] bytes) {
         for (int i = 0; i < bytes.length; i++) {
-            bytes[i] = toLower[bytes[i] & 0xff];
+            byte b = (byte)bytes[i];
+            bytes[i] = (byte)((b >= 'A' && b <= 'Z') ? (b - 'A' + 'a') : b);
         }
     }
 
@@ -166,35 +121,35 @@ public final class Ascii {
      * Returns true if the specified ASCII character is upper or lower case.
      */
     public static boolean isAlpha(int c) {
-        return isAlpha[c & 0xff];
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
     }
 
     /**
      * Returns true if the specified ASCII character is upper case.
      */
     public static boolean isUpper(int c) {
-        return isUpper[c & 0xff];
+        return (c >= 'A' && c <= 'Z');
     }
 
     /**
      * Returns true if the specified ASCII character is lower case.
      */
     public static boolean isLower(int c) {
-        return isLower[c & 0xff];
+        return (c >= 'a' && c <= 'z');
     }
 
     /**
      * Returns true if the specified ASCII character is white space.
      */
     public static boolean isWhite(int c) {
-        return isWhite[c & 0xff];
+        return (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f' || c == '\b');
     }
 
     /**
      * Returns true if the specified ASCII character is a digit.
      */
     public static boolean isDigit(int c) {
-        return isDigit[c & 0xff];
+        return (c >= '0' && c <= '9');
     }
 
     /**
