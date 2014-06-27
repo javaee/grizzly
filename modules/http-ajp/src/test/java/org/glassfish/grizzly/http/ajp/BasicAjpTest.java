@@ -137,6 +137,110 @@ public class BasicAjpTest extends AjpTestBase {
         Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
     }
     
+    /**
+     * CVE-2014-0095 Denial of Service related
+     * 
+     * @throws IOException
+     * @throws InstantiationException
+     * @throws Exception 
+     */
+    @Test
+    public void testZeroContentLengthGet() throws IOException, InstantiationException, Exception {
+        HttpHandler httpHanlder = new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response)
+                    throws Exception {
+                if (request.getContentLengthLong() == 0l) {
+                    response.setStatus(200, "FINE");
+                } else {
+                    response.sendError(500, "'Content-Length: 0' header has been lost?");
+                }
+            }
+
+        };
+
+        startHttpServer(httpHanlder);
+
+        final AjpForwardRequestPacket headersPacket =
+                new AjpForwardRequestPacket("GET", "/myresource", 80, PORT);
+        headersPacket.addHeader("Content-Length", "0");
+        headersPacket.addHeader("Host", "localhost:80");
+        
+        final byte[] requestBytes = headersPacket.toByteArray();
+        
+        send(requestBytes);
+        
+        AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals(ajpResponse.getResponseMessage(), 200, ajpResponse.getResponseCode());
+        Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+
+        ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, ajpResponse.getType());
+        
+        // Send one more request to make sure the connection is still alive and operable
+        
+        send(requestBytes);
+        ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals(ajpResponse.getResponseMessage(), 200, ajpResponse.getResponseCode());
+        Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+        
+        ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, ajpResponse.getType());
+    }
+    
+    /**
+     * CVE-2014-0095 Denial of Service related
+     * 
+     * @throws IOException
+     * @throws InstantiationException
+     * @throws Exception 
+     */
+    @Test
+    public void testZeroContentLengthPost() throws IOException, InstantiationException, Exception {
+        HttpHandler httpHanlder = new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response)
+                    throws Exception {
+                if (request.getContentLengthLong() == 0l) {
+                    response.setStatus(200, "FINE");
+                } else {
+                    response.sendError(500, "'Content-Length: 0' header has been lost?");
+                }
+            }
+
+        };
+
+        startHttpServer(httpHanlder);
+
+        final AjpForwardRequestPacket headersPacket =
+                new AjpForwardRequestPacket("POST", "/myresource", 80, PORT);
+        headersPacket.addHeader("Content-Length", "0");
+        headersPacket.addHeader("Host", "localhost:80");
+        
+        final byte[] requestBytes = headersPacket.toByteArray();
+        
+        send(requestBytes);
+        
+        AjpResponse ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals(ajpResponse.getResponseMessage(), 200, ajpResponse.getResponseCode());
+        Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+
+        ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, ajpResponse.getType());
+        
+        // Send one more request to make sure the connection is still alive and operable
+        
+        send(requestBytes);
+        ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals(ajpResponse.getResponseMessage(), 200, ajpResponse.getResponseCode());
+        Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
+        
+        ajpResponse = Utils.parseResponse(readAjpMessage());
+        Assert.assertEquals(AjpConstants.JK_AJP13_END_RESPONSE, ajpResponse.getType());
+    }
+
     @Test
     public void testStabilityAfterWrongMagic() throws Exception {
         HttpHandler a = new HttpHandler() {
