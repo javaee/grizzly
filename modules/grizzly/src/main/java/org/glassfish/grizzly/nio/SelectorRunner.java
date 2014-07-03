@@ -232,7 +232,7 @@ public final class SelectorRunner implements Runnable {
                 for (final SelectionKey selectionKey : keys) {
                     final Connection connection =
                             transport.getConnectionForKey(selectionKey);
-                    connection.closeSilently();
+                    connection.terminateSilently();
                 }
             } catch (ClosedSelectorException e) {
                 // If Selector is already closed - OK
