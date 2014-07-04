@@ -183,8 +183,9 @@ public class FileCacheTest {
         final HttpPacket request1 = builder.build();
 
         final HttpPacket request2 = builder.build();
+        final HttpPacket request3 = builder.build();
 
-        final HttpPacket request3 = builder.method(Method.POST)
+        final HttpPacket request4 = builder.method(Method.POST)
                 .contentLength(0).build();
 
         boolean isOk = false;
@@ -209,13 +210,118 @@ public class FileCacheTest {
             assertEquals("ContentType is wrong " + response2.getHttpHeader().getContentType(), "text/plain", response2.getHttpHeader().getContentType());
             assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response2.getContent().toStringContent());
 
-            // Make sure cache is bypassed on POST request
-            // and 405 status returned from StaticHttpHandler
+            // request3 is the same as request2 and result has to be the same
             responseFuture.reset();
             c.write(request3);
             final HttpContent response3 = responseFuture.get(10, TimeUnit.SECONDS);
+            assertEquals("ContentType is wrong " + response3.getHttpHeader().getContentType(), "text/plain", response3.getHttpHeader().getContentType());
+            assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response3.getContent().toStringContent());
 
-            assertEquals("Not cached data mismatch\n" + cacheProbe, "Hello not cached data", response3.getContent().toStringContent());
+            // Make sure cache is bypassed on POST request
+            // and 405 status returned from StaticHttpHandler
+            responseFuture.reset();
+            c.write(request4);
+            final HttpContent response4 = responseFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals("Not cached data mismatch\n" + cacheProbe, "Hello not cached data", response4.getContent().toStringContent());
+            
+            isOk = true;
+        } finally {
+            if (!isOk) {
+                System.err.println(connectionProbe);
+                System.err.println(httpProbe);
+                System.err.println(cacheProbe);
+            }
+        }
+    }
+    
+    public void testSimpleFileGzip() throws Exception {
+        final File file = createTempFile();
+
+        final StatsConnectionProbe connectionProbe = new StatsConnectionProbe();
+        final StatsHttpProbe httpProbe = new StatsHttpProbe();
+        final StatsCacheProbe cacheProbe = new StatsCacheProbe();
+        httpServer.getServerConfiguration().getMonitoringConfig().getFileCacheConfig().addProbes(cacheProbe);
+        httpServer.getServerConfiguration().getMonitoringConfig().getHttpConfig().addProbes(httpProbe);
+        httpServer.getServerConfiguration().getMonitoringConfig().getConnectionConfig().addProbes(connectionProbe);
+        httpServer.getListener("grizzly").getCompressionConfig().setCompressionMode(CompressionMode.FORCE);
+
+        startHttpServer(new StaticHttpHandler() {
+
+            @Override
+            protected void onMissingResource(final Request req, final Response res) {
+                try {
+                    String error = null;
+                    try {
+                        res.setHeader("Content-Type", "text/plain");
+                        addToFileCache(req, null, file);
+                    } catch (Exception exception) {
+                        error = exception.getMessage();
+                    }
+
+                    final NIOWriter writer = res.getWriter();
+                    writer.write(error == null
+                            ? "Hello not cached data"
+                            : "Error happened: " + error);
+                    writer.close();
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
+        builder.method(Method.GET)
+                .uri("/somedata")
+                .protocol(Protocol.HTTP_1_1)
+                .header("Accept-Encoding", "gzip")
+                .host("localhost:" + PORT);
+
+        final HttpPacket request1 = builder.build();
+
+        final HttpPacket request2 = builder.build();
+        final HttpPacket request3 = builder.build();
+
+        final HttpPacket request4 = builder.method(Method.POST)
+                .contentLength(0).build();
+
+        boolean isOk = false;
+        try {
+            final ReusableFuture<HttpContent> responseFuture =
+                    new ReusableFuture<HttpContent>();
+            final Connection c = getConnection("localhost", PORT, responseFuture);
+            c.write(request1);
+            final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals("Not cached data mismatch\n" + cacheProbe, "Hello not cached data", response1.getContent().toStringContent());
+
+            InputStream fis = new FileInputStream(file);
+            byte[] data = new byte[(int) file.length()];
+            fis.read(data);
+            fis.close();
+
+            final String pattern = new String(data);
+            responseFuture.reset();
+            c.write(request2);
+            final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+            assertEquals("ContentType is wrong " + response2.getHttpHeader().getContentType(), "text/plain", response2.getHttpHeader().getContentType());
+            assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response2.getContent().toStringContent());
+
+            // request3 is the same as request2 and result has to be the same
+            responseFuture.reset();
+            c.write(request3);
+            final HttpContent response3 = responseFuture.get(10, TimeUnit.SECONDS);
+            assertEquals("ContentType is wrong " + response3.getHttpHeader().getContentType(), "text/plain", response3.getHttpHeader().getContentType());
+            assertEquals("Cached data mismatch\n" + cacheProbe, pattern, response3.getContent().toStringContent());
+
+            // Make sure cache is bypassed on POST request
+            // and 405 status returned from StaticHttpHandler
+            responseFuture.reset();
+            c.write(request4);
+            final HttpContent response4 = responseFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals("Not cached data mismatch\n" + cacheProbe, "Hello not cached data", response4.getContent().toStringContent());
             
             isOk = true;
         } finally {
@@ -510,8 +616,64 @@ public class FileCacheTest {
 
             assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
             assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+            assertTrue("content-length is set", response2.getHttpHeader().getContentLength() == -1);
+            assertFalse("transfer-encoding is set", response2.getHttpHeader().isChunked());
         }
+    }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
+    public void testIfModifiedSinceGzip() throws Exception {
+        final File file = createTempFile();
+        final String fileName = file.getName();
+        final String requestPath = "/" + fileName;
+        
+        httpServer.getListener("grizzly").getCompressionConfig().setCompressionMode(CompressionMode.FORCE);
+        
+        startHttpServer(new StaticHttpHandler(file.getParent()) {
+        });
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("Accept-Encoding", "gzip")
+                .build();
+
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+        final ReusableFuture<HttpContent> responseFuture =
+                new ReusableFuture<HttpContent>();
+        final Connection c = getConnection("localhost", PORT, responseFuture);
+        c.write(request1);
+        final HttpContent response1 = responseFuture.get(10, TimeUnit.SECONDS);
+        assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
+                pattern, response1.getContent().toStringContent());
+
+        final String ifModifiedSinceValue = convertToDate(file.lastModified());
+        for (int i = 0; i < 1000; i++) {
+            final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                    .method("GET")
+                    .uri(requestPath)
+                    .protocol("HTTP/1.1")
+                    .header("Host", "localhost")
+                    .header("Accept-Encoding", "gzip")
+                    .header("If-Modified-Since", ifModifiedSinceValue)
+                    .build();
+            responseFuture.reset();
+            c.write(request2);
+            final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
+
+            assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+            assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+            assertTrue("content-length is set", response2.getHttpHeader().getContentLength() == -1);
+            assertFalse("transfer-encoding is set", response2.getHttpHeader().isChunked());
+        }
     }
 
     /**
@@ -576,6 +738,8 @@ public class FileCacheTest {
             assertNotNull(response2);
             assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
             assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+            assertTrue("content-length is set", response2.getHttpHeader().getContentLength() == -1);
+            assertFalse("transfer-encoding is set", response2.getHttpHeader().isChunked());
         }
 
     }
@@ -628,6 +792,8 @@ public class FileCacheTest {
 
         assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
         assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+        assertTrue("content-length is set", response2.getHttpHeader().getContentLength() == -1);
+        assertFalse("transfer-encoding is set", response2.getHttpHeader().isChunked());
 
         cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
         cal.setTime(date);
@@ -695,6 +861,8 @@ public class FileCacheTest {
 
             assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
             assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+            assertTrue("content-length is set", response2.getHttpHeader().getContentLength() == -1);
+            assertFalse("transfer-encoding is set", response2.getHttpHeader().isChunked());
         }
     }
 
@@ -950,6 +1118,8 @@ public class FileCacheTest {
 
         assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
         assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+        assertTrue("content-length is set", response2.getHttpHeader().getContentLength() == -1);
+        assertFalse("transfer-encoding is set", response2.getHttpHeader().isChunked());
 
     }
 
