@@ -341,7 +341,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                 ? (HttpRequestPacket) header
                 : ((HttpResponsePacket) header).getRequest();
         
-        return (Method.HEAD.equals(request.getMethod()));
+        return request.isHeadRequest();
     }
 
     private static Buffer parseTrailerCRLF(final HttpPacketParsing httpPacket,

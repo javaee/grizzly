@@ -121,7 +121,7 @@ public class FileCacheFilter extends BaseFilter {
                 if (cacheEntry.type != CacheType.FILE) {
                     // the payload is available in a ByteBuffer
                     final Buffer buffer = Buffers.wrap(ctx.getMemoryManager(),
-                            cacheEntry.getByteBuffer(isServeCompressed));
+                            cacheEntry.getByteBuffer(isServeCompressed).duplicate());
 
                     ctx.write(HttpContent.builder(response)
                             .content(buffer)
@@ -131,13 +131,11 @@ public class FileCacheFilter extends BaseFilter {
                     return flush(ctx);
                 }
                 
-                if (fileCache.isFileSendEnabled() && !request.isSecure()) {
-                    return sendFileZeroCopy(ctx, response, cacheEntry,
+                return fileCache.isFileSendEnabled() && !request.isSecure()
+                        ? sendFileZeroCopy(ctx, response, cacheEntry,
+                            isServeCompressed)
+                        : sendFileUsingBuffers(ctx, response, cacheEntry,
                             isServeCompressed);
-                } else {
-                    return sendFileUsingBuffers(ctx, response, cacheEntry,
-                            isServeCompressed);
-                }
             }
         }
 

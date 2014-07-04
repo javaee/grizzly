@@ -1412,10 +1412,13 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                     return encodedBuffer; // DO NOT MARK COMMITTED
                 }
             }
-            setContentEncodingsOnSerializing(httpHeader);
-            setTransferEncodingOnSerializing(ctx,
-                                             httpHeader,
-                                             httpContent);
+            
+            if (httpHeader.isExpectContent()) {
+                setContentEncodingsOnSerializing(httpHeader);
+                setTransferEncodingOnSerializing(ctx,
+                                                 httpHeader,
+                                                 httpContent);
+            }
 
             encodedBuffer = memoryManager.allocateAtLeast(2048);
 
