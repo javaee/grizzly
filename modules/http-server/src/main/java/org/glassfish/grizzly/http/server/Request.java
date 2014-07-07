@@ -122,7 +122,11 @@ import org.glassfish.grizzly.utils.JdkVersion;
  */
 
 public class Request {
-
+    // @TODO remove this property support once we're sure nobody
+    // relies on this functionality.
+    private static final Boolean FORCE_CLIENT_AUTH_ON_GET_USER_PRINCIPAL =
+            Boolean.getBoolean(Request.class.getName() + ".force-client-auth-on-get-user-principal");
+    
     private static final Logger LOGGER = Grizzly.logger(Request.class);
     
     private static final Random RANDOM = new Random();
@@ -1855,13 +1859,14 @@ public class Request {
             if (getRequest().isSecure()) {
                 X509Certificate certs[] = (X509Certificate[]) getAttribute(
                         Globals.CERTIFICATES_ATTR);
-                if ((certs == null) || (certs.length < 1)) {
+                if (FORCE_CLIENT_AUTH_ON_GET_USER_PRINCIPAL &&
+                        (certs == null) || (certs.length < 1)) {
+                    // Force SSL re-handshake and request client auth
                     certs = (X509Certificate[]) getAttribute(
                             Globals.SSL_CERTIFICATE_ATTR);
                 }
-                if ((certs == null) || (certs.length < 1)) {
-                    userPrincipal = null;
-                } else {
+                
+                if (certs != null && certs.length > 0) {
                     userPrincipal = certs[0].getSubjectX500Principal();
                 }
             }
