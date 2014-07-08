@@ -194,6 +194,11 @@
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-npn-api</artifactId>
+            <version>1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-server-multipart</artifactId>
         </dependency>
     </dependencies>
