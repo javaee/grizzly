@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -1830,14 +1830,19 @@ public class WebappContext implements ServletContext {
 
                 final String[] patterns = registration.urlPatterns.getArray();
                 if (patterns != null && patterns.length > 0) {
-                    for (final String spath : patterns) {
-                        if (spath.length() == 0 || "/".equals(spath)) {
+                    final String[] mappings = new String[patterns.length];
+                    
+                    for (int i = 0; i < patterns.length; i++) {
+                        final String pattern = patterns[i];
+                        
+                        if (pattern.length() == 0 || "/".equals(pattern)) {
                             defaultMappingAdded = true;
                         }
-                        serverConfig.addHttpHandler(servletHandler,
-                                updateMappings(servletHandler,
-                                        spath));
+                        
+                        mappings[i] = updateMappings(servletHandler, pattern);
                     }
+                                
+                    serverConfig.addHttpHandler(servletHandler, mappings);
                 } else {
                     serverConfig.addHttpHandler(servletHandler,
                             updateMappings(servletHandler, ""));
