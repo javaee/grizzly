@@ -538,7 +538,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         
         isCloseScheduled.set(true);
         if (closeReasonAtomic.compareAndSet(null, closeReason)) {
-            
+
             if (LOGGER.isLoggable(Level.FINEST)) {
                 // replace close reason: clone the original value and add stacktrace
                 closeReasonAtomic.set(new CloseReason(closeReason.getType(),
@@ -549,7 +549,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             preClose();
             notifyCloseListeners(closeReason);
             notifyProbesClose(this);
-
+            
             transport.getSelectorHandler().execute(
                     selectorRunner, new SelectorHandler.Task() {
 
@@ -922,7 +922,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             } else {
                 closeListener.onClosed(this, closeType);
             }
-        } catch (IOException ignored) {
+        } catch (Exception ignored) {
         }
     }
 
