@@ -44,7 +44,7 @@
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-bom</artifactId>
-        <version>2.3.16-SNAPSHOT</version>
+        <version>2.3.16</version>
         <relativePath>bom/pom.xml</relativePath>
     </parent>
 
@@ -52,7 +52,7 @@
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
-    <version>2.3.16-SNAPSHOT</version>
+    <version>2.3.16</version>
     <url>http://grizzly.java.net</url>
     <issueManagement>
         <system>JIRA</system>
@@ -126,7 +126,7 @@
             scm:git:ssh://${user.name}@git.java.net/grizzly~git
         </developerConnection>
         <url>http://java.net/projects/grizzly/sources/git/show</url>
-      <tag>HEAD</tag>
+      <tag>2_3_16</tag>
   </scm>
     <organization>
         <name>Oracle Corporation</name>
