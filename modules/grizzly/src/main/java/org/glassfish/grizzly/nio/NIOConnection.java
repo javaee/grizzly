@@ -797,7 +797,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         while ((closeListener = closeListeners.poll()) != null) {
             try {
                 closeListener.onClosed(this, closeReason);
-            } catch (IOException ignored) {
+            } catch (Exception ignored) {
             }
         }
     }
