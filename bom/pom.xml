@@ -55,7 +55,7 @@
     <artifactId>grizzly-bom</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-bom</name>
-    <version>2.3.17-SNAPSHOT</version>
+    <version>2.3.15-gfa</version>
 
     <description>Grizzly Bill of Materials (BOM)</description>
 
@@ -237,4 +237,8 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+  <scm>
+    <tag>2_3_15_gfa</tag>
+  </scm>
 </project>

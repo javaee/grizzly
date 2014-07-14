@@ -45,13 +45,13 @@
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2.3.17-SNAPSHOT</version>
+        <version>2.3.15-gfa</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>grizzly-http-server</artifactId>
     <packaging>bundle</packaging>
-    <version>2.3.17-SNAPSHOT</version>
+    <version>2.3.15-gfa</version>
     <name>grizzly-http-server</name>
     <build>
         <defaultGoal>install</defaultGoal>
