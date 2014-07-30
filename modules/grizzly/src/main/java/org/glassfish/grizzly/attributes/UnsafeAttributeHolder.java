@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,7 +62,7 @@ final class UnsafeAttributeHolder implements AttributeHolder {
     private final Holder h4 = new Holder();
     
     // the Map storage
-    private Map<String, Object> valueMap;
+    private Map<Integer, Object> valueMap;
     
     // true, if at least one element has been set
     private boolean isSet;
@@ -118,24 +118,26 @@ final class UnsafeAttributeHolder implements AttributeHolder {
         
         final Set<String> tmpSet = new HashSet<String>(4);
         
-        if (h1.isSet) {
+        if (h1.isSet && h1.value != null) {
             tmpSet.add(attributeBuilder.getAttributeByIndex(h1.idx).name());
         }
         
-        if (h2.isSet) {
+        if (h2.isSet && h2.value != null) {
             tmpSet.add(attributeBuilder.getAttributeByIndex(h2.idx).name());
         }
         
-        if (h3.isSet) {
+        if (h3.isSet && h3.value != null) {
             tmpSet.add(attributeBuilder.getAttributeByIndex(h3.idx).name());
         }
         
-        if (h4.isSet) {
+        if (h4.isSet && h4.value != null) {
             tmpSet.add(attributeBuilder.getAttributeByIndex(h4.idx).name());
         }
 
         if (valueMap != null) {
-            tmpSet.addAll(valueMap.keySet());
+            for (Integer idx : valueMap.keySet()) {
+                tmpSet.add(attributeBuilder.getAttributeByIndex(idx).name());
+            }
         }
         
         return tmpSet;
@@ -269,7 +271,7 @@ final class UnsafeAttributeHolder implements AttributeHolder {
             }
 
             if (valueMap != null) {
-                MapperAccessor.getValue(UnsafeAttributeHolder.this, attribute.name());
+                return MapperAccessor.getValue(UnsafeAttributeHolder.this, idx);
             }
             
             return null;
@@ -295,9 +297,9 @@ final class UnsafeAttributeHolder implements AttributeHolder {
                 return h.set(idx, value);
             }
             
-            if (valueMap != null && valueMap.containsKey(attribute.name())) {
+            if (valueMap != null && valueMap.containsKey(idx)) {
                 return MapperAccessor.setValue(
-                        UnsafeAttributeHolder.this, attribute.name(), value);
+                        UnsafeAttributeHolder.this, idx, value);
             }
             
             // Now we know there is no old value associated with the attribute
@@ -328,7 +330,7 @@ final class UnsafeAttributeHolder implements AttributeHolder {
             // and finally if there's no other way around - just store the
             // value in the map
             return MapperAccessor.setValue(
-                    UnsafeAttributeHolder.this, attribute.name(), value);
+                    UnsafeAttributeHolder.this, idx, value);
         }
 
         private Object removeAttribute(final Attribute attribute) {
@@ -377,20 +379,20 @@ final class UnsafeAttributeHolder implements AttributeHolder {
         
         // we call this method, when we're sure all the holders are set
         private Holder nullHolder() {
-            if (h1.value != null) {
+            if (h1.value == null) {
                 return h1;
             }
 
-            if (h2.value != null) {
+            if (h2.value == null) {
                 return h2;
             }
             
-            if (h3.value != null) {
+            if (h3.value == null) {
                 return h3;
             }
 
-            if (h3.value != null) {
-                return h3;
+            if (h4.value == null) {
+                return h4;
             }
             
             return null;
@@ -433,32 +435,32 @@ final class UnsafeAttributeHolder implements AttributeHolder {
     
     private static final class MapperAccessor {
         private static Object getValue(final UnsafeAttributeHolder holder,
-                final String s) {
-            return holder.valueMap.get(s);
+                final Integer idx) {
+            return holder.valueMap.get(idx);
         }
         
         private static Object setValue(final UnsafeAttributeHolder holder,
-                final String s, final Object value) {
+                final Integer idx, final Object value) {
             if (value == null) {
                 if (holder.valueMap != null) {
-                    return holder.valueMap.remove(s);
+                    return holder.valueMap.remove(idx);
                 }
                 
                 return null;
             }
             
             if (holder.valueMap == null) {
-                holder.valueMap = new HashMap<String, Object>(4);
+                holder.valueMap = new HashMap<Integer, Object>(4);
             }
             
-            return holder.valueMap.put(s, value);
+            return holder.valueMap.put(idx, value);
         }
 
         private static void copy(final UnsafeAttributeHolder src,
                 final UnsafeAttributeHolder dst) {
             if (src.valueMap != null) {
                 if (dst.valueMap == null) {
-                    dst.valueMap = new HashMap<String, Object>(src.valueMap.size());
+                    dst.valueMap = new HashMap<Integer, Object>(src.valueMap.size());
                 } else {
                     dst.valueMap.clear();
                 }
