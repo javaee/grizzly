@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,6 +62,21 @@ import org.glassfish.grizzly.memory.MemoryManager;
  */
 public final class SSLConnectionContext {
     private static final Logger LOGGER = Grizzly.logger(SSLConnectionContext.class);
+    private static final float BUFFER_SIZE_COEF;
+    
+    static {
+        final String coef = System.getProperty(
+                SSLConnectionContext.class.getName(), "1.5");
+        
+        float coeff = 1.5f;
+        
+        try {
+            coeff = Float.parseFloat(coef);
+        } catch (NumberFormatException ignored) {
+        }
+        
+        BUFFER_SIZE_COEF = coeff;
+    }
     
     final ByteBufferArray outputByteBufferArray =
             ByteBufferArray.create();
@@ -391,13 +406,15 @@ public final class SSLConnectionContext {
     
     private Buffer ensureBufferSize(Buffer output,
             final int size, final Allocator allocator) {
+        final int sz = (int) ((float) size * BUFFER_SIZE_COEF);
+        
         if (output == null) {
             assert allocator != null;
-            output = allocator.grow(this, null, size * 2);
-        } else if (output.remaining() < size) {
+            output = allocator.grow(this, null, sz);
+        } else if (output.remaining() < sz) {
             assert allocator != null;
             output = allocator.grow(this, output,
-                    output.capacity() + (size - output.remaining()));
+                    output.capacity() + (sz - output.remaining()));
         }
         return output;
     }
