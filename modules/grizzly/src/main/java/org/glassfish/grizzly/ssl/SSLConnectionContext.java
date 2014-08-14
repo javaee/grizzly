@@ -410,7 +410,7 @@ public final class SSLConnectionContext {
         } else if (output.remaining() < sz) {
             assert allocator != null;
             output = allocator.grow(this, output,
-                    output.capacity() + (size - output.remaining()));
+                    output.capacity() + (sz - output.remaining()));
         }
         return output;
     }
