@@ -453,7 +453,13 @@ public class Buffers {
         } else if (buffer2 == null) {
             return buffer1;
         }
-
+        
+        if (buffer1.order() != buffer2.order()) {
+            LOGGER.fine("Appending buffers with different ByteOrder."
+                    + "The result Buffer's order will be the same as the first Buffer's ByteOrder");
+            buffer2.order(buffer1.order());
+        }
+        
         // we can only append to or prepend buffer1 if the limit()
         // is the same as capacity.  If it's not, then appending or
         // prepending effectively clobbers the limit causing an invalid
@@ -470,6 +476,7 @@ public class Buffers {
             final CompositeBuffer compositeBuffer =
                     CompositeBuffer.newBuffer(memoryManager);
 
+            compositeBuffer.order(buffer1.order());
             compositeBuffer.append(buffer1);
             compositeBuffer.append(buffer2);
             compositeBuffer.allowBufferDispose(isCompositeBufferDisposable);
@@ -586,7 +593,8 @@ public class Buffers {
         
         final Buffer clone = getDefaultMemoryManager().allocate(srcLength);
         clone.put(srcBuffer, position, srcLength);
-
+        clone.order(srcBuffer.order());
+        
         return clone.flip();
     }
 

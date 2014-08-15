@@ -58,6 +58,7 @@ public abstract class CompositeBuffer implements Buffer {
     
     /**
      * Construct <tt>CompositeBuffer</tt>.
+     * @return new <tt>CompositeBuffer</tt>
      */
     public static CompositeBuffer newBuffer() {
         return BuffersBuffer.create();
@@ -88,6 +89,7 @@ public abstract class CompositeBuffer implements Buffer {
 
     /**
      * Returns the order in which internal {@link Buffer}s will be disposed.
+     * @return {@link DisposeOrder}
      */
     @SuppressWarnings("UnusedDeclaration")
     public DisposeOrder disposeOrder() {
@@ -96,6 +98,8 @@ public abstract class CompositeBuffer implements Buffer {
 
     /**
      * Sets the order in which internal {@link Buffer}s will be disposed.
+     * @param disposeOrder
+     * @return this buffer
      */
     public CompositeBuffer disposeOrder(final DisposeOrder disposeOrder) {
         this.disposeOrder = disposeOrder;
