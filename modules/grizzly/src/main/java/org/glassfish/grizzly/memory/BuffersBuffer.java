@@ -65,6 +65,7 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     /**
      * Construct <tt>BuffersBuffer</tt>.
+     * @return {@link BuffersBuffer}
      */
     public static BuffersBuffer create() {
         return create(MemoryManager.DEFAULT_MEMORY_MANAGER,
@@ -88,10 +89,18 @@ public final class BuffersBuffer extends CompositeBuffer {
     private static BuffersBuffer create(final MemoryManager memoryManager,
             final Buffer[] buffers, final int buffersSize,
             final boolean isReadOnly) {
+        return create(memoryManager, buffers, buffersSize, ByteOrder.BIG_ENDIAN,
+                isReadOnly);
+    }
+    
+    private static BuffersBuffer create(final MemoryManager memoryManager,
+            final Buffer[] buffers, final int buffersSize,
+            final ByteOrder byteOrder, final boolean isReadOnly) {
         final BuffersBuffer buffer = ThreadCache.takeFromCache(CACHE_IDX);
         if (buffer != null) {
-            buffer.set(memoryManager, buffers, buffersSize, isReadOnly);
             buffer.isDisposed = false;
+            buffer.order(byteOrder);
+            buffer.set(memoryManager, buffers, buffersSize, isReadOnly);
             return buffer;
         }
 
@@ -153,7 +162,7 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         if (buffers != null || this.buffers == null) {
             initBuffers(buffers, buffersSize);
-            calcCapacity();
+            refreshBuffers();
             this.limit = capacity;
         }
 
@@ -183,7 +192,8 @@ public final class BuffersBuffer extends CompositeBuffer {
         this.limit = that.limit;
         this.capacity = that.capacity;
         this.isReadOnly = that.isReadOnly;
-
+        this.byteOrder = that.byteOrder;
+        
         return this;
     }
 
@@ -229,10 +239,11 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         ensureBuffersCapacity(1);
 
+        buffer.order(byteOrder); // assign the correct ByteOrder
         capacity += buffer.remaining();
         bufferBounds[buffersSize] = capacity;
         buffers[buffersSize++] = buffer;
-
+        
         limit = capacity;
 
         resetLastLocation();
@@ -250,11 +261,13 @@ public final class BuffersBuffer extends CompositeBuffer {
         checkReadOnly();
 
         ensureBuffersCapacity(1);
+        
+        buffer.order(byteOrder);  // assign the correct ByteOrder
         System.arraycopy(buffers, 0, buffers, 1, buffersSize);
         buffers[0] = buffer;
 
         buffersSize++;
-        calcCapacity();
+        refreshBuffers();
         position = 0;
         limit += buffer.remaining();
 
@@ -273,7 +286,7 @@ public final class BuffersBuffer extends CompositeBuffer {
             final Buffer b = buffers[i];
             if (b == oldBuffer) {
                 buffers[i] = newBuffer;
-                calcCapacity();
+                refreshBuffers();
                 limit = capacity;
 
                 if (position > limit) {
@@ -368,7 +381,7 @@ public final class BuffersBuffer extends CompositeBuffer {
     @Override
     public BuffersBuffer clear() {
         checkDispose();
-        calcCapacity();
+        refreshBuffers();
         setPosLim(0, capacity);
         mark = -1;
         return this;
@@ -428,7 +441,7 @@ public final class BuffersBuffer extends CompositeBuffer {
             return Buffers.EMPTY_BUFFER;
         } else if (splitPosition == 0) {
             final BuffersBuffer slice2Buffer = BuffersBuffer.create(
-                    memoryManager, buffers, buffersSize, isReadOnly);
+                    memoryManager, buffers, buffersSize, byteOrder, isReadOnly);
             slice2Buffer.setPosLim(position, limit);
             initBuffers(null, 0);
             position = 0;
@@ -445,7 +458,9 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         final int splitBufferPos = toActiveBufferPos(splitPosition);
 
-        final BuffersBuffer slice2Buffer = BuffersBuffer.create(memoryManager);
+        final BuffersBuffer slice2Buffer =
+                BuffersBuffer.create(memoryManager, null, 0, byteOrder, false);
+        
         final Buffer splitBuffer = activeBuffer;
 
         int newSize = splitBufferIdx + 1;
@@ -466,7 +481,7 @@ public final class BuffersBuffer extends CompositeBuffer {
 
         buffersSize = newSize;
 
-        calcCapacity();
+        refreshBuffers();
         
         if (oldPosition < splitPosition) {
             position = oldPosition;
@@ -547,7 +562,7 @@ public final class BuffersBuffer extends CompositeBuffer {
             Arrays.fill(buffers, buffersSize, buffersSize + posBufferIndex, null);
         }
 
-        calcCapacity();
+        refreshBuffers();
         resetLastLocation();
     }
 
@@ -627,7 +642,7 @@ public final class BuffersBuffer extends CompositeBuffer {
                     limitBufferPosition);
 
             return BuffersBuffer.create(memoryManager, newList, newList.length,
-                    isReadOnly);
+                    byteOrder, isReadOnly);
         }
     }
 
@@ -664,7 +679,7 @@ public final class BuffersBuffer extends CompositeBuffer {
         }
         
         setPosLim(0, position);
-        calcCapacity();
+        refreshBuffers();
         
         resetLastLocation();
         return this;
@@ -677,12 +692,19 @@ public final class BuffersBuffer extends CompositeBuffer {
     }
 
     @Override
-    public BuffersBuffer order(ByteOrder bo) {
+    public BuffersBuffer order(final ByteOrder bo) {
         checkDispose();
-        this.byteOrder = bo;
-        if (this.byteOrder != ByteOrder.BIG_ENDIAN) {
-            bigEndian = false;
+        
+        if (bo != byteOrder) {
+            this.byteOrder = bo;
+            this.bigEndian = (bo == ByteOrder.BIG_ENDIAN);
+            
+            // propagate ByteOrder to underlying Buffers
+            for (int i = 0; i < buffersSize; i++) {
+                buffers[i].order(bo);
+            }
         }
+        
         return this;
     }
 
@@ -1716,11 +1738,13 @@ public final class BuffersBuffer extends CompositeBuffer {
         if (isReadOnly) throw new IllegalStateException("Buffer is in read-only mode");
     }
 
-    private void calcCapacity() {
+    private void refreshBuffers() {
         int currentCapacity = 0;
         for(int i = 0; i < buffersSize; i++) {
-            currentCapacity += buffers[i].remaining();
+            final Buffer buffer = buffers[i];
+            currentCapacity += buffer.remaining();
             bufferBounds[i] = currentCapacity;
+            buffer.order(byteOrder);
         }
 
         capacity = currentCapacity;
