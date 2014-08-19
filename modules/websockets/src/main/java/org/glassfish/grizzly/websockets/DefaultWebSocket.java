@@ -48,14 +48,13 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.server.Constants;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.servlet.HttpServletRequestImpl;
 import org.glassfish.grizzly.servlet.HttpServletResponseImpl;
 import org.glassfish.grizzly.servlet.WebappContext;
@@ -140,8 +139,9 @@ public class DefaultWebSocket extends SimpleWebSocket {
             // Try to get session id from cookie
             Cookie[] parsedCookies = getCookies();
             if (parsedCookies != null) {
+                final String sessionCookieNameLocal = obtainSessionCookieName();
                 for (Cookie c : parsedCookies) {
-                    if (Constants.SESSION_COOKIE_NAME.equals(c.getName())) {
+                    if (sessionCookieNameLocal.equals(c.getName())) {
                         setRequestedSessionId(c.getValue());
                         setRequestedSessionCookie(true);
                         break;
