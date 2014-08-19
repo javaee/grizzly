@@ -75,10 +75,9 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.Grizzly;
@@ -92,22 +91,23 @@ import org.glassfish.grizzly.http.io.NIOOutputStream;
 import org.glassfish.grizzly.http.io.NIOWriter;
 import org.glassfish.grizzly.http.io.OutputBuffer;
 import org.glassfish.grizzly.http.server.io.ServerOutputBuffer;
+import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.CharChunk;
+
+import static org.glassfish.grizzly.http.util.Constants.*;
+import org.glassfish.grizzly.http.util.ContentType;
 import org.glassfish.grizzly.http.util.CookieSerializerUtils;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http.util.UEncoder;
+import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
-
-import static org.glassfish.grizzly.http.util.Constants.*;
-import org.glassfish.grizzly.http.util.ContentType;
-import org.glassfish.grizzly.http.util.HeaderValue;
-import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  * Wrapper object for the Coyote response.
@@ -1110,8 +1110,12 @@ public class Response {
      * string "JSESSIONID=" or "JSESSIONIDSSO="
      */
     protected void removeSessionCookies() {
-        response.getHeaders().removeHeaderMatches(Header.SetCookie,
-                Constants.SESSION_COOKIE_PATTERN);
+        final String sessionCookieName = request.getSessionCookieName();
+        final String pattern = sessionCookieName != null
+                ? '^' + sessionCookieName + "(?:SSO)?=.*"
+                : Globals.SESSION_COOKIE_PATTERN;
+        
+        response.getHeaders().removeHeaderMatches(Header.SetCookie, pattern);
     }
     
     /**

@@ -1575,7 +1575,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     
 
     final void setTransferEncodingOnParsing(HttpHeader httpHeader) {
-        if (!httpHeader.getUpgradeDC().isNull()) {
+        if (httpHeader.isIgnoreContentModifiers()) {
             // If it's upgraded Http connection - ignore the transfer encoding
             return;
         }
@@ -1595,7 +1595,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                                                 final HttpHeader httpHeader,
                                                 final HttpContent httpContent) {
         
-        if (!httpHeader.getUpgradeDC().isNull()) {
+        if (httpHeader.isIgnoreContentModifiers()) {
             // If it's upgraded Http connection - ignore the transfer encoding
             return;
         }
@@ -1646,7 +1646,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     }
     
     final void setContentEncodingsOnParsing(final HttpHeader httpHeader) {
-        if (!httpHeader.getUpgradeDC().isNull()) {
+        if (httpHeader.isIgnoreContentModifiers()) {
             // If it's upgraded Http connection - ignore the content encoding
             return;
         }
@@ -1676,7 +1676,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     }
 
     final void setContentEncodingsOnSerializing(final HttpHeader httpHeader) {
-        if (!httpHeader.getUpgradeDC().isNull()) {
+        if (httpHeader.isIgnoreContentModifiers()) {
             // If it's upgraded Http connection - ignore the content encoding
             return;
         }

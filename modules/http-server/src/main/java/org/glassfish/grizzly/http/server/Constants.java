@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -71,14 +71,6 @@ public final class Constants {
      * Package name.
      */
     public static final String Package = "org.glassfish.grizzly.http.server.res";
-
-    /**
-     * The name of the cookie used to pass the session identifier back
-     * and forth with the client.
-     */
-    public static final String SESSION_COOKIE_NAME = "JSESSIONID";
-
-    public static final String SESSION_COOKIE_PATTERN = "^JSESSIONID(?:SSO)?=.*";
 
     public static final int DEFAULT_CONNECTION_LINGER = -1;
     public static final int DEFAULT_CONNECTION_UPLOAD_TIMEOUT = 300000;

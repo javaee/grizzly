@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,7 +56,8 @@ import org.glassfish.grizzly.utils.Charsets;
 public enum Protocol {
     HTTP_0_9 (0, 9),
     HTTP_1_0 (1, 0),
-    HTTP_1_1 (1, 1);
+    HTTP_1_1 (1, 1),
+    HTTP_2_0 (2, 0);
 
     public static Protocol valueOf(final byte[] protocolBytes,
             final int offset, final int len) {
@@ -66,6 +67,8 @@ public enum Protocol {
             return Protocol.HTTP_1_1;
         } else if (equals(HTTP_1_0, protocolBytes, offset, len)) {
             return Protocol.HTTP_1_0;
+        } else if (equals(HTTP_2_0, protocolBytes, offset, len)) {
+            return Protocol.HTTP_2_0;
         } else if (equals(HTTP_0_9, protocolBytes, offset, len)) {
             return Protocol.HTTP_0_9;
         }
@@ -82,6 +85,8 @@ public enum Protocol {
             return Protocol.HTTP_1_1;
         } else if (equals(HTTP_1_0, protocolBuffer, offset, len)) {
             return Protocol.HTTP_1_0;
+        } else if (equals(HTTP_2_0, protocolBuffer, offset, len)) {
+            return Protocol.HTTP_2_0;
         } else if (equals(HTTP_0_9, protocolBuffer, offset, len)) {
             return Protocol.HTTP_0_9;
         }
@@ -97,6 +102,8 @@ public enum Protocol {
             return Protocol.HTTP_1_1;
         } else if (protocolC.equals(Protocol.HTTP_1_0.getProtocolBytes())) {
             return Protocol.HTTP_1_0;
+        } else if (protocolC.equals(Protocol.HTTP_2_0.getProtocolBytes())) {
+            return Protocol.HTTP_2_0;
         } else if (protocolC.equals(Protocol.HTTP_0_9.getProtocolBytes())) {
             return Protocol.HTTP_0_9;
         }

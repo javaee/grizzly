@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -310,13 +310,13 @@ public final class Globals {
      */
     public static final String SESSION_COOKIE_NAME = "JSESSIONID";
 
+    public static final String SESSION_COOKIE_PATTERN = "^JSESSIONID(?:SSO)?=.*";
 
     /**
      * The name of the path parameter used to pass the session identifier
      * back and forth with the client.
      */
     public static final String SESSION_PARAMETER_NAME = "jsessionid";
-
 
     /**
      * The request attribute under which we forward an HTTP status code

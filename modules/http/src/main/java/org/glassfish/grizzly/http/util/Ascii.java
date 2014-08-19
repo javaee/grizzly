@@ -67,7 +67,8 @@ import org.glassfish.grizzly.Buffer;
  * @author James Todd [gonzo@eng.sun.com]
  */
 public final class Ascii {
-    private static final long OVERFLOW_LIMIT = Long.MAX_VALUE / 10;
+    private static final long INT_OVERFLOW_LIMIT = Integer.MAX_VALUE / 10;
+    private static final long LONG_OVERFLOW_LIMIT = Long.MAX_VALUE / 10;
     
     /**
      * All possible chars for representing a number as a String
@@ -153,6 +154,62 @@ public final class Ascii {
     }
 
     /**
+     * Parses an unsigned integer from the specified {@link DataChunk}.
+     * @param dataChunk the {@link DataChunk}
+     * @exception NumberFormatException if the integer format was invalid
+     */    
+    public static int parseInt(final DataChunk dataChunk) {
+        switch(dataChunk.getType()) {
+            case Buffer:
+                final BufferChunk bc = dataChunk.getBufferChunk();
+
+                return parseInt(bc.getBuffer(),
+                        bc.getStart(),
+                        bc.getLength());
+            case String:
+                return Integer.parseInt(dataChunk.toString());
+            case Chars:
+                final CharChunk cc = dataChunk.getCharChunk();
+
+                return parseInt(cc.getBuffer(),
+                        cc.getStart(),
+                        cc.getLength());
+
+            default: throw new NullPointerException();
+        }
+    }
+    
+    /**
+     * Parses an unsigned integer from the specified part of {@link DataChunk}.
+     * @param dataChunk the {@link DataChunk}
+     * @param offset the start offset
+     * @param length the length
+     * @exception NumberFormatException if the integer format was invalid
+     */
+    public static int parseInt(final DataChunk dataChunk, final int offset,
+            final int length) {
+        
+        switch(dataChunk.getType()) {
+            case Buffer:
+                final BufferChunk bc = dataChunk.getBufferChunk();
+
+                return parseInt(bc.getBuffer(),
+                        bc.getStart() + offset,
+                        length);
+            case String:
+                return parseInt(dataChunk.toString(), offset, length);
+            case Chars:
+                final CharChunk cc = dataChunk.getCharChunk();
+
+                return parseInt(cc.getBuffer(),
+                        cc.getStart() + offset,
+                        cc.getLength());
+
+            default: throw new NullPointerException();
+        }
+    }
+    
+    /**
      * Parses an unsigned integer from the specified sub-array of bytes.
      * @param b the bytes to parse
      * @param off the start offset of the bytes
@@ -226,6 +283,27 @@ public final class Ascii {
         return n;
     }
     
+    public static int parseInt(String s, int off, int len)
+            throws NumberFormatException {
+        int c;
+
+        if (s == null || len <= 0 || !isDigit(c = s.charAt(off++))) {
+            throw new NumberFormatException();
+        }
+
+        int n = c - '0';
+        while (--len > 0) {
+            if (isDigit(c = s.charAt(off++))
+                    && (n < INT_OVERFLOW_LIMIT || (n == INT_OVERFLOW_LIMIT && (c - '0') < 8))) {
+                n = n * 10 + c - '0';
+            } else {
+                throw new NumberFormatException();
+            }
+        }
+
+        return n;
+    }
+    
     /**
      * Parses an unsigned long from the specified sub-array of bytes.
      * @param b the bytes to parse
@@ -244,7 +322,7 @@ public final class Ascii {
         long n = c - '0';
         while (--len > 0) {
             if (isDigit(c = b[off++])
-                    && (n < OVERFLOW_LIMIT || (n == OVERFLOW_LIMIT && (c - '0') < 8))) {
+                    && (n < LONG_OVERFLOW_LIMIT || (n == LONG_OVERFLOW_LIMIT && (c - '0') < 8))) {
                 n = n * 10 + c - '0';
             } else {
                 throw new NumberFormatException();
@@ -253,7 +331,7 @@ public final class Ascii {
 
         return n;
     }
-
+    
     public static long parseLong(char[] b, int off, int len)
             throws NumberFormatException {
         int c;
@@ -265,7 +343,7 @@ public final class Ascii {
         long n = c - '0';
         while (--len > 0) {
             if (isDigit(c = b[off++])
-                    && (n < OVERFLOW_LIMIT || (n == OVERFLOW_LIMIT && (c - '0') < 8))) {
+                    && (n < LONG_OVERFLOW_LIMIT || (n == LONG_OVERFLOW_LIMIT && (c - '0') < 8))) {
                 n = n * 10 + c - '0';
             } else {
                 throw new NumberFormatException();
@@ -286,7 +364,7 @@ public final class Ascii {
         long n = c - '0';
         while (--len > 0) {
             if (isDigit(c = s.charAt(off++))
-                    && (n < OVERFLOW_LIMIT || (n == OVERFLOW_LIMIT && (c - '0') < 8))) {
+                    && (n < LONG_OVERFLOW_LIMIT || (n == LONG_OVERFLOW_LIMIT && (c - '0') < 8))) {
                 n = n * 10 + c - '0';
             } else {
                 throw new NumberFormatException();
@@ -314,7 +392,7 @@ public final class Ascii {
         long n = c - '0';
         while (--len > 0) {
             if (isDigit(c = b.get(off++))
-                    && (n < OVERFLOW_LIMIT || (n == OVERFLOW_LIMIT && (c - '0') < 8))) {
+                    && (n < LONG_OVERFLOW_LIMIT || (n == LONG_OVERFLOW_LIMIT && (c - '0') < 8))) {
                 n = n * 10 + c - '0';
             } else {
                 throw new NumberFormatException();

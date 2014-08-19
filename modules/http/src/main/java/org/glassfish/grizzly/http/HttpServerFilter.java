@@ -674,10 +674,9 @@ public class HttpServerFilter extends HttpCodecFilter {
             return;
         }
 
-        final boolean isUpgraded = !request.getUpgradeDC().isNull();
-        
         // set the default chunking mode
-        request.getResponse().setChunkingAllowed(isUpgraded || isChunkingEnabled());
+        request.getResponse().setChunkingAllowed(
+                !request.getUpgradeDC().isNull() || isChunkingEnabled());
         
         if (request.getHeaderParsingState().contentLengthsDiffer) {
             request.getProcessingState().error = true;
@@ -730,8 +729,9 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
         request.unparsedHostC = hostDC;
         
-        // If it's upgraded HTTP - don't check semantics
-        if (isUpgraded) {
+        // Check if we have to ignore content modifiers like HTTP method,
+        // Transfer and Content encoding
+        if (request.isIgnoreContentModifiers()) {
             return;
         }
 
@@ -753,7 +753,8 @@ public class HttpServerFilter extends HttpCodecFilter {
             
             request.setExpectContent(hasPayload);
         } else {
-            request.setExpectContent(method == Method.CONNECT);
+            request.setExpectContent(method == Method.CONNECT ||
+                    method == Method.PRI);
         }
         
         // ------ Set keep-alive flag
@@ -886,8 +887,8 @@ public class HttpServerFilter extends HttpCodecFilter {
             final HttpContent httpContent) {
         
         // If it's upgraded HTTP - don't check semantics
-        if (!response.getRequest().getUpgradeDC().isNull() ||
-                response.getUpgrade() != null) {
+        if (request.isIgnoreContentModifiers() ||
+                response.isIgnoreContentModifiers()) {
             return httpContent;
         }
         

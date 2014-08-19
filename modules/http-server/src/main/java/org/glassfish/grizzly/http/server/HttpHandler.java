@@ -143,6 +143,7 @@ public abstract class HttpHandler {
      */
     boolean doHandle(final Request request, final Response response) throws Exception {
         request.setRequestExecutorProvider(getRequestExecutorProvider());
+        request.setSessionCookieName(getSessionCookieName());
         response.setErrorPageGenerator(getErrorPageGenerator(request));
 
         if (request.requiresAcknowledgement()) {
@@ -363,6 +364,13 @@ public abstract class HttpHandler {
         return request.getHttpFilter().getConfiguration().getDefaultErrorPageGenerator();
     }
     
+    /**
+     * @return session cookie name, if not set default JSESSIONID name will be used
+     */
+    protected String getSessionCookieName() {
+        return null;
+    }
+
     /**
      * The default implementation will acknowledge an <code>Expect: 100-Continue</code>
      * with a response line with the status 100 followed by the final response

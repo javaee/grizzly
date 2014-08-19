@@ -325,6 +325,10 @@ public class Request {
 
 
     protected Cookies rawCookies;
+    
+    // Session cookie name
+    protected String sessionCookieName;
+    
 
     /**
      * The default Locale if none are specified.
@@ -539,6 +543,29 @@ public class Request {
     }
 
     /**
+     * @return session cookie name, if not set default JSESSIONID name will be used
+     */
+    public String getSessionCookieName() {
+        return sessionCookieName;
+    }
+
+    /**
+     * Set the session cookie name, if not set default JSESSIONID name will be used
+     * @param sessionCookieName 
+     */
+    public void setSessionCookieName(String sessionCookieName) {
+        this.sessionCookieName = sessionCookieName;
+    }
+
+    /**
+     * @return {@link #sessionCookieName} if set, or {@link Globals#SESSION_COOKIE_NAME} if
+     * {@link #sessionCookieName} is not set
+     */
+    protected String obtainSessionCookieName() {
+        return sessionCookieName != null ? sessionCookieName : Globals.SESSION_COOKIE_NAME;
+    }
+    
+    /**
      * @return the {@link Executor} responsible for notifying {@link ReadHandler},
      * {@link WriteHandler} associated with this <tt>Request</tt> processing.
      */    
@@ -603,7 +630,8 @@ public class Request {
         pathInfo.reset();
         dispatcherType = null;
         requestDispatcherPath = null;
-
+        sessionCookieName = null;
+        
         inputBuffer.recycle();
         inputStream.recycle();
         reader.recycle();
@@ -2305,7 +2333,7 @@ public class Request {
             return oldSessionId;
 
         if (response != null) {
-            final Cookie cookie = new Cookie(Globals.SESSION_COOKIE_NAME,
+            final Cookie cookie = new Cookie(obtainSessionCookieName(),
                                              sessionLocal.getIdInternal());
             configureSessionCookie(cookie);
             response.addSessionCookieInternal(cookie);
@@ -2328,9 +2356,10 @@ public class Request {
             final Cookie[] cookiesLocale = getCookies();
             assert cookiesLocale != null;
             
+            final String sessionCookieNameLocal = obtainSessionCookieName();
             for (int i = 0; i < cookiesLocale.length; i++) {
                 final Cookie c = cookiesLocale[i];
-                if (Constants.SESSION_COOKIE_NAME.equals(c.getName())) {
+                if (sessionCookieNameLocal.equals(c.getName())) {
                     setRequestedSessionId(c.getValue());
                     setRequestedSessionCookie(true);
                     break;
@@ -2364,7 +2393,7 @@ public class Request {
 
         // Creating a new session cookie based on the newly created session
         if (session != null) {
-            final Cookie cookie = new Cookie(Globals.SESSION_COOKIE_NAME,
+            final Cookie cookie = new Cookie(obtainSessionCookieName(),
                                              session.getIdInternal());
             configureSessionCookie(cookie);
             response.addCookie(cookie);
@@ -2420,9 +2449,9 @@ public class Request {
     }
 
     /**
-     * Configures the given JSESSIONID cookie.
+     * Configures the given session cookie.
      *
-     * @param cookie The JSESSIONID cookie to be configured
+     * @param cookie The session cookie to be configured
      */
     protected void configureSessionCookie(final Cookie cookie) {
         cookie.setMaxAge(-1);
@@ -2465,14 +2494,18 @@ public class Request {
 
 
     private boolean parseSessionId(final Chunk uriChunk) {
+        final String sessionParamNameMatch = sessionCookieName != null
+                ? ';' + sessionCookieName + '='
+                : match;
+        
         boolean isUpdated = false;
-        final int semicolon = uriChunk.indexOf(match, 0);
+        final int semicolon = uriChunk.indexOf(sessionParamNameMatch, 0);
 
         if (semicolon > 0) {
             // Parse session ID, and extract it from the decoded request URI
 //            final int start = uriChunk.getStart();
 
-            final int sessionIdStart = semicolon + match.length();
+            final int sessionIdStart = semicolon + sessionParamNameMatch.length();
             final int semicolon2 = uriChunk.indexOf(';', sessionIdStart);
             
             isUpdated = semicolon2 >= 0;

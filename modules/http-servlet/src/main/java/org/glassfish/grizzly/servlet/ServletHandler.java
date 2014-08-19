@@ -497,7 +497,7 @@ public class ServletHandler extends HttpHandler {
     public ExpectationHandler getExpectationHandler() {
         return expectationHandler;
     }
-
+    
     /**
      * Set the {@link ExpectationHandler} responsible for processing
      * <tt>Expect:</tt> header (for example "Expect: 100-Continue").
@@ -518,6 +518,15 @@ public class ServletHandler extends HttpHandler {
         this.filterChainFactory = filterChainFactory;
     }
 
+    /**
+     * Overrides default (JSESSIONID) session cookie name.
+     * @return the session cookie name
+     */
+    @Override
+    protected String getSessionCookieName() {
+        return servletCtx.getSessionCookieConfig().getName();
+    }
+    
     /**
      * Adds the {@link Runnable}, which will be invoked when {@link #destroy()} is called.
      * @param r {@link Runnable}, which contains destroy listener logic.
