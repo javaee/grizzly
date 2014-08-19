@@ -99,6 +99,12 @@ public abstract class HttpHeader extends HttpPacket
     
     protected boolean secure;
 
+    /**
+     * <tt>true</tt> if parser has to ignore "Transfer-Encoding" and
+     * "Content-Encoding" headers and act as none of them were specified.
+     */
+    private boolean isIgnoreContentModifiers;
+    
     protected final DataChunk upgrade = DataChunk.newInstance();
 
     private TransferEncoding transferEncoding;
@@ -313,24 +319,56 @@ public abstract class HttpHeader extends HttpPacket
         this.isContentBroken = isBroken;
     }
     
-    public String getUpgrade() {
+    /**
+     * @return the "Upgrade" header value.
+     */
+    public final String getUpgrade() {
         return upgrade.toString();
     }
 
+    /**
+     * @return the "Upgrade" header value.
+     */
     public DataChunk getUpgradeDC() {
         return upgrade;
     }
 
-    public void setUpgrade(String upgrade) {
+    /**
+     * Sets the "Upgrade" header value
+     * @param upgrade
+     */
+    public final void setUpgrade(final String upgrade) {
         this.upgrade.setString(upgrade);
     }
 
+    /**
+     * Propagate the "Upgrade" value to headers.
+     */
     protected void makeUpgradeHeader() {
         if (!upgrade.isNull()) {
             headers.setValue(Header.Upgrade).set(upgrade);
         }
     }
 
+    /**
+     * @return <tt>true</tt> if parser has to ignore "Transfer-Encoding" and
+     * "Content-Encoding" headers and act as none of them were specified.
+     */
+    public boolean isIgnoreContentModifiers() {
+        return isIgnoreContentModifiers || (!upgrade.isNull() &&
+                !upgrade.startsWith("h2c", 0)); // don't ignore content modifiers for HTTP2 upgrade
+    }
+
+    /**
+     * Set <tt>true</tt> if parser has to ignore "Transfer-Encoding" and
+     * "Content-Encoding" headers and act as none of them were specified.
+     * 
+     * @param isIgnoreContentModifiers 
+     */
+    public void setIgnoreContentModifiers(boolean isIgnoreContentModifiers) {
+        this.isIgnoreContentModifiers = isIgnoreContentModifiers;
+    }
+    
     /**
      * Makes sure content-length header is present.
      * 
@@ -836,6 +874,7 @@ public abstract class HttpHeader extends HttpPacket
         transferEncoding = null;
         isExpectContent = true;
         upgrade.recycle();
+        isIgnoreContentModifiers = false;
         if (headerBuffer != null) {
             headerBuffer.dispose();
             headerBuffer = null;

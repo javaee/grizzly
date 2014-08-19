@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.DispatcherType;
+import static javax.servlet.DispatcherType.REQUEST;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -60,6 +61,7 @@ import org.glassfish.grizzly.http.server.AfterServiceListener;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.SessionManager;
 import org.glassfish.grizzly.http.server.util.ClassLoaderUtil;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 import org.glassfish.grizzly.http.server.util.Globals;
@@ -69,8 +71,6 @@ import org.glassfish.grizzly.http.util.CharChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpRequestURIDecoder;
 import org.glassfish.grizzly.http.util.HttpStatus;
-
-import static javax.servlet.DispatcherType.REQUEST;
 
 /**
  * HttpHandler implementation that provides an entry point for processing
@@ -497,7 +497,7 @@ public class ServletHandler extends HttpHandler {
     public ExpectationHandler getExpectationHandler() {
         return expectationHandler;
     }
-
+    
     /**
      * Set the {@link ExpectationHandler} responsible for processing
      * <tt>Expect:</tt> header (for example "Expect: 100-Continue").
@@ -518,6 +518,23 @@ public class ServletHandler extends HttpHandler {
         this.filterChainFactory = filterChainFactory;
     }
 
+    /**
+     * Overrides default (JSESSIONID) session cookie name.
+     * @return the session cookie name
+     */
+    @Override
+    protected String getSessionCookieName() {
+        return servletCtx.getSessionCookieConfig().getName();
+    }
+
+    /**
+     * @return Servlet-aware {@link SessionManager}
+     */
+    @Override
+    protected SessionManager getSessionManager() {
+        return ServletSessionManager.instance();
+    }
+    
     /**
      * Adds the {@link Runnable}, which will be invoked when {@link #destroy()} is called.
      * @param r {@link Runnable}, which contains destroy listener logic.
@@ -540,8 +557,8 @@ public class ServletHandler extends HttpHandler {
 
         @Override
         public void onAfterService(final Request request) {
-            final HttpServletRequestImpl servletRequest = request.getNote(SERVLET_REQUEST_NOTE);
-            final HttpServletResponseImpl servletResponse = request.getNote(SERVLET_RESPONSE_NOTE);
+            final HttpServletRequestImpl servletRequest = getServletRequest(request);
+            final HttpServletResponseImpl servletResponse = getServletResponse(request);
 
             if (servletRequest != null) {
                 servletRequest.recycle();
@@ -590,5 +607,13 @@ public class ServletHandler extends HttpHandler {
         public boolean isFailAcknowledgement() {
             return isFailAcknowledgement;
         }
+    }
+    
+    static HttpServletRequestImpl getServletRequest(final Request request) {
+        return request.getNote(SERVLET_REQUEST_NOTE);
+    }
+    
+    static HttpServletResponseImpl getServletResponse(final Request request) {
+        return request.getNote(SERVLET_RESPONSE_NOTE);
     }
 }

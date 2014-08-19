@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,15 +40,13 @@
 
 package org.glassfish.grizzly.servlet;
 
-import org.glassfish.grizzly.http.server.Constants;
-
 /**
  * Class that may be used to configure various properties of cookies 
  * used for session tracking purposes.
  */
 public class SessionCookieConfig implements javax.servlet.SessionCookieConfig {
 
-    private String name = Constants.SESSION_COOKIE_NAME;
+    private String name;
     private String domain;
     private String path;
     private String comment;

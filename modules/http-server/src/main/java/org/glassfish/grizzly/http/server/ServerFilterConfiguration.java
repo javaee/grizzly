@@ -65,9 +65,6 @@ public class ServerFilterConfiguration {
     private int maxFormPostSize = 2 * 1024 * 1024;
     private int maxBufferedPostSize = 2 * 1024 * 1024;
         
-    // "reuse session IDs when creating sessions"
-    private boolean isReuseSessionID;
-    
     /**
      * The auxiliary configuration, which might be used, when Grizzly HttpServer
      * is running behind some HTTP gateway like reverse proxy or load balancer.
@@ -110,7 +107,6 @@ public class ServerFilterConfiguration {
         this.traceEnabled = configuration.traceEnabled;
         this.passTraceRequest = configuration.passTraceRequest;
         this.maxRequestParameters = configuration.maxRequestParameters;
-        this.isReuseSessionID = configuration.isReuseSessionID;
         this.maxFormPostSize = configuration.maxFormPostSize;
         this.maxBufferedPostSize = configuration.maxBufferedPostSize;
         this.defaultQueryEncoding = configuration.defaultQueryEncoding;
@@ -309,18 +305,19 @@ public class ServerFilterConfiguration {
      * Returns the "reuse session IDs when creating sessions"
      * 
      * @since 2.2.19
+     * @deprecated since 2.3.17
      */
     public boolean isReuseSessionID() {
-        return isReuseSessionID;
+        return false;
     }
 
     /**
      * Sets the "reuse session IDs when creating sessions"
      * 
      * @since 2.2.19
+     * @deprecated since 2.3.17
      */
     public void setReuseSessionID(boolean isReuseSessionID) {
-        this.isReuseSessionID = isReuseSessionID;
     }
 
     /**

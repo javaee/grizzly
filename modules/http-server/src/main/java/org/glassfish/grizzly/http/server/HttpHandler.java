@@ -119,6 +119,7 @@ public abstract class HttpHandler {
 
     /**
      * Create <tt>HttpHandler</tt> with the specific name.
+     * @param name
      */
     public HttpHandler(String name) {
         this.name = name;
@@ -147,6 +148,8 @@ public abstract class HttpHandler {
      */
     boolean doHandle(final Request request, final Response response) throws Exception {
         request.setRequestExecutorProvider(getRequestExecutorProvider());
+        request.setSessionCookieName(getSessionCookieName());
+        request.setSessionManager(getSessionManager());
         response.setErrorPageGenerator(getErrorPageGenerator(request));
 
         if (request.requiresAcknowledgement()) {
@@ -381,6 +384,20 @@ public abstract class HttpHandler {
      */
     protected ErrorPageGenerator getErrorPageGenerator(final Request request) {
         return request.getHttpFilter().getConfiguration().getDefaultErrorPageGenerator();
+    }
+    
+    /**
+     * @return session cookie name, if not set default JSESSIONID name will be used
+     */
+    protected String getSessionCookieName() {
+        return null;
+    }
+
+    /**
+     * @return the {@link SessionManager} to be used. <tt>null</tt> value implies {@link DefaultSessionManager}
+     */
+    protected SessionManager getSessionManager() {
+        return null;
     }
     
     /**

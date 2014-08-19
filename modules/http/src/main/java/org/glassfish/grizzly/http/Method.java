@@ -69,6 +69,8 @@ public final class Method {
             = new Method("CONNECT", PayloadExpectation.NOT_ALLOWED);
     public static final Method PATCH
             = new Method("PATCH", PayloadExpectation.ALLOWED);
+    public static final Method PRI
+            = new Method("PRI", PayloadExpectation.NOT_ALLOWED);
 
     public static Method CUSTOM(final String methodName) {
         return CUSTOM(methodName, PayloadExpectation.ALLOWED);
@@ -98,6 +100,8 @@ public final class Method {
             return Method.OPTIONS;
         } else if (methodC.equals(Method.PATCH.getMethodBytes())) {
             return Method.PATCH;
+        } else if (methodC.equals(Method.PRI.getMethodBytes())) {
+            return Method.PRI;
         } else {
             return CUSTOM(methodC.toString());
         }
@@ -122,6 +126,8 @@ public final class Method {
             return Method.OPTIONS;
         } else if (method.equals(Method.PATCH.getMethodString())) {
             return Method.PATCH;
+        } else if (method.equals(Method.PRI.getMethodString())) {
+            return Method.PRI;
         } else {
             return CUSTOM(method.toString());
         }

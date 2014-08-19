@@ -180,7 +180,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
 
         try {
             final HttpPacket request1 = createRequest(CONTEXT + SERVLETMAPPING, PORT, null);
-            final HttpContent response1 = sendRequest(request1, 10000);
+            final HttpContent response1 = sendRequest(request1, 10);
             
             Cookie[] cookies1 = getCookies(response1.getHttpHeader().getHeaders());
             
@@ -195,7 +195,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
                     Collections.<String, String>singletonMap(Header.Cookie.toString(),
                     Globals.SESSION_COOKIE_NAME + "=" + cookies1[0].getValue()));
             
-            final HttpContent response2 = sendRequest(request2, 10000);
+            final HttpContent response2 = sendRequest(request2, 10);
             Cookie[] cookies2 = getCookies(response2.getHttpHeader().getHeaders());
             
             assertEquals(1, cookies2.length);
@@ -211,7 +211,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
                     Collections.<String, String>singletonMap(Header.Cookie.toString(),
                     Globals.SESSION_COOKIE_NAME + "=" + cookies1[0].getValue()));
 
-            final HttpContent response3 = sendRequest(request3, 10000);
+            final HttpContent response3 = sendRequest(request3, 10);
             Cookie[] cookies3 = getCookies(response3.getHttpHeader().getHeaders());
             
             assertEquals(1, cookies3.length);
@@ -227,7 +227,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
                     Collections.<String, String>singletonMap(Header.Cookie.toString(),
                     Globals.SESSION_COOKIE_NAME + "=" + cookies2[0].getValue()));
 
-            final HttpContent response4 = sendRequest(request4, 10000);
+            final HttpContent response4 = sendRequest(request4, 10);
             Cookie[] cookies4 = getCookies(response4.getHttpHeader().getHeaders());
             
             assertEquals(0, cookies4.length);
