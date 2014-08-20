@@ -67,24 +67,20 @@ import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.security.auth.Subject;
-
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Cookies;
@@ -110,7 +106,6 @@ import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.utils.Charsets;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.JdkVersion;
 
 /**
@@ -129,8 +124,6 @@ public class Request {
     
     private static final Logger LOGGER = Grizzly.logger(Request.class);
     
-    private static final Random RANDOM = new Random();
-
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
 
@@ -231,55 +224,6 @@ public class Request {
     // -------------------------------------------------------------------- //
 
 
-    /**
-     * Not Good. We need a better mechanism.
-     * TODO: Move Session Management out of here
-     */
-    private static final Map<String, Session> SESSIONS =
-            DataStructures.<String, Session>getConcurrentMap();
-
-
-    /**
-     * Scheduled Thread that clean the cache every XX seconds.
-     */
-    private final static ScheduledThreadPoolExecutor SESSION_EXPIRER =
-            new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            final Thread t = new Thread(r, "Grizzly-HttpSession-Expirer");
-            t.setDaemon(true);
-            return t;
-        }
-    });
-
-    /**
-     * That code is far from optimal and needs to be rewrite appropriately.
-     */
-    static {
-        SESSION_EXPIRER.scheduleAtFixedRate(new Runnable() {
-
-            @Override
-            public void run() {
-                long currentTime = System.currentTimeMillis();
-                Iterator<Map.Entry<String, Session>> iterator = SESSIONS.entrySet().iterator();
-                Map.Entry<String, Session> entry;
-                while (iterator.hasNext()) {
-                    entry = iterator.next();
-
-                    if (entry.getValue().getSessionTimeout() == -1) {
-                        continue;
-                    }
-
-                    if (currentTime - entry.getValue().getTimestamp()
-                            > entry.getValue().getSessionTimeout()) {
-                        entry.getValue().setValid(false);
-                        iterator.remove();
-                    }
-                }
-            }
-        }, 5, 5, TimeUnit.SECONDS);
-    }
-
     public final MappingData obtainMappingData() {
         if (cachedMappingData == null) {
             cachedMappingData = new MappingData();
@@ -329,7 +273,9 @@ public class Request {
     // Session cookie name
     protected String sessionCookieName;
     
-
+    // Session manager
+    protected SessionManager sessionManager;
+    
     /**
      * The default Locale if none are specified.
      */
@@ -556,7 +502,7 @@ public class Request {
     public void setSessionCookieName(String sessionCookieName) {
         this.sessionCookieName = sessionCookieName;
     }
-
+    
     /**
      * @return {@link #sessionCookieName} if set, or {@link Globals#SESSION_COOKIE_NAME} if
      * {@link #sessionCookieName} is not set
@@ -564,7 +510,24 @@ public class Request {
     protected String obtainSessionCookieName() {
         return sessionCookieName != null ? sessionCookieName : Globals.SESSION_COOKIE_NAME;
     }
-    
+
+    /**
+     * @return {@link SessionManager}
+     */
+    protected SessionManager getSessionManager() {
+        return sessionManager != null
+                ? sessionManager
+                : DefaultSessionManager.instance();
+    }
+
+    /**
+     * Set {@link SessionManager}, <tt>null</tt> value implies {@link DefaultSessionManager}
+     * @param sessionManager 
+     */    
+    protected void setSessionManager(final SessionManager sessionManager) {
+        this.sessionManager = sessionManager;
+    }
+        
     /**
      * @return the {@link Executor} responsible for notifying {@link ReadHandler},
      * {@link WriteHandler} associated with this <tt>Request</tt> processing.
@@ -630,7 +593,6 @@ public class Request {
         pathInfo.reset();
         dispatcherType = null;
         requestDispatcherPath = null;
-        sessionCookieName = null;
         
         inputBuffer.recycle();
         inputStream.recycle();
@@ -658,6 +620,8 @@ public class Request {
 
         cookies = null;
         requestedSessionId = null;
+        sessionCookieName = null;
+        sessionManager = null;
         session = null;
         dispatchDepth = 0; // S1AS 4703023
 
@@ -2317,24 +2281,16 @@ public class Request {
             throw new IllegalStateException("changeSessionId has been called without a session");
         }
 
-        String oldSessionId = sessionLocal.getIdInternal();
-        final String newSessionId = String.valueOf(generateRandomLong());
-        sessionLocal.setIdInternal(newSessionId);
-        // This should only ever be called if there was an old session ID but
-        // double check to be sure
-        if (requestedSessionId != null && requestedSessionId.length() > 0) {
-            requestedSessionId = newSessionId;
-        }
+        String oldSessionId = getSessionManager().changeSessionId(this, sessionLocal);
+        final String newSessionId = sessionLocal.getIdInternal();
+        requestedSessionId = newSessionId;
 
-        SESSIONS.remove(oldSessionId);
-        SESSIONS.put(newSessionId, session);
-        
         if (isRequestedSessionIdFromURL())
             return oldSessionId;
 
         if (response != null) {
             final Cookie cookie = new Cookie(obtainSessionCookieName(),
-                                             sessionLocal.getIdInternal());
+                                             newSessionId);
             configureSessionCookie(cookie);
             response.addSessionCookieInternal(cookie);
         }
@@ -2344,13 +2300,11 @@ public class Request {
 
     protected Session doGetSession(final boolean create) {
         // Return the current session if it exists and is valid
-        if ((session != null) && !session.isValid()) {
-            session = null;
-        }
-
-        if (session != null) {
+        if (session != null && session.isValid()) {
             return session;
         }
+
+        session = null;
 
         if (requestedSessionId == null) {
             final Cookie[] cookiesLocale = getCookies();
@@ -2366,55 +2320,36 @@ public class Request {
                 }
             }
         }
+
+        session = getSessionManager().getSession(this, requestedSessionId);
+        if (session != null && !session.isValid()) {
+            session = null;
+        }
         
-        if (requestedSessionId != null) {
-            session = SESSIONS.get(requestedSessionId);
-            if ((session != null) && !session.isValid()) {
-                session = null;
-            }
-            if (session != null) {
-                return session;
-            }
-        }
-
-        // Create a new session if requested and the response is not committed
         if (!create) {
-            return null;
+            return session;
         }
-
-        if (requestedSessionId != null &&
-                httpServerFilter.getConfiguration().isReuseSessionID()) {
-            session = new Session(requestedSessionId);
-        } else {
-            requestedSessionId = String.valueOf(generateRandomLong());
-            session = new Session(requestedSessionId);
-        }
-        SESSIONS.put(requestedSessionId, session);
+        
+        session = getSessionManager().createSession(this);
+        requestedSessionId = session.getIdInternal();
 
         // Creating a new session cookie based on the newly created session
-        if (session != null) {
-            final Cookie cookie = new Cookie(obtainSessionCookieName(),
-                                             session.getIdInternal());
-            configureSessionCookie(cookie);
-            response.addCookie(cookie);
-
-        }
-
-        if (session != null) {
-            return session;
-        } else {
-            return null;
-        }
-
+        final Cookie cookie = new Cookie(obtainSessionCookieName(),
+                                         session.getIdInternal());
+        configureSessionCookie(cookie);
+        
+        response.addCookie(cookie);
+        
+        return session;
     }
 
     /**
-     * Return <code>true</code> if the session identifier included in this
+     * @return <code>true</code> if the session identifier included in this
      * request came from a cookie.
      */
     public boolean isRequestedSessionIdFromCookie() {
 
-        return ((requestedSessionId != null) && requestedSessionCookie);
+        return requestedSessionId != null && requestedSessionCookie;
 
     }
 
@@ -2424,16 +2359,15 @@ public class Request {
      */
     public boolean isRequestedSessionIdFromURL() {
 
-        return ((requestedSessionId != null) && requestedSessionURL);
+        return requestedSessionId != null && requestedSessionURL;
 
     }
 
     /**
-     * Return <tt>true</tt> if the session identifier included in this
+     * @return <tt>true</tt> if the session identifier included in this
      * request identifies a valid session.
      */
     public boolean isRequestedSessionIdValid() {
-
         if (requestedSessionId == null) {
             return false;
         }
@@ -2443,8 +2377,9 @@ public class Request {
             return session.isValid();
         }
 
-        Session localSession = SESSIONS.get(requestedSessionId);
-        return ((localSession != null) && localSession.isValid());
+        final Session localSession =
+                getSessionManager().getSession(this, requestedSessionId);
+        return localSession != null && localSession.isValid();
 
     }
 
@@ -2460,6 +2395,8 @@ public class Request {
         if (isSecure()) {
             cookie.setSecure(true);
         }
+        
+        getSessionManager().configureSessionCookie(this, cookie);
     }
 
     /**
@@ -2572,13 +2509,6 @@ public class Request {
 
         this.requestedSessionURL = flag;
 
-    }
-    
-    /**
-     * Returns pseudorandom positive long value.
-     */
-    private static long generateRandomLong() {
-        return (RANDOM.nextLong() & 0x7FFFFFFFFFFFFFFFl);
     }
     
     private static class PathData {

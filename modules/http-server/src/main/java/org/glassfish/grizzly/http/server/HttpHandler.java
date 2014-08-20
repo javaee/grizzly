@@ -115,6 +115,7 @@ public abstract class HttpHandler {
 
     /**
      * Create <tt>HttpHandler</tt> with the specific name.
+     * @param name
      */
     public HttpHandler(String name) {
         this.name = name;
@@ -144,6 +145,7 @@ public abstract class HttpHandler {
     boolean doHandle(final Request request, final Response response) throws Exception {
         request.setRequestExecutorProvider(getRequestExecutorProvider());
         request.setSessionCookieName(getSessionCookieName());
+        request.setSessionManager(getSessionManager());
         response.setErrorPageGenerator(getErrorPageGenerator(request));
 
         if (request.requiresAcknowledgement()) {
@@ -316,8 +318,6 @@ public abstract class HttpHandler {
         this.allowEncodedSlash = allowEncodedSlash;
     }
 
-
-
     /**
      * Get the request URI encoding used by this <tt>HttpHandler</tt>.
      * @return the request URI encoding used by this <tt>HttpHandler</tt>.
@@ -371,6 +371,13 @@ public abstract class HttpHandler {
         return null;
     }
 
+    /**
+     * @return the {@link SessionManager} to be used. <tt>null</tt> value implies {@link DefaultSessionManager}
+     */
+    protected SessionManager getSessionManager() {
+        return null;
+    }
+    
     /**
      * The default implementation will acknowledge an <code>Expect: 100-Continue</code>
      * with a response line with the status 100 followed by the final response
