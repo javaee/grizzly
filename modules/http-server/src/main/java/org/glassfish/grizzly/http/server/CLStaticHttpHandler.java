@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.jar.JarEntry;
@@ -285,7 +286,12 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
             // if it's not a jar file - we don't know what to do with that
             // so not adding it to the file cache
             if ("jar".equals(url.getProtocol())) {
-                final File jarFile = getJarFile(url.getPath());
+                final File jarFile = getJarFile(
+                        // we need that because url.getPath() may have url encoded symbols,
+                        // which are getting decoded when calling uri.getPath()
+                        new URI(url.getPath()).getPath()
+                );
+                
                 addTimeStampEntryToFileCache(request, response, jarFile);
             }
             
@@ -337,16 +343,15 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
     }
     
     private File getJarFile(final String path) throws MalformedURLException, FileNotFoundException {
-        final int protocolIdx = path.indexOf(":");
         final int jarDelimIdx = path.indexOf("!/");
-        if (protocolIdx == -1 || jarDelimIdx == -1) {
-            throw new MalformedURLException("Either protocol or jar file delimeter were not found");
+        if (jarDelimIdx == -1) {
+            throw new MalformedURLException("The jar file delimeter were not found");
         }
         
-        final File file = new File(path.substring(protocolIdx + 1, jarDelimIdx));
+        final File file = new File(path.substring(0, jarDelimIdx));
         
         if (!file.exists() || !file.isFile()) {
-            throw new FileNotFoundException("Jar file was not found");
+            throw new FileNotFoundException("The jar file was not found");
         }
         
         return file;
