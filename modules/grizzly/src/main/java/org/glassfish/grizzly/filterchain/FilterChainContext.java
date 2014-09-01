@@ -73,7 +73,7 @@ import org.glassfish.grizzly.utils.Holder;
  * @author Alexey Stashok
  */
 @SuppressWarnings("deprecation")
-public final class FilterChainContext implements AttributeStorage {
+public class FilterChainContext implements AttributeStorage {
     private static final Logger logger = Grizzly.logger(FilterChainContext.class);
 
     public enum State {
