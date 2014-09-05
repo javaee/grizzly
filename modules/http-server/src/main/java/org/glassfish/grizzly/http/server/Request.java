@@ -1817,7 +1817,7 @@ public class Request {
                 X509Certificate certs[] = (X509Certificate[]) getAttribute(
                         Globals.CERTIFICATES_ATTR);
                 if (FORCE_CLIENT_AUTH_ON_GET_USER_PRINCIPAL &&
-                        (certs == null) || (certs.length < 1)) {
+                        ((certs == null) || (certs.length < 1))) {
                     // Force SSL re-handshake and request client auth
                     certs = (X509Certificate[]) getAttribute(
                             Globals.SSL_CERTIFICATE_ATTR);
