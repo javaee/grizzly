@@ -61,6 +61,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.SessionManager;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.server.util.ClassLoaderUtil;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
@@ -166,6 +167,9 @@ public class WebappContext implements ServletContext {
     protected final Map<String, FilterRegistration> unmodifiableFilterRegistrations =
             Collections.unmodifiableMap(filterRegistrations);
             
+
+    /* SessionManager that will be used for the ServletHandlers */
+    private SessionManager sessionManager = ServletSessionManager.instance();
 
     /* ServletHandlers backing the registrations */
     private Set<ServletHandler> servletHandlers;
@@ -1614,6 +1618,18 @@ public class WebappContext implements ServletContext {
     }
 
     /**
+     * Sets the {@link SessionManager} that should be used by this
+     * {@link WebappContext}. The default is an instance of
+     * {@link ServletSessionManager}
+     *
+     * @param sessionManager an implementation of SessionManager
+     */
+    @SuppressWarnings({"UnusedDeclaration"})
+    public void setSessionManager(SessionManager sessionManager) {
+        this.sessionManager = sessionManager;
+    }
+
+    /**
      *
      * @return
      */
@@ -1822,6 +1838,7 @@ public class WebappContext implements ServletContext {
                 servletHandler.setServletInstance(registration.servlet);
                 servletHandler.setServletClass(registration.servletClass);
                 servletHandler.setServletClassName(registration.className);
+                servletHandler.setSessionManager(sessionManager);
                 servletHandler.setContextPath(contextPath);
                 servletHandler.setFilterChainFactory(filterChainFactory);
                 servletHandler.setExpectationHandler(registration.expectationHandler);

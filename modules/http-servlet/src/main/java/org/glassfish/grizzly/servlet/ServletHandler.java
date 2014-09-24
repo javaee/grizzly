@@ -106,6 +106,10 @@ public class ServletHandler extends HttpHandler {
      */
     private ServletConfigImpl servletConfig;
     /**
+     * The {@link SessionManager}
+     */
+    private SessionManager sessionManager = ServletSessionManager.instance();
+    /**
      * Holder for our configured properties.
      */
     protected final Map<String, Object> properties = new HashMap<String, Object>();
@@ -390,6 +394,14 @@ public class ServletHandler extends HttpHandler {
     }
 
     /**
+     * Set the {@link SessionManager} instance used by this {@link ServletHandler}
+     * @param sessionManager an implementation of SessionManager.
+     */
+    protected void setSessionManager(SessionManager sessionManager) {
+        this.sessionManager = sessionManager;
+    }
+
+    /**
      *
      * Returns the portion of the request URI that indicates the context
      * of the request. The context path always comes first in a request
@@ -532,7 +544,7 @@ public class ServletHandler extends HttpHandler {
      */
     @Override
     protected SessionManager getSessionManager() {
-        return ServletSessionManager.instance();
+        return this.sessionManager;
     }
     
     /**
