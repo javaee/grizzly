@@ -201,7 +201,7 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
             return;
         }
         
-        while(size() <= maxQueueSize) {
+        while(size() < maxQueueSize) {
             WriteHandler writeHandler = pollWriteHandler();
             if (writeHandler == null) {
                 return;
