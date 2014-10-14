@@ -240,7 +240,7 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
         
         final int maxQueueSize = maxQueueSizeHolder.getMaxQueueSize();
         
-        while(spaceInBytes() <= maxQueueSize) {
+        while (spaceInBytes() < maxQueueSize) {
             WriteHandler writeHandler = pollWriteHandler();
             if (writeHandler == null) {
                 return;
