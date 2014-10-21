@@ -244,7 +244,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 queueRecord.setMessage(
                         cloneRecordIfNeeded(nioConnection, cloner, message));
 
-                if (isCurrent) { //current but not finished.
+                if (isCurrent) { //current but can't write because of maxReentrants limit
                     writeTaskQueue.setCurrentElement(queueRecord);
                     nioConnection.simulateIOEvent(IOEvent.WRITE);
                 } else {
