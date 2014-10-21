@@ -451,7 +451,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public void assertOpen() throws IOException {
         final CloseReason reason = getCloseReason();
         if (reason != null) {
-            throw reason.getCause();
+            throw new IOException("Connection is closed", reason.getCause());
         }
     }
 

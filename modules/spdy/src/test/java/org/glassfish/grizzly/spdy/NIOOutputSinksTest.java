@@ -694,8 +694,14 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                         out.write(c);
                         out.flush();
                         Thread.yield();
-                    } catch (CustomIOException e) {
-                        parseResult.result(Boolean.TRUE);
+                    } catch (IOException e) {
+                        if ((e instanceof CustomIOException) ||
+                                (e.getCause() instanceof CustomIOException)) {
+                            parseResult.result(Boolean.TRUE);
+                        } else {
+                            System.out.println("NOT CUSTOM");
+                            parseResult.failure(e);
+                        }
                         break;
                     } catch (Exception e) {
                         System.out.println("NOT CUSTOM");
