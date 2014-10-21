@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,24 +48,35 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public class CloseReason {
-    public static final IOException DEFAULT_CAUSE;
+    private static final IOException LOCALLY_CLOSED;
+    private static final IOException REMOTELY_CLOSED;
+    
+    public static final CloseReason LOCALLY_CLOSED_REASON;
+    public static final CloseReason REMOTELY_CLOSED_REASON;
     
     static {
-        DEFAULT_CAUSE = new IOException();
-        DEFAULT_CAUSE.setStackTrace(new StackTraceElement[0]);
+        LOCALLY_CLOSED = new IOException("Locally closed");
+        LOCALLY_CLOSED.setStackTrace(new StackTraceElement[0]);
+        
+        REMOTELY_CLOSED = new IOException("Remotely closed");
+        REMOTELY_CLOSED.setStackTrace(new StackTraceElement[0]);
+
+        LOCALLY_CLOSED_REASON =
+                new CloseReason(org.glassfish.grizzly.CloseType.LOCALLY, LOCALLY_CLOSED);
+        REMOTELY_CLOSED_REASON =
+                new CloseReason(org.glassfish.grizzly.CloseType.REMOTELY, REMOTELY_CLOSED);
     }
-    
-    public static final CloseReason LOCALLY_CLOSED_REASON =
-            new CloseReason(org.glassfish.grizzly.CloseType.LOCALLY, DEFAULT_CAUSE);
-    public static final CloseReason REMOTELY_CLOSED_REASON =
-            new CloseReason(org.glassfish.grizzly.CloseType.REMOTELY, DEFAULT_CAUSE);
     
     private final CloseType type;
     private final IOException cause;
 
     public CloseReason(final CloseType type, final IOException cause) {
         this.type = type;
-        this.cause = cause != null ? cause : DEFAULT_CAUSE;
+        this.cause = cause != null
+                ? cause
+                : (type == CloseType.LOCALLY
+                          ? LOCALLY_CLOSED
+                          : REMOTELY_CLOSED);
     }
 
     /**

@@ -418,7 +418,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public void assertOpen() throws IOException {
         final CloseReason reason = getCloseReason();
         if (reason != null) {
-            throw reason.getCause();
+            throw new IOException("Connection is closed", reason.getCause());
         }
     }
 
@@ -828,7 +828,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public void simulateIOEvent(final IOEvent ioEvent) throws IOException {
-        assertOpen();
+        if (!isOpen()) {
+            // don't simulate IOEvent for closed connection
+            return;
+        }
         
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         switch (ioEvent) {
