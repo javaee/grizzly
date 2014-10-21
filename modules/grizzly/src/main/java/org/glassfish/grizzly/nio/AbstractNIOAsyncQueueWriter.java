@@ -56,6 +56,7 @@ import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.PushBackHandler;
+import org.glassfish.grizzly.asyncqueue.RecordWriteResult;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 
@@ -73,8 +74,6 @@ public abstract class AbstractNIOAsyncQueueWriter
         implements AsyncQueueWriter<SocketAddress> {
 
     private final static Logger LOGGER = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
-
-    protected final static int EMPTY_RECORD_SPACE_VALUE = 1;
 
     protected final NIOTransport transport;
 
@@ -220,11 +219,8 @@ public abstract class AbstractNIOAsyncQueueWriter
         final TaskQueue<AsyncWriteQueueRecord> writeTaskQueue =
                 nioConnection.getAsyncWriteQueue();
 
-        final boolean isEmptyRecord = queueRecord.isEmptyRecord();
-        final int messageSize = message.remaining();
         // For empty buffer reserve 1 byte space
-        final int bytesToReserve = isEmptyRecord ?
-                 EMPTY_RECORD_SPACE_VALUE : messageSize;
+        final int bytesToReserve = (int) queueRecord.getBytesToReserve();
 
         final int pendingBytes = writeTaskQueue.reserveSpace(bytesToReserve);
         final boolean isCurrent = (pendingBytes == bytesToReserve);
@@ -232,8 +228,11 @@ public abstract class AbstractNIOAsyncQueueWriter
         final boolean isLogFine = LOGGER.isLoggable(Level.FINEST);
 
         if (isLogFine) {
-            doFineLog("AsyncQueueWriter.write connection={0} record={1} directWrite={2}",
-                    nioConnection, queueRecord, isCurrent);
+            doFineLog("AsyncQueueWriter.write connection={0}, record={1}, "
+                    + "directWrite={2}, size={3}, isUncountable={4}, "
+                    + "bytesToReserve={5}, pendingBytes={6}",
+                    nioConnection, queueRecord, isCurrent, queueRecord.remaining(),
+                    queueRecord.isUncountable(), bytesToReserve, pendingBytes);
         }
 
         final Reentrant reentrants = Reentrant.getWriteReentrant();
@@ -258,19 +257,24 @@ public abstract class AbstractNIOAsyncQueueWriter
             if (isCurrent && isAllowDirectWrite) {
 
                 // If we can write directly - do it w/o creating queue record (simple)
-                final int written = messageSize > 0 ?
-                        (int) write0(nioConnection, queueRecord) :
-                        0;
+                final RecordWriteResult writeResult = write0(nioConnection, queueRecord);
+                final int bytesToRelease = (int) writeResult.bytesToReleaseAfterLastWrite();
 
                 final boolean isFinished = queueRecord.isFinished();
+                
+                final int pendingBytesAfterRelease =
+                        writeTaskQueue.releaseSpaceAndNotify(bytesToRelease);
 
-                final int bytesToRelease = !isEmptyRecord ?
-                        written :
-                        (isFinished ? EMPTY_RECORD_SPACE_VALUE : 0);
+                final boolean isQueueEmpty = (pendingBytesAfterRelease == 0);
 
-                final boolean isQueueEmpty =
-                        (writeTaskQueue.releaseSpaceAndNotify(bytesToRelease) == 0);
-
+                if (isLogFine) {
+                    doFineLog("AsyncQueueWriter.write directWrite connection={0}, record={1}, "
+                            + "isFinished={2}, remaining={3}, isUncountable={4}, "
+                            + "bytesToRelease={5}, pendingBytesAfterRelease={6}",
+                            nioConnection, queueRecord, isFinished, queueRecord.remaining(),
+                            queueRecord.isUncountable(), bytesToRelease, pendingBytesAfterRelease);
+                }
+                
                 if (isFinished) {
                     queueRecord.notifyCompleteAndRecycle();
                     if (!isQueueEmpty) {
@@ -282,6 +286,13 @@ public abstract class AbstractNIOAsyncQueueWriter
 
             queueRecord.setMessage(
                     cloneRecordIfNeeded(nioConnection, cloner, message));
+
+            if (isLogFine) {
+                doFineLog("AsyncQueueWriter.write queuing connection={0}, record={1}, "
+                        + "size={2}, isUncountable={3}",
+                        nioConnection, queueRecord, queueRecord.remaining(),
+                        queueRecord.isUncountable());
+            }
 
             if (isCurrent) { //current but not finished.
                 writeTaskQueue.setCurrentElement(queueRecord);
@@ -325,22 +336,25 @@ public abstract class AbstractNIOAsyncQueueWriter
         try {
             while ((queueRecord = aggregate(writeTaskQueue)) != null) {
                 if (isLogFine) {
-                    doFineLog("AsyncQueueWriter.processAsync doWrite"
+                    doFineLog("AsyncQueueWriter.processAsync beforeWrite "
                             + "connection={0} record={1}",
                             nioConnection, queueRecord);
                 }                 
 
-                final int written = queueRecord.remaining() > 0
-                        ? (int) write0(nioConnection, queueRecord)
-                        : 0;
+                final RecordWriteResult writeResult = write0(nioConnection, queueRecord);
+                final int bytesToRelease = (int) writeResult.bytesToReleaseAfterLastWrite();
                 
                 done = queueRecord.isFinished();
                 
-                final int bytesToRelease = !queueRecord.isEmptyRecord()
-                        ? written
-                        : (done ? EMPTY_RECORD_SPACE_VALUE : 0);
-
                 bytesReleased += bytesToRelease;
+
+                if (isLogFine) {
+                    doFineLog("AsyncQueueWriter.processAsync written "
+                            + "connection={0}, written={1}, done={2}, "
+                            + "bytesToRelease={3}, bytesReleased={4}",
+                            nioConnection, writeResult.lastWrittenBytes(), done,
+                            bytesToRelease, bytesReleased);
+                }                 
 
                 if (done) {
                     finishQueueRecord(nioConnection, queueRecord);
@@ -370,12 +384,24 @@ public abstract class AbstractNIOAsyncQueueWriter
                 // or stuck, when other thread tried to add data to the queue.
                 if (done && !context.isManualIOEventControl()
                         && writeTaskQueue.spaceInBytes() - bytesReleased <= 0) {
-                        context.setManualIOEventControl();
+                    if (isLogFine) {
+                        doFineLog("AsyncQueueWriter.processAsync setManualIOEventControl "
+                                + "connection={0}", nioConnection);
+                    }
+                    
+                    context.setManualIOEventControl();
                 }
                 
                 isComplete = (writeTaskQueue.releaseSpace(bytesReleased) == 0);
             }
 
+            if (isLogFine) {
+                doFineLog("AsyncQueueWriter.processAsync exit "
+                        + "connection={0}, done={1}, isComplete={2}, "
+                        + "bytesReleased={3}, queueSize={4}",
+                        nioConnection, done, isComplete, bytesReleased, writeTaskQueue.size());
+            }
+            
             final AsyncResult result = !done ? AsyncResult.INCOMPLETE :
                     (!isComplete ? AsyncResult.EXPECTING_MORE : AsyncResult.COMPLETE);
 
@@ -418,8 +444,8 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
         
         if (isLogFine) {
-            doFineLog("AsyncQueueWriter.processAsync nextRecord "
-                    + "connection={0} nextRecord={1}",
+            doFineLog("AsyncQueueWriter.processAsync finishQueueRecord "
+                    + "connection={0} queueRecord={1}",
                     nioConnection, queueRecord);
         }
     }
@@ -431,8 +457,8 @@ public abstract class AbstractNIOAsyncQueueWriter
         
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST,
-                    "AsyncQueueWriter.write clone. connection={0} cloner={1}",
-                    new Object[] {connection, cloner});
+                    "AsyncQueueWriter.write clone. connection={0} cloner={1} size={2}",
+                    new Object[] {connection, cloner, message.remaining()});
         }
         
         return cloner == null ? message : cloner.clone(connection, message);
@@ -443,9 +469,9 @@ public abstract class AbstractNIOAsyncQueueWriter
             final CompletionHandler<WriteResult<WritableMessage, SocketAddress>> completionHandler,
             final SocketAddress dstAddress,
             final PushBackHandler pushBackHandler,
-            final boolean isEmptyRecord) {
+            final boolean isUncountable) {
         return AsyncWriteQueueRecord.create(connection, message,
-                completionHandler, dstAddress, pushBackHandler, isEmptyRecord);
+                completionHandler, dstAddress, pushBackHandler, isUncountable);
     }
     
     /**
@@ -490,8 +516,8 @@ public abstract class AbstractNIOAsyncQueueWriter
         connection.closeSilently();
     }
     
-    protected abstract long write0(final NIOConnection connection,
-            final AsyncWriteQueueRecord queueRecord)
+    protected abstract RecordWriteResult write0(NIOConnection connection,
+            AsyncWriteQueueRecord queueRecord)
             throws IOException;
 
     protected abstract void onReadyToWrite(NIOConnection connection)
@@ -500,7 +526,8 @@ public abstract class AbstractNIOAsyncQueueWriter
     /**
      * Aggregates records in a queue to be written as one chunk.
      */
-    protected AsyncWriteQueueRecord aggregate(TaskQueue<AsyncWriteQueueRecord> connectionQueue) {
+    protected AsyncWriteQueueRecord aggregate(
+            final TaskQueue<AsyncWriteQueueRecord> connectionQueue) {
         return connectionQueue.poll();
     }
 }

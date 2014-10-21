@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,10 +47,15 @@ import org.glassfish.grizzly.utils.Holder;
 /**
  * Write result associated with a {@link AsyncWriteQueueRecord}.
  *
+ * @param <K>
+ * @param <L>
+ * 
  * @author Alexey Stashok
  */
-final class RecordWriteResult<K, L> extends WriteResult<K, L> {
-
+public final class RecordWriteResult<K, L> extends WriteResult<K, L> {
+    private long lastWrittenBytes;
+    private long bytesToReleaseAfterLastWrite;
+    
     /**
      *  Settable destination address
      */
@@ -66,12 +71,31 @@ final class RecordWriteResult<K, L> extends WriteResult<K, L> {
     protected Holder<L> createAddrHolder(final L dstAddress) {
         return dstAddressHolder.set(dstAddress);
     }
-    
+
+    public long lastWrittenBytes() {
+        return lastWrittenBytes;
+    }
+
+    public long bytesToReleaseAfterLastWrite() {
+        return bytesToReleaseAfterLastWrite;
+    }
+
+    public RecordWriteResult<K, L> lastWriteResult(
+            final long lastWrittenBytes,
+            final long bytesToReleaseAfterLastWrite) {
+        this.lastWrittenBytes = lastWrittenBytes;
+        this.bytesToReleaseAfterLastWrite = bytesToReleaseAfterLastWrite;
+        
+        return this;
+    }
     
     @Override
     public void recycle() {
-        reset();
+        lastWrittenBytes = 0;
+        bytesToReleaseAfterLastWrite = 0;
         dstAddressHolder.obj = null;
+        
+        reset();
     }
     
     private static class SettableHolder<L> extends Holder<L> {

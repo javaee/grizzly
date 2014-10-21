@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.nio.NIOTransport;
@@ -48,6 +47,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
+import org.glassfish.grizzly.asyncqueue.RecordWriteResult;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import org.glassfish.grizzly.nio.NIOConnection;
 
@@ -65,13 +65,26 @@ public final class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
     @Override
     @SuppressWarnings("unchecked")
-    protected long write0(final NIOConnection connection,
+    protected RecordWriteResult write0(final NIOConnection connection,
             final AsyncWriteQueueRecord queueRecord) throws IOException {
+        
+        final RecordWriteResult<WritableMessage, SocketAddress> writeResult =
+                queueRecord.getCurrentResult();
+        
+        if (queueRecord.remaining() == 0) {
+            return writeResult.lastWriteResult(0,
+                    queueRecord.isUncountable()
+                            ? AsyncWriteQueueRecord.UNCOUNTABLE_RECORD_SPACE_VALUE
+                            : 0);
+            
+        }
+        
         final WritableMessage outputMessage = queueRecord.getMessage();
         final SocketAddress dstAddress = (SocketAddress) queueRecord.getDstAddress();
-        final WriteResult<WritableMessage, SocketAddress> currentResult = queueRecord.getCurrentResult();
-        return ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,
-                dstAddress, outputMessage, currentResult);
+        final long written = ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,
+                dstAddress, outputMessage, writeResult);
+        
+        return writeResult.lastWriteResult(written, written);
     }
 
     @Override
