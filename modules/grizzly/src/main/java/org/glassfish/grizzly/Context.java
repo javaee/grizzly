@@ -263,7 +263,7 @@ public class Context implements AttributeStorage, Cacheable {
         return lifeCycleListeners.remove(listener);
     }
     
-    public void removeAllLifeCycleListener() {
+    public void removeAllLifeCycleListeners() {
         lifeCycleListeners.clear();
     }
 
