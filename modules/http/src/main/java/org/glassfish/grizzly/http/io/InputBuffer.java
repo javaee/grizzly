@@ -1315,7 +1315,12 @@ public class InputBuffer {
 
 
     protected void updateInputContentBuffer(final Buffer buffer)  {
-
+        if (!buffer.hasRemaining()) {
+            // do not append the empty buffer
+            buffer.tryDispose();
+            return;
+        }
+        
         buffer.allowBufferDispose(true);
         
         if (inputContentBuffer == null) {
