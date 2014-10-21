@@ -48,7 +48,9 @@ import org.glassfish.grizzly.utils.DebugPoint;
  * 
  * @author Alexey Stashok
  */
-public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
+public class AsyncWriteQueueRecord extends AsyncQueueRecord<RecordWriteResult> {
+    public final static int UNCOUNTABLE_RECORD_SPACE_VALUE = 1;
+
     private static final ThreadCache.CachedTypeIndex<AsyncWriteQueueRecord> CACHE_IDX =
             ThreadCache.obtainIndex(AsyncWriteQueueRecord.class, Writer.Reentrant.getMaxReentrants());
 
@@ -58,7 +60,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final LifeCycleHandler lifeCycleHandler,
-            final boolean isEmptyRecord) {
+            final boolean isUncountable) {
 
         final AsyncWriteQueueRecord asyncWriteQueueRecord =
                 ThreadCache.takeFromCache(CACHE_IDX);
@@ -67,17 +69,17 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             asyncWriteQueueRecord.isRecycled = false;
             asyncWriteQueueRecord.isStarted = false;
             asyncWriteQueueRecord.set(connection, message,
-                    completionHandler, dstAddress, lifeCycleHandler, isEmptyRecord);
+                    completionHandler, dstAddress, lifeCycleHandler, isUncountable);
             
             return asyncWriteQueueRecord;
         }
 
         return new AsyncWriteQueueRecord(connection, message,
-                completionHandler, dstAddress, lifeCycleHandler, isEmptyRecord);
+                completionHandler, dstAddress, lifeCycleHandler, isUncountable);
     }
     
     private long initialMessageSize;
-    private boolean isEmptyRecord;
+    private boolean isUncountable;
     private Object dstAddress;
     private LifeCycleHandler lifeCycleHandler;
     private boolean isStarted;
@@ -89,10 +91,10 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final LifeCycleHandler lifeCycleHandler,
-            final boolean isEmptyRecord) {
+            final boolean isUncountable) {
 
         set(connection, message, completionHandler, dstAddress,
-                lifeCycleHandler, isEmptyRecord);
+                lifeCycleHandler, isUncountable);
     }
 
     @SuppressWarnings("unchecked")
@@ -100,11 +102,11 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final LifeCycleHandler lifeCycleHandler,
-            final boolean isEmptyRecord) {
+            final boolean isUncountable) {
         super.set(connection, message, completionHandler);
         
         this.dstAddress = dstAddress;
-        this.isEmptyRecord = isEmptyRecord;
+        this.isUncountable = isUncountable;
         this.initialMessageSize = message != null ? message.remaining() : 0;
         this.lifeCycleHandler = lifeCycleHandler;
         
@@ -120,14 +122,23 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         return (WritableMessage) message;
     }
 
-    public boolean isEmptyRecord() {
-        return isEmptyRecord;
+    /**
+     * @return <tt>true</tt> if record reserves in async write queue space, that
+     * is not related to message size {@link #remaining()}, but is constant
+     * {@link AsyncWriteQueueRecord#UNCOUNTABLE_RECORD_SPACE_VALUE}.
+     */
+    public boolean isUncountable() {
+        return isUncountable;
     }
 
-    public void setEmptyRecord(final boolean isEmptyRecord) {
-        this.isEmptyRecord = isEmptyRecord;
+    public void setUncountable(final boolean isUncountable) {
+        this.isUncountable = isUncountable;
     }
 
+    public long getBytesToReserve() {
+        return isUncountable ? UNCOUNTABLE_RECORD_SPACE_VALUE : initialMessageSize;
+    }
+    
     public long getInitialMessageSize() {
         return initialMessageSize;
     }
@@ -141,7 +152,7 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
     
     @Override
-    public WriteResult getCurrentResult() {
+    public RecordWriteResult getCurrentResult() {
         return writeResult;
     }
     
