@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,9 +46,12 @@ import org.glassfish.grizzly.ReadResult;
 /**
  * Read result associated with a {@link AsyncWriteQueueRecord}.
  *
+ * @param <K>
+ * @param <L>
+ * 
  * @author Alexey Stashok
  */
-final class RecordReadResult<K, L> extends ReadResult<K, L> {
+public final class RecordReadResult<K, L> extends ReadResult<K, L> {
 
     @Override
     protected void set(final Connection<L> connection, final K message,

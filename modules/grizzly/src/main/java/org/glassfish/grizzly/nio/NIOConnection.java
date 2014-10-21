@@ -828,6 +828,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public void simulateIOEvent(final IOEvent ioEvent) throws IOException {
+        assertOpen();
+        
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         switch (ioEvent) {
             case WRITE:
