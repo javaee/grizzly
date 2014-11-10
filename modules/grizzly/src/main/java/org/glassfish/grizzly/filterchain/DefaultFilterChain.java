@@ -151,7 +151,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         // keeping the current Context
                         return ProcessorResult.createReregister(ctx.internalContext);
                 }
-            } while (prepareUnparsedMsg(ctx, filtersState));
+            } while (prepareRemainder(ctx, filtersState));
         } catch (Throwable e) {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_FILTERCHAIN_EXCEPTION(), e);
@@ -295,7 +295,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * Locates a message remainder in the {@link FilterChain}, associated with the
      * {@link Connection} and prepares the {@link Context} for remainder processing.
      */
-    private static boolean prepareUnparsedMsg(final FilterChainContext ctx,
+    private static boolean prepareRemainder(final FilterChainContext ctx,
             final FiltersState filtersState) {
 
         final int idx = filtersState.peekUnparsedIdx(
@@ -343,7 +343,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final FiltersState filtersState = obtainFiltersState(connection);
 
             do {
-                if (!prepareUnparsedMsg(context, filtersState)) {
+                if (!prepareRemainder(context, filtersState)) {
                     context.setFilterIdx(0);
                     context.setMessage(null);
                 }
