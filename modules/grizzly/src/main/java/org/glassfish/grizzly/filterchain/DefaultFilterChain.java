@@ -41,7 +41,6 @@ package org.glassfish.grizzly.filterchain;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -139,7 +138,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         ctx = execution.getContext();
                         
                         final int idx = filtersState.peekUnparsedIdx(
-                                ctx.getOperation());
+                                ctx.getOperation(), ctx.getStartIdx(), ctx.getEndIdx());
                         if (idx != -1) {
                             // if there is a remainder associated with the connection
                             // rerun the filter chain with the new context right away
@@ -152,7 +151,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         // keeping the current Context
                         return ProcessorResult.createReregister(ctx.internalContext);
                 }
-            } while (prepareRemainder(ctx, filtersState));
+            } while (prepareUnparsedMsg(ctx, filtersState));
         } catch (Throwable e) {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_FILTERCHAIN_EXCEPTION(), e);
@@ -296,10 +295,11 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * Locates a message remainder in the {@link FilterChain}, associated with the
      * {@link Connection} and prepares the {@link Context} for remainder processing.
      */
-    private static boolean prepareRemainder(final FilterChainContext ctx,
+    private static boolean prepareUnparsedMsg(final FilterChainContext ctx,
             final FiltersState filtersState) {
 
-        final int idx = filtersState.peekUnparsedIdx(ctx.getOperation());
+        final int idx = filtersState.peekUnparsedIdx(
+                ctx.getOperation(), ctx.getStartIdx(), ctx.getEndIdx());
         
         if (idx != -1) {
             ctx.setFilterIdx(idx);
@@ -343,7 +343,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final FiltersState filtersState = obtainFiltersState(connection);
 
             do {
-                if (!prepareRemainder(context, filtersState)) {
+                if (!prepareUnparsedMsg(context, filtersState)) {
                     context.setFilterIdx(0);
                     context.setMessage(null);
                 }
@@ -571,11 +571,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     private static final class FiltersState {
         private static final int OPERATIONS_NUM = Operation.values().length;
 
-        private final int[][] unparsedIdxStack;
         private final FilterStateElement[][] state;
 
         public FiltersState(int filtersNum) {
-            unparsedIdxStack = new int[OPERATIONS_NUM][4]; // zero idx reserved as an array len
             state = new FilterStateElement[OPERATIONS_NUM][filtersNum];
         }
 
@@ -584,10 +582,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final int opIdx = operation.ordinal();
             final FilterStateElement elem = state[opIdx][filterIndex];
             if (elem != null && elem.isValid) {
-                if (!elem.isIncomplete) {
-                    popUnparsedIdx(opIdx);
-                }
-                
                 return elem;
             }
             
@@ -606,48 +600,30 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 state[opIdx][filterIndex] = FilterStateElement.create(isIncomplete,
                         messageToStore, appender);
             }
-            
-            if (!isIncomplete) {
-                pushUnparsedIdx(opIdx, filterIndex);
-            }
         }
 
-        private void pushUnparsedIdx(final int opIdx,
-                final int filterIdx) {
-            int[] opStack = unparsedIdxStack[opIdx];
-            final int len = opStack[0];
+        public int peekUnparsedIdx(final Operation operation,
+                final int start, final int end) {
             
-            if (len == opStack.length - 1) {
-                opStack = Arrays.copyOf(opStack, len * 3 / 2 + 1);
-                unparsedIdxStack[opIdx] = opStack;
-            }
-            
-            opStack[len + 1] = filterIdx;
-            opStack[0]++;
-        }
-        
-        private int popUnparsedIdx(final int opIdx) {
-            final int[] opStack = unparsedIdxStack[opIdx];
-            final int len = opStack[0];
-            
-            if (len == 0) {
+            if (start == end) {
                 return -1;
             }
             
-            opStack[0]--;
-            return opStack[len];
-        }
-        
-        public int peekUnparsedIdx(final Operation operation) {
             final int opIdx = operation.ordinal();
-            final int[] opStack = unparsedIdxStack[opIdx];
-            final int len = opStack[0];
+            final int diff = end > start ? -1 : 1;
             
-            if (len == 0) {
-                return -1;
-            }
+            int i = end;
             
-            return opStack[len];
+            do {
+                i += diff;
+                final FilterStateElement elem = state[opIdx][i];
+                if (elem != null && elem.isValid && !elem.isIncomplete) {
+                    return i;
+                }
+                
+            } while (i != start);
+
+            return -1;
         }        
 
         private Object append(final Operation operation, final int filterIdx,

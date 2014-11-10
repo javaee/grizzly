@@ -669,6 +669,78 @@ public class Buffers {
         
         return bytesWritten;
     }
+
+    /**
+     * Returns the {@link Buffer}'s {@link String} representation in a form:
+     * {@link Buffer#toString()} + "[" + <head-chunk> + "..." + <tail-chunk> + "]"
+     * For example:
+     * <pre>HeapBuffer (1781633478) [pos=0 lim=285 cap=285][abcde...xyz]</pre>
+     * 
+     * @param buffer the {@link Buffer}, could be <tt>null</tt>
+     * @param headBytesCount the number of heading bytes to include (larger or equal to 0)
+     * @param tailBytesCount the number of tailing bytes to include (larger or equal to 0)
+     * @return the {@link Buffer}'s {@link String} representation, or <tt>null</tt>,
+     *      if the {@link Buffer} is <tt>null</tt>
+     */
+    public String toStringContent(final Buffer buffer,
+            final int headBytesCount, final int tailBytesCount) {
+        if (buffer == null) {
+            return null;
+        }
+
+        return toStringContent(buffer, headBytesCount, tailBytesCount,
+                Charset.defaultCharset());
+    }
+    
+    /**
+     * Returns the {@link Buffer}'s {@link String} representation in a form:
+     * {@link Buffer#toString()} + "[" + <head-chunk> + "..." + <tail-chunk> + "]"
+     * For example:
+     * <pre>HeapBuffer (1781633478) [pos=0 lim=285 cap=285][abcde...xyz]</pre>
+     * 
+     * @param buffer the {@link Buffer}, could be <tt>null</tt>
+     * @param headBytesCount the number of heading bytes to include (larger or equal to 0)
+     * @param tailBytesCount the number of tailing bytes to include (larger or equal to 0)
+     * @param charset {@link Charset}, if null the {@link Charset#defaultCharset()} will
+     *          be used
+     * @return the {@link Buffer}'s {@link String} representation, or <tt>null</tt>,
+     *      if the {@link Buffer} is <tt>null</tt>
+     */
+    public String toStringContent(final Buffer buffer,
+            final int headBytesCount, final int tailBytesCount,
+            final Charset charset) {
+        if (buffer == null) {
+            return null;
+        }
+        
+        if (headBytesCount < 0 || tailBytesCount < 0) {
+            throw new IllegalArgumentException("count can't be negative");
+        }
+        
+        final String toString = buffer.toString();
+        final StringBuilder sb = new StringBuilder(
+                toString.length() + headBytesCount + tailBytesCount + 5);
+        
+        sb.append(toString);
+        
+        if (buffer.remaining() <= headBytesCount + tailBytesCount) {
+            sb.append('[').append(buffer.toStringContent(charset)).append(']');
+        } else {
+            sb.append('[');
+            if (headBytesCount > 0) {
+                sb.append(buffer.toStringContent(charset,
+                        buffer.position(), buffer.position() + headBytesCount));
+            }
+            sb.append("...");
+            if (tailBytesCount > 0) {
+                sb.append(buffer.toStringContent(charset,
+                        buffer.limit() - tailBytesCount, buffer.limit()));
+            }
+            sb.append(']');
+        }
+        
+        return sb.toString();
+    }
     
     private static MemoryManager getDefaultMemoryManager() {
         return MemoryManager.DEFAULT_MEMORY_MANAGER;
