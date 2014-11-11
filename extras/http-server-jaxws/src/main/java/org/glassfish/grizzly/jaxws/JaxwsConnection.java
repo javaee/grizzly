@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -212,11 +212,6 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
         buf.append(':');
         buf.append(request.getServerPort());
         buf.append(request.getContextPath());
-        
-        final String httpHandlerPath = request.getHttpHandlerPath();
-        if (httpHandlerPath != null) {
-            buf.append(httpHandlerPath);
-        }
 
         return buf.toString();
     }
