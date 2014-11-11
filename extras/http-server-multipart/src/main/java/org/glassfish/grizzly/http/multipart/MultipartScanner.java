@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -82,6 +82,10 @@ public class MultipartScanner {
             final CompletionHandler<Request> completionHandler) {
         try {
             final String contentType = request.getContentType();
+            if (contentType == null) {
+                throw new IllegalStateException("ContentType not found");
+            }
+            
             final String[] contentTypeParams = contentType.split(";");
             final String[] contentSubType = contentTypeParams[0].split("/");
 

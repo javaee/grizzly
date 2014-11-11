@@ -384,6 +384,10 @@ public class MultipartReadHandler implements ReadHandler {
                     position + contentLength);
         }
 
+        if (name == null) {
+            return;
+        }
+        
         multipartEntry.setHeader(name, value);
     }
 
