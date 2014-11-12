@@ -43,6 +43,7 @@ package org.glassfish.grizzly.nio.transport;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
@@ -87,6 +88,13 @@ public final class TCPNIOTransport extends NIOTransport implements
         TemporarySelectorsEnabledTransport {
 
     static final Logger LOGGER = Grizzly.logger(TCPNIOTransport.class);
+    
+    /**
+     * Default {@link ChannelConfigurator} used to configure client and server side
+     * channels.
+     */
+    public static final ChannelConfigurator DEFAULT_CHANNEL_CONFIGURATOR =
+            new DefaultChannelConfigurator();
 
     public static final int MAX_RECEIVE_BUFFER_SIZE =
             Integer.getInteger(TCPNIOTransport.class.getName() +
@@ -417,47 +425,10 @@ public final class TCPNIOTransport extends NIOTransport implements
         return connection;
     }
 
-    /**
-     * Configuring <code>SocketChannel</code> according the transport settings
-     * @param channel <code>SocketChannel</code> to configure
-     * @throws java.io.IOException
-     */
-    void configureChannel(final SocketChannel channel) throws IOException {
-        final Socket socket = channel.socket();
-
-        channel.configureBlocking(false);
-
-        try {
-            if (linger >= 0) {
-                socket.setSoLinger(true, linger);
-            }
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_LINGER_EXCEPTION(linger), e);
-        }
-
-        try {
-            socket.setKeepAlive(isKeepAlive());
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_KEEPALIVE_EXCEPTION(isKeepAlive()), e);
-        }
-        
-        try {
-            socket.setTcpNoDelay(isTcpNoDelay());
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_TCPNODELAY_EXCEPTION(isTcpNoDelay()), e);
-        }
-        
-        try {
-            socket.setReuseAddress(isReuseAddress());
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(isReuseAddress()), e);
-        }
-
-        try {
-            socket.setSoTimeout(getClientSocketSoTimeout());
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(getClientSocketSoTimeout()), e);
-        }    
+    @Override
+    public ChannelConfigurator getChannelConfigurator() {
+        final ChannelConfigurator cc = channelConfigurator;
+        return cc != null ? cc : DEFAULT_CHANNEL_CONFIGURATOR;
     }
 
     @Override
@@ -771,5 +742,94 @@ public final class TCPNIOTransport extends NIOTransport implements
             return TCPNIOTransport.this.getProcessorSelector();
         }
     }
+    
+    private static class DefaultChannelConfigurator implements ChannelConfigurator {
+        @Override
+        public void preConfigure(NIOTransport transport,
+                SelectableChannel channel) throws IOException {
+            final TCPNIOTransport tcpNioTransport = (TCPNIOTransport) transport;
+            if (channel instanceof SocketChannel) {
+                final SocketChannel sc = (SocketChannel) channel;
+                final Socket socket = sc.socket();
 
+                sc.configureBlocking(false);
+                
+                final boolean reuseAddress = tcpNioTransport.isReuseAddress();
+                try {
+                    socket.setReuseAddress(reuseAddress);
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
+                }
+            } else { // ServerSocketChannel
+                final ServerSocketChannel serverSocketChannel
+                        = (ServerSocketChannel) channel;
+                final ServerSocket serverSocket = serverSocketChannel.socket();
+
+                serverSocketChannel.configureBlocking(false);
+
+                try {
+                    serverSocket.setReuseAddress(tcpNioTransport.isReuseAddress());
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(tcpNioTransport.isReuseAddress()), e);
+                }
+            }
+        }
+
+        @Override
+        public void postConfigure(final NIOTransport transport,
+                final SelectableChannel channel) throws IOException {
+            
+            final TCPNIOTransport tcpNioTransport = (TCPNIOTransport) transport;
+            if (channel instanceof SocketChannel) {
+                final SocketChannel sc = (SocketChannel) channel;
+                final Socket socket = sc.socket();
+
+                final int linger = tcpNioTransport.getLinger();
+                try {
+                    if (linger >= 0) {
+                        socket.setSoLinger(true, linger);
+                    }
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_SOCKET_LINGER_EXCEPTION(linger), e);
+                }
+
+                final boolean keepAlive = tcpNioTransport.isKeepAlive();
+                try {
+                    socket.setKeepAlive(keepAlive);
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_SOCKET_KEEPALIVE_EXCEPTION(keepAlive), e);
+                }
+
+                final boolean tcpNoDelay = tcpNioTransport.isTcpNoDelay();
+                try {
+                    socket.setTcpNoDelay(tcpNoDelay);
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_SOCKET_TCPNODELAY_EXCEPTION(tcpNoDelay), e);
+                }
+
+                final int clientSocketSoTimeout = tcpNioTransport.getClientSocketSoTimeout();
+                try {
+                    socket.setSoTimeout(clientSocketSoTimeout);
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(tcpNioTransport.getClientSocketSoTimeout()), e);
+                }
+            } else { //ServerSocketChannel
+                final ServerSocketChannel serverSocketChannel =
+                        (ServerSocketChannel) channel;
+                final ServerSocket serverSocket = serverSocketChannel.socket();
+
+                try {
+                    serverSocket.setSoTimeout(tcpNioTransport.getServerSocketSoTimeout());
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING,
+                            LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(tcpNioTransport.getServerSocketSoTimeout()), e);
+                }
+            }
+        }
+    }
 }

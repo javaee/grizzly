@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -114,22 +114,30 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         UDPNIOConnection newConnection = null;
 
         try {
+            
             final DatagramChannel datagramChannel =
                     nioTransport.getSelectorProvider().openDatagramChannel();
-            final DatagramSocket socket = datagramChannel.socket();
 
+            nioTransport.getChannelConfigurator().preConfigure(
+                    nioTransport, datagramChannel);
+            
+            final DatagramSocket socket = datagramChannel.socket();
             newConnection = nioTransport.obtainNIOConnection(datagramChannel);
 
-            socket.setReuseAddress(isReuseAddress);
-
+            final boolean reuseAddr = isReuseAddress;
+            if (reuseAddr != nioTransport.isReuseAddress()) {
+                socket.setReuseAddress(reuseAddr);
+            }
+            
             socket.bind(localAddress);
-
-            datagramChannel.configureBlocking(false);
 
             if (remoteAddress != null) {
                 datagramChannel.connect(remoteAddress);
             }
 
+            nioTransport.getChannelConfigurator().postConfigure(
+                    nioTransport, datagramChannel);
+            
             preConfigure(newConnection);
 
             newConnection.setProcessor(getProcessor());

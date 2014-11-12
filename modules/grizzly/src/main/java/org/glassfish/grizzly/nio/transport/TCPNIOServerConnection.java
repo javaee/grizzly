@@ -172,7 +172,10 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     private void configureAcceptedChannel(final SocketChannel acceptedChannel)
             throws IOException {
         final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
-        tcpNIOTransport.configureChannel(acceptedChannel);
+        tcpNIOTransport.getChannelConfigurator()
+                .preConfigure(transport, acceptedChannel);
+        tcpNIOTransport.getChannelConfigurator()
+                .postConfigure(transport, acceptedChannel);
     }
 
     private TCPNIOConnection createClientConnection(final SocketChannel acceptedChannel) {

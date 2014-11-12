@@ -40,6 +40,7 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -72,6 +73,12 @@ import org.glassfish.grizzly.utils.Futures;
  */
 public final class UDPNIOTransport extends NIOTransport
         implements FilterChainEnabledTransport {
+    /**
+     * Default {@link ChannelConfigurator} used to configure client and server side
+     * channels.
+     */
+    public static final ChannelConfigurator DEFAULT_CHANNEL_CONFIGURATOR =
+            new DefaultChannelConfigurator();
 
     static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
     private static final String DEFAULT_TRANSPORT_NAME = "UDPNIOTransport";
@@ -621,6 +628,12 @@ public final class UDPNIOTransport extends NIOTransport
         return written;
     }
 
+    @Override
+    public ChannelConfigurator getChannelConfigurator() {
+        final ChannelConfigurator cc = channelConfigurator;
+        return cc != null ? cc : DEFAULT_CHANNEL_CONFIGURATOR;
+    }
+    
     UDPNIOConnection obtainNIOConnection(DatagramChannel channel) {
         UDPNIOConnection connection = new UDPNIOConnection(this, channel);
         configureNIOConnection(connection);
@@ -682,6 +695,48 @@ public final class UDPNIOTransport extends NIOTransport
         @Override
         public ProcessorSelector getProcessorSelector() {
             return UDPNIOTransport.this.getProcessorSelector();
+        }
+    }
+    
+    private static class DefaultChannelConfigurator implements ChannelConfigurator {
+        @Override
+        public void preConfigure(NIOTransport transport,
+                SelectableChannel channel) throws IOException {
+            
+            final UDPNIOTransport udpNioTransport = (UDPNIOTransport) transport;
+            final DatagramChannel datagramChannel = (DatagramChannel) channel;
+            final DatagramSocket datagramSocket = datagramChannel.socket();
+            
+            datagramChannel.configureBlocking(false);
+
+            try {
+                datagramSocket.setReuseAddress(udpNioTransport.isReuseAddress());
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(udpNioTransport.isReuseAddress()), e);
+            }
+        }
+
+        @Override
+        public void postConfigure(final NIOTransport transport,
+                final SelectableChannel channel) throws IOException {
+
+            final UDPNIOTransport udpNioTransport = (UDPNIOTransport) transport;
+            final DatagramChannel datagramChannel = (DatagramChannel) channel;
+            final DatagramSocket datagramSocket = datagramChannel.socket();
+
+            final boolean isConnected = datagramChannel.isConnected();
+            
+            final int soTimeout = isConnected
+                    ? udpNioTransport.getClientSocketSoTimeout()
+                    : udpNioTransport.getServerSocketSoTimeout();
+            
+            try {
+                datagramSocket.setSoTimeout(soTimeout);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(soTimeout), e);
+            }
         }
     }
 }
