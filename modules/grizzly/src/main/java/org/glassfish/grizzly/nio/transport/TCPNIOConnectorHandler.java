@@ -44,7 +44,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -109,13 +108,19 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             final TCPNIOConnection finalConnection = newConnection;
 
             final Socket socket = socketChannel.socket();
-            socket.setReuseAddress(isReuseAddress);
+            
+            nioTransport.getChannelConfigurator().preConfigure(
+                    nioTransport, socketChannel);
+            
+            final boolean reuseAddr = isReuseAddress;
+            if (reuseAddr != nioTransport.isReuseAddress()) {
+                socket.setReuseAddress(reuseAddr);
+            }
 
             if (localAddress != null) {
                 socket.bind(localAddress);
             }
 
-            socketChannel.configureBlocking(false);
 
             preConfigure(finalConnection);
 
@@ -199,7 +204,8 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             // Deregister OP_CONNECT interest
             connection.deregisterKeyInterest(SelectionKey.OP_CONNECT);
 
-            tcpTransport.configureChannel(channel);
+            // we can call configure for ready channel
+            tcpTransport.getChannelConfigurator().postConfigure(tcpTransport, channel);
         
             if (connection.notifyReady()) {
                 tcpTransport.getIOStrategy().executeIOEvent(

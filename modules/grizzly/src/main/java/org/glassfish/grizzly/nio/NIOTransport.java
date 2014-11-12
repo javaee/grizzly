@@ -42,6 +42,7 @@ package org.glassfish.grizzly.nio;
 
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.HashSet;
@@ -120,6 +121,8 @@ public abstract class NIOTransport extends AbstractTransport
      * Default channel connection timeout
      */
     int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    
+    protected ChannelConfigurator channelConfigurator;
 
     protected SelectorHandler selectorHandler;
 
@@ -253,6 +256,30 @@ public abstract class NIOTransport extends AbstractTransport
         notifyProbesConfigChanged(this);
     }
 
+    /**
+     * @return the configurator responsible for initial {@link SelectableChannel}
+     * configuration
+     */
+    public ChannelConfigurator getChannelConfigurator() {
+        return channelConfigurator;
+    }
+
+    /**
+     * Sets the configurator responsible for initial {@link SelectableChannel}
+     * configuration.
+     * 
+     * @param channelConfigurator {@link ChannelConfigurator}
+     */
+    public void setChannelConfigurator(
+            final ChannelConfigurator channelConfigurator) {
+        this.channelConfigurator = channelConfigurator;
+        notifyProbesConfigChanged(this);
+    }
+
+    /**
+     * @return the number of {@link SelectorRunner}s used for handling
+     * NIO events
+     */
     public int getSelectorRunnersCount() {
         if (selectorRunnersCount <= 0) {
             selectorRunnersCount = getDefaultSelectorRunnersCount();
@@ -261,6 +288,11 @@ public abstract class NIOTransport extends AbstractTransport
         return selectorRunnersCount;
     }
 
+    /**
+     * Sets the number of {@link SelectorRunner}s used for handling
+     * NIO events.
+     * @param selectorRunnersCount
+     */
     public void setSelectorRunnersCount(final int selectorRunnersCount) {
         if (selectorRunnersCount > 0) {
             this.selectorRunnersCount = selectorRunnersCount;

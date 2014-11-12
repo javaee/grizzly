@@ -120,8 +120,11 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         if (acceptedChannel == null) {
             return;
         }
-                
-        configureAcceptedChannel(acceptedChannel);
+        
+        ((TCPNIOTransport) transport).getChannelConfigurator().preConfigure(
+                transport, acceptedChannel);
+        ((TCPNIOTransport) transport).getChannelConfigurator().postConfigure(
+                transport, acceptedChannel);
         
         acceptedConnection = createClientConnection(acceptedChannel);
 
@@ -167,7 +170,7 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
     }
     
     @Override
-    public void preClose() {
+    protected void preClose() {
         if (acceptListener != null) {
             acceptListener.failure(new IOException("Connection is closed"));
         }
@@ -205,12 +208,6 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         } while (retryNum++ < maxAcceptRetries);
         
         throw new IOException("Accept retries exceeded");
-    }
-    
-    private void configureAcceptedChannel(final SocketChannel acceptedChannel)
-            throws IOException {
-        final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
-        tcpNIOTransport.configureChannel(acceptedChannel);
     }
 
     private TCPNIOConnection createClientConnection(final SocketChannel acceptedChannel) {

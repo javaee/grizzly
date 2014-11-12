@@ -95,22 +95,30 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         UDPNIOConnection newConnection = null;
 
         try {
+            
             final DatagramChannel datagramChannel =
                     nioTransport.getSelectorProvider().openDatagramChannel();
-            final DatagramSocket socket = datagramChannel.socket();
 
+            nioTransport.getChannelConfigurator().preConfigure(
+                    nioTransport, datagramChannel);
+            
+            final DatagramSocket socket = datagramChannel.socket();
             newConnection = nioTransport.obtainNIOConnection(datagramChannel);
 
-            socket.setReuseAddress(isReuseAddress);
-
+            final boolean reuseAddr = isReuseAddress;
+            if (reuseAddr != nioTransport.isReuseAddress()) {
+                socket.setReuseAddress(reuseAddr);
+            }
+            
             socket.bind(localAddress);
-
-            datagramChannel.configureBlocking(false);
 
             if (remoteAddress != null) {
                 datagramChannel.connect(remoteAddress);
             }
 
+            nioTransport.getChannelConfigurator().postConfigure(
+                    nioTransport, datagramChannel);
+            
             preConfigure(newConnection);
 
             final NIOChannelDistributor nioChannelDistributor =

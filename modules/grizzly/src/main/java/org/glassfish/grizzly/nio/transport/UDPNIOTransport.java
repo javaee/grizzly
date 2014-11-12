@@ -75,6 +75,7 @@ import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
 import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
+import org.glassfish.grizzly.nio.ChannelConfigurator;
 import org.glassfish.grizzly.nio.DirectByteBufferRecord;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
@@ -90,6 +91,12 @@ import org.glassfish.grizzly.utils.Futures;
  * @author Alexey Stashok
  */
 public final class UDPNIOTransport extends NIOTransport {
+    /**
+     * Default {@link ChannelConfigurator} used to configure client and server side
+     * channels.
+     */
+    public static final ChannelConfigurator DEFAULT_CHANNEL_CONFIGURATOR =
+            new DefaultChannelConfigurator();
 
     private static final Logger LOGGER = Grizzly.logger(UDPNIOTransport.class);
     private static final String DEFAULT_TRANSPORT_NAME = "UDPNIOTransport";
@@ -185,26 +192,12 @@ public final class UDPNIOTransport extends NIOTransport {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
+            getChannelConfigurator().preConfigure(this, serverDatagramChannel);
+
             final DatagramSocket socket = serverDatagramChannel.socket();
-            final boolean reuseAddress = isReuseAddress();
-            try {
-                socket.setReuseAddress(reuseAddress);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
-            }
-
-            final int serverSocketSoTimeout = getServerSocketSoTimeout();
-            try {
-                socket.setSoTimeout(serverSocketSoTimeout);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
-            }
-
             socket.bind(socketAddress);
-
-            serverDatagramChannel.configureBlocking(false);
+            
+            getChannelConfigurator().postConfigure(this, serverDatagramChannel);
 
             serverConnection = obtainServerNIOConnection(serverDatagramChannel);
             serverConnections.add(serverConnection);
@@ -249,24 +242,8 @@ public final class UDPNIOTransport extends NIOTransport {
         final Lock lock = state.getStateLocker().writeLock();
         lock.lock();
         try {
-            final DatagramSocket socket = serverDatagramChannel.socket();
-            final boolean reuseAddress = isReuseAddress();
-            try {
-                socket.setReuseAddress(reuseAddress);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(reuseAddress), e);
-            }
-
-            final int serverSocketSoTimeout = getServerSocketSoTimeout();
-            try {
-                socket.setSoTimeout(serverSocketSoTimeout);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING,
-                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(serverSocketSoTimeout), e);
-            }
-
-            serverDatagramChannel.configureBlocking(false);
+            getChannelConfigurator().preConfigure(this, serverDatagramChannel);
+            getChannelConfigurator().postConfigure(this, serverDatagramChannel);
 
             serverConnection = obtainServerNIOConnection(serverDatagramChannel);
             serverConnections.add(serverConnection);
@@ -702,6 +679,12 @@ public final class UDPNIOTransport extends NIOTransport {
         return written;
     }
 
+    @Override
+    public ChannelConfigurator getChannelConfigurator() {
+        final ChannelConfigurator cc = channelConfigurator;
+        return cc != null ? cc : DEFAULT_CHANNEL_CONFIGURATOR;
+    }
+    
     UDPNIOConnection obtainNIOConnection(DatagramChannel channel) {
         UDPNIOConnection connection = new UDPNIOConnection(this, channel);
         configureNIOConnection(connection);
@@ -776,6 +759,48 @@ public final class UDPNIOTransport extends NIOTransport {
         @Override
         public FilterChain getFilterChain() {
             return UDPNIOTransport.this.getFilterChain();
+        }
+    }
+    
+    private static class DefaultChannelConfigurator implements ChannelConfigurator {
+        @Override
+        public void preConfigure(NIOTransport transport,
+                SelectableChannel channel) throws IOException {
+            
+            final UDPNIOTransport udpNioTransport = (UDPNIOTransport) transport;
+            final DatagramChannel datagramChannel = (DatagramChannel) channel;
+            final DatagramSocket datagramSocket = datagramChannel.socket();
+            
+            datagramChannel.configureBlocking(false);
+
+            try {
+                datagramSocket.setReuseAddress(udpNioTransport.isReuseAddress());
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_SOCKET_REUSEADDRESS_EXCEPTION(udpNioTransport.isReuseAddress()), e);
+            }
+        }
+
+        @Override
+        public void postConfigure(final NIOTransport transport,
+                final SelectableChannel channel) throws IOException {
+
+            final UDPNIOTransport udpNioTransport = (UDPNIOTransport) transport;
+            final DatagramChannel datagramChannel = (DatagramChannel) channel;
+            final DatagramSocket datagramSocket = datagramChannel.socket();
+
+            final boolean isConnected = datagramChannel.isConnected();
+            
+            final int soTimeout = isConnected
+                    ? udpNioTransport.getClientSocketSoTimeout()
+                    : udpNioTransport.getServerSocketSoTimeout();
+            
+            try {
+                datagramSocket.setSoTimeout(soTimeout);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING,
+                        LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(soTimeout), e);
+            }
         }
     }
 }
