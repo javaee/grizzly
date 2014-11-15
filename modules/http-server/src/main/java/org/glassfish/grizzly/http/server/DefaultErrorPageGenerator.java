@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,7 @@ package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.http.util.HttpUtils;
 
 /**
  * Default Grizzly {@link ErrorPageGenerator}.
@@ -56,7 +57,9 @@ public class DefaultErrorPageGenerator implements ErrorPageGenerator {
             final String description, final Throwable exception) {
         if (status == 404) {
             return HtmlHelper.getErrorPage(HttpStatus.NOT_FOUND_404.getReasonPhrase(),
-                    "Resource identified by path '" + request.getRequestURI() + "', does not exist.",
+                    "Resource identified by path '" +
+                            HttpUtils.filter(request.getRequestURI()) +
+                            "', does not exist.",
                     request.getServerFilter().getFullServerName());
         }
 

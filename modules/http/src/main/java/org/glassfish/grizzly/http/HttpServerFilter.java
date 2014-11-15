@@ -62,6 +62,7 @@ import org.glassfish.grizzly.http.Method.PayloadExpectation;
 import org.glassfish.grizzly.http.util.ContentType;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
+import org.glassfish.grizzly.http.util.HttpUtils;
 
 /**
  * Server side {@link HttpCodecFilter} implementation, which is responsible for
@@ -1002,8 +1003,8 @@ public class HttpServerFilter extends HttpCodecFilter {
             
             final DataChunk customReasonPhrase =
                     httpResponse.isHtmlEncodingCustomReasonPhrase() ?
-                    HttpStatus.filter(httpResponse.getReasonPhraseDC()) :
-                    HttpStatus.filterNonPrintableCharacters(httpResponse.getReasonPhraseDC());
+                    HttpUtils.filter(httpResponse.getReasonPhraseDC()) :
+                    HttpUtils.filterNonPrintableCharacters(httpResponse.getReasonPhraseDC());
             
             output = put(memoryManager, output,
                     httpResponse.getTempHeaderEncodingBuffer(),

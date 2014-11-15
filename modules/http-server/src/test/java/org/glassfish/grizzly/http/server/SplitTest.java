@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -91,7 +91,7 @@ public class SplitTest {
 
         final String responseContent = response.getContent().toStringContent();
 
-        assertEquals("OK  Content-Length: 14    Broken content",
+        assertEquals("OK&#13;&#10;Content-Length: 14&#13;&#10;&#13;&#10;Broken content",
                 ((HttpResponsePacket) response.getHttpHeader()).getReasonPhrase());
         assertEquals("Expected content", responseContent);
     }
