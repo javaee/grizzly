@@ -39,7 +39,6 @@
  */
 package org.glassfish.grizzly.http.ajp;
 
-import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.memory.Buffers;
 import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
@@ -54,6 +53,7 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLSupport;
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
+import org.glassfish.grizzly.http.util.HttpUtils;
 
 /**
  * Utility method for Ajp message parsing and serialization.
@@ -422,7 +422,7 @@ final class AjpMessageUtils {
         if (httpResponsePacket.isCustomReasonPhraseSet()) {
             encodedBuffer = putBytes(mm,
                                      encodedBuffer,
-                                     HttpStatus.filter(
+                                     HttpUtils.filter(
                                              httpResponsePacket.getReasonPhraseDC()),
                                      tempBuffer);
         } else {

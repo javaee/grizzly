@@ -39,7 +39,9 @@
  */
 package org.glassfish.grizzly.http.util;
 
+import java.io.CharConversionException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * Utility class.
@@ -351,39 +353,172 @@ public class HttpUtils {
 
     }
 
-
     /**
-     * Filter the specified message string for characters that are sensitive in HTML.  This avoids potential attacks
-     * caused by including JavaScript codes in the request URL that is often reported in error messages.
+     * Filter non-printable ASCII characters.
+     * 
+     * @param message
+     */
+    public static DataChunk filterNonPrintableCharacters(DataChunk message) {
+
+        if (message == null || message.isNull())
+            return (null);
+
+        try {
+            message.toChars(Charsets.ASCII_CHARSET);
+        } catch (CharConversionException ignored) {
+
+        }
+        final CharChunk charChunk = message.getCharChunk();
+        final char[] content = charChunk.getChars();
+        
+        final int start = charChunk.getStart();
+        final int end = charChunk.getEnd();
+        
+
+        for (int i = start; i < end; i++) {
+            char c = content[i];
+            if ((c <= 31 && c != 9) || c == 127 || c > 255) {
+                content[i] = ' ';
+            }
+        }
+        
+        return message;
+    }
+    
+    /**
+     * Filter the specified message string for characters that are sensitive
+     * in HTML.  This avoids potential attacks caused by including JavaScript
+     * codes in the request URL that is often reported in error messages.
      *
      * @param message The message string to be filtered
      */
-    public static String filter(String message) {
-        if (message == null) {
-            return null;
+    public static DataChunk filter(DataChunk message) {
+
+        if (message == null || message.isNull())
+            return (null);
+
+        try {
+            message.toChars(Charsets.ASCII_CHARSET);
+        } catch (CharConversionException ignored) {
+
         }
-        char content[] = new char[message.length()];
-        message.getChars(0, message.length(), content, 0);
-        StringBuilder result = new StringBuilder(content.length + 50);
-        for (char aContent : content) {
-            switch (aContent) {
+        char[] content = message.getCharChunk().getChars();
+
+        StringBuilder result = null;
+        for (int i = 0, len = content.length; i < len; i++) {
+            switch (content[i]) {
                 case '<':
+                    if (result == null) {
+                        result = new StringBuilder(content.length + 50);
+                        result.append(content, 0, i);
+                    }
                     result.append("&lt;");
                     break;
                 case '>':
+                    if (result == null) {
+                        result = new StringBuilder(content.length + 50);
+                        result.append(content, 0, i);
+                    }
                     result.append("&gt;");
                     break;
                 case '&':
+                    if (result == null) {
+                        result = new StringBuilder(content.length + 50);
+                        result.append(content, 0, i);
+                    }
                     result.append("&amp;");
                     break;
                 case '"':
+                    if (result == null) {
+                        result = new StringBuilder(content.length + 50);
+                        result.append(content, 0, i);
+                    }
                     result.append("&quot;");
                     break;
                 default:
-                    result.append(aContent);
+                    char c = content[i];
+                    if ((c <= 31 && c != 9) || c == 127 || c > 255) {
+                        if (result == null) {
+                            result = new StringBuilder(content.length + 50);
+                            result.append(content, 0, i);
+                        }
+                        result.append("&#").append((int) c).append(';');
+                    } else if (result != null) {
+                        result.append(c);
+                    }
+
             }
         }
-        return result.toString();
+        if (result != null) {
+            final int len = result.length();
+            final char[] finalResult = new char[len];
+            result.getChars(0, len, finalResult, 0);
+            message.setChars(finalResult, 0, finalResult.length);
+        }
+        return message;
     }
 
+    /**
+     * Filter the specified message string for characters that are sensitive
+     * in HTML.  This avoids potential attacks caused by including JavaScript
+     * codes in the request URL that is often reported in error messages.
+     *
+     * @param message The message string to be filtered
+     */
+    public static String filter(final String message) {
+
+        if (message == null)
+            return (null);
+
+        StringBuilder result = null;
+        final int len = message.length();
+        
+        for (int i = 0; i < len; i++) {
+            final char c = message.charAt(i);
+            switch (c) {
+                case '<':
+                    if (result == null) {
+                        result = new StringBuilder(len + 50);
+                        result.append(message, 0, i);
+                    }
+                    result.append("&lt;");
+                    break;
+                case '>':
+                    if (result == null) {
+                        result = new StringBuilder(len + 50);
+                        result.append(message, 0, i);
+                    }
+                    result.append("&gt;");
+                    break;
+                case '&':
+                    if (result == null) {
+                        result = new StringBuilder(len + 50);
+                        result.append(message, 0, i);
+                    }
+                    result.append("&amp;");
+                    break;
+                case '"':
+                    if (result == null) {
+                        result = new StringBuilder(len + 50);
+                        result.append(message, 0, i);
+                    }
+                    result.append("&quot;");
+                    break;
+                default:
+                    if ((c <= 31 && c != 9) || c == 127 || c > 255) {
+                        if (result == null) {
+                            result = new StringBuilder(len + 50);
+                            result.append(message, 0, i);
+                        }
+                        result.append("&#").append((int) c).append(';');
+                    } else if (result != null) {
+                        result.append(c);
+                    }
+            }
+        }
+        
+        return result == null
+                ? message
+                : result.toString();
+    }    
 }
