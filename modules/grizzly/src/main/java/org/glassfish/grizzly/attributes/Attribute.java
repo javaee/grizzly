@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,6 +51,7 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  *         compile time.
  *      2) Access to <tt>Attribute</tt> value, if used with
  *         {@link IndexedAttributeHolder}, could be as fast as access to array.
+ * @param <T>
  */
 public final class Attribute<T> {
     /**
@@ -135,15 +136,25 @@ public final class Attribute<T> {
     public T get(final AttributeHolder attributeHolder) {
         T result = weakGet(attributeHolder);
         
-        if (result == null) {
-            if (initializer != null) {
-                result = initializer.evaluate();
-            } else {
-                result = defaultValue;
-            }
+        if (result == null &&
+                (initializer != null || defaultValue != null)) {
+            
+            // want to make sure simult gets don't leave to the inconsistency
+            // (don't create more than one default instance).
+            synchronized (name) {
+                
+                // double-check if it's still null
+                result = weakGet(attributeHolder);
+                
+                if (result == null) {
+                    result = initializer != null
+                            ? initializer.evaluate()
+                            : defaultValue;
 
-            if (result != null) {
-                set(attributeHolder, result);
+                    if (result != null) {
+                        set(attributeHolder, result);
+                    }
+                }
             }
         }
         
@@ -157,23 +168,7 @@ public final class Attribute<T> {
      * @return attribute value
      */
     public T get(final AttributeStorage storage) {
-        final AttributeHolder holder = storage.getAttributes();
-        if (holder != null) {
-            return get(holder);
-        }
-
-        final T result;
-        if (initializer != null) {
-            result = initializer.evaluate();
-        } else {
-            result = defaultValue;
-        }
-
-        if (result != null) {
-            set(storage, result);
-        }
-
-        return result;
+        return get(storage.getAttributes());
     }
 
     /**
