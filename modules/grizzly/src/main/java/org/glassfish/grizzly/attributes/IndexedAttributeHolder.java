@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * {@link AttributeHolder}, which supports indexed access to stored
@@ -84,14 +85,24 @@ final class IndexedAttributeHolder implements AttributeHolder {
      */
     @Override
     public Object getAttribute(final String name) {
+        return getAttribute(name, null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Object getAttribute(final String name,
+            final NullaryFunction initializer) {
         final Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
-            return indexedAttributeAccessor.getAttribute(attribute.index());
+            return indexedAttributeAccessor.getAttribute(
+                    attribute.index(), initializer);
         }
         
-        return null;
+        return initializer != null ? initializer : null;
     }
-    
+        
     /**
      * {@inheritDoc}
      */
@@ -112,14 +123,7 @@ final class IndexedAttributeHolder implements AttributeHolder {
     public Object removeAttribute(final String name) {
         final Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
-            final int index = attribute.index();
-
-            final Object value = indexedAttributeAccessor.getAttribute(index);
-            if (value != null) {
-                indexedAttributeAccessor.setAttribute(index, null);
-            }
-
-            return value;
+            return indexedAttributeAccessor.removeAttribute(attribute.index());
         }
         
         return null;
@@ -311,6 +315,34 @@ final class IndexedAttributeHolder implements AttributeHolder {
          */
         @Override
         public Object getAttribute(final int index) {
+            return getAttribute(index, null);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Object getAttribute(final int index,
+                final NullaryFunction initializer) {
+            Object value = weakGet(index);
+
+            if (value == null && initializer != null) {
+                synchronized (sync) {
+                    // we want to make sure that parallel getAttribute(int, NullaryFunction)
+                    // won't create multiple value instances (everyone will call NullaryFunction.evaluate())
+                    value = weakGet(index);
+                    
+                    if (value == null) {
+                        value = initializer.evaluate();
+                        setAttribute(index, value);
+                    }
+                }
+            }
+            
+            return value;
+        }
+
+        private Object weakGet(final int index) {
             if (count != 0) {
                 final Snapshot stateNow = state;
                 if (index < stateNow.i2v.length) {
@@ -320,10 +352,10 @@ final class IndexedAttributeHolder implements AttributeHolder {
                     }
                 }
             }
-
+            
             return null;
         }
-
+        
         /**
          * {@inheritDoc}
          */
@@ -336,11 +368,28 @@ final class IndexedAttributeHolder implements AttributeHolder {
                     (mappedIdx = stateNow.i2v[index]) != -1) {
                 stateNow.values[mappedIdx] = value;
                 count++;
-            } else {
+            } else if (value != null) {
                 setSync(index, value);
             }
         }
 
+        @Override
+        public Object removeAttribute(final int index) {
+            final Snapshot stateNow = state;
+            
+            Object oldValue = null;
+            
+            int mappedIdx;
+            if (index < stateNow.i2v.length &&
+                    (mappedIdx = stateNow.i2v[index]) != -1) {
+                oldValue = stateNow.values[mappedIdx];
+                stateNow.values[mappedIdx] = null;
+                count++;
+            }
+            
+            return oldValue;
+        }
+        
         private void setSync(final int index, final Object value) {
             synchronized (sync) {
                 final Snapshot stateNow = state;

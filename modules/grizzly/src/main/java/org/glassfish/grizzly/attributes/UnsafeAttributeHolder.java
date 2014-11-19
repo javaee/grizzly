@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * A non thread-safe {@link AttributeHolder} implementation.
@@ -74,18 +75,25 @@ final class UnsafeAttributeHolder implements AttributeHolder {
     
     @Override
     public Object getAttribute(final String name) {
+        return getAttribute(name, null);
+    }
+
+    @Override
+    public Object getAttribute(final String name,
+            final NullaryFunction initializer) {
+        
         if (!isSet) {
             return null;
         }
         
         final Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
-            return indexedAttributeAccessor.getAttribute(attribute);
+            return indexedAttributeAccessor.getAttribute(attribute, initializer);
         }
         
-        return null;
+        return initializer != null ? initializer.evaluate() : null;
     }
-
+    
     @Override
     public void setAttribute(final String name, final Object value) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
@@ -250,31 +258,56 @@ final class UnsafeAttributeHolder implements AttributeHolder {
     protected final class IndexedAttributeAccessorImpl implements IndexedAttributeAccessor {
         @Override
         public Object getAttribute(final int index) {
+            return getAttribute(index, null);
+        }
+
+        @Override
+        public Object getAttribute(final int index,
+                final NullaryFunction initializer) {
             if (!isSet) {
                 return null;
             }
             
-            return getAttribute(attributeBuilder.getAttributeByIndex(index));
+            return getAttribute(
+                    attributeBuilder.getAttributeByIndex(index), initializer);
         }
 
+        
         @Override
         public void setAttribute(final int index, final Object value) {
             setAttribute(attributeBuilder.getAttributeByIndex(index), value);
         }
 
-        private Object getAttribute(final Attribute attribute) {
+        @Override
+        public Object removeAttribute(final int index) {
+            return removeAttribute(attributeBuilder.getAttributeByIndex(index));
+        }
+        
+        private Object getAttribute(final Attribute attribute,
+                final NullaryFunction initializer) {
             final int idx = attribute.index();
             
             final Holder h = holderByIdx(idx);
+            
             if (h != null) {
+                if (h.value == null && initializer != null) {
+                    h.value = initializer.evaluate();
+                }
+                
                 return h.value;
             }
 
-            if (valueMap != null) {
-                return MapperAccessor.getValue(UnsafeAttributeHolder.this, idx);
+            Object value = valueMap != null
+                    ? MapperAccessor.getValue(
+                        UnsafeAttributeHolder.this, idx)
+                    : null;
+                    
+            if (value == null && initializer != null) {
+                value = initializer.evaluate();
+                setAttribute(attribute, value);
             }
             
-            return null;
+            return value;
         }
 
         private Object setAttribute(final Attribute attribute, final Object value) {
@@ -297,9 +330,21 @@ final class UnsafeAttributeHolder implements AttributeHolder {
                 return h.set(idx, value);
             }
             
-            if (valueMap != null && valueMap.containsKey(idx)) {
+            if (valueMap != null &&
+                    // we could use valueMap.contains(idx), but weak comparison is even better.
+                    // strong equals comparison will be executed inside MapperAccessor.setValue
+                    valueMap.get(idx) != value) {
+                
+                // we go here only if we're sure the element is already in the map
+                // and we need to update it
                 return MapperAccessor.setValue(
                         UnsafeAttributeHolder.this, idx, value);
+            }
+            
+            // if the value is null - it means we supposed to remove the attribute.
+            // but it wasn't found - so we can return
+            if (value == null) {
+                return null;
             }
             
             // Now we know there is no old value associated with the attribute
@@ -313,11 +358,6 @@ final class UnsafeAttributeHolder implements AttributeHolder {
             
             // there's no empty holder
             
-            if (value == null) {
-                // nothing to remove
-                return null;
-            }            
-
             // check if there's a holder caching null value
             
             h = nullHolder();

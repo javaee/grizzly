@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,6 +51,7 @@ import org.glassfish.grizzly.utils.NullaryFunction;
  *         compile time.
  *      2) Access to <tt>Attribute</tt> value, if used with
  *         {@link IndexedAttributeHolder}, could be as fast as access to array.
+ * @param <T>
  */
 public final class Attribute<T> {
     
@@ -174,10 +175,6 @@ public final class Attribute<T> {
      */
     private final NullaryFunction<T> initializer;
     /**
-     * Attribute default value, which will be used, if attribute is not set.
-     */
-    private final T defaultValue;
-    /**
      * Attribute index in AttributeBuilder
      */
     private final int attributeIndex;
@@ -187,22 +184,23 @@ public final class Attribute<T> {
         return "Attribute[" + name + ':' + attributeIndex + ']';
     }
 
-    protected Attribute(AttributeBuilder builder, String name, int index,
-            T defaultValue) {
-        this.builder = builder;
-        this.name = name;
-        this.attributeIndex = index;
-        this.initializer = null;
-        this.defaultValue = defaultValue;
+    protected Attribute(final AttributeBuilder builder, final String name,
+            final int index, final T defaultValue) {
+        this(builder, name, index, new NullaryFunction<T>() {
+
+            @Override
+            public T evaluate() {
+                return defaultValue;
+            }
+        });
     }
 
-    protected Attribute(AttributeBuilder builder, String name, int index,
-            NullaryFunction<T> initializer) {
+    protected Attribute(final AttributeBuilder builder, final String name,
+            final int index, final NullaryFunction<T> initializer) {
         this.builder = builder;
         this.name = name;
         this.attributeIndex = index;
         this.initializer = initializer;
-        this.defaultValue = null;
     }
 
     /**
@@ -214,7 +212,7 @@ public final class Attribute<T> {
      * @return attribute value
      */
     public T peek(final AttributeHolder attributeHolder) {
-        return weakGet(attributeHolder);
+        return get0(attributeHolder, null);
     }
 
     /**
@@ -241,21 +239,7 @@ public final class Attribute<T> {
      * @return attribute value
      */
     public T get(final AttributeHolder attributeHolder) {
-        T result = weakGet(attributeHolder);
-        
-        if (result == null) {
-            if (initializer != null) {
-                result = initializer.evaluate();
-            } else {
-                result = defaultValue;
-            }
-
-            if (result != null) {
-                set(attributeHolder, result);
-            }
-        }
-        
-        return result;
+        return get0(attributeHolder, initializer);
     }
 
     /**
@@ -265,23 +249,7 @@ public final class Attribute<T> {
      * @return attribute value
      */
     public T get(final AttributeStorage storage) {
-        final AttributeHolder holder = storage.getAttributes();
-        if (holder != null) {
-            return get(holder);
-        }
-
-        final T result;
-        if (initializer != null) {
-            result = initializer.evaluate();
-        } else {
-            result = defaultValue;
-        }
-
-        if (result != null) {
-            set(storage, result);
-        }
-
-        return result;
+        return get(storage.getAttributes());
     }
 
     /**
@@ -315,15 +283,15 @@ public final class Attribute<T> {
      * Remove attribute value, stored on the {@link AttributeHolder}.
      *
      * @param attributeHolder {@link AttributeHolder}.
+     * @return the previous value associated with the attribute
      */
     public T remove(final AttributeHolder attributeHolder) {
-        final T result = weakGet(attributeHolder);
+        final IndexedAttributeAccessor indexedAccessor =
+                attributeHolder.getIndexedAttributeAccessor();
         
-        if (result != null) {
-            set(attributeHolder, null);
-        }
-        
-        return result;
+        return indexedAccessor != null
+                ? (T) indexedAccessor.removeAttribute(attributeIndex)
+                : (T) attributeHolder.removeAttribute(name);
     }
 
     /**
@@ -349,7 +317,7 @@ public final class Attribute<T> {
      * @return <tt>true</tt>, if attribute is set, of <tt>false</tt> otherwise.
      */
     public boolean isSet(final AttributeHolder attributeHolder) {
-        return weakGet(attributeHolder) != null;
+        return get0(attributeHolder, null) != null;
     }
 
     /**
@@ -390,17 +358,13 @@ public final class Attribute<T> {
     }
     
     @SuppressWarnings("unchecked")
-    private T weakGet(final AttributeHolder attributeHolder) {
+    private T get0(final AttributeHolder attributeHolder,
+            final NullaryFunction<T> initializer) {
         final IndexedAttributeAccessor indexedAccessor =
                 attributeHolder.getIndexedAttributeAccessor();
         
-        final T result;
-        if (indexedAccessor != null) {
-            result = (T) indexedAccessor.getAttribute(attributeIndex);
-        } else {
-            result = (T) attributeHolder.getAttribute(name);
-        }
-        
-        return result;
+        return indexedAccessor != null
+                ? (T) indexedAccessor.getAttribute(attributeIndex, initializer)
+                : (T) attributeHolder.getAttribute(name, initializer);
     }
 }
