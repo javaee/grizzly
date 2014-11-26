@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.attributes;
 
+import org.glassfish.grizzly.utils.NullaryFunction;
+
 /** 
  * The interface declares, that {@link AttributeHolder} supports
  * indexed {@link Attribute} access.
@@ -50,15 +52,40 @@ public interface IndexedAttributeAccessor {
 
     /** 
      * Internal method for dynamic attribute support.
-     * Return the value of the attribute by index.  If
-     * the attribute with such index is not set, set it to the
-     * default value and return the default.
+     * Return the value of the attribute by index.
+     * @param index the attribute index
+     * @return the value of the attribute by index
      */
     public Object getAttribute(int index);
 
     /** 
      * Internal method for dynamic attribute support.
+     * Return the value of the attribute by index.  If
+     * the attribute with such index is not set, set it to the
+     * default value, using the <tt>initializer</tt>, and return the default.
+     * @param index the attribute index
+     * @param initializer the default value {@link NullaryFunction}
+     * @return the value of the attribute by index
+     * @since 2.3.18
+     */
+    public Object getAttribute(int index, NullaryFunction initializer);
+    
+    /** 
+     * Internal method for dynamic attribute support.
      * Set the attribute with the index to value.
+     * @param index the attribute index
+     * @param value the value
      */
     public void setAttribute(int index, Object value);
+    
+    /** 
+     * Internal method for dynamic attribute support.
+     * Removes the attribute with the index and returns its previous value.
+     * 
+     * @param index the attribute index
+     * @return the previous value associated with the attribute
+     * @since 2.3.18
+     */
+    public Object removeAttribute(int index);
+    
 }

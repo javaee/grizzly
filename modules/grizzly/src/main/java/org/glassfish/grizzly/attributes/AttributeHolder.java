@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.attributes;
 
 import java.util.Set;
+import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * Interface declares common functionality for objects, which have associated
@@ -76,6 +77,17 @@ public interface AttributeHolder {
      */
     public Object getAttribute(String name);
 
+    /**
+     * Return an object based on a name.
+     * @param name - name of an attribute
+     * @param initializer the initializer to be used to assign a default attribute value,
+     *          in case it hasn't been assigned
+     * @return - attribute value for the <tt>name</tt>, null if <tt>name</tt>
+     *           does not exist in <tt>attributes</tt>
+     * 
+     * @since 2.3.18
+     */
+    public Object getAttribute(String name, NullaryFunction initializer);
 
     /**
      * Return a {@link Set} of attribute names.
