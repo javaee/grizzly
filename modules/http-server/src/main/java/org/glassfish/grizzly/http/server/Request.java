@@ -466,6 +466,12 @@ public class Request {
                 scheme = request.getHeader(backendConfiguration.getSchemeMapping());
             }
 
+            if ("https".equalsIgnoreCase(scheme)) {
+                    // this ensures that JSESSIONID cookie has the "Secure" attribute
+                // when using scheme-mapping
+                request.setSecure(true);
+            }
+                
             if (remoteUser.isNull() &&
                     backendConfiguration.getRemoteUserMapping() != null) {
                 remoteUser.setString(request.getHeader(
