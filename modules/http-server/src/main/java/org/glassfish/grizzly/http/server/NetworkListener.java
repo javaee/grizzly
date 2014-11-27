@@ -223,15 +223,16 @@ public class NetworkListener {
     private boolean traceEnabled;
     private String uriEncoding;
     private Boolean sendFileEnabled;
+    
     /**
-     * The HTTP request scheme, which if non-null overrides default one picked
-     * up by framework during runtime.
+     * The auxiliary configuration, which might be used, when Grizzly HttpServer
+     * is running behind some HTTP gateway like reverse proxy or load balancer.
      */
-    private String scheme;
+    private BackendConfiguration backendConfiguration;
 
     private int maxRequestHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
     private int maxResponseHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
-    
+
     // ------------------------------------------------------------ Constructors
 
     /**
@@ -484,7 +485,8 @@ public class NetworkListener {
      * @since 2.2.4
      */
     public String getScheme() {
-        return scheme;
+        final BackendConfiguration config = backendConfiguration;
+        return config != null ? config.getScheme() : null;
     }
 
     /**
@@ -496,7 +498,34 @@ public class NetworkListener {
      * @since 2.2.4
      */
     public void setScheme(String scheme) {
-        this.scheme = scheme;
+        BackendConfiguration config = backendConfiguration;
+        if (config == null) {
+            config = new BackendConfiguration();
+        }
+        
+        config.setScheme(scheme);
+        this.backendConfiguration = config;
+    }
+    
+    /**
+     * @return the auxiliary configuration, which might be used, when Grizzly
+     * HttpServer is running behind HTTP gateway like reverse proxy or load balancer.
+     *
+     * @since 2.3.18
+     */    
+    public BackendConfiguration getBackendConfiguration() {
+        return backendConfiguration;
+    }
+
+    /**
+     * Sets the auxiliary configuration, which might be used, when Grizzly HttpServer
+     * is running behind HTTP gateway like reverse proxy or load balancer.
+     *
+     * @param backendConfiguration {@link BackendConfiguration}
+     * @since 2.3.18
+     */
+    public void setBackendConfiguration(BackendConfiguration backendConfiguration) {
+        this.backendConfiguration = backendConfiguration;
     }
 
     /**

@@ -503,20 +503,43 @@ public class Request {
         parameters.setQuery(request.getQueryStringDC());
 
         final DataChunk remoteUser = request.remoteUser();
-        if (!remoteUser.isNull()) {
-            setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
-        }
 
         if (httpServerFilter != null) {
             final ServerFilterConfiguration configuration =
                     httpServerFilter.getConfiguration();
             parameters.setQueryStringEncoding(configuration.getDefaultQueryEncoding());
-            final String overridingScheme = configuration.getScheme();
 
-            scheme = overridingScheme != null ? overridingScheme
-                    : request.isSecure() ? "https" : "http";
-        } else {
+            final BackendConfiguration backendConfiguration =
+                    configuration.getBackendConfiguration();
+            
+            if (backendConfiguration != null) {
+                // Set the protocol scheme based on backend config
+                if (backendConfiguration.getScheme() != null) {
+                    scheme = backendConfiguration.getScheme();
+                } else if (backendConfiguration.getSchemeMapping() != null) {
+                    scheme = request.getHeader(backendConfiguration.getSchemeMapping());
+                }
+
+                if ("https".equalsIgnoreCase(scheme)) {
+                    // this ensures that JSESSIONID cookie has the "Secure" attribute
+                    // when using scheme-mapping
+                    request.setSecure(true);
+                }
+                
+                if (remoteUser.isNull()
+                        && backendConfiguration.getRemoteUserMapping() != null) {
+                    remoteUser.setString(request.getHeader(
+                            backendConfiguration.getRemoteUserMapping()));
+                }
+            }
+        }
+        
+        if (scheme == null) {
             scheme = request.isSecure() ? "https" : "http";
+        }
+
+        if (!remoteUser.isNull()) {
+            setUserPrincipal(new GrizzlyPrincipal(remoteUser.toString()));
         }
     }
 

@@ -69,12 +69,6 @@ public class ServerFilterConfiguration {
     private boolean isReuseSessionID;
     
     /**
-     * The HTTP request scheme, which if non-null overrides default one picked
-     * up by framework during runtime.
-     */
-    private String scheme;
-    
-    /**
      * Default query string encoding (query part of request URI).
      */
     private Charset defaultQueryEncoding;
@@ -83,6 +77,12 @@ public class ServerFilterConfiguration {
      * The default error page generator
      */
     private ErrorPageGenerator defaultErrorPageGenerator;
+
+    /**
+     * The auxiliary configuration, which might be used, when Grizzly HttpServer
+     * is running behind some HTTP gateway like reverse proxy or load balancer.
+     */
+    private BackendConfiguration backendConfiguration;
 
     /**
      * <tt>true</tt>, if {@link HttpServerFilter} has to support
@@ -106,7 +106,7 @@ public class ServerFilterConfiguration {
         this.httpServerName = configuration.httpServerName;
         this.httpServerVersion = configuration.httpServerVersion;
         this.sendFileEnabled = configuration.sendFileEnabled;
-        this.scheme = configuration.scheme;
+        this.backendConfiguration = configuration.backendConfiguration;
         this.traceEnabled = configuration.traceEnabled;
         this.passTraceRequest = configuration.passTraceRequest;
         this.maxRequestParameters = configuration.maxRequestParameters;
@@ -210,9 +210,10 @@ public class ServerFilterConfiguration {
      * @since 2.2.4
      */
     public String getScheme() {
-        return scheme;
+        final BackendConfiguration config = backendConfiguration;
+        return config != null ? config.getScheme() : null;
     }
-
+    
     /**
      * Set the HTTP request scheme, which if non-null overrides default one
      * picked up by framework during runtime.
@@ -221,8 +222,39 @@ public class ServerFilterConfiguration {
      * 
      * @since 2.2.4
      */
-    public void setScheme(String scheme) {
-        this.scheme = scheme;
+    public void setScheme(final String scheme) {
+        BackendConfiguration config = backendConfiguration;
+        if (config == null) {
+            config = new BackendConfiguration();
+        }
+        
+        config.setScheme(scheme);
+        this.backendConfiguration = config;
+    }
+
+    /**
+     * @return the auxiliary configuration, which might be used, when Grizzly
+     * HttpServer is running behind HTTP gateway like reverse proxy or load
+     * balancer.
+     *
+     * @since 2.3.18
+     */
+    public BackendConfiguration getBackendConfiguration() {
+        return backendConfiguration;
+    }
+
+    /**
+     * Sets the auxiliary configuration, which might be used, when Grizzly
+     * HttpServer is running behind HTTP gateway like reverse proxy or load
+     * balancer.
+     *
+     * @param backendConfiguration {@link BackendConfiguration}
+     * 
+     * @since 2.3.18
+     */
+    public void setBackendConfiguration(
+            final BackendConfiguration backendConfiguration) {
+        this.backendConfiguration = backendConfiguration;
     }
 
     /**
