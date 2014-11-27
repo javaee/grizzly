@@ -694,8 +694,8 @@ public class HttpServer {
                 fileCache.setFileSendEnabled(listener.isSendFileEnabled());
             }
             
-            if (listener.getScheme() != null) {
-                config.setScheme(listener.getScheme());
+            if (listener.getBackendConfiguration() != null) {
+                config.setBackendConfiguration(listener.getBackendConfiguration());
             }
             
             if (listener.getDefaultErrorPageGenerator() != null) {
