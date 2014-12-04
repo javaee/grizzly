@@ -864,10 +864,6 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
             connectionHeaderValueSet = false;
         }
 
-        if (isProcessingCompleted) {
-            return;
-        }
-   
         if (!recycle) {
             started = false;
             inputBuffer = null;

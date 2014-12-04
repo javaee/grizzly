@@ -149,7 +149,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
                 if (LOGGER.isLoggable(LOG_LEVEL)) {
                     LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.preExecute_2");
                 }
-                finishResponse();
+                postProcess();
                 return false;
             }
             if (LOGGER.isLoggable(LOG_LEVEL)) {
@@ -240,7 +240,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     /**
      * Finish the {@link Response} and recycle {@link ProcessorTask}.
      */
-    private void finishResponse() throws Exception{       
+    private void postProcess() throws Exception{       
         if (LOGGER.isLoggable(LOG_LEVEL)) {
             LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.finishResponse apt={0}",
                     new Object[]{asyncProcessorTask});
@@ -290,7 +290,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
             if (LOGGER.isLoggable(LOG_LEVEL)) {
                 LOGGER.log(LOG_LEVEL, "DefaultAsyncExecutor.finishExecute_2");
             }
-            finishResponse();
+            postProcess();
             return false;
         }
         return false;
