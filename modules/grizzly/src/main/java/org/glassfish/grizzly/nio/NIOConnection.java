@@ -82,6 +82,11 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private static final Logger LOGGER = Grizzly.logger(NIOConnection.class);
     private static final short MAX_ZERO_READ_COUNT = 100;
     
+    /**
+     * Is initial OP_READ enabling required for the connection
+     */
+    private boolean isInitialReadRequired = true;
+    
     protected final NIOTransport transport;
     protected volatile int maxAsyncWriteQueueSize;
     protected volatile long readTimeoutMillis = 30000;
@@ -107,7 +112,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             new AtomicReference<CloseReason>();
     
     protected volatile boolean isBlocking;
-    protected volatile boolean isStandalone;
+    protected volatile boolean isStandalone;        
     protected short zeroByteReadCount;
     private final Queue<org.glassfish.grizzly.CloseListener> closeListeners =
             new ConcurrentLinkedQueue<org.glassfish.grizzly.CloseListener>();
@@ -826,6 +831,18 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         }
     }
 
+    /**
+     * Enables OP_READ if it has never been enabled before.
+     * 
+     * @throws IOException 
+     */
+    protected void enableInitialOpRead() throws IOException {
+        if (isInitialReadRequired) {
+            // isInitialReadRequired will be disabled inside
+            enableIOEvent(IOEvent.READ);
+        }
+    }
+    
     @Override
     public void simulateIOEvent(final IOEvent ioEvent) throws IOException {
         if (!isOpen()) {
@@ -848,16 +865,20 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     @Override
     public final void enableIOEvent(final IOEvent ioEvent) throws IOException {
+        final boolean isOpRead = (ioEvent == IOEvent.READ);
         final int interest = ioEvent.getSelectionKeyInterest();
         if (interest == 0 ||
                 // don't register OP_READ for a connection scheduled to be closed
-                (ioEvent == IOEvent.READ && isCloseScheduled.get()) ||
+                (isOpRead && isCloseScheduled.get()) ||
                 // don't register any OP for a closed connection
                 closeReasonAtomic.get() != null) {
             return;
         }
         
         notifyIOEventEnabled(this, ioEvent);
+        
+        // if OP_READ was enabled at least once - isInitialReadRequired should be false
+        isInitialReadRequired &= !isOpRead;
         
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         selectorHandler.registerKeyInterest(selectorRunner, selectionKey,

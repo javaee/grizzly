@@ -265,7 +265,6 @@ public class TCPNIOConnection extends NIOConnection {
     /**
      * Method will be called in order to check if failure happened before
      * {@link Connection} was reported as connected.
-     * @throws IOException
      */
     protected final void checkConnectFailed(Throwable failure) {
         final AtomicReference<ConnectResultHandler> localRef = connectHandlerRef;
@@ -303,6 +302,11 @@ public class TCPNIOConnection extends NIOConnection {
         checkEmptyRead(size);
     }
 
+    @Override
+    protected void enableInitialOpRead() throws IOException {
+        super.enableInitialOpRead();
+    }
+    
     /**
      * Method will be called, when some data was written on the connection
      */

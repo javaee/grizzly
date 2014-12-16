@@ -594,6 +594,11 @@ public class UDPNIOConnection extends NIOConnection {
         }
     }
 
+    @Override
+    protected void enableInitialOpRead() throws IOException {
+        super.enableInitialOpRead();
+    }
+    
     /**
      * Method will be called, when the connection gets connected.
      * @throws IOException

@@ -51,7 +51,6 @@ import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
-import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
 import org.glassfish.grizzly.utils.Exceptions;
@@ -342,14 +341,15 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         @Override
         public void onComplete(final Context context, final Object data)
                 throws IOException {
-            final NIOConnection connection = (NIOConnection) context.getConnection();
+            final TCPNIOConnection connection =
+                    (TCPNIOConnection) context.getConnection();
 
             if (completionHandler != null) {
                 completionHandler.completed(connection);
             }
 
             if (!connection.isStandalone()) {
-                connection.enableIOEvent(IOEvent.READ);
+                connection.enableInitialOpRead();
             }
         }
 
