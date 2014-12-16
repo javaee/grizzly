@@ -49,7 +49,6 @@ import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
-import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.utils.Futures;
 
@@ -248,13 +247,14 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         @Override
         public void onComplete(final Context context)
                 throws IOException {
-            final NIOConnection connection = (NIOConnection) context.getConnection();
+            final UDPNIOConnection connection =
+                    (UDPNIOConnection) context.getConnection();
 
             if (completionHandler != null) {
                 completionHandler.completed(connection);
             }
-            
-            connection.registerKeyInterest(SelectionKey.OP_READ);
+
+            connection.enableInitialOpRead();
         }
 
         @Override

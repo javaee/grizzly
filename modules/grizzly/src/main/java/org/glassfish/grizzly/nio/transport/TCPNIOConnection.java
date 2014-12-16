@@ -302,6 +302,11 @@ public class TCPNIOConnection extends NIOConnection {
         checkEmptyRead(size);
     }
 
+    @Override
+    protected void enableInitialOpRead() throws IOException {
+        super.enableInitialOpRead();
+    }
+    
     /**
      * Method will be called, when some data was written on the connection
      */

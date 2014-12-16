@@ -59,7 +59,6 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.NIOChannelDistributor;
-import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Futures;
@@ -284,12 +283,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     // PostProcessor, which supposed to enable OP_READ interest, once Processor will be notified
     // about Connection CONNECT
     private static final class EnableReadHandler extends EventLifeCycleListener.Adapter {
-        private static final AtomicIntegerFieldUpdater<EnableReadHandler> updater =
-                AtomicIntegerFieldUpdater.newUpdater(
-                        EnableReadHandler.class, "isInitialReadEnabled");
-        
         private final CompletionHandler<Connection> completionHandler;
-        private volatile int isInitialReadEnabled;
         
         private EnableReadHandler(
                 final CompletionHandler<Connection> completionHandler) {
@@ -304,26 +298,23 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         @Override
         public void onComplete(final Context context)
                 throws IOException {
-            final NIOConnection connection = (NIOConnection) context.getConnection();
+            final TCPNIOConnection connection =
+                    (TCPNIOConnection) context.getConnection();
 
             if (completionHandler != null) {
                 completionHandler.completed(connection);
             }
 
-            if (updater.compareAndSet(this, 0, 1)) {
-                connection.registerKeyInterest(SelectionKey.OP_READ);
-            }
+            connection.enableInitialOpRead();
         }
 
         @Override
         public void onTerminate(final Context context, final Object type)
                 throws IOException {
             if (type == FilterChain.CONNECT_TERMINATE_TYPE) {
-                final NIOConnection connection = (NIOConnection) context.getConnection();
+                final TCPNIOConnection connection = (TCPNIOConnection) context.getConnection();
                 
-                if (updater.compareAndSet(this, 0, 1)) {
-                    connection.registerKeyInterest(SelectionKey.OP_READ);
-                }
+                connection.enableInitialOpRead();
             }
         }
 

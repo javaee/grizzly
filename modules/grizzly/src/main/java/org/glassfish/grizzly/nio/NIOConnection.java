@@ -97,6 +97,11 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private static final Logger LOGGER = Grizzly.logger(NIOConnection.class);
     private static final short MAX_ZERO_READ_COUNT = 100;
     
+    /**
+     * Is initial OP_READ enabling required for the connection
+     */
+    private boolean isInitialReadRequired = true;
+    
     protected final NIOTransport transport;
     protected volatile int maxAsyncWriteQueueSize;
     protected volatile long readTimeoutMillis = 30000;
@@ -810,10 +815,29 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         }
     }
 
+    /**
+     * Enables OP_READ if it has never been enabled before.
+     * 
+     * @throws IOException 
+     */
+    protected void enableInitialOpRead() throws IOException {
+        if (isInitialReadRequired) {
+            // isInitialReadRequired will be disabled inside
+            registerKeyInterest(SelectionKey.OP_READ);
+        }
+    }
+    
     public final void registerKeyInterest(final int interest) throws IOException {
-        if (interest == 0 || !isOpen()) {
+        final boolean isOpRead = (interest == SelectionKey.OP_READ);
+        if (interest == 0 ||
+                // don't register OP_READ for a connection scheduled to be closed
+                (isOpRead && isCloseScheduled.get()) ||
+                // don't register any OP for a closed connection
+                closeReasonAtomic.get() != null) {
             return;
         }
+        
+        isInitialReadRequired = isInitialReadRequired && !isOpRead;
         
 //        notifyServiceEventEnabled(this, serviceEvent);
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
@@ -822,11 +846,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
     
     public final void deregisterKeyInterest(final int interest) throws IOException {
-        if (interest == 0 ||
-                // don't register OP_READ for a connection scheduled to be closed
-                (interest == SelectionKey.OP_READ && isCloseScheduled.get()) ||
-                // don't register any OP for a closed connection
-                closeReasonAtomic.get() != null) {
+        if (interest == 0) {
             return;
         }
         
