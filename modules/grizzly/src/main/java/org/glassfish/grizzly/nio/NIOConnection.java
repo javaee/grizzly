@@ -79,6 +79,7 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainState;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
@@ -154,6 +155,11 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public boolean isBlocking() {
         return isBlocking;
+    }
+
+    @Override
+    public MemoryManager<?> getMemoryManager() {
+        return transport.getMemoryManager();
     }
 
     @Override

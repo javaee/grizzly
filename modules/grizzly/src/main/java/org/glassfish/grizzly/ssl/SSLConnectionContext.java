@@ -232,8 +232,7 @@ public final class SSLConnectionContext {
 
     Buffer wrapAll(final Buffer input,
             final Allocator allocator) throws SSLException {
-        final MemoryManager memoryManager =
-                connection.getTransport().getMemoryManager();
+        final MemoryManager memoryManager = connection.getMemoryManager();
         
         final ByteBufferArray bba =
                 input.toByteBufferArray(inputByteBufferArray);

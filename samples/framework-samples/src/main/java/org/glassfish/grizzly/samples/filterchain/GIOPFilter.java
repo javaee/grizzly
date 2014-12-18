@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -153,8 +153,7 @@ public final class GIOPFilter extends BaseFilter {
         final int size = HEADER_SIZE + giopMessage.getBodyLength();
 
         // Retrieve the memory manager
-        final MemoryManager memoryManager =
-                ctx.getConnection().getTransport().getMemoryManager();
+        final MemoryManager memoryManager = ctx.getMemoryManager();
 
         // allocate the buffer of required size
         final Buffer output = memoryManager.allocate(size);

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -168,7 +168,7 @@ public class GZipFilter extends BaseFilter {
                     final Buffer finishBuffer = encoder.finish(connection);
 
                     final Buffer resultBuffer = Buffers.appendBuffers(
-                            connection.getTransport().getMemoryManager(),
+                            connection.getMemoryManager(),
                             readyBuffer, finishBuffer);
 
                     if (resultBuffer != null) {

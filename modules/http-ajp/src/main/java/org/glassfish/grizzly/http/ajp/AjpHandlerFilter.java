@@ -260,7 +260,7 @@ public class AjpHandlerFilter extends BaseFilter {
     private Buffer encodeHttpPacket(final Connection connection,
             final HttpPacket httpPacket) {
 
-        final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
+        final MemoryManager memoryManager = connection.getMemoryManager();
         final boolean isHeader = httpPacket.isHeader();
         final HttpHeader httpHeader = isHeader ? (HttpHeader) httpPacket :
             httpPacket.getHttpHeader();
@@ -502,7 +502,7 @@ public class AjpHandlerFilter extends BaseFilter {
         final HttpContext context = HttpContext.get(ctx);
         // Check if message is still in process
         if (httpRequestInProcessAttr.isSet(context)) {
-            final MemoryManager mm = connection.getTransport().getMemoryManager();
+            final MemoryManager mm = connection.getMemoryManager();
             final Buffer buffer = mm.allocate(7);
 
             buffer.put((byte) 'A');
@@ -521,7 +521,7 @@ public class AjpHandlerFilter extends BaseFilter {
     private void sendEndResponse(final FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
 
-        final MemoryManager mm = connection.getTransport().getMemoryManager();
+        final MemoryManager mm = connection.getMemoryManager();
         final Buffer buffer = mm.allocate(6);
 
         buffer.put((byte) 'A');

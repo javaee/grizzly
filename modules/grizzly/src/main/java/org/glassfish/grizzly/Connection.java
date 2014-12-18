@@ -48,6 +48,7 @@ import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainState;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 
@@ -153,6 +154,12 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
      * @param runnable 
      */
     void executeInEventThread(IOEvent event, Runnable runnable);
+    
+    /**
+     * @return an associated {@link MemoryManager}. It's a shortcut for {@link #getTransport()#getMemoryManager()}
+     * @since 2.3.18
+     */
+    MemoryManager<?> getMemoryManager();
     
     /**
      * Get the connection peer address

@@ -96,8 +96,7 @@ public class SSLBaseFilter extends BaseFilter {
         @SuppressWarnings("unchecked")
         public Buffer grow(final SSLConnectionContext sslCtx,
             final Buffer oldBuffer, final int newSize) {
-            final MemoryManager mm = sslCtx.getConnection()
-                    .getTransport().getMemoryManager();
+            final MemoryManager mm = sslCtx.getConnection().getMemoryManager();
             
             return oldBuffer == null ?
                     mm.allocate(newSize) :
@@ -145,6 +144,7 @@ public class SSLBaseFilter extends BaseFilter {
      * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator}.
      *
      * @param serverSSLEngineConfigurator SSLEngine configurator for server side connections
+     * @param renegotiateOnClientAuthWant
      */
     public SSLBaseFilter(SSLEngineConfigurator serverSSLEngineConfigurator,
                      boolean renegotiateOnClientAuthWant) {
@@ -178,6 +178,9 @@ public class SSLBaseFilter extends BaseFilter {
     /**
      * Returns the handshake timeout, <code>-1</code> if blocking handshake mode
      * is disabled (default).
+     * @param timeUnit
+     * @return the handshake timeout, <code>-1</code> if blocking handshake mode
+     * is disabled (default)
      */
     public long getHandshakeTimeout(final TimeUnit timeUnit) {
         if (handshakeTimeoutMillis < 0) {
@@ -191,6 +194,7 @@ public class SSLBaseFilter extends BaseFilter {
      * Sets the handshake timeout.
      * @param handshakeTimeout timeout value, or <code>-1</code> means for
      * non-blocking handshake mode.
+     * @param timeUnit
      */
     public void setHandshakeTimeout(final long handshakeTimeout,
             final TimeUnit timeUnit) {
@@ -656,7 +660,7 @@ public class SSLBaseFilter extends BaseFilter {
                 }
 
                 if (handshakeStatus == HandshakeStatus.FINISHED) {
-                    break _exitWhile;
+                    break;
                 }
             }
         } catch (IOException ioe) {
@@ -1061,12 +1065,12 @@ public class SSLBaseFilter extends BaseFilter {
             final int totalRemaining = originalBuffer.remaining();
 
             if (totalRemaining < copyThreshold) {
-                return move(connection.getTransport().getMemoryManager(),
+                return move(connection.getMemoryManager(),
                         originalBuffer);
             }
             if (lastOutputBuffer.remaining() < copyThreshold) {
                 final Buffer tmpBuf =
-                        copy(connection.getTransport().getMemoryManager(),
+                        copy(connection.getMemoryManager(),
                         originalBuffer);
 
                 if (originalBuffer.isComposite()) {

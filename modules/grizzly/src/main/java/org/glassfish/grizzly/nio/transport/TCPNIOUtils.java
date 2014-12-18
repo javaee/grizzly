@@ -215,8 +215,7 @@ public class TCPNIOUtils {
     public static Buffer allocateAndReadBuffer(final TCPNIOConnection connection)
             throws IOException {
         
-        final MemoryManager memoryManager =
-                connection.getTransport().getMemoryManager();
+        final MemoryManager memoryManager = connection.getMemoryManager();
         
         int read;
         Throwable error = null;

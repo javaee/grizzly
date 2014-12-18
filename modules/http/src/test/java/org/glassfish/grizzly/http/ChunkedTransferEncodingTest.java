@@ -277,7 +277,7 @@ public class ChunkedTransferEncodingTest {
         final String msgLen = Integer.toHexString(msg.length());
         
         httpRequestCheckFilter.setCheckParameters(
-                Buffers.wrap(connection.getTransport().getMemoryManager(), msg),
+                Buffers.wrap(connection.getMemoryManager(), msg),
                 Collections.<String, Pair<String, String>>emptyMap());
         
         StringBuilder sb = new StringBuilder();

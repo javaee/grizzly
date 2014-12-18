@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -108,7 +108,7 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
 
         if (storage instanceof Connection) {
             Connection connection = (Connection) storage;
-            return connection.getTransport().getMemoryManager();
+            return connection.getMemoryManager();
         }
 
         return MemoryManager.DEFAULT_MEMORY_MANAGER;

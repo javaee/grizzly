@@ -1212,8 +1212,7 @@ public class OutputBuffer implements OutputSink {
                 return originalMessage;
             }
             
-            return clone0(connection.getTransport().getMemoryManager(),
-                    originalMessage);
+            return clone0(connection.getMemoryManager(), originalMessage);
         }
 
         WritableMessage clone0(final MemoryManager mm,

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -241,7 +241,7 @@ public class NonBlockingHttpHandlerSample {
                 // for each of the content parts in CONTENT, wrap in a Buffer,
                 // create the HttpContent to wrap the buffer and write the
                 // content.
-                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+                MemoryManager mm = ctx.getMemoryManager();
                 for (int i = 0, len = CONTENT.length; i < len; i++) {
                     HttpContent.Builder contentBuilder = request.httpContentBuilder();
                     Buffer b = Buffers.wrap(mm, CONTENT[i]);

@@ -1320,7 +1320,7 @@ public class InputBuffer {
     private CompositeBuffer toCompositeInputContentBuffer() {
         if (!inputContentBuffer.isComposite()) {
             final CompositeBuffer compositeBuffer = CompositeBuffer.newBuffer(
-                    connection.getTransport().getMemoryManager());
+                    connection.getMemoryManager());
 
             compositeBuffer.allowBufferDispose(true);
             compositeBuffer.allowInternalBuffersDispose(true);
