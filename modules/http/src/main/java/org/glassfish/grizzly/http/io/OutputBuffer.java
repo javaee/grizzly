@@ -785,7 +785,7 @@ public class OutputBuffer implements OutputSink {
             throw new IllegalStateException("Illegal attempt to set a new handler before the existing handler has been notified.");
         }
         
-        if (!connection.isOpen()) {
+        if (!httpContext.getCloseable().isOpen()) {
             handler.onError(connection.getCloseReason().getCause());
             return;
         }
@@ -1261,7 +1261,7 @@ public class OutputBuffer implements OutputSink {
                 // call in the current thread, because otherwise handler executed
                 // in the different thread may deal with recycled Request/Response objects
                 onError0(obLocal,
-                        obLocal.connection.isOpen() ?
+                        obLocal.httpContext.getCloseable().isOpen() ?
                             new CancellationException() :
                             new EOFException());
             }

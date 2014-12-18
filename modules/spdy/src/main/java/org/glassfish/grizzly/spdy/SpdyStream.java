@@ -245,8 +245,19 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
 //                (streamId % 2) == 1;        
     }
 
-    public boolean isClosed() {
-        return completeFinalizationCounter.get() >= 2;
+    @Override
+    public boolean isOpen() {
+        return completeFinalizationCounter.get() < 2;
+    }
+    
+    @Override
+    public void assertOpen() throws IOException {
+        if (!isOpen()) {
+            final CloseReason closeReason = closeReasonFlag.get();
+            assert closeReason != null;
+            
+            throw new IOException("closed", closeReason.getCause());
+        }
     }
 
     @Override
@@ -283,6 +294,11 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
 
     @Override
+    public void terminateWithReason(final CloseReason closeReason) {
+        close0(null, closeReason, false);
+    }
+    
+    @Override
     public GrizzlyFuture<Closeable> close() {
         final FutureImpl<Closeable> future = Futures.createSafeFuture();
         close0(Futures.toCompletionHandler(future),
@@ -296,6 +312,11 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         close0(null, CloseReason.LOCALLY_CLOSED_REASON, true);
     }
 
+    @Override
+    public void closeWithReason(final CloseReason closeReason) {
+        close0(null, closeReason, false);
+    }
+    
     void close0(
             final CompletionHandler<Closeable> completionHandler,
             final CloseReason closeReason,
@@ -516,7 +537,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         
         associatedSpdyStreams.add(spdyStream);
         
-        if (isClosed() && associatedSpdyStreams.remove(spdyStream)) {
+        if (!isOpen() && associatedSpdyStreams.remove(spdyStream)) {
             throw new SpdyStreamException(spdyStream.getStreamId(),
                     RstStreamFrame.REFUSED_STREAM, "The parent stream is closed");
         }

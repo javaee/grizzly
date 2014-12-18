@@ -75,6 +75,7 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
      * @return <tt>true</tt>, if connection is open and ready, or <tt>false</tt>
      * otherwise.
      */
+    @Override
     boolean isOpen();
 
     /**
@@ -85,6 +86,7 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
      * 
      * @throws IOException 
      */
+    @Override
     void assertOpen() throws IOException;
     
     /**
@@ -170,6 +172,10 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
      * explicitly set, it will default to {@value #DEFAULT_READ_TIMEOUT} seconds.
      *
      * @param timeUnit the {@link TimeUnit} to convert the returned result to.
+     * 
+     * @return the current value for the blocking read timeout converted to the
+     * provided {@link TimeUnit} specification.  If this value hasn't been
+     * explicitly set, it will default to {@value #DEFAULT_READ_TIMEOUT} seconds
      *
      * @since 3.0
      */
@@ -195,6 +201,9 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
      * explicitly set, it will default to {@value #DEFAULT_WRITE_TIMEOUT} seconds.
      *
      * @param timeUnit the {@link TimeUnit} to convert the returned result to.
+     * @return the current value for the blocking write timeout converted to the
+     * provided {@link TimeUnit} specification.  If this value hasn't been
+     * explicitly set, it will default to {@value #DEFAULT_WRITE_TIMEOUT} seconds
      *
      * @since 3.0
      */
@@ -233,11 +242,12 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
     /**
      * Closes the <tt>Connection</tt> and provides the reason description.
      * 
-     * This method is similar to {@link #closeSilently()}, but additionally
+     * This method is similar to {@link #terminateSilently()}, but additionally
      * provides the reason why the <tt>Connection</tt> will be closed.
      * 
-     * @param reason 
+     * @param closeReason 
      */
+    @Override
     void terminateWithReason(CloseReason closeReason);
     
     /**
@@ -255,15 +265,16 @@ public interface Connection<L> extends org.glassfish.grizzly.Readable<L>, Writab
      */
     @Override
     void closeSilently();
-
+    
     /**
      * Gracefully closes the <tt>Connection</tt> and provides the reason description.
      * 
      * This method is similar to {@link #closeSilently()}, but additionally
      * provides the reason why the <tt>Connection</tt> will be closed.
      * 
-     * @param reason 
+     * @param closeReason 
      */
+    @Override
     void closeWithReason(CloseReason closeReason);
     
     /**
