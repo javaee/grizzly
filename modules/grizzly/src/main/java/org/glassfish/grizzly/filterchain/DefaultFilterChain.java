@@ -55,6 +55,7 @@ import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.Appender;
 import org.glassfish.grizzly.CloseReason;
 import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
@@ -191,8 +192,15 @@ public final class DefaultFilterChain implements FilterChain {
     @Override
     public final FilterChainContext obtainFilterChainContext(
             final Connection connection) {
+        return obtainFilterChainContext(connection, connection);
+    }
+    
+    @Override
+    public final FilterChainContext obtainFilterChainContext(
+            final Connection connection, final Closeable closeable) {
 
-        final FilterChainContext context = FilterChainContext.create(connection);
+        final FilterChainContext context =
+                FilterChainContext.create(connection, closeable);
         context.internalContext.setFilterChain(this);
         return context;
     }
@@ -203,12 +211,24 @@ public final class DefaultFilterChain implements FilterChain {
             final FilterReg startFilterReg,
             final FilterReg endFilterReg,
             final FilterReg currentFilterReg) {
+        return obtainFilterChainContext(connection, startFilterReg,
+                endFilterReg, currentFilterReg, connection);
+    }
+    
+    @Override
+    public FilterChainContext obtainFilterChainContext(
+            final Connection connection,
+            final FilterReg startFilterReg,
+            final FilterReg endFilterReg,
+            final FilterReg currentFilterReg,
+            final Closeable closeable) {
         
         checkFilterReg(startFilterReg);
         checkFilterReg(endFilterReg);
         checkFilterReg(currentFilterReg);
         
-        final FilterChainContext context = FilterChainContext.create(connection);
+        final FilterChainContext context =
+                FilterChainContext.create(connection, closeable);
         context.internalContext.setFilterChain(this);
         context.setRegs(startFilterReg != null ? startFilterReg : head.next,
                 endFilterReg != null ? endFilterReg : tail,
@@ -266,7 +286,7 @@ public final class DefaultFilterChain implements FilterChain {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_FILTERCHAIN_EXCEPTION(), e);
             throwChain(ctx, executor, e);
-            ctx.getConnection().closeWithReason(
+            ctx.getCloseable().closeWithReason(
                     new CloseReason(CloseType.LOCALLY,
                             Exceptions.makeIOException(e)));
 

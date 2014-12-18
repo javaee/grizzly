@@ -43,6 +43,7 @@ package org.glassfish.grizzly.filterchain;
 import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
@@ -722,6 +723,20 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
     public FilterChainContext obtainFilterChainContext(Connection connection);
 
     /**
+     * Returns the {@link FilterChainContext} for the specified {@link Connection},
+     * which could be used to initialize filter chain processing.
+     * 
+     * @param connection the {@link Connection}
+     * @param closeable the {@link Closeable} to be used when FilterChain processing
+     *        encounters an error, if closeable is not specified - {@link Connection}
+     *        will be used
+     * @return the {@link FilterChainContext} for the specified {@link Connection},
+     *         which could be used to initialize filter chain processing
+     */
+    public FilterChainContext obtainFilterChainContext(Connection connection,
+            Closeable closeable);
+
+    /**
      * Returns the {@link FilterChainContext} with the specified {@link Connection},
      * start filter, current filter, end filter information, which could be
      * used to initialize filter chain processing.
@@ -737,4 +752,24 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
     public FilterChainContext obtainFilterChainContext(Connection connection,
             FilterReg startFilterReg, FilterReg endFilterReg,
             FilterReg currentFilterReg);
+    
+    /**
+     * Returns the {@link FilterChainContext} with the specified {@link Connection},
+     * start filter, current filter, end filter information, which could be
+     * used to initialize filter chain processing.
+     * 
+     * @param connection the {@link Connection}
+     * @param startFilterReg the start {@link FilterReg}
+     * @param endFilterReg the end {@link FilterReg}
+     * @param currentFilterReg the current {@link FilterReg}
+     * @param closeable the {@link Closeable} to be used when FilterChain processing
+     *        encounters an error, if closeable is not specified - {@link Connection}
+     *        will be used
+     * 
+     * @return the {@link FilterChainContext} for the specified {@link Connection},
+     *         which could be used to initialize filter chain processing
+     */
+    public FilterChainContext obtainFilterChainContext(Connection connection,
+            FilterReg startFilterReg, FilterReg endFilterReg,
+            FilterReg currentFilterReg, Closeable closeable);    
 }

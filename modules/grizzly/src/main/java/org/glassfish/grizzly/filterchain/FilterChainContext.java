@@ -48,6 +48,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.Appender;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
@@ -88,12 +89,18 @@ public class FilterChainContext implements AttributeStorage {
             ThreadCache.obtainIndex(FilterChainContext.class, 8);
 
     public static FilterChainContext create(final Connection connection) {
+        return create(connection, connection);
+    }
+
+    public static FilterChainContext create(final Connection connection,
+            final Closeable closeable) {
         FilterChainContext context = ThreadCache.takeFromCache(CACHE_IDX);
         if (context == null) {
             context = new FilterChainContext();
         }
 
         context.setConnection(connection);
+        context.setCloseable(closeable);
         context.getTransportContext().isBlocking = connection.isBlocking();
         
         return context;
@@ -147,6 +154,11 @@ public class FilterChainContext implements AttributeStorage {
      * Context associated message
      */
     private Object message;
+    
+    /**
+     * The {@link Closeable} object associated with the filter chain processing
+     */
+    private Closeable closeable;
 
     /**
      * {@link Holder}, which contains address, associated with the
@@ -354,6 +366,35 @@ public class FilterChainContext implements AttributeStorage {
      */
     void setConnection(final Connection connection) {
         internalContext.setConnection(connection);
+    }
+
+    /**
+     * Get the {@link Closeable}, associated with the current processing.
+     * The {@link Closeable} object might be used to close/terminate an entity
+     * associated with the {@link FilterChain} processing in response to an
+     * error occurred during the processing.
+     * If not customized the {@link Closeable} object represents a {@link Connection}
+     * associated with the {@link FilterChain} processing.
+     *
+     * @return {@link Closeable} object, associated with the current processing.
+     */
+    public Closeable getCloseable() {
+        return closeable;
+    }
+
+    /**
+     * Set the {@link Closeable}, associated with the current processing.
+     * The {@link Closeable} object might be used to close/terminate an entity
+     * associated with the {@link FilterChain} processing in response to an
+     * error occurred during the processing.
+     * If not customized the {@link Closeable} object represents a {@link Connection}
+     * associated with the {@link FilterChain} processing.
+     *
+     * @param closeable {@link Closeable} object, associated with the current processing.
+     *          If <tt>null</tt> the {@link #getConnection()} value will be assigned
+     */
+    void setCloseable(final Closeable closeable) {
+        this.closeable = closeable != null ? closeable : getConnection();
     }
 
     /**
@@ -701,6 +742,7 @@ public class FilterChainContext implements AttributeStorage {
                         firstFilterReg, filterReg, firstFilterReg);
         
         newContext.getInternalContext().setEvent(IOEvent.READ);
+        newContext.closeable = closeable;
         newContext.operation = Operation.READ;
         newContext.transportFilterContext.configureBlocking(true);
         getAttributes().copyTo(newContext.getAttributes());
@@ -793,6 +835,7 @@ public class FilterChainContext implements AttributeStorage {
         newContext.transportFilterContext.configureBlocking(blocking);
         newContext.message = message;
         newContext.addressHolder = address == null ? addressHolder : Holder.<Object>staticHolder(address);
+        newContext.closeable = closeable;
         newContext.transportFilterContext.completionHandler = completionHandler;
         newContext.transportFilterContext.lifeCycleHandler = lifeCycleHandler;
         getAttributes().copyTo(newContext.getAttributes());
@@ -807,6 +850,7 @@ public class FilterChainContext implements AttributeStorage {
 
         newContext.operation = Operation.DOWNSTREAM_EVENT;
         newContext.setEvent(TransportFilter.createFlushEvent(completionHandler));
+        newContext.closeable = closeable;
         newContext.transportFilterContext.configureBlocking(transportFilterContext.isBlocking());
         newContext.addressHolder = addressHolder;
         getAttributes().copyTo(newContext.getAttributes());
@@ -827,6 +871,7 @@ public class FilterChainContext implements AttributeStorage {
 
         newContext.operation = Operation.UPSTREAM_EVENT;
         newContext.setEvent(event);
+        newContext.closeable = closeable;
         newContext.addressHolder = addressHolder;
         getAttributes().copyTo(newContext.getAttributes());
         newContext.operationCompletionHandler = completionHandler;
@@ -847,6 +892,7 @@ public class FilterChainContext implements AttributeStorage {
 
         newContext.operation = Operation.DOWNSTREAM_EVENT;
         newContext.setEvent(event);
+        newContext.closeable = closeable;
         newContext.addressHolder = addressHolder;
         getAttributes().copyTo(newContext.getAttributes());
         newContext.operationCompletionHandler = completionHandler;
@@ -926,6 +972,7 @@ public class FilterChainContext implements AttributeStorage {
                 p.obtainFilterChainContext(getConnection());
         newContext.setRegs(startFilterReg, endFilterReg, filterReg);
         newContext.setOperation(getOperation());
+        newContext.setCloseable(getCloseable());
         
         internalContext.softCopyTo(newContext.internalContext);
         getAttributes().copyTo(newContext.getAttributes());
@@ -940,6 +987,7 @@ public class FilterChainContext implements AttributeStorage {
         cachedInvokeAction.reset();
         cachedStopAction.reset();
         message = null;
+        closeable = null;
         addressHolder = null;
         filterReg = startFilterReg = endFilterReg = null;
         state = State.RUNNING;
@@ -963,6 +1011,7 @@ public class FilterChainContext implements AttributeStorage {
         StringBuilder sb = new StringBuilder(384);
         sb.append("FilterChainContext [");
         sb.append("connection=").append(getConnection());
+        sb.append(", closeable=").append(getCloseable());
         sb.append(", operation=").append(getOperation());
         sb.append(", message=").append(String.valueOf(getMessage()));
         sb.append(", address=").append(getAddress());
