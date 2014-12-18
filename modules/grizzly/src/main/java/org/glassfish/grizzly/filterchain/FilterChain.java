@@ -87,8 +87,12 @@ import org.glassfish.grizzly.*;
  */
 public interface FilterChain extends Processor<Context>, List<Filter> {
     FilterChainContext obtainFilterChainContext(Connection connection);
+    FilterChainContext obtainFilterChainContext(Connection connection, Closeable closeable);
     FilterChainContext obtainFilterChainContext(Connection connection,
-                int startIdx, int endIdx, int currentIdx);
+            int startIdx, int endIdx, int currentIdx);
+    FilterChainContext obtainFilterChainContext(Connection connection,
+            Closeable closeable,
+            int startIdx, int endIdx, int currentIdx);
 
     /**
      * Get the index of {@link Filter} in chain, which type is filterType, or

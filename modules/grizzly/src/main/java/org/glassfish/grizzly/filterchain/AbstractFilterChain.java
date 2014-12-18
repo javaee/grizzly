@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.filterchain;
 
 import java.util.EnumSet;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.IOEvent;
@@ -105,9 +106,35 @@ public abstract class AbstractFilterChain implements FilterChain {
 
     @Override
     public FilterChainContext obtainFilterChainContext(
+            final Connection connection,
+            final Closeable closeable) {
+        final FilterChainContext context = FilterChainContext.create(
+                connection, closeable);
+        context.internalContext.setProcessor(this);
+        return context;
+    }
+
+    @Override
+    public FilterChainContext obtainFilterChainContext(
             final Connection connection, final int startIdx, final int endIdx,
             final int currentIdx) {
         final FilterChainContext ctx = obtainFilterChainContext(connection);
+
+        ctx.setStartIdx(startIdx);
+        ctx.setEndIdx(endIdx);
+        ctx.setFilterIdx(currentIdx);
+
+        return ctx;
+    }
+
+    @Override
+    public FilterChainContext obtainFilterChainContext(
+            final Connection connection,
+            final Closeable closeable,
+            final int startIdx, final int endIdx, final int currentIdx) {
+        
+        final FilterChainContext ctx =
+                obtainFilterChainContext(connection, closeable);
 
         ctx.setStartIdx(startIdx);
         ctx.setEndIdx(endIdx);

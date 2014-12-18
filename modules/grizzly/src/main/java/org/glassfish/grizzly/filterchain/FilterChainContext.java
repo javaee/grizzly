@@ -48,6 +48,7 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.Appender;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
@@ -88,17 +89,22 @@ public class FilterChainContext implements AttributeStorage {
             ThreadCache.obtainIndex(FilterChainContext.class, 8);
 
     public static FilterChainContext create(final Connection connection) {
+        return create(connection, connection);
+    }
+
+    public static FilterChainContext create(final Connection connection,
+            final Closeable closeable) {
         FilterChainContext context = ThreadCache.takeFromCache(CACHE_IDX);
         if (context == null) {
             context = new FilterChainContext();
         }
 
         context.setConnection(connection);
+        context.setCloseable(closeable);
         context.getTransportContext().isBlocking = connection.isBlocking();
         
         return context;
     }
-
 
     public static final int NO_FILTER_INDEX = Integer.MIN_VALUE;
 
@@ -144,6 +150,11 @@ public class FilterChainContext implements AttributeStorage {
      * Context associated message
      */
     private Object message;
+    
+    /**
+     * The {@link Closeable} object associated with the filter chain processing
+     */
+    private Closeable closeable;
 
     /**
      * Context associated event, if EVENT operation
@@ -343,6 +354,35 @@ public class FilterChainContext implements AttributeStorage {
      */
     void setConnection(final Connection connection) {
         internalContext.setConnection(connection);
+    }
+
+    /**
+     * Get the {@link Closeable}, associated with the current processing.
+     * The {@link Closeable} object might be used to close/terminate an entity
+     * associated with the {@link FilterChain} processing in response to an
+     * error occurred during the processing.
+     * If not customized the {@link Closeable} object represents a {@link Connection}
+     * associated with the {@link FilterChain} processing.
+     *
+     * @return {@link Closeable} object, associated with the current processing.
+     */
+    public Closeable getCloseable() {
+        return closeable;
+    }
+
+    /**
+     * Set the {@link Closeable}, associated with the current processing.
+     * The {@link Closeable} object might be used to close/terminate an entity
+     * associated with the {@link FilterChain} processing in response to an
+     * error occurred during the processing.
+     * If not customized the {@link Closeable} object represents a {@link Connection}
+     * associated with the {@link FilterChain} processing.
+     *
+     * @param closeable {@link Closeable} object, associated with the current processing.
+     *          If <tt>null</tt> the {@link #getConnection()} value will be assigned
+     */
+    void setCloseable(final Closeable closeable) {
+        this.closeable = closeable != null ? closeable : getConnection();
     }
 
     /**
@@ -685,6 +725,7 @@ public class FilterChainContext implements AttributeStorage {
         final FilterChainContext newContext =
                 getFilterChain().obtainFilterChainContext(getConnection());
         
+        newContext.closeable = closeable;
         newContext.operation = Operation.READ;
         newContext.transportFilterContext.configureBlocking(true);
         newContext.startIdx = 0;
@@ -837,6 +878,7 @@ public class FilterChainContext implements AttributeStorage {
         newContext.transportFilterContext.configureBlocking(blocking);
         newContext.message = message;
         newContext.addressHolder = address == null ? addressHolder : Holder.<Object>staticHolder(address);
+        newContext.closeable = closeable;
         newContext.transportFilterContext.completionHandler = completionHandler;
         newContext.transportFilterContext.pushBackHandler = pushBackHandler;
         newContext.transportFilterContext.cloner = cloner;
@@ -853,6 +895,7 @@ public class FilterChainContext implements AttributeStorage {
                 getFilterChain().obtainFilterChainContext(getConnection());
 
         newContext.operation = Operation.EVENT;
+        newContext.closeable = closeable;
         newContext.event = TransportFilter.createFlushEvent(completionHandler);
         newContext.transportFilterContext.configureBlocking(transportFilterContext.isBlocking());
         newContext.addressHolder = addressHolder;
@@ -876,6 +919,7 @@ public class FilterChainContext implements AttributeStorage {
 
         newContext.setOperation(Operation.EVENT);
         newContext.event = event;
+        newContext.closeable = closeable;
         newContext.addressHolder = addressHolder;
         newContext.startIdx = filterIdx + 1;
         newContext.filterIdx = filterIdx + 1;
@@ -897,6 +941,7 @@ public class FilterChainContext implements AttributeStorage {
 
         newContext.setOperation(Operation.EVENT);
         newContext.event = event;
+        newContext.closeable = closeable;
         newContext.addressHolder = addressHolder;
         newContext.startIdx =filterIdx - 1;
         newContext.filterIdx = filterIdx - 1;
@@ -978,6 +1023,7 @@ public class FilterChainContext implements AttributeStorage {
         final FilterChainContext newContext =
                 p.obtainFilterChainContext(getConnection());
         newContext.setOperation(getOperation());
+        newContext.setCloseable(getCloseable());
         
         internalContext.softCopyTo(newContext.internalContext);
         
@@ -997,6 +1043,7 @@ public class FilterChainContext implements AttributeStorage {
         cachedInvokeAction.reset();
         cachedStopAction.reset();
         message = null;
+        closeable = null;
         event = null;
         addressHolder = null;
         filterIdx = NO_FILTER_INDEX;
@@ -1020,6 +1067,7 @@ public class FilterChainContext implements AttributeStorage {
         StringBuilder sb = new StringBuilder(384);
         sb.append("FilterChainContext [");
         sb.append("connection=").append(getConnection());
+        sb.append(", closeable=").append(getCloseable());
         sb.append(", operation=").append(getOperation());
         sb.append(", message=").append(String.valueOf(getMessage()));
         sb.append(", address=").append(getAddress());

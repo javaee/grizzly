@@ -156,7 +156,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             LOGGER.log(e instanceof IOException ? Level.FINE : Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_FILTERCHAIN_EXCEPTION(), e);
             throwChain(ctx, executor, e);
-            ctx.getConnection().closeWithReason(Exceptions.makeIOException(e));
+            ctx.getCloseable().closeWithReason(Exceptions.makeIOException(e));
 
             return ProcessorResult.createError(e);
         }
