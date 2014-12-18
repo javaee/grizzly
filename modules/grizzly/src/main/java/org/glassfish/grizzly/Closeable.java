@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly;
 
+import java.io.IOException;
+
 /**
  * General asynchronous closable interface.
  * 
@@ -49,6 +51,26 @@ package org.glassfish.grizzly;
  * @author Alexey Stashok
  */
 public interface Closeable {
+    /**
+     * Is <tt>Closeable</tt> open and ready.
+     * Returns <tt>true</tt>, if the <tt>Closeable</tt> is open and ready, or <tt>false</tt>
+     * otherwise.
+     * 
+     * @return <tt>true</tt>, if <tt>Closeable</tt> is open and ready, or <tt>false</tt>
+     * otherwise.
+     */
+    public boolean isOpen();
+    
+    /**
+     * Checks if this <tt>Closeable</tt> is open and ready to be used.
+     * If this <tt>Closeable</tt> is closed - this method throws
+     * {@link IOException} giving the reason why this <tt>Closeable</tt>
+     * was closed.
+     * 
+     * @throws IOException 
+     */
+    void assertOpen() throws IOException;
+    
     /**
      * Closes this stream and releases any system resources associated with it.
      * 
@@ -67,6 +89,17 @@ public interface Closeable {
      *         will be run asynchronously
      */
     public GrizzlyFuture<Closeable> terminate();
+    
+    /**
+     * Closes the <tt>Closeable</tt> and provides the reason description.
+     * 
+     * This method is similar to {@link #terminateSilently()}, but additionally
+     * provides the reason why the <tt>Closeable</tt> will be closed.
+     * 
+     * @param cause 
+     */
+    void terminateWithReason(IOException cause);
+    
     
     /**
      * Gracefully (if supported by the implementation) closes this stream and
@@ -103,6 +136,16 @@ public interface Closeable {
      *  GrizzlyFuture#addCompletionHandler(org.glassfish.grizzly.CompletionHandler)} call
      */
     public void close(CompletionHandler<Closeable> completionHandler);
+    
+    /**
+     * Gracefully closes the <tt>Closeable</tt> and provides the reason description.
+     * 
+     * This method is similar to {@link #closeSilently()}, but additionally
+     * provides the reason why the <tt>Closeable</tt> will be closed.
+     * 
+     * @param cause 
+     */
+    void closeWithReason(IOException cause);
     
     /**
      * Add the {@link CloseListener}, which will be notified once the stream

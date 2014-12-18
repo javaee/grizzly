@@ -73,6 +73,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * @return <tt>true</tt>, if connection is open and ready, or <tt>false</tt>
      * otherwise.
      */
+    @Override
     boolean isOpen();
 
     /**
@@ -83,6 +84,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * 
      * @throws IOException 
      */
+    @Override
     void assertOpen() throws IOException;
     
     /**
@@ -125,6 +127,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * {@link ProcessorSelector}, associated withthe {@link Connection} is also
      * <tt>null</tt> - will ask {@link Transport} for a {@link Processor}.
      *
+     * @param ioEvent
      * @return the default {@link Processor}, which will process
      * {@link Connection} I/O events.
      */
@@ -187,7 +190,9 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
 
     /**
      * Returns the {@link Processor} state associated with this <tt>Connection</tt>.
+     * @param <E>
      * @param processor {@link Processor}
+     * @param factory
      * 
      * @return the {@link Processor} state associated with this <tt>Connection</tt>.
      */
@@ -236,11 +241,12 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
     /**
      * Closes the <tt>Connection</tt> and provides the reason description.
      * 
-     * This method is similar to {@link #closeSilently()}, but additionally
+     * This method is similar to {@link #terminateSilently()}, but additionally
      * provides the reason why the <tt>Connection</tt> will be closed.
      * 
      * @param reason 
      */
+    @Override
     void terminateWithReason(IOException reason);
     
     /**
@@ -278,6 +284,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * 
      * @param reason 
      */
+    @Override
     void closeWithReason(IOException reason);
     
     /**
@@ -410,6 +417,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      *
      * @since 2.3
      */
+    @Override
     void addCloseListener(org.glassfish.grizzly.CloseListener closeListener);
 
     /**
@@ -419,6 +427,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      *
      * @since 2.3
      */
+    @Override
     boolean removeCloseListener(org.glassfish.grizzly.CloseListener closeListener);
 
     /**
