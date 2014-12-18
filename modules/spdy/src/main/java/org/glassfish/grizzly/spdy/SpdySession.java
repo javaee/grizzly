@@ -292,7 +292,7 @@ public abstract class SpdySession {
     }
 
     public MemoryManager getMemoryManager() {
-        return connection.getTransport().getMemoryManager();
+        return connection.getMemoryManager();
     }
     
     public boolean isServer() {

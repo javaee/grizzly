@@ -71,7 +71,7 @@ public final class IndexedAttributeHolder implements AttributeHolder {
 
     /**
      * @param attributeBuilder
-     * @deprecated use {@link AttributeBuilder#createAttributeHolder()}
+     * @deprecated use {@link AttributeBuilder#createSafeAttributeHolder()}
      */
     public IndexedAttributeHolder(final AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;

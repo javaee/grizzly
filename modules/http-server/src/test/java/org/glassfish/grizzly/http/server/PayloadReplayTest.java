@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -155,7 +155,7 @@ public class PayloadReplayTest {
             Thread.sleep(20);
             final byte[] payload = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
             
-            final MemoryManager mm = client.getTransport().getMemoryManager();
+            final MemoryManager mm = client.getMemoryManager();
             HttpContent payload1 = HttpContent.builder(request)
                     .content(Buffers.wrap(mm, payload, 0, 5))
                     .build();
@@ -255,7 +255,7 @@ public class PayloadReplayTest {
             client.write(request);
             Thread.sleep(20);
             
-            final MemoryManager mm = client.getTransport().getMemoryManager();
+            final MemoryManager mm = client.getMemoryManager();
             HttpContent payload = HttpContent.builder(request)
                     .content(Buffers.wrap(mm, payloadToReplay))
                     .build();

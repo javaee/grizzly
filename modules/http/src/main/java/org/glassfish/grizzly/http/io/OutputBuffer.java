@@ -1212,8 +1212,7 @@ public class OutputBuffer {
                 return originalMessage;
             }
             
-            return clone0(connection.getTransport().getMemoryManager(),
-                    originalMessage);
+            return clone0(connection.getMemoryManager(), originalMessage);
         }
 
         Buffer clone0(final MemoryManager memoryManager,

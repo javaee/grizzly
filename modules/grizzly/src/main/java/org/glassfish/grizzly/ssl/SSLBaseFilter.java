@@ -96,8 +96,7 @@ public class SSLBaseFilter extends BaseFilter {
         @SuppressWarnings("unchecked")
         public Buffer grow(final SSLConnectionContext sslCtx,
             final Buffer oldBuffer, final int newSize) {
-            final MemoryManager mm = sslCtx.getConnection()
-                    .getTransport().getMemoryManager();
+            final MemoryManager mm = sslCtx.getConnection().getMemoryManager();
             
             return oldBuffer == null ?
                     mm.allocate(newSize) :
@@ -1053,12 +1052,12 @@ public class SSLBaseFilter extends BaseFilter {
             final int totalRemaining = originalMessage.remaining();
 
             if (totalRemaining < copyThreshold) {
-                return move(connection.getTransport().getMemoryManager(),
+                return move(connection.getMemoryManager(),
                         originalMessage);
             }
             if (lastOutputBuffer.remaining() < copyThreshold) {
                 final Buffer tmpBuf =
-                        copy(connection.getTransport().getMemoryManager(),
+                        copy(connection.getMemoryManager(),
                         originalMessage);
 
                 if (originalMessage.isComposite()) {

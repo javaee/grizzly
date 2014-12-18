@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -265,7 +265,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
      */
     @Override
     public void writeByteArray(byte[] data, int offset, int length) throws IOException {
-        final Buffer buffer = Buffers.wrap(connection.getTransport().getMemoryManager(),
+        final Buffer buffer = Buffers.wrap(connection.getMemoryManager(),
                 data, offset, length);
         output.write(buffer);
     }

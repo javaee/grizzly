@@ -62,6 +62,7 @@ import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
@@ -154,6 +155,11 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         return isBlocking;
     }
 
+    @Override
+    public MemoryManager<?> getMemoryManager() {
+        return transport.getMemoryManager();
+    }
+    
     @Override
     public synchronized void configureStandalone(boolean isStandalone) {
         if (this.isStandalone != isStandalone) {

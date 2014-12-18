@@ -1264,7 +1264,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
         final Connection connection = ctx.getConnection();
         
-        final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
+        final MemoryManager memoryManager = connection.getMemoryManager();
         final HttpHeader httpHeader = httpContent.getHttpHeader();
         final ContentParsingState parsingState =
                 ((HttpPacketParsing) httpHeader).getContentParsingState();

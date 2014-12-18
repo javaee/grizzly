@@ -45,6 +45,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.glassfish.grizzly.attributes.AttributeStorage;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.utils.NullaryFunction;
@@ -209,6 +210,12 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * @param runnable 
      */
     void executeInEventThread(IOEvent event, Runnable runnable);
+    
+    /**
+     * @return an associated {@link MemoryManager}. It's a shortcut for {@link #getTransport()#getMemoryManager()}
+     * @since 2.3.18
+     */
+    MemoryManager<?> getMemoryManager();
     
     /**
      * Get the connection peer address

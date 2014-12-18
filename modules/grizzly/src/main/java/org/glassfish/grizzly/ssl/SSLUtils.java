@@ -317,7 +317,7 @@ public final class SSLUtils {
         
         if (output != netBuffer) {
             output = allowDispose(Buffers.appendBuffers(
-                    connection.getTransport().getMemoryManager(),
+                    connection.getMemoryManager(),
                     netBuffer, output));
         }
 

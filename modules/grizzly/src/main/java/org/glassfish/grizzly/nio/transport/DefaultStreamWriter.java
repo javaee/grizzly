@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -99,12 +99,12 @@ public final class DefaultStreamWriter extends AbstractStreamWriter {
 
         @Override
         protected Buffer newBuffer(int size) {
-            return connection.getTransport().getMemoryManager().allocate(size);
+            return connection.getMemoryManager().allocate(size);
         }
 
         @Override
         protected Buffer reallocateBuffer(Buffer oldBuffer, int size) {
-            return connection.getTransport().getMemoryManager().reallocate(oldBuffer, size);
+            return connection.getMemoryManager().reallocate(oldBuffer, size);
         }
 
         @Override

@@ -1009,13 +1009,13 @@ public class FilterChainContext implements AttributeStorage {
     }
     
     /**
-     * <p>A simple alias for <code>FilterChainContext.getConnection().getTransport().getMemoryManager()</code>.
+     * <p>A simple alias for <code>FilterChainContext.getConnection().getMemoryManager()</code>.
      *
      * @return the {@link MemoryManager} associated with the {@link Connection}
      *  of this <code>FilterChainContext</code>.
      */
     public final MemoryManager getMemoryManager() {
-        return (getConnection().getTransport().getMemoryManager());
+        return getConnection().getMemoryManager();
     }
 
     public FilterChainContext copy() {
