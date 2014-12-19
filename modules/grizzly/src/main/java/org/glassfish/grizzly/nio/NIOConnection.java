@@ -884,7 +884,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         notifyIOEventEnabled(this, ioEvent);
         
         // if OP_READ was enabled at least once - isInitialReadRequired should be false
-        isInitialReadRequired &= !isOpRead;
+        isInitialReadRequired = isInitialReadRequired && !isOpRead;
         
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
         selectorHandler.registerKeyInterest(selectorRunner, selectionKey,
