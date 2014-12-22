@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -265,16 +265,24 @@ public class StaticResourcesAdapter implements Adapter {
         res.setContentLength(bb.limit());
         res.setContentType("text/html");
         res.flushHeaders();
-        if (res.getChannel() != null) {
-            res.getChannel().write(bb);
-            req.setNote(14, "SkipAfterService");
+        
+        byte[] b;
+        int offs;
+        int len;
+        if (bb.hasArray()) {
+            b = bb.array();
+            offs = bb.arrayOffset();
+            len = bb.remaining();
         } else {
-            byte b[] = new byte[bb.limit()];
+            b = new byte[bb.remaining()];
             bb.get(b);
-            ByteChunk chunk = new ByteChunk();
-            chunk.setBytes(b, 0, b.length);
-            res.doWrite(chunk);
+            offs = 0;
+            len = b.length;
         }
+        
+        ByteChunk chunk = new ByteChunk();
+        chunk.setBytes(b, offs, len);
+        res.doWrite(chunk);
     }
 
     /**
