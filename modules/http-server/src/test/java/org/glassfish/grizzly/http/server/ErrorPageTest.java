@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -124,6 +124,8 @@ public class ErrorPageTest {
                 (HttpResponsePacket) responseContent.getHttpHeader();
         assertEquals(500, responsePacket.getStatus());
         assertTrue(responseContent.getContent().hasRemaining());
+        // test the default error-page content-type
+        assertTrue(responsePacket.getContentType().startsWith("text/html"));
         
         String errorPage = responseContent.getContent().toStringContent();
         System.out.println(errorPage);
@@ -131,6 +133,42 @@ public class ErrorPageTest {
         assertTrue(errorPage.contains("service")); // check the stacktrace
     }
     
+    @Test
+    public void testCustomErrorPageContentType() throws Exception {
+        final HttpPacket request = createRequest("/index.html", null);
+        final HttpContent responseContent = doTest(request, 10,
+                new HttpHandler() {
+
+                    @Override
+                    public void service(Request request, Response response) throws Exception {
+                        response.setErrorPageGenerator(new DefaultErrorPageGenerator() {
+
+                            @Override
+                            public String generate(Request request, int status,
+                                    String reasonPhrase, String description,
+                                    Throwable exception) {
+                                request.getResponse().setContentType("text/mytype");
+                                return super.generate(request, status,
+                                        reasonPhrase, description, exception);
+                            }
+                        });
+                        
+                        throw new IOException("TestError");
+                    }
+                });
+
+        final HttpResponsePacket responsePacket =
+                (HttpResponsePacket) responseContent.getHttpHeader();
+        assertEquals(500, responsePacket.getStatus());
+        assertTrue(responseContent.getContent().hasRemaining());
+        // check the custom error-page content type
+        assertTrue(responsePacket.getContentType().startsWith("text/mytype"));
+        
+        String errorPage = responseContent.getContent().toStringContent();
+        System.out.println(errorPage);
+        assertTrue(errorPage.contains("TestError"));
+        assertTrue(errorPage.contains("service")); // check the stacktrace
+    }
     
     private HttpPacket createRequest(String uri, Map<String, String> headers) {
 
