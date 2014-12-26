@@ -83,7 +83,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
      */
     public void doTask() throws IOException {
         boolean continueExecution = true;
-        while (continueExecution) {
+        do {
             try {
                 switch (stage) {
                     case AsyncTask.PRE_EXECUTE:
@@ -107,10 +107,6 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                         continueExecution = asyncExecutor.execute();
                         break;
                     case AsyncTask.POST_EXECUTE:
-                        if (SuspendResponseUtils.removeSuspendedInCurrentThread()) {
-                            return;
-                        }
-
                         continueExecution = asyncExecutor.postExecute();
                         if (continueExecution) {
                             final ProcessorTask processorTask =
@@ -144,10 +140,18 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                     throw new RuntimeException(t);
                 }
             }
-        }
+        } while (continueExecution && !checkRequestSuspended());
     }
 
-    
+    /**
+     * @return <tt>true</tt> if the request execution has been suspended in the
+     * current thread, or <tt>false</tt> otherwise. The suspend flag is getting
+     * reset.
+     */
+    private static boolean checkRequestSuspended() {
+        return SuspendResponseUtils.removeSuspendedInCurrentThread();
+    }
+
     /**
      * Return the <code>stage</code> of the current execution.
      */
@@ -230,7 +234,8 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
     }
     
     private ThreadAttachment obtainAndSetThreadAttachment() {
-        final SelectionKey selectionKey = asyncExecutor.getProcessorTask().getSelectionKey();
+        final ProcessorTask processorTask = asyncExecutor.getProcessorTask();
+        final SelectionKey selectionKey = processorTask.getSelectionKey();
         Object attachment = selectionKey.attachment();
         if (attachment == null || !(attachment instanceof ThreadAttachment)) {
             attachment = obtainThreadAttachment();
