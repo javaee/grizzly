@@ -376,10 +376,6 @@ public final class SSLConnectionContext {
         
         final Status status = sslEngineResult.getStatus();
         
-        if (status == SSLEngineResult.Status.CLOSED) {
-            return new SslResult(output, new SSLException("SSLEngine is CLOSED"));
-        }
-        
         final boolean isOverflow = (status == SSLEngineResult.Status.BUFFER_OVERFLOW);
         
         if (allocator != null && isOverflow) {

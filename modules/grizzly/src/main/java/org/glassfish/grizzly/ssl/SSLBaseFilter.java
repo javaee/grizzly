@@ -58,6 +58,8 @@ import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseReason;
+import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Event;
@@ -123,6 +125,10 @@ public class SSLBaseFilter extends BaseFilter {
     
     private long handshakeTimeoutMillis = -1;
     
+    // the reason to be passed to a Connection, once the connection is getting
+    // closed because its SSL session gets closed
+    private CloseReason sslSessionClosedReason;
+        
     // ------------------------------------------------------------ Constructors
 
 
@@ -761,15 +767,25 @@ public class SSLBaseFilter extends BaseFilter {
         notifyHandshakeStart(c);
 
         try {
-            return doHandshakeSync(sslCtx, context, null, handshakeTimeoutMillis);
-
+            final Buffer buffer = doHandshakeSync(
+                    sslCtx, context, null, handshakeTimeoutMillis);
+            
+            notifyHandshakeComplete(c, sslCtx.getSslEngine());
+            
+            return buffer;
         } catch (Throwable t) {
+            notifyHandshakeFailed(c, t);
+            
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "Error during handshake", t);
+                LOGGER.log(Level.FINE, "Error during re-handshaking", t);
             }
+            
+            if (t instanceof SSLException) {
+                throw (SSLException) t;
+            }
+            
+            throw new SSLException("Error during re-handshaking", t);
         }
-        
-        return null;
     }
 
     /**
@@ -920,6 +936,17 @@ public class SSLBaseFilter extends BaseFilter {
             for (final HandshakeListener listener : handshakeListeners) {
                 listener.onComplete(connection);
             }
+        }
+        
+        if (sslEngine.isInboundDone() && sslEngine.isOutboundDone()) {
+            CloseReason reason = sslSessionClosedReason;
+            if (reason == null) {
+                reason = new CloseReason(CloseType.LOCALLY,
+                        new IOException("SSL session was closed"));
+                sslSessionClosedReason = reason;
+            }
+            
+            connection.closeWithReason(reason);
         }
     }
 
