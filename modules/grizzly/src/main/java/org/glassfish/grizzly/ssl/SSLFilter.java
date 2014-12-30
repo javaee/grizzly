@@ -154,9 +154,8 @@ public class SSLFilter extends SSLBaseFilter {
             } else {
                 if (sslEngine == null ||
                         !handshakeContextAttr.isSet(connection)) {
-                    handshake(connection,
-                            null,
-                            null, clientSSLEngineConfigurator, ctx);
+                    handshake(connection, null, null,
+                            clientSSLEngineConfigurator, ctx, false);
                 }
 
                 return accurateWrite(ctx, false);
@@ -214,14 +213,15 @@ public class SSLFilter extends SSLBaseFilter {
     throws IOException {
         handshake(connection, completionHandler, dstAddress,
                   sslEngineConfigurator,
-                  createContext(connection, Operation.WRITE));
+                  createContext(connection, Operation.WRITE), true);
     }
 
     protected void handshake(final Connection<?> connection,
                           final CompletionHandler<SSLEngine> completionHandler,
                           final Object dstAddress,
                           final SSLEngineConfigurator sslEngineConfigurator,
-                          final FilterChainContext context)
+                          final FilterChainContext context,
+                          final boolean forceBeginHandshake)
     throws IOException {
         final SSLConnectionContext sslCtx = obtainSslConnectionContext(connection);
         SSLEngine sslEngine = sslCtx.getSslEngine();
@@ -234,7 +234,13 @@ public class SSLFilter extends SSLBaseFilter {
         }
         
         notifyHandshakeStart(connection);
-        sslEngine.beginHandshake();
+        
+        // if the session is still valid - we're most probably
+        // tearing down the SSL session and we can't do beginHandshake(),
+        // because it will throw an exception
+        if (forceBeginHandshake || !sslEngine.getSession().isValid()) {
+            sslEngine.beginHandshake();
+        }
 
         handshakeContextAttr.set(connection,
                 new SSLHandshakeContext(connection, completionHandler));
@@ -370,7 +376,7 @@ public class SSLFilter extends SSLBaseFilter {
             return true;
         }
         
-        public void completed(SSLEngine result) {
+        public void completed(final SSLEngine engine) {
             try {
                 synchronized (connection) {
                     isComplete = true;
@@ -380,20 +386,13 @@ public class SSLFilter extends SSLBaseFilter {
                     completionHandler = null;
                     
                     if (completionHandlerLocal != null) {
-                        completionHandlerLocal.completed(result);
+                        completionHandlerLocal.completed(engine);
                     }
                     
-                    final List<FilterChainContext> pendingWriteContextsLocal =
-                            pendingWriteContexts;
-                    pendingWriteContexts = null;
-                    
-                    if (pendingWriteContextsLocal != null) {
-                        for (FilterChainContext ctx : pendingWriteContextsLocal) {
-                            ctx.resume();
-                        }
-
-                        pendingWriteContextsLocal.clear();
-                        sizeInBytes = 0;
+                    if (!engine.isOutboundDone()) {
+                        resumePendingWrites();
+                    } else {
+                        failPendingWrites(new IOException("SSL output is closed"));
                     }
                 }
             } catch (Exception e) {
@@ -401,9 +400,14 @@ public class SSLFilter extends SSLBaseFilter {
             }
         }
 
-        public void failed(Throwable throwable) {
-            synchronized(connection) {
-                error = Exceptions.makeIOException(throwable);
+        public void failed(final Throwable throwable) {
+            final IOException ioException =
+                    Exceptions.makeIOException(throwable);
+            
+            connection.closeWithReason(ioException);
+            
+            synchronized (connection) {
+                error = ioException;
                 
                 final CompletionHandler<SSLEngine> completionHandlerLocal =
                         completionHandler;
@@ -413,21 +417,38 @@ public class SSLFilter extends SSLBaseFilter {
                     completionHandlerLocal.failed(throwable);
                 }
                 
-                final List<FilterChainContext> pendingWriteContextsLocal =
-                        pendingWriteContexts;
-                pendingWriteContexts = null;
-                
-                if (pendingWriteContextsLocal != null) {
-                    for (FilterChainContext ctx : pendingWriteContextsLocal) {
-                        ctx.resume();
-                    }
-                    
-                    pendingWriteContextsLocal.clear();
-                    sizeInBytes = 0;
-                }
+                failPendingWrites(ioException);
             }
-
-            connection.closeSilently();
+        }
+        
+        private void resumePendingWrites() {
+            final List<FilterChainContext> pendingWriteContextsLocal =
+                    pendingWriteContexts;
+            pendingWriteContexts = null;
+            
+            if (pendingWriteContextsLocal != null) {
+                for (FilterChainContext ctx : pendingWriteContextsLocal) {
+                    ctx.resume();
+                }
+                
+                pendingWriteContextsLocal.clear();
+                sizeInBytes = 0;
+            }
+        }
+        
+        private void failPendingWrites(final IOException error) {
+            final List<FilterChainContext> pendingWriteContextsLocal =
+                    pendingWriteContexts;
+            pendingWriteContexts = null;
+            
+            if (pendingWriteContextsLocal != null) {
+                for (FilterChainContext ctx : pendingWriteContextsLocal) {
+                    ctx.fail(error);
+                }
+                
+                pendingWriteContextsLocal.clear();
+                sizeInBytes = 0;
+            }
         }        
     }
 

@@ -123,6 +123,10 @@ public class SSLBaseFilter extends BaseFilter {
     
     private long handshakeTimeoutMillis = -1;
     
+    // the reason to be passed to a Connection, once the connection is getting
+    // closed because its SSL session gets closed
+    private IOException sslSessionClosedReason;
+        
     // ------------------------------------------------------------ Constructors
 
 
@@ -747,15 +751,25 @@ public class SSLBaseFilter extends BaseFilter {
         notifyHandshakeStart(c);
 
         try {
-            return doHandshakeSync(sslCtx, context, null, handshakeTimeoutMillis);
-
+            final Buffer buffer = doHandshakeSync(
+                    sslCtx, context, null, handshakeTimeoutMillis);
+            
+            notifyHandshakeComplete(c, sslCtx.getSslEngine());
+            
+            return buffer;
         } catch (Throwable t) {
+            notifyHandshakeFailed(c, t);
+            
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "Error during handshake", t);
+                LOGGER.log(Level.FINE, "Error during re-handshaking", t);
             }
+            
+            if (t instanceof SSLException) {
+                throw (SSLException) t;
+            }
+            
+            throw new SSLException("Error during re-handshaking", t);
         }
-        
-        return null;
     }
 
     /**
@@ -900,6 +914,16 @@ public class SSLBaseFilter extends BaseFilter {
             for (final HandshakeListener listener : handshakeListeners) {
                 listener.onComplete(connection);
             }
+        }
+        
+        if (sslEngine.isInboundDone() && sslEngine.isOutboundDone()) {
+            IOException reason = sslSessionClosedReason;
+            if (reason == null) {
+                reason = new IOException("SSL session was closed");
+                sslSessionClosedReason = reason;
+            }
+            
+            connection.closeWithReason(reason);
         }
     }
 

@@ -230,71 +230,6 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
     L getLocalAddress();
 
     /**
-     * Close the {@link Connection} silently, no notification required on
-     * completion or failure.
-     */
-    @Override
-    public void terminateSilently();
-
-    /**
-     * Close the {@link Connection}
-     *
-     * @return {@link Future}, which could be checked in case, if close operation
-     *         will be run asynchronously
-     */
-    @Override
-    public GrizzlyFuture<Closeable> terminate();
-    
-    /**
-     * Closes the <tt>Connection</tt> and provides the reason description.
-     * 
-     * This method is similar to {@link #terminateSilently()}, but additionally
-     * provides the reason why the <tt>Connection</tt> will be closed.
-     * 
-     * @param reason 
-     */
-    @Override
-    void terminateWithReason(IOException reason);
-    
-    /**
-     * Gracefully close the {@link Connection}
-     *
-     * @return {@link Future}, which could be checked in case, if close operation
-     *         will be run asynchronously
-     */
-    @Override
-    GrizzlyFuture<Closeable> close();
-
-    /**
-     * Gracefully close the {@link Connection}
-     *
-     * @param completionHandler {@link CompletionHandler} to be called, when
-     *  the connection is closed.
-     * 
-     * @deprecated use {@link #close()} with the following {@link GrizzlyFuture#addCompletionHandler(org.glassfish.grizzly.CompletionHandler)}.
-     */
-    @Override
-    void close(CompletionHandler<Closeable> completionHandler);
-
-    /**
-     * Gracefully close the {@link Connection} silently, no notification required on
-     * completion or failure.
-     */
-    @Override
-    void closeSilently();
-
-    /**
-     * Gracefully closes the <tt>Connection</tt> and provides the reason description.
-     * 
-     * This method is similar to {@link #closeSilently()}, but additionally
-     * provides the reason why the <tt>Connection</tt> will be closed.
-     * 
-     * @param reason 
-     */
-    @Override
-    void closeWithReason(IOException reason);
-    
-    /**
      * Get the default size of {@link Buffer}s, which will be allocated for
      * reading data from {@link Connection}.
      * The value less or equal to zero will be ignored.
@@ -416,6 +351,71 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
     @Override
     MonitoringConfig<ConnectionProbe> getMonitoringConfig();
 
+    /**
+     * Close the {@link Connection} silently, no notification required on
+     * completion or failure.
+     */
+    @Override
+    public void terminateSilently();
+
+    /**
+     * Close the {@link Connection}
+     *
+     * @return {@link Future}, which could be checked in case, if close operation
+     *         will be run asynchronously
+     */
+    @Override
+    public GrizzlyFuture<Closeable> terminate();
+    
+    /**
+     * Closes the <tt>Connection</tt> and provides the reason description.
+     * 
+     * This method is similar to {@link #terminateSilently()}, but additionally
+     * provides the reason why the <tt>Connection</tt> will be closed.
+     * 
+     * @param reason 
+     */
+    @Override
+    void terminateWithReason(IOException reason);
+    
+    /**
+     * Gracefully close the {@link Connection}
+     *
+     * @return {@link Future}, which could be checked in case, if close operation
+     *         will be run asynchronously
+     */
+    @Override
+    GrizzlyFuture<Closeable> close();
+
+    /**
+     * Gracefully close the {@link Connection}
+     *
+     * @param completionHandler {@link CompletionHandler} to be called, when
+     *  the connection is closed.
+     * 
+     * @deprecated use {@link #close()} with the following {@link GrizzlyFuture#addCompletionHandler(org.glassfish.grizzly.CompletionHandler)}.
+     */
+    @Override
+    void close(CompletionHandler<Closeable> completionHandler);
+
+    /**
+     * Gracefully close the {@link Connection} silently, no notification required on
+     * completion or failure.
+     */
+    @Override
+    void closeSilently();
+
+    /**
+     * Gracefully closes the <tt>Connection</tt> and provides the reason description.
+     * 
+     * This method is similar to {@link #closeSilently()}, but additionally
+     * provides the reason why the <tt>Connection</tt> will be closed.
+     * 
+     * @param reason 
+     */
+    @Override
+    void closeWithReason(IOException reason);
+    
     /**
      * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>
      * will be closed.
