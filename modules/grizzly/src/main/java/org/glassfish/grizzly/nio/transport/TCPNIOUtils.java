@@ -105,7 +105,7 @@ public class TCPNIOUtils {
 
     public static int writeSimpleBuffer(final TCPNIOConnection connection,
             final Buffer buffer) throws IOException {
-        final SocketChannel socketChannel = (SocketChannel)connection.getChannel();
+        final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
         final int oldPos = buffer.position();
         final int oldLim = buffer.limit();
         
@@ -209,7 +209,8 @@ public class TCPNIOUtils {
 
     private static int calcWriteBufferSize(final TCPNIOConnection connection,
             final int bufferSize) {
-        return Math.min(bufferSize, (connection.getWriteBufferSize() * 3) / 2);
+        return Math.min(TCPNIOTransport.MAX_SEND_BUFFER_SIZE,
+                Math.min(bufferSize, (connection.getWriteBufferSize() * 3) / 2));
     }
 
     public static Buffer allocateAndReadBuffer(final TCPNIOConnection connection)
