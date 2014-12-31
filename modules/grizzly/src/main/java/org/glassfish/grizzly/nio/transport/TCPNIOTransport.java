@@ -99,6 +99,10 @@ public final class TCPNIOTransport extends NIOTransport implements
     public static final int MAX_RECEIVE_BUFFER_SIZE =
             Integer.getInteger(TCPNIOTransport.class.getName() +
                     ".max-receive-buffer-size", Integer.MAX_VALUE);
+
+    public static final int MAX_SEND_BUFFER_SIZE =
+            Integer.getInteger(TCPNIOTransport.class.getName() +
+                    ".max-send-buffer-size", Integer.MAX_VALUE);
     
     public static final boolean DEFAULT_TCP_NO_DELAY = true;
     public static final boolean DEFAULT_KEEP_ALIVE = true;
