@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Filter;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
@@ -389,13 +390,11 @@ public class SSLFilter extends SSLBaseFilter {
                         completionHandlerLocal.completed(engine);
                     }
                     
-                    if (!engine.isOutboundDone()) {
-                        resumePendingWrites();
-                    } else {
-                        failPendingWrites(new IOException("SSL output is closed"));
-                    }
+                    resumePendingWrites();
                 }
             } catch (Exception e) {
+                LOGGER.log(Level.FINE,
+                        "Unexpected SSLHandshakeContext.completed() error", e);
                 failed(e);
             }
         }
@@ -417,7 +416,7 @@ public class SSLFilter extends SSLBaseFilter {
                     completionHandlerLocal.failed(throwable);
                 }
                 
-                failPendingWrites(ioException);
+                resumePendingWrites();
             }
         }
         
@@ -428,28 +427,17 @@ public class SSLFilter extends SSLBaseFilter {
             
             if (pendingWriteContextsLocal != null) {
                 for (FilterChainContext ctx : pendingWriteContextsLocal) {
-                    ctx.resume();
+                    try {
+                        ctx.resume();
+                    } catch (Exception e) {
+                        
+                    }
                 }
                 
                 pendingWriteContextsLocal.clear();
                 sizeInBytes = 0;
             }
         }
-        
-        private void failPendingWrites(final IOException error) {
-            final List<FilterChainContext> pendingWriteContextsLocal =
-                    pendingWriteContexts;
-            pendingWriteContexts = null;
-            
-            if (pendingWriteContextsLocal != null) {
-                for (FilterChainContext ctx : pendingWriteContextsLocal) {
-                    ctx.fail(error);
-                }
-                
-                pendingWriteContextsLocal.clear();
-                sizeInBytes = 0;
-            }
-        }        
     }
 
     /**
