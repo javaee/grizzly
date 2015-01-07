@@ -254,11 +254,11 @@ public class WebServerFilter extends BaseFilter {
             response = HttpResponsePacket.builder(request).
                 protocol(request.getProtocol()).status(200).
                 reasonPhrase("OK").chunked(true).build();
-            memoryManager = ctx.getConnection().getTransport().getMemoryManager();
+            memoryManager = ctx.getMemoryManager();
         }
 
         /**
-         * Start the file tranferring
+         * Start the file transferring
          * 
          * @throws IOException
          */
@@ -275,8 +275,8 @@ public class WebServerFilter extends BaseFilter {
             final Buffer buffer = memoryManager.allocate(1024);
             
             // prepare byte[] for InputStream.read(...)
-            final byte[] bufferByteArray = buffer.toByteBuffer().array();
-            final int offset = buffer.toByteBuffer().arrayOffset();
+            final byte[] bufferByteArray = buffer.array();
+            final int offset = buffer.arrayOffset();
             final int length = buffer.remaining();
 
             // Read file chunk from the file input stream
