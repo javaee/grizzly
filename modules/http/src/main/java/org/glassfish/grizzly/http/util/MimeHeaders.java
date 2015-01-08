@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,8 +58,6 @@
 
 package org.glassfish.grizzly.http.util;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Iterator;
 import org.glassfish.grizzly.Buffer;
 
@@ -188,14 +186,18 @@ public class MimeHeaders {
      */
     @Override
     public String toString() {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        pw.println("=== MimeHeaders ===");
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("=== MimeHeaders ===\n");
 
-        for (String name : names()) {
-            pw.println(name + " = " + getHeader(name));
+        for (int i = 0; i < count; i++) {
+            sb.append(headers[i].nameB)
+                    .append(" = ")
+                    .append(headers[i].valueB)
+                    .append('\n');
         }
-        return sw.toString();
+        
+        return sb.toString();
     }
 
     public void copyFrom(final MimeHeaders source) {
