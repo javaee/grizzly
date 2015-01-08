@@ -60,8 +60,6 @@ package com.sun.grizzly.util.http;
 
 import com.sun.grizzly.util.buf.MessageBytes;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Enumeration;
 
 /* XXX XXX XXX Need a major rewrite  !!!!
@@ -184,15 +182,18 @@ public class MimeHeaders {
      * EXPENSIVE!!!  only for debugging.
      */
     public String toString() {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        pw.println("=== MimeHeaders ===");
-        Enumeration<String> e = names();
-        while (e.hasMoreElements()) {
-            String n = e.nextElement();
-            pw.println(n + " = " + getHeader(n));
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("=== MimeHeaders ===\n");
+
+        for (int i = 0; i < count; i++) {
+            sb.append(headers[i].nameB)
+                    .append(" = ")
+                    .append(headers[i].valueB)
+                    .append('\n');
         }
-        return sw.toString();
+        
+        return sb.toString();
     }
 
     // -------------------- Idx access to headers ----------
