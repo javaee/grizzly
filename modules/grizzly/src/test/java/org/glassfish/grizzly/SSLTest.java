@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -318,37 +318,35 @@ public class SSLTest {
 
             assertNotNull(connection);
 
-            final CountDownLatch latch = new CountDownLatch(1);
+            final FutureImpl<Boolean> result1 = Futures.createSafeFuture();
             trustCert.set(false);
             connection.write("message", new CompletionHandler() {
                 @Override
                 public void cancelled() {
-                    fail("CompletionHandler.cancelled() should not have been called.");
+                    result1.failure(new IllegalStateException("CompletionHandler.cancelled() should not have been called."));
                 }
 
                 @Override
                 public void failed(Throwable throwable) {
-                    try {
-                        assertTrue(throwable instanceof SSLHandshakeException);
-                    } finally {
-                        latch.countDown();
+                    if (throwable instanceof SSLHandshakeException) {
+                        result1.result(true);
+                    } else {
+                        result1.failure(new IllegalStateException("SSLHandshakeException is expected, but " + throwable.getClass().getName() + " was hit", throwable));
                     }
                 }
 
                 @Override
                 public void completed(Object result) {
-                    fail("CompletionHandler.onComplete() should not have been called.");
+                    result1.failure(new IllegalStateException("CompletionHandler.onComplete() should not have been called."));
                 }
 
                 @Override
                 public void updated(Object result) {
-                    fail("CompletionHandler.updated() should not have been called.");
+                    result1.failure(new IllegalStateException("CompletionHandler.updated() should not have been called."));
                 }
             });
 
-            if (!latch.await(10, TimeUnit.SECONDS)) {
-                fail("Timed out waiting for CompletionHandler.failed() to be invoked");
-            }
+            result1.get(10, TimeUnit.SECONDS);
 
             connection.closeSilently();
             connection = null;
@@ -356,38 +354,37 @@ public class SSLTest {
             future = cTransport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
 
-            final CountDownLatch latch2 = new CountDownLatch(1);
+            final FutureImpl<Boolean> result2 = Futures.createSafeFuture();
 
             trustCert.set(true);
             connection.write("message", new CompletionHandler() {
                 @Override
                 public void cancelled() {
-                    fail("CompletionHandler.cancelled() should not have been called.");
+                    result2.failure(new IllegalStateException("CompletionHandler.cancelled() should not have been called."));
                 }
 
                 @Override
                 public void failed(Throwable throwable) {
-                    fail("CompletionHandler.failed() should not have been called.");
+                    result2.failure(new IllegalStateException("CompletionHandler.failed() should not have been called."));
                 }
 
                 @Override
                 public void completed(Object result) {
-                    try {
-                        assertTrue(result instanceof WriteResult);
-                    } finally {
-                        latch2.countDown();
+                    if (result instanceof WriteResult) {
+                        result2.result(true);
+                    } else {
+                        result2.failure(new IllegalStateException("Unexpected result: " + result));
                     }
+
                 }
 
                 @Override
                 public void updated(Object result) {
-                    fail("CompletionHandler.updated() should not have been called.");
+                    result2.failure(new IllegalStateException("CompletionHandler.updated() should not have been called."));
                 }
             });
 
-            if (!latch2.await(10, TimeUnit.SECONDS)) {
-                fail("Timed out waiting for CompletionHandler.completed() to be invoked");
-            }
+            result2.get(10, TimeUnit.SECONDS);
 
             connection.closeSilently();
             connection = null;
