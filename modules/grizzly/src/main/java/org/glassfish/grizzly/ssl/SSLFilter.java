@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.ssl;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Filter;
@@ -238,7 +239,15 @@ public class SSLFilter extends SSLBaseFilter {
         SSLEngine sslEngine = sslCtx.getSslEngine();
         
         if (sslEngine == null) {
-            sslEngine = sslEngineConfigurator.createSSLEngine();
+            
+            // try to get the peer's host name we try to connect to
+            final Object addr = connection.getPeerAddress();
+            final String host = (addr instanceof InetSocketAddress) ?
+                    ((InetSocketAddress) addr).getHostName(): //getHostString() could be better, but it's supported in 1.7+
+                    null;
+            
+            sslEngine = sslEngineConfigurator.createSSLEngine(host, -1);
+            
             sslCtx.configure(sslEngine);
         } else if (!isHandshaking(sslEngine)) { // if handshake haven't been started
             sslEngineConfigurator.configure(sslEngine);
@@ -313,6 +322,7 @@ public class SSLFilter extends SSLBaseFilter {
         final SSLHandshakeContext handshakeContext =
                 handshakeContextAttr.get(connection);
         if (handshakeContext != null) {
+            connection.removeCloseListener(closeListener);
             handshakeContext.failed(t);
         }
 
@@ -330,7 +340,7 @@ public class SSLFilter extends SSLBaseFilter {
         private List<FilterChainContext> pendingWriteContexts;
         private int sizeInBytes = 0;
         
-        private IOException error;
+        private Throwable error;
         private boolean isComplete;
         
         public SSLHandshakeContext(final Connection connection,
@@ -343,7 +353,7 @@ public class SSLFilter extends SSLBaseFilter {
          * Has to be called in synchronized(connection) {...} scope.
          */
         public boolean add(FilterChainContext context) throws IOException {
-            if (error != null) throw error;
+            if (error != null) throw Exceptions.makeIOException(error);
             if (isComplete) return false;
 
             final Buffer buffer = context.getMessage();
@@ -391,14 +401,12 @@ public class SSLFilter extends SSLBaseFilter {
         }
 
         public void failed(final Throwable throwable) {
-            final IOException ioException =
-                    Exceptions.makeIOException(throwable);
-            
-            connection.closeWithReason(
-                    new CloseReason(CloseType.LOCALLY, ioException));
-            
             synchronized (connection) {
-                error = ioException;
+                if (error != null) {
+                    return;
+                }
+                
+                error = throwable;
                 
                 final CompletionHandler<SSLEngine> completionHandlerLocal =
                         completionHandler;
@@ -407,8 +415,13 @@ public class SSLFilter extends SSLBaseFilter {
                 if (completionHandlerLocal != null) {
                     completionHandlerLocal.failed(throwable);
                 }
+
+                connection.closeWithReason(
+                        new CloseReason(CloseType.LOCALLY,
+                                Exceptions.makeIOException(throwable)));
                 
-                failPendingWrites(ioException);
+                // pending writes will fail
+                failPendingWrites(error);
             }
         }
         
@@ -427,7 +440,7 @@ public class SSLFilter extends SSLBaseFilter {
             }
         }
         
-        private void failPendingWrites(final IOException error) {
+        private void failPendingWrites(final Throwable error) {
             final List<FilterChainContext> pendingWriteContextsLocal =
                     pendingWriteContexts;
             pendingWriteContexts = null;
