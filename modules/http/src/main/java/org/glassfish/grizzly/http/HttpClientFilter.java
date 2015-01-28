@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,6 +57,7 @@ import org.glassfish.grizzly.http.util.Ascii;
 import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HttpStatus;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 
@@ -141,19 +142,17 @@ public class HttpClientFilter extends HttpCodecFilter {
      */
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
-        Buffer input = ctx.getMessage();
         final Connection connection = ctx.getConnection();
         ClientHttpResponseImpl httpResponse = httpResponseInProcessAttr.get(connection);
+        
         if (httpResponse == null) {
-            httpResponse = ClientHttpResponseImpl.create();
-            final Queue<HttpRequestPacket> requestQueue = getRequestQueue(connection);
-            httpResponse.setRequest(requestQueue.poll());
-            httpResponse.initialize(this, input.position(), maxHeadersSize, MimeHeaders.MAX_NUM_HEADERS_UNBOUNDED);
-            httpResponse.setSecure(isSecure(connection));
+            httpResponse = createHttpResponse(ctx);
+
             httpResponseInProcessAttr.set(connection, httpResponse);
         }
         
         final HttpRequestPacket request = httpResponse.getRequest();
+        
         HttpContext httpCtx;
         if (request != null) {
             httpCtx = request.getProcessingState().getHttpContext();
@@ -174,7 +173,35 @@ public class HttpClientFilter extends HttpCodecFilter {
         return handleRead(ctx, httpResponse);
     }
 
+    private ClientHttpResponseImpl createHttpResponse(FilterChainContext ctx) {
+        final Buffer input = ctx.getMessage();
+        final Connection connection = ctx.getConnection();
+        
+        ClientHttpResponseImpl httpResponse = ClientHttpResponseImpl.create();
+        final HttpRequestPacket httpRequest =
+                getRequestQueue(connection).poll();
+        httpResponse.setRequest(httpRequest);
+        httpResponse.initialize(this, input.position(),
+                maxHeadersSize, MimeHeaders.MAX_NUM_HEADERS_UNBOUNDED);
+        httpResponse.setSecure(isSecure(connection));
+        // check if the client HTTP Filter knows how to parse the
+        // incoming HTTP response of the specific HTTP protocol version.
+        if (!is1XProtocol(httpRequest)) {
+            // if the filter doesn't know how to parse the response
+            // just create a dummy response object, so the HTTP response
+            // will be passed upstream as an HttpContent
+            httpResponse.setProtocol(httpRequest.getProtocol());
+            httpResponse.setStatus(HttpStatus.OK_200);
+            httpResponse.setExpectContent(true);
+            httpResponse.setHeaderParsed(true);
+        }
+        return httpResponse;
+    }
 
+    protected boolean is1XProtocol(final HttpRequestPacket requestPacket) {
+        return requestPacket == null ||
+                !Protocol.HTTP_2_0.equals(requestPacket.getProtocolDC());
+    }
     
     @Override
     protected boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {

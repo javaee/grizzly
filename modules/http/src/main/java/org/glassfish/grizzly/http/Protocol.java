@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -135,17 +135,21 @@ public enum Protocol {
     private final String protocolString;
     private final int majorVersion;
     private final int minorVersion;
-    private byte[] protocolBytes;
+    private final byte[] protocolBytes;
 
     Protocol(final int majorVersion, final int minorVersion) {
         this.majorVersion = majorVersion;
         this.minorVersion = minorVersion;
         this.protocolString = "HTTP/" + majorVersion + '.' + minorVersion;
+        
+        byte[] protocolBytes0;
         try {
-            protocolBytes = protocolString.getBytes("US-ASCII");
+            protocolBytes0 = protocolString.getBytes("US-ASCII");
         } catch (UnsupportedEncodingException ignored) {
-            protocolBytes = protocolString.getBytes(Charsets.ASCII_CHARSET);
+            protocolBytes0 = protocolString.getBytes(Charsets.ASCII_CHARSET);
         }
+        
+        this.protocolBytes = protocolBytes0;
     }
 
     public int getMajorVersion() {
@@ -164,4 +168,14 @@ public enum Protocol {
         return protocolBytes;
     }
 
+    public boolean equals(final String s) {
+        return s != null &&
+                ByteChunk.equals(protocolBytes, 0, protocolBytes.length, s);
+    }
+    
+    public boolean equals(final DataChunk protocolC) {
+        return protocolC != null &&
+                !protocolC.isNull() &&
+                protocolC.equals(protocolBytes);
+    }
 }
