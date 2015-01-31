@@ -3,7 +3,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -46,27 +46,61 @@
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
         <version>3.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly.samples</groupId>
-    <artifactId>grizzly-samples</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>grizzly-tls-sni-samples</artifactId>
+    <packaging>bundle</packaging>
     <version>3.0-SNAPSHOT</version>
-    <name>grizzly-samples</name>
-    <modules>
-        <module>framework-samples</module>
-        <module>http-samples</module>
-        <module>websockets/chat</module>
-        <module>websockets/chat-ssl</module>
-        <module>http-server-samples</module>
-        <module>http-multipart-samples</module>
-        <module>portunif</module>
-        <module>comet</module>
-        <module>http-ajp-samples</module>
-        <module>http-jaxws-samples</module>
-        <module>spdy-samples</module>
-        <module>connection-pool-samples</module>
-        <module>tls-sni-samples</module>
-    </modules>
+    <name>grizzly-tls-sni-samples</name>
+    <build>
+        <defaultGoal>install</defaultGoal>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+        </testResources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <forkMode>always</forkMode>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Import-Package>
+                            org.glassfish.grizzly*;version=${project.version},
+                            *,
+                        </Import-Package>
+                        <Export-Package>
+                            org.glassfish.grizzly.samples.sni.*;version=${project.version},
+                        </Export-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-http-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>tls-sni</artifactId>
+        </dependency>
+    </dependencies>
 </project>
