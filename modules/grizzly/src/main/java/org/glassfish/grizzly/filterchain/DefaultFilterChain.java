@@ -867,17 +867,40 @@ public final class DefaultFilterChain implements FilterChain {
             final Filter newFilter) {
         
         synchronized (idToRegMap) {
-            removeFilterReg(oldFilterReg);
-            return addFilterRegAfter(oldFilterReg.prev, newFilter);
+            if (idToRegMap.remove(oldFilterReg.name) != null) {
+                oldFilterReg.filter.onRemoved(oldFilterReg); // Notify the filter
+            }
+            
+            final FilterReg newFilterReg = newFilterReg(newFilter, false);
+            newFilterReg.prev = oldFilterReg.prev;
+            newFilterReg.next = oldFilterReg.next;
+            
+            oldFilterReg.prev.next = newFilterReg;
+            oldFilterReg.next.prev = newFilterReg;
+
+            newFilter.onAdded(newFilterReg);
+            return newFilterReg;
         }
+        
     }
 
     FilterReg replaceFilterReg(final FilterReg oldFilterReg,
             final Filter newFilter, final String newFilterName) {
         
         synchronized (idToRegMap) {
-            removeFilterReg(oldFilterReg);
-            return addFilterRegAfter(oldFilterReg.prev, newFilter, newFilterName);
+            if (idToRegMap.remove(oldFilterReg.name) != null) {
+                oldFilterReg.filter.onRemoved(oldFilterReg); // Notify the filter
+            }
+            
+            final FilterReg newFilterReg = newFilterReg(newFilter, newFilterName, false);
+            newFilterReg.prev = oldFilterReg.prev;
+            newFilterReg.next = oldFilterReg.next;
+            
+            oldFilterReg.prev.next = newFilterReg;
+            oldFilterReg.next.prev = newFilterReg;
+            
+            newFilter.onAdded(newFilterReg);
+            return newFilterReg;
         }
     }
 
