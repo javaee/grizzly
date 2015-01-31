@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -127,6 +127,8 @@ public class SSLBaseFilter extends BaseFilter {
     // closed because its SSL session gets closed
     private IOException sslSessionClosedReason;
         
+    private SSLTransportFilterWrapper optimizedTransportFilter;
+    
     // ------------------------------------------------------------ Constructors
 
 
@@ -148,6 +150,11 @@ public class SSLBaseFilter extends BaseFilter {
      * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator}.
      *
      * @param serverSSLEngineConfigurator SSLEngine configurator for server side connections
+     * @param renegotiateOnClientAuthWant <tt>true</tt>, if SSLBaseFilter has to force client authentication
+     *              during re-handshake, in case the client didn't send its credentials
+     *              during the initial handshake in response to "wantClientAuth" flag.
+     *              In this case "needClientAuth" flag will be raised and re-handshake
+     *              will be initiated
      */
     public SSLBaseFilter(SSLEngineConfigurator serverSSLEngineConfigurator,
                      boolean renegotiateOnClientAuthWant) {
@@ -162,6 +169,17 @@ public class SSLBaseFilter extends BaseFilter {
         }
     }
 
+    /**
+     * @return <tt>true</tt>, if SSLBaseFilter has to force client authentication
+     * during re-handshake, in case the client didn't send its credentials
+     * during the initial handshake in response to "wantClientAuth" flag.
+     * In this case "needClientAuth" flag will be raised and re-handshake
+     * will be initiated
+     */
+    public boolean isRenegotiateOnClientAuthWant() {
+        return renegotiateOnClientAuthWant;
+    }
+    
     /**
      * @return {@link SSLEngineConfigurator} used by the filter to create new
      *      {@link SSLEngine} for server-side {@link Connection}s
@@ -205,37 +223,49 @@ public class SSLBaseFilter extends BaseFilter {
         }
     }
 
+    protected SSLTransportFilterWrapper getOptimizedTransportFilter(
+            final TransportFilter childFilter) {
+        if (optimizedTransportFilter == null ||
+                optimizedTransportFilter.wrappedFilter != childFilter) {
+            optimizedTransportFilter = createOptimizedTransportFilter(childFilter);
+        }
+        
+        return optimizedTransportFilter;
+    }
     
-    protected TransportFilter createOptimizedTransportFilter(
+    protected SSLTransportFilterWrapper createOptimizedTransportFilter(
             final TransportFilter childFilter) {
         return new SSLTransportFilterWrapper(childFilter);
     }
 
     @Override
-    public void onFilterChainChanged(final FilterChain filterChain) {
-        final boolean isSsl = filterChain.indexOfType(SSLBaseFilter.class) >= 0;
-        final int sslTransportFilterIdx = filterChain.indexOfType(SSLTransportFilterWrapper.class);
-        
-        if (isSsl) {
-            if (sslTransportFilterIdx == -1) {
-                final int transportFilterIdx =
-                        filterChain.indexOfType(TransportFilter.class);
-                if (transportFilterIdx >= 0) {
-                    filterChain.set(transportFilterIdx,
-                            createOptimizedTransportFilter(
-                            (TransportFilter) filterChain.get(transportFilterIdx)));
-                }
-            }
-        } else { // SSLBaseFilter has been removed
+    public void onRemoved(final FilterChain filterChain) {
+        if (optimizedTransportFilter != null) {
+            final int sslTransportFilterIdx = filterChain.indexOf(optimizedTransportFilter);
             if (sslTransportFilterIdx >= 0) {
                 SSLTransportFilterWrapper wrapper =
                         (SSLTransportFilterWrapper) filterChain.get(sslTransportFilterIdx);
-                filterChain.set(sslTransportFilterIdx, wrapper.transportFilter);
+                filterChain.set(sslTransportFilterIdx, wrapper.wrappedFilter);
             }
         }
     }
 
-    
+    @Override
+    public void onAdded(FilterChain filterChain) {
+        final int sslTransportFilterIdx =
+                filterChain.indexOfType(SSLTransportFilterWrapper.class);
+        
+        if (sslTransportFilterIdx == -1) {
+            final int transportFilterIdx =
+                    filterChain.indexOfType(TransportFilter.class);
+            if (transportFilterIdx >= 0) {
+                filterChain.set(transportFilterIdx,
+                        createOptimizedTransportFilter(
+                        (TransportFilter) filterChain.get(transportFilterIdx)));
+            }
+        }
+    }
+
     // ----------------------------------------------------- Methods from Filter
 
 
@@ -988,20 +1018,20 @@ public class SSLBaseFilter extends BaseFilter {
     }
     
     protected class SSLTransportFilterWrapper extends TransportFilter {
-        protected final TransportFilter transportFilter;
+        protected final TransportFilter wrappedFilter;
 
         public SSLTransportFilterWrapper(final TransportFilter transportFilter) {
-            this.transportFilter = transportFilter;
+            this.wrappedFilter = transportFilter;
         }
         
         @Override
         public NextAction handleAccept(FilterChainContext ctx) throws IOException {
-            return transportFilter.handleAccept(ctx);
+            return wrappedFilter.handleAccept(ctx);
         }
 
         @Override
         public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-            return transportFilter.handleConnect(ctx);
+            return wrappedFilter.handleConnect(ctx);
         }
 
         @Override
@@ -1019,47 +1049,47 @@ public class SSLBaseFilter extends BaseFilter {
             
             ctx.setMessage(allowDispose(allocateInputBuffer(sslCtx)));
             
-            return transportFilter.handleRead(ctx);
+            return wrappedFilter.handleRead(ctx);
         }
 
         @Override
         public NextAction handleWrite(FilterChainContext ctx) throws IOException {
-            return transportFilter.handleWrite(ctx);
+            return wrappedFilter.handleWrite(ctx);
         }
 
         @Override
         public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) throws IOException {
-            return transportFilter.handleEvent(ctx, event);
+            return wrappedFilter.handleEvent(ctx, event);
         }
 
         @Override
         public NextAction handleClose(FilterChainContext ctx) throws IOException {
-            return transportFilter.handleClose(ctx);
+            return wrappedFilter.handleClose(ctx);
         }
 
         @Override
         public void onAdded(FilterChain filterChain) {
-            transportFilter.onAdded(filterChain);
+            wrappedFilter.onAdded(filterChain);
         }
 
         @Override
         public void onFilterChainChanged(FilterChain filterChain) {
-            transportFilter.onFilterChainChanged(filterChain);
+            wrappedFilter.onFilterChainChanged(filterChain);
         }
 
         @Override
         public void onRemoved(FilterChain filterChain) {
-            transportFilter.onRemoved(filterChain);
+            wrappedFilter.onRemoved(filterChain);
         }
 
         @Override
         public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
-            transportFilter.exceptionOccurred(ctx, error);
+            wrappedFilter.exceptionOccurred(ctx, error);
         }
 
         @Override
         public FilterChainContext createContext(Connection connection, Operation operation) {
-            return transportFilter.createContext(connection, operation);
+            return wrappedFilter.createContext(connection, operation);
         }
     }
     
