@@ -180,6 +180,11 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.glassfish.grizzly</groupId>
+                <artifactId>tls-sni</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.glassfish.grizzly.osgi</groupId>
                 <artifactId>grizzly-httpservice</artifactId>
                 <version>${project.version}</version>
