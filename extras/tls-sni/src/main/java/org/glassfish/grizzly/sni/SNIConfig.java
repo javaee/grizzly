@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.sni;
 
+import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 
 /**
@@ -50,6 +51,9 @@ import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
  * @author Alexey Stashok
  */
 public class SNIConfig {
+    private static final SSLEngineConfigurator NULL_SERVER_CONFIG =
+            new NullSSLEngineConfigurator();
+    
     final SSLEngineConfigurator sslEngineConfigurator;
     final String host;
     final boolean isClientConfig;
@@ -85,10 +89,81 @@ public class SNIConfig {
         return new SNIConfig(sslEngineConfigurator, host, true);
     }
 
+    /**
+     * @param host
+     * @return SNIConfig for {@link Connection}, whose SNI host wasn't recognized
+     *          as supported, so the {@link Connection} has to be closed
+     */
+    public static SNIConfig failServerConfig(final String host) {
+        return new SNIConfig(NULL_SERVER_CONFIG, host, false);
+    }
+    
     private SNIConfig(final SSLEngineConfigurator engineConfig,
             final String host, final boolean isClientConfig) {
         this.sslEngineConfigurator = engineConfig;
         this.host = host;
         this.isClientConfig = isClientConfig;
+    }
+    
+    private static class NullSSLEngineConfigurator extends SSLEngineConfigurator {
+
+        public NullSSLEngineConfigurator() {
+        }
+        
+        @Override
+        public SSLEngine createSSLEngine(String peerHost, int peerPort) {
+            throw new IllegalStateException("No SNI config found");
+        }
+
+        @Override
+        public SSLEngine createSSLEngine() {
+            throw new IllegalStateException("No SNI config found");
+        }
+
+        @Override
+        public SSLEngine configure(SSLEngine sslEngine) {
+            throw new IllegalStateException("No SNI config found");
+        }
+
+        @Override
+        public SSLEngineConfigurator copy() {
+            return new NullSSLEngineConfigurator();
+        }
+
+        @Override
+        public SSLEngineConfigurator setProtocolConfigured(
+                boolean isProtocolConfigured) {
+            throw new IllegalStateException("Immutable config");
+        }
+
+        @Override
+        public SSLEngineConfigurator setCipherConfigured(boolean isCipherConfigured) {
+            throw new IllegalStateException("Immutable config");
+        }
+
+        @Override
+        public SSLEngineConfigurator setEnabledProtocols(String[] enabledProtocols) {
+            throw new IllegalStateException("Immutable config");
+        }
+
+        @Override
+        public SSLEngineConfigurator setEnabledCipherSuites(String[] enabledCipherSuites) {
+            throw new IllegalStateException("Immutable config");
+        }
+
+        @Override
+        public SSLEngineConfigurator setWantClientAuth(boolean wantClientAuth) {
+            throw new IllegalStateException("Immutable config");
+        }
+
+        @Override
+        public SSLEngineConfigurator setNeedClientAuth(boolean needClientAuth) {
+            throw new IllegalStateException("Immutable config");
+        }
+
+        @Override
+        public SSLEngineConfigurator setClientMode(boolean clientMode) {
+            throw new IllegalStateException("Immutable config");
+        }
     }
 }

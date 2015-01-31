@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -160,7 +160,7 @@ public class SNIFilter extends SSLFilter {
     }
 
     @Override
-    protected TransportFilter createOptimizedTransportFilter(
+    protected SSLTransportFilterWrapper createOptimizedTransportFilter(
             final TransportFilter childFilter) {
         // return SNI aware TransportFilterWrapper, because original one
         // can create default SSLEngine instance, which is not needed
@@ -387,7 +387,7 @@ public class SNIFilter extends SSLFilter {
                 ctx.setMessage(allowDispose(allocateInputBuffer(sslCtx)));
             }
             
-            return transportFilter.handleRead(ctx);
+            return wrappedFilter.handleRead(ctx);
         }
     }
 }
