@@ -260,7 +260,7 @@ public class SSLBaseFilter extends BaseFilter {
                     filterChain.indexOfType(TransportFilter.class);
             if (transportFilterIdx >= 0) {
                 filterChain.set(transportFilterIdx,
-                        createOptimizedTransportFilter(
+                        getOptimizedTransportFilter(
                         (TransportFilter) filterChain.get(transportFilterIdx)));
             }
         }
