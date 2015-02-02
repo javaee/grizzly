@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -64,9 +64,9 @@ import java.util.logging.Logger;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.ws.Endpoint;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -218,7 +218,15 @@ public class JaxwsHandler extends HttpHandler {
         }
         
         if (isAsync) {
-            res.suspend(timeoutMillis, TimeUnit.MILLISECONDS);
+            res.suspend(timeoutMillis, TimeUnit.MILLISECONDS,
+                    new EmptyCompletionHandler<Response>() {
+
+                        @Override
+                        public void cancelled() {
+                            connection.close();
+                        }
+                        
+                    });
             httpAdapter.invokeAsync(connection);
         } else {
             httpAdapter.handle(connection);

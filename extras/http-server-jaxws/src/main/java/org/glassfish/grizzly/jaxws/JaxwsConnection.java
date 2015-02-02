@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import com.sun.xml.ws.api.message.Packet;
 import com.sun.xml.ws.api.server.PortAddressResolver;
 import com.sun.xml.ws.api.server.WSEndpoint;
 import com.sun.xml.ws.api.server.WebServiceContextDelegate;
+import com.sun.xml.ws.transport.Headers;
 import com.sun.xml.ws.transport.http.HttpAdapter;
 import com.sun.xml.ws.transport.http.WSHTTPConnection;
 
@@ -73,8 +74,8 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
     private final boolean isAsync;
     final HttpAdapter httpAdapter;
 
-    private Map<String, List<String>> requestHeaders;
-    private Map<String, List<String>> responseHeaders;
+    private Headers requestHeaders;
+    private Headers responseHeaders;
     
     public JaxwsConnection(final HttpAdapter httpAdapter,
             final Request request, final Response response,
@@ -88,10 +89,18 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
 
     @Override
     @Property({MessageContext.HTTP_REQUEST_HEADERS, Packet.INBOUND_TRANSPORT_HEADERS})
-    public @NotNull
-    Map<String, List<String>> getRequestHeaders() {
+    public @NotNull Map<String, List<String>> getRequestHeaders() {
         if (requestHeaders == null) {
-            requestHeaders = initializeRequestHeaders();
+            requestHeaders = new Headers();
+            for (String headerName : request.getHeaderNames()) {
+                final List<String> headerValues = new ArrayList<String>(4);
+
+                for (String headerValue : request.getHeaders(headerName)) {
+                    headerValues.add(headerValue);
+                }
+
+                requestHeaders.put(headerName, headerValues);
+            }
         }
         
         return requestHeaders;
@@ -103,26 +112,26 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
     }
 
     @Override
+    public Set<String> getRequestHeaderNames() {
+    	return getRequestHeaders().keySet();
+    }
+
+    @Override
+    public List<String> getRequestHeaderValues(@NotNull String headerName) {
+        return getRequestHeaders().get(headerName);
+    }
+
+    @Override
     public void setResponseHeaders(Map<String, List<String>> headers) {
-        this.responseHeaders = headers;
         if (headers == null) {
-            return;
-
-        }
-        if (status != 0) {
-            response.setStatus(status);
-        }
-        
-        response.reset();   // clear all the headers
-
-        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-            String name = entry.getKey();
-            if (name.equalsIgnoreCase("Content-Type") || name.equalsIgnoreCase("Content-Length")) {
-                continue;   // ignore headers that interfere with the operation
+            responseHeaders = null;
+        } else {
+            if (responseHeaders == null) {
+                responseHeaders = new Headers();
+            } else {
+                responseHeaders.clear();
             }
-            for (String value : entry.getValue()) {
-                response.addHeader(name, value);
-            }
+            responseHeaders.putAll(headers);
         }
     }
 
@@ -132,6 +141,40 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
         return responseHeaders;
     }
 
+    @Override
+    public void setResponseHeader(String key, String value) {
+    	setResponseHeader(key, Collections.singletonList(value));
+    }
+    
+    @Override
+    public void setResponseHeader(String key, List<String> value) {
+        if (responseHeaders == null) {
+            responseHeaders = new Headers();
+        }
+    	
+        responseHeaders.put(key, value);
+    }
+    
+    @Override
+    public String getRequestURI() {
+        return request.getRequestURI();
+    }
+
+    @Override
+    public String getRequestScheme() {
+        return request.getScheme();
+    }
+
+    @Override
+    public String getServerName() {
+        return request.getServerName();
+    }
+
+    @Override
+    public int getServerPort() {
+        return request.getServerPort();
+    }    
+    
     @Override
     public void setContentTypeResponseHeader(@NotNull String value) {
         response.setContentType(value);
@@ -157,10 +200,22 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
     @NotNull
     @Override
     public OutputStream getOutput() throws IOException {
-        assert !outputWritten;
-        outputWritten = true;
-
-        response.setStatus(getStatus());
+        response.setStatus(status);
+        if (responseHeaders != null) {
+            for (Map.Entry<String, List<String>> entry : responseHeaders.entrySet()) {
+                String name = entry.getKey();
+                if (name == null) {
+                    continue;
+                }
+                if (name.equalsIgnoreCase("Content-Type") || name.equalsIgnoreCase("Content-Length")) {
+                    continue;   // ignore headers that interfere with the operation
+                }
+                for (String value : entry.getValue()) {
+                    response.addHeader(name, value);
+                }
+            }
+        }
+        
         return response.getOutputStream();
     }
 
@@ -183,7 +238,7 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
     @NotNull
     @Override
     public String getEPRAddress(Packet p, WSEndpoint endpoint) {
-        PortAddressResolver resolver = httpAdapter.owner.createPortAddressResolver(getBaseAddress());
+        PortAddressResolver resolver = httpAdapter.owner.createPortAddressResolver(getBaseAddress(), endpoint.getImplementationClass());
         String address = resolver.getAddressFor(endpoint.getServiceName(), endpoint.getPortName().getLocalPart());
         if (address == null) {
             throw new WebServiceException("WsservletMessages.SERVLET_NO_ADDRESS_AVAILABLE(" + endpoint.getPortName() + ")");
@@ -263,19 +318,5 @@ final class JaxwsConnection extends WSHTTPConnection implements WebServiceContex
 
     static {
         model = parse(JaxwsConnection.class);
-    }
-
-    private Map<String, List<String>> initializeRequestHeaders() {
-        final Map<String, List<String>> headers = new HashMap<String, List<String>>();
-        for (String name : request.getHeaderNames()) {
-            final List<String> values = new ArrayList<String>(2);
-            for (String value : request.getHeaders(name)) {
-                values.add(value);
-            }
-            
-            headers.put(name, values);
-        }
-        
-        return headers;
     }
 }
