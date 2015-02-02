@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,7 +50,7 @@ import java.util.List;
  * @author Alexey Stashok
  */
 public abstract class FilterChainBuilder {
-    protected final DefaultFilterChain patternFilterChain;
+    protected final List<Filter> patternFilterChain;
     
     private FilterChainBuilder() {
         patternFilterChain = new DefaultFilterChain();
@@ -125,7 +125,7 @@ public abstract class FilterChainBuilder {
     }
 
     public FilterChainBuilder addAll(final FilterChainBuilder source) {
-        patternFilterChain.addAll(source.patternFilterChain.filters);
+        patternFilterChain.addAll(source.patternFilterChain);
         return this;
     }
 
@@ -134,13 +134,23 @@ public abstract class FilterChainBuilder {
     }
 
     public int indexOfType(final Class<? extends Filter> filterType) {
-        return patternFilterChain.indexOfType(filterType);
+        final int size = patternFilterChain.size();
+        for (int i = 0; i < size; i++) {
+            final Filter filter = get(i);
+            if (filterType.isAssignableFrom(filter.getClass())) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     public static class StatelessFilterChainBuilder extends FilterChainBuilder {
         @Override
         public FilterChain build() {
-            return patternFilterChain;
+            final FilterChain fc = new DefaultFilterChain();
+            fc.addAll(patternFilterChain);
+            return fc;
         }
     }
 }
