@@ -1,7 +1,7 @@
 /*
  *   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- *   Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ *   Copyright 2007-2015 Sun Microsystems, Inc. All rights reserved.
  *
  *   The contents of this file are subject to the terms of either the GNU
  *   General Public License Version 2 only ("GPL") or the Common Development
@@ -138,7 +138,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * Determines whether SSL3 is enabled. If both SSL2 and SSL3 are enabled for a virtual server, the server tries SSL3
      * encryption first. If that fails, the server tries SSL2 encryption.
      */
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getSsl3Enabled();
 
     void setSsl3Enabled(String value);
