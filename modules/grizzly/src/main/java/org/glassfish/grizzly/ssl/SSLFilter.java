@@ -65,6 +65,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.utils.Exceptions;
 
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
+import org.glassfish.grizzly.utils.JdkVersion;
 
 /**
  * SSL {@link Filter} to operate with SSL encrypted data.
@@ -73,7 +74,9 @@ import static org.glassfish.grizzly.ssl.SSLUtils.*;
  */
 public class SSLFilter extends SSLBaseFilter {
     private static final Logger LOGGER = Grizzly.logger(SSLFilter.class);
-
+    private static final boolean IS_JDK7_OR_HIGHER =
+            JdkVersion.getJdkVersion().compareTo("1.7.0") >= 0;
+                
     private final Attribute<SSLHandshakeContext> handshakeContextAttr;
     private final SSLEngineConfigurator clientSSLEngineConfigurator;
 
@@ -239,14 +242,12 @@ public class SSLFilter extends SSLBaseFilter {
         SSLEngine sslEngine = sslCtx.getSslEngine();
         
         if (sslEngine == null) {
-            
-            // try to get the peer's host name we try to connect to
-            final Object addr = connection.getPeerAddress();
-            final String host = (addr instanceof InetSocketAddress) ?
-                    ((InetSocketAddress) addr).getHostName(): //getHostString() could be better, but it's supported in 1.7+
-                    null;
-            
-            sslEngine = sslEngineConfigurator.createSSLEngine(host, -1);
+            if (IS_JDK7_OR_HIGHER) {
+                sslEngine = sslEngineConfigurator.createSSLEngine(
+                        HostNameResolver.getPeerHostName(connection), -1);
+            } else {
+                sslEngine = sslEngineConfigurator.createSSLEngine();
+            }
             
             sslCtx.configure(sslEngine);
         } else if (!isHandshaking(sslEngine)) { // if handshake haven't been started
@@ -471,6 +472,21 @@ public class SSLFilter extends SSLBaseFilter {
                 handshakeContext.failed(new java.io.EOFException());
                 handshakeContextAttr.remove(connection);
             }
+        }
+    }
+
+    /**
+     * The static class is used as JDK 1.7+ guard and shouldn't be initialized
+     * by JDK 1.6.x at runtime, because one of the methods is only available since 1.7.
+     */
+    private static class HostNameResolver {
+
+        public static String getPeerHostName(final Connection<?> connection) {
+            // try to get the peer's host name we try to connect to
+            final Object addr = connection.getPeerAddress();
+            return (addr instanceof InetSocketAddress)
+                    ? ((InetSocketAddress) addr).getHostString() : //supported in 1.7+
+                    null;
         }
     }
 }
