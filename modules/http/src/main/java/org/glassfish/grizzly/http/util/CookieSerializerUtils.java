@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -82,6 +82,17 @@ public class CookieSerializerUtils {
                               cookie);
     }
 
+    public static void serializeServerCookie(final StringBuilder buf,
+            final boolean versionOneStrictCompliance,
+            final boolean alwaysAddExpires,
+            final Cookie cookie) {
+        serializeServerCookie(buf,
+                              versionOneStrictCompliance,
+                              RFC_6265_SUPPORT_ENABLED,
+                              alwaysAddExpires,
+                              cookie);
+    }
+    
     // TODO RFC2965 fields also need to be passed
     public static void serializeServerCookie(final StringBuilder buf,
             final boolean versionOneStrictCompliance,
@@ -94,6 +105,25 @@ public class CookieSerializerUtils {
                 cookie.getVersion(), cookie.getPath(), cookie.getDomain(),
                 cookie.getComment(), cookie.getMaxAge(), cookie.isSecure(),
                 cookie.isHttpOnly());
+    }
+    
+    // TODO RFC2965 fields also need to be passed
+    public static void serializeServerCookie(final StringBuilder buf,
+            final boolean versionOneStrictCompliance,
+            final boolean alwaysAddExpires,
+            final String name,
+            final String value,
+            int version,
+            String path,
+            final String domain,
+            final String comment,
+            final int maxAge,
+            final boolean isSecure,
+            final boolean isHttpOnly) {
+        serializeServerCookie(buf, versionOneStrictCompliance,
+                RFC_6265_SUPPORT_ENABLED, alwaysAddExpires,
+                name, value, version, path, domain, comment, maxAge,
+                isSecure, isHttpOnly);
     }
     
     // TODO RFC2965 fields also need to be passed
