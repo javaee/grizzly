@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.http.server;
 
 import java.nio.charset.Charset;
@@ -64,6 +65,8 @@ public class ServerFilterConfiguration {
     private long maxPostSize = -1L;
     private int maxFormPostSize = 2 * 1024 * 1024;
     private int maxBufferedPostSize = 2 * 1024 * 1024;
+    
+    private int sessionTimeoutSeconds = -1;
         
     /**
      * The auxiliary configuration, which might be used, when Grizzly HttpServer
@@ -113,6 +116,7 @@ public class ServerFilterConfiguration {
         this.defaultErrorPageGenerator = configuration.defaultErrorPageGenerator;
         this.isGracefulShutdownSupported = configuration.isGracefulShutdownSupported;
         this.maxPostSize = configuration.maxPostSize;
+        this.sessionTimeoutSeconds = configuration.sessionTimeoutSeconds;
     }
     
     /**
@@ -381,8 +385,8 @@ public class ServerFilterConfiguration {
     }
 
     /**
-     * Returns the default character encoding used to decode request URI's query part.
-     * <code>null</code> value means specific request's character encoding will be used.
+     * @return the default character encoding used to decode request URI's query part.
+     * <code>null</code> value means specific request's character encoding will be used
      */
     public Charset getDefaultQueryEncoding() {
         return defaultQueryEncoding;
@@ -397,7 +401,7 @@ public class ServerFilterConfiguration {
     }
 
     /**
-     * Returns the default {@link ErrorPageGenerator}.
+     * @return the default {@link ErrorPageGenerator}
      */
     public ErrorPageGenerator getDefaultErrorPageGenerator() {
         return defaultErrorPageGenerator;
@@ -430,6 +434,40 @@ public class ServerFilterConfiguration {
         this.isGracefulShutdownSupported = isGracefulShutdownSupported;
     }
 
+    /**
+     * Returns the maximum time interval, in seconds, that 
+     * the HTTP server will keep this session open between 
+     * client accesses. After this interval, the HTTP server
+     * will invalidate the session.
+     *
+     * <p>A return value of zero or less indicates that the
+     * session will never timeout.
+     *
+     * @return		an integer specifying the number of
+     *			seconds this session remains open
+     *			between client requests
+     *
+     * @see		#setSessionTimeoutSeconds
+     */
+    public int getSessionTimeoutSeconds() {
+        return sessionTimeoutSeconds;
+    }
+
+    /**
+     * Specifies the time, in seconds, between client requests before the 
+     * HTTP server will invalidate this session. 
+     *
+     * <p>An <tt>interval</tt> value of zero or less indicates that the
+     * session should never timeout.
+     *
+     * @param sessionTimeoutSeconds	An integer specifying the number
+     * 				        of seconds 
+     */    
+    public void setSessionTimeoutSeconds(int sessionTimeoutSeconds) {
+        this.sessionTimeoutSeconds = sessionTimeoutSeconds;
+    }
+
+    
     // --------------------------------------------------------- Private Methods
 
 

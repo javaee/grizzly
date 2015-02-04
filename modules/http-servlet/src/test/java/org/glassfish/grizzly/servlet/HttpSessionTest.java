@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
@@ -93,14 +94,13 @@ public class HttpSessionTest extends HttpServerAbstractTest {
     private static final String CONTEXT = "/test";
     private static final String SERVLETMAPPING = "/servlet";
     private static final String JSESSIONID_COOKIE_NAME = "JSESSIONID";
-    private static String JSESSIONID_COOKIE_VALUE = "975159770778015515.OX0";
-    private static final int MAX_INACTIVE_INTERVAL = 20;
+    private static final int MAX_INACTIVE_INTERVAL_SEC = 5;
 
     /**
      * Want to set the MaxInactiveInterval of the HttpSession in seconds via a HttpServletRequest/HttpSession.
      * @throws Exception 
      */
-    public void testMaxInactiveInterval() throws Exception {
+    public void testMaxInactiveIntervalNotExpired() throws Exception {
         try {
             startHttpServer(PORT);
             
@@ -110,8 +110,8 @@ public class HttpSessionTest extends HttpServerAbstractTest {
                 @Override
                 protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
                     HttpSession httpSession1 = req.getSession(true);
-                    httpSession1.setMaxInactiveInterval(MAX_INACTIVE_INTERVAL);
-                    assertEquals(MAX_INACTIVE_INTERVAL, httpSession1.getMaxInactiveInterval());
+                    httpSession1.setMaxInactiveInterval(MAX_INACTIVE_INTERVAL_SEC);
+                    assertEquals(MAX_INACTIVE_INTERVAL_SEC, httpSession1.getMaxInactiveInterval());
                     HttpSession httpSession2 = req.getSession(true);
                     assertEquals(httpSession1, httpSession2);
                 }
@@ -122,23 +122,77 @@ public class HttpSessionTest extends HttpServerAbstractTest {
             
             //build and send request
             Map<String, String> headers = new HashMap<String, String>();
-            headers.put("Cookie", JSESSIONID_COOKIE_NAME+"="+JSESSIONID_COOKIE_VALUE);
+            String cookieValue0 = "975159770778015515.OX0";
+            headers.put("Cookie", JSESSIONID_COOKIE_NAME+"=" + cookieValue0);
             HttpPacket request = createRequest(CONTEXT+SERVLETMAPPING, PORT, headers);
-            
+
             //get response update JSESSIONID if needed
             System.out.println("Sending Request with SessionId: "+headers.get("Cookie"));
             HttpContent response = sendRequest(request, 60);
-            updateJSessionCookies(response);
-            String cookieValue1 = JSESSIONID_COOKIE_VALUE;
+            String cookieValue1 = getJSessionCookies(response);
+            assertNotNull(cookieValue1);
+            assertNotSame("Cookies have to be different", cookieValue0, cookieValue1);
             System.out.println("---");
-            Thread.sleep(10000);
+            Thread.sleep(MAX_INACTIVE_INTERVAL_SEC * 1000 / 2);
             headers.clear();
-            headers.put("Cookie", JSESSIONID_COOKIE_NAME+"="+JSESSIONID_COOKIE_VALUE);
+            headers.put("Cookie", JSESSIONID_COOKIE_NAME+"="+cookieValue1);
             request = createRequest(CONTEXT+SERVLETMAPPING, PORT, headers);
             response = sendRequest(request, 60);
-            updateJSessionCookies(response);
-            String cookieValue2 = JSESSIONID_COOKIE_VALUE;
-            assertEquals(cookieValue1, cookieValue2);
+            String cookieValue2 = getJSessionCookies(response);
+            assertNull(cookieValue2);
+            
+        } finally {
+            stopHttpServer();
+        }
+    }
+    
+    /**
+     * Want to set the MaxInactiveInterval of the HttpSession in seconds via a HttpServletRequest/HttpSession.
+     * @throws Exception 
+     */
+    public void testMaxInactiveIntervalExpired() throws Exception {
+        try {
+            newHttpServer(PORT);
+            httpServer.getServerConfiguration().setSessionTimeoutSeconds(
+                    MAX_INACTIVE_INTERVAL_SEC);
+            httpServer.start();
+            
+            WebappContext ctx = new WebappContext("Test", CONTEXT);
+            ServletRegistration servletRegistration = ctx.addServlet("intervalServlet", new HttpServlet() {
+
+                @Override
+                protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+                    HttpSession httpSession1 = req.getSession(true);
+                    assertEquals(MAX_INACTIVE_INTERVAL_SEC, httpSession1.getMaxInactiveInterval());
+                    HttpSession httpSession2 = req.getSession(true);
+                    assertEquals(httpSession1, httpSession2);
+                }
+            });
+            
+            servletRegistration.addMapping(SERVLETMAPPING);
+            ctx.deploy(httpServer);
+            
+            //build and send request
+            Map<String, String> headers = new HashMap<String, String>();
+            String cookieValue0 = "975159770778015515.OX0";
+            headers.put("Cookie", JSESSIONID_COOKIE_NAME+"=" + cookieValue0);
+            HttpPacket request = createRequest(CONTEXT+SERVLETMAPPING, PORT, headers);
+
+            //get response update JSESSIONID if needed
+            System.out.println("Sending Request with SessionId: "+headers.get("Cookie"));
+            HttpContent response = sendRequest(request, 60);
+            String cookieValue1 = getJSessionCookies(response);
+            assertNotNull(cookieValue1);
+            assertNotSame("Cookies have to be different", cookieValue0, cookieValue1);
+            System.out.println("---");
+            Thread.sleep(MAX_INACTIVE_INTERVAL_SEC * 1000 * 2);
+            headers.clear();
+            headers.put("Cookie", JSESSIONID_COOKIE_NAME+"="+cookieValue1);
+            request = createRequest(CONTEXT+SERVLETMAPPING, PORT, headers);
+            response = sendRequest(request, 60);
+            String cookieValue2 = getJSessionCookies(response);
+            assertNotNull(cookieValue2);
+            assertNotSame("Cookies have to be different", cookieValue1, cookieValue2);
             
         } finally {
             stopHttpServer();
@@ -240,17 +294,19 @@ public class HttpSessionTest extends HttpServerAbstractTest {
         }
     }
     
-    private void updateJSessionCookies(HttpContent response) {
+    private String getJSessionCookies(HttpContent response) {
         HttpHeader responseHeader = response.getHttpHeader();
         MimeHeaders mimeHeaders = responseHeader.getHeaders();
         Iterable<String> values = mimeHeaders.values(Header.SetCookie);
         for (String value : values) {
             if(value.startsWith("JSESSIONID=")) {
-                JSESSIONID_COOKIE_VALUE = value.substring(value.indexOf("=")+1);
-                System.out.println("Updated JSESSIONID to: "+JSESSIONID_COOKIE_VALUE);
-                break;
+                String jsessionCookieValue = value.substring(value.indexOf("=")+1);
+                System.out.println("Updated JSESSIONID to: "+jsessionCookieValue);
+                return jsessionCookieValue;
             }
         }
+        
+        return null;
     }
     
     @SuppressWarnings({"unchecked"})
