@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -1079,8 +1079,6 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
         return Request.appendRequestURL(request, new StringBuffer());
     }
-
-
     
     /**
      * {@inheritDoc}
@@ -1090,38 +1088,29 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         return servletPath;
     }
 
-    
-    /**
-     * Initialize the session object if there is a valid session request
-     */
-    protected void initSession() {
-        Session session = request.getSession(false);
-        if (session != null) {
-            httpSession = new HttpSessionImpl(contextImpl);
-            httpSession.notifyNew();
-            httpSession.setSession(session);
-            httpSession.access();
-        }
-    }
-
     /**
      * {@inheritDoc}
      */
     @Override
     public HttpSession getSession(boolean create) {
-        if (httpSession == null && create) {
-            httpSession = new HttpSessionImpl(contextImpl);
+        if (httpSession != null && httpSession.isValid()) {
+            return httpSession;
         }
-
-        if (httpSession != null) {
-            Session session = request.getSession(create);
-            if (session != null) {
-                httpSession.setSession(session);
-                httpSession.access();
-            } else {
-                return null;
-            }
+        
+        httpSession = null;
+        
+        final Session internalSession = request.getSession(create);
+        
+        if (internalSession == null) {
+            return null;
         }
+        
+        httpSession = new HttpSessionImpl(contextImpl, internalSession);
+        
+        if (httpSession.isNew()) {
+            httpSession.notifyNew();
+        }
+        
         return httpSession;
     }
 
@@ -1143,6 +1132,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     @Override
     public String changeSessionId() {
         final String oldSessionId = request.changeSessionId();
+        getSession(false); // to make sure httpSession is not null
         httpSession.notifyIdChanged(oldSessionId);
         
         return oldSessionId;

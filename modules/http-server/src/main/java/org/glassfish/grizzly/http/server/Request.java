@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -2349,11 +2349,18 @@ public class Request {
             session = null;
         }
         
-        if (!create) {
+        if (session != null) {
+            session.access();
             return session;
         }
         
+        if (!create) {
+            return null;
+        }
+        
         session = getSessionManager().createSession(this);
+        session.setSessionTimeout(
+                httpServerFilter.getConfiguration().getSessionTimeoutSeconds() * 1000);
         requestedSessionId = session.getIdInternal();
 
         // Creating a new session cookie based on the newly created session

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,6 +67,15 @@ public class Session {
      */
     private boolean isValid = true;
 
+    /**
+     * Is this session new.
+     */
+    private boolean isNew = true;
+
+    /**
+     * When this session was created.
+     */
+    private final long creationTime;
 
     /**
      * Timeout
@@ -92,6 +101,7 @@ public class Session {
      */
     public Session(String id) {
         this.id = id;
+        creationTime = timestamp = System.currentTimeMillis();
     }
 
 
@@ -115,9 +125,23 @@ public class Session {
         }
     }
 
+    /**
+     * Returns <code>true</code> if the client does not yet know about the
+     * session or if the client chooses not to join the session.  For 
+     * example, if the server used only cookie-based sessions, and
+     * the client had disabled the use of cookies, then a session would
+     * be new on each request.
+     *
+     * @return 				<code>true</code> if the 
+     *					server has created a session, 
+     *					but the client has not yet joined
+     */
+    public boolean isNew() {
+        return isNew;
+    }
 
     /**
-     * Return the session identifier for this session.
+     * @return the session identifier for this session.
      */
     public String getIdInternal() {
         return id;
@@ -125,7 +149,8 @@ public class Session {
 
 
     /**
-     * Return the session identifier for this session.
+     * Sets the session identifier for this session.
+     * @param id
      */
     protected void setIdInternal(String id) {
         this.id = id;
@@ -170,7 +195,20 @@ public class Session {
         return attributes;
     }
 
-
+    /**
+     *
+     * Returns the time when this session was created, measured
+     * in milliseconds since midnight January 1, 1970 GMT.
+     *
+     * @return				a <code>long</code> specifying
+     * 					when this session was created,
+     *					expressed in 
+     *					milliseconds since 1/1/1970 GMT
+     */
+    public long getCreationTime() {
+        return creationTime;
+    }
+    
     /**
      * Return a long representing the maximum idle time (in milliseconds) a session can be.
      * @return a long representing the maximum idle time (in milliseconds) a session can be.
@@ -190,7 +228,7 @@ public class Session {
 
 
     /**
-     * @return the timestamp when this session has been created.
+     * @return the timestamp when this session was accessed the last time
      */
     public long getTimestamp() {
         return timestamp;
@@ -198,11 +236,22 @@ public class Session {
 
 
     /**
-     * Set the timestamp when this session has been created.
-     * @param timestamp a long representing when the session has been created.
+     * Set the timestamp when this session was accessed the last time.
+     * @param timestamp a long representing when the session was accessed the last time
      */
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
 
+    /**
+     * Updates the "last accessed" timestamp with the current time.
+     * @return the time stamp
+     */
+    public long access() {
+        final long localTimeStamp = System.currentTimeMillis();
+        timestamp = localTimeStamp;
+        isNew = false;
+        
+        return localTimeStamp;
+    }
 }

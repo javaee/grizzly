@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -173,6 +173,8 @@ public abstract class HttpHandler {
             response.getResponse().setAllowCustomReasonPhrase(
                     allowCustomStatusMessage);
             
+            // Parse request URL and if there is an HTTP session parameter -
+            // extract it from the request URL and store for future use
             request.parseSessionId();
             
             return runService(request, response);

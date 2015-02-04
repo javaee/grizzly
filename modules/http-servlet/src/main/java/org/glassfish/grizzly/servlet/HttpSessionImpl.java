@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -69,33 +69,21 @@ public class HttpSessionImpl implements HttpSession {
     /**
      * The real session object
      */
-    private Session session;
+    private final Session session;
     /**
      * The ServletContext.
      */
     private final WebappContext contextImpl;
-    /**
-     * When this session was created.
-     */
-    private Long creationTime;
-    /**
-     * Last time the session was accessed.
-     */
-    private Long lastAccessed;
-    /**
-     * Is this session new.
-     */
-    private boolean isNew = true;
 
     /**
      * Create an HttpSession.
      * @param contextImpl
+     * @param session internal session object
      */
-    public HttpSessionImpl(WebappContext contextImpl) {
+    public HttpSessionImpl(final WebappContext contextImpl,
+            final Session session) {
         this.contextImpl = contextImpl;
-
-        creationTime = System.currentTimeMillis();
-        lastAccessed = creationTime;
+        this.session = session;
     }
 
     /**
@@ -103,7 +91,11 @@ public class HttpSessionImpl implements HttpSession {
      */
     @Override
     public long getCreationTime() {
-        return creationTime;
+        if (!session.isValid()) {
+            throw new IllegalStateException("The session was invalidated");
+        }
+        
+        return session.getCreationTime();
     }
 
     /**
@@ -115,20 +107,30 @@ public class HttpSessionImpl implements HttpSession {
     }
 
     /**
+     * Is the current Session valid?
+     * @return true if valid.
+     */
+    protected boolean isValid() {
+        return session.isValid();
+    }
+    
+    /**
      * {@inheritDoc}
      */
     @Override
     public long getLastAccessedTime() {
-        return lastAccessed;
+        if (!session.isValid()) {
+            throw new IllegalStateException("The session was invalidated");
+        }
+
+        return session.getTimestamp();
     }
 
     /**
      * Reset the timestamp.
      */
     protected void access() {
-        lastAccessed = System.currentTimeMillis();
-        session.setTimestamp(lastAccessed);
-        isNew = false;
+        session.access();
     }
 
     /**
@@ -356,9 +358,6 @@ public class HttpSessionImpl implements HttpSession {
         session.setValid(false);
         session.attributes().clear();
 
-        creationTime = 0L;
-        isNew = true;
-
         EventListener[] listeners = contextImpl.getEventListeners();
         if (listeners.length > 0) {
             HttpSessionEvent event =
@@ -388,16 +387,13 @@ public class HttpSessionImpl implements HttpSession {
      */
     @Override
     public boolean isNew() {
-        return isNew;
+        if (!session.isValid()) {
+            throw new IllegalStateException("The session was invalidated");
+        }
+        
+        return session.isNew();
     }
 
-    /**
-     * Set the {@link Session}
-     */
-    protected void setSession(Session session) {
-        this.session = session;
-    }
-    
     /**
      * Invoke to notify all registered {@link HttpSessionListener} of the 
      * session has just been created.
