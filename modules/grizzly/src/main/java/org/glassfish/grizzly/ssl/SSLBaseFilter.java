@@ -981,6 +981,11 @@ public class SSLBaseFilter extends BaseFilter {
 
     protected void notifyHandshakeFailed(final Connection connection,
             final Throwable t) {
+        if (!handshakeListeners.isEmpty()) {
+            for (final HandshakeListener listener : handshakeListeners) {
+                listener.onFailure(connection, t);
+            }
+        }
     }
     
     // ----------------------------------------------------------- Inner Classes
@@ -1037,6 +1042,7 @@ public class SSLBaseFilter extends BaseFilter {
     public static interface HandshakeListener {
         public void onStart(Connection connection);
         public void onComplete(Connection connection);
+        public void onFailure(Connection connection, Throwable t);
     }
     
     protected class SSLTransportFilterWrapper extends TransportFilter {
