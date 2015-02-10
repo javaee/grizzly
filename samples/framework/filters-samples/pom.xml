@@ -3,14 +3,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.18-s-SNAPSHOT</version>
+        <version>1.9.18-s</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
      <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>grizzly-framework-samples</artifactId>
     <packaging>jar</packaging>
-    <version>1.9.18-s-SNAPSHOT</version>
+    <version>1.9.18-s</version>
     <name>grizzly-framework-samples</name>
     <url>https://grizzly.dev.java.net</url>
     <build>

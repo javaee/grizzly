@@ -3,14 +3,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.18-s-SNAPSHOT</version>
+        <version>1.9.18-s</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.sun.grizzly.samples</groupId>
   <artifactId>grizzly-comet-hidden</artifactId>
   <packaging>war</packaging>
-  <version>1.9.18-s-SNAPSHOT</version>
+  <version>1.9.18-s</version>
   <name>grizzly-comet-hidden</name>
 	<url>https://grizzly.dev.java.net</url>
 	<repositories>
