@@ -356,14 +356,12 @@ public class InputBuffer {
         }
 
         int nlen = Math.min(inputContentBuffer.remaining(), len);
-        if (readAheadLimit != -1) {
-            readCount += nlen;
-            if (readCount > readAheadLimit) {
-                markPos = -1;
-            }
-        }
         inputContentBuffer.get(b, off, nlen);
-        inputContentBuffer.shrink();
+        
+        if (!checkMarkAfterRead(nlen)) {
+            inputContentBuffer.shrink();
+        }
+        
         return nlen;
         
     }
@@ -737,7 +735,10 @@ public class InputBuffer {
             
             long nlen = Math.min(inputContentBuffer.remaining(), n);
             inputContentBuffer.position(inputContentBuffer.position() + (int) nlen);
-            inputContentBuffer.shrink();
+            
+            if (!checkMarkAfterRead(n)) {
+                inputContentBuffer.shrink();
+            }
             
             return nlen;
         } else {
@@ -1320,7 +1321,8 @@ public class InputBuffer {
         
         if (inputContentBuffer == null) {
             inputContentBuffer = buffer;
-        } else if (inputContentBuffer.hasRemaining()) {
+        } else if (inputContentBuffer.hasRemaining()
+                || readAheadLimit > 0) { // if the stream is marked - we can't dispose the inputContentBuffer, even if it's been read off
             toCompositeInputContentBuffer().append(buffer);
         } else {
             inputContentBuffer.tryDispose();
@@ -1378,13 +1380,47 @@ public class InputBuffer {
             compositeBuffer.allowBufferDispose(true);
             compositeBuffer.allowInternalBuffersDispose(true);
 
+            int posAlign = 0;
+            
+            if (readAheadLimit > 0) { // the simple inputContentBuffer is marked
+                // make the marked data still available
+                inputContentBuffer.position(
+                        inputContentBuffer.position() - readCount);
+                posAlign = readCount;
+                
+                markPos = 0; // for the CompositeBuffer markPos is 0
+            }
+            
             compositeBuffer.append(inputContentBuffer);
+            compositeBuffer.position(posAlign);
+            
             inputContentBuffer = compositeBuffer;
         }
 
         return (CompositeBuffer) inputContentBuffer;
     }
 
+    /**
+     * @param n read bytes count
+     * @return <tt>true</tt> if mark is still active, or <tt>false</tt> if the
+     *      mark hasn't been set or has been invalidated
+     */
+    private boolean checkMarkAfterRead(final long n) {
+        if (readAheadLimit != -1) {
+            if ((long) readCount + n <= readAheadLimit) {
+                readCount += n;
+                return true;
+            }
+
+            // invalidate the mark
+            readAheadLimit = -1;
+            markPos = -1;
+            readCount = 0;
+        }
+        
+        return false;
+    }
+    
     /**
      * Check if passed {@link HttpContent} is {@link HttpTrailer}, which represents
      * trailer chunk (when chunked Transfer-Encoding is used), if it is a trailer
