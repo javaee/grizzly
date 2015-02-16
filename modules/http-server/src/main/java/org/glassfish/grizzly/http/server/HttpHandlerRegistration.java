@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,13 +44,13 @@ package org.glassfish.grizzly.http.server;
  * Class representing {@link HttpHandler} registration information on a
  * {@link HttpServer}.
  * An instance of the class could be created either from {@link String} using
- * {@link #fromString(java.lang.String)} method, or builder {@link #bulder()}.
+ * {@link #fromString(java.lang.String)} method, or builder {@link #builder()}.
  * 
  * @author Alexey Stashok
  */
 public class HttpHandlerRegistration {
     public static final HttpHandlerRegistration ROOT =
-            HttpHandlerRegistration.bulder()
+            HttpHandlerRegistration.builder()
             .contextPath("")
             .urlPattern("/")
             .build();
@@ -58,7 +58,7 @@ public class HttpHandlerRegistration {
     /**
      * @return the <tt>HttpHandlerRegistration</tt> builder.
      */
-    public static Builder bulder() {
+    public static Builder builder() {
         return new Builder();
     }
     
