@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -177,6 +177,7 @@ public final class Attribute<T> {
      * @param attributeHolder {@link AttributeHolder}.
      * @return the previous value associated with the attribute
      */
+    @SuppressWarnings("unchecked")
     public T remove(final AttributeHolder attributeHolder) {
         final IndexedAttributeAccessor indexedAccessor =
                 attributeHolder.getIndexedAttributeAccessor();
