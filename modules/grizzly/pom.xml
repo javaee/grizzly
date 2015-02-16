@@ -91,6 +91,7 @@
                     <instructions>
                         <Import-Package>
                             org.glassfish.grizzly*;version=${project.version},
+                            sun.misc.*;resolution:=optional,
                             *,
                         </Import-Package>
                         <Export-Package>
