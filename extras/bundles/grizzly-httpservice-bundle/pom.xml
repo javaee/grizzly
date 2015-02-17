@@ -71,17 +71,14 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-comet</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly.osgi</groupId>
             <artifactId>grizzly-httpservice</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
     <build>
@@ -102,6 +99,7 @@
                         </Bundle-Activator>
                         <Bundle-Vendor>Grizzly Devs</Bundle-Vendor>
                         <Import-Package>
+                            sun.misc.*;resolution:=optional,
                             *,
                         </Import-Package>
                         <Export-Package>
