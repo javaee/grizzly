@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -171,9 +171,7 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
             return false;
         }
         
-        for (int i = 0; i < docRootsLocal.length; i++) {
-            String docRoot = docRootsLocal[i];
-
+        for (String docRoot : docRootsLocal) {
             if (SLASH_STR.equals(docRoot)) {
                 docRoot = EMPTY_STR;
             } else if (docRoot.startsWith(SLASH_STR)) {
@@ -185,7 +183,10 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
             
             if (url == null) {
                 // try if resourcePath doesn't refer a folder in a jar
-                url = classLoader.getResource(fullPath + "/index.html");
+                url = classLoader.getResource(
+                        fullPath.length() > 0
+                                ? fullPath + "/index.html"
+                                : "index.html");
             }
             
             if (url != null) {
