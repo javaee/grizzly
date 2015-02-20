@@ -73,6 +73,19 @@ import org.glassfish.grizzly.utils.ArraySet;
  */
 public class CLStaticHttpHandler extends StaticHttpHandlerBase {
     private static final Logger LOGGER = Grizzly.logger(CLStaticHttpHandler.class);
+    
+    protected static final String CHECK_NON_SLASH_TERMINATED_FOLDERS_PROP =
+            CLStaticHttpHandler.class.getName() + ".check-non-slash-terminated-folders";
+    
+    /**
+     * <tt>true</tt> (default) if we want to double-check the resource requests,
+     * that don't have terminating slash if they represent a folder and try
+     * to retrieve a welcome resource from the folder.
+     */
+    private static final boolean CHECK_NON_SLASH_TERMINATED_FOLDERS =
+            System.getProperty(CHECK_NON_SLASH_TERMINATED_FOLDERS_PROP) == null ||
+            Boolean.getBoolean(CHECK_NON_SLASH_TERMINATED_FOLDERS_PROP);
+    
     private static final String SLASH_STR = "/";
     private static final String EMPTY_STR = "";
 
@@ -83,7 +96,7 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
     /**
      * Create <tt>HttpHandler</tt>, which will handle requests
      * to the static resources resolved by the given class loader.
-     * @param {@link ClassLoader} to be used to resolve the resources
+     * @param classLoader {@link ClassLoader} to be used to resolve the resources
      * @param docRoots the doc roots (path prefixes), which will be used
      *          to find resources. Effectively each docRoot will be prepended
      *          to a resource path before passing it to {@link ClassLoader#getResource(java.lang.String)}.
@@ -161,37 +174,21 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
             resourcePath = resourcePath.substring(1);
         }
         
-        URL url = null;
+        boolean mayBeFolder = true;
         
-        final String[] docRootsLocal = docRoots.getArray();
-        if (docRootsLocal == null || docRootsLocal.length == 0) {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "No doc roots registered -> resource {0} is not found ", resourcePath);
-            }
-            return false;
+        if (resourcePath.length() == 0 || resourcePath.endsWith("/")) {
+            resourcePath += "index.html";
+            mayBeFolder = false;
         }
         
-        for (String docRoot : docRootsLocal) {
-            if (SLASH_STR.equals(docRoot)) {
-                docRoot = EMPTY_STR;
-            } else if (docRoot.startsWith(SLASH_STR)) {
-                docRoot = docRoot.substring(1);
-            }
-            
-            final String fullPath = docRoot + resourcePath;
-            url = classLoader.getResource(fullPath);
-            
-            if (url == null) {
-                // try if resourcePath doesn't refer a folder in a jar
-                url = classLoader.getResource(
-                        fullPath.length() > 0
-                                ? fullPath + "/index.html"
-                                : "index.html");
-            }
-            
-            if (url != null) {
-                break;
-            }
+        URL url = lookupResource(resourcePath);
+        
+        if (url == null && mayBeFolder && CHECK_NON_SLASH_TERMINATED_FOLDERS) {
+            // some ClassLoaders return null if a URL points to a folder.
+            // So try to add index.html to double-check.
+            // For example null will be returned for a folder inside a jar file.
+            url = lookupResource(resourcePath + "/index.html");
+            mayBeFolder = false;
         }
         
         File fileResource = null;
@@ -199,6 +196,7 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
         boolean found = false;
         
         if (url != null) {
+            // url may point to a folder or a file
             if ("file".equals(url.getProtocol())) {
                 final File file = new File(url.toURI());
                 
@@ -249,6 +247,19 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
                     } else {
                         closeJarFileIfNeeded(jarUrlConnection, jarFile);
                     }
+                } else if ("bundle".equals(url.getProtocol())) { // OSGi resource
+                    // it might be either folder or file
+                    if (mayBeFolder &&
+                            urlConnection.getContentLength() <= 0) { // looks like a folder?
+                        // check if there's a welcome resource
+                        final URL welcomeUrl = classLoader.getResource(url.getPath() + "/index.html");
+                        if (welcomeUrl != null) {
+                            url = welcomeUrl;
+                            urlConnection = welcomeUrl.openConnection();
+                        }
+                    }
+                    
+                    found = true;
                 } else {
                     found = true;
                 }
@@ -303,6 +314,34 @@ public class CLStaticHttpHandler extends StaticHttpHandlerBase {
         }
 
         return true;
+    }
+
+    private URL lookupResource(String resourcePath) {
+        final String[] docRootsLocal = docRoots.getArray();
+        if (docRootsLocal == null || docRootsLocal.length == 0) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "No doc roots registered -> resource {0} is not found ", resourcePath);
+            }
+            
+            return null;
+        }
+        
+        for (String docRoot : docRootsLocal) {
+            if (SLASH_STR.equals(docRoot)) {
+                docRoot = EMPTY_STR;
+            } else if (docRoot.startsWith(SLASH_STR)) {
+                docRoot = docRoot.substring(1);
+            }
+            
+            final String fullPath = docRoot + resourcePath;
+            final URL url = classLoader.getResource(fullPath);
+            
+            if (url != null) {
+                return url;
+            }
+        }
+        
+        return null;
     }
 
     private static void sendResource(final Response response,
