@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,6 +45,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 
 import java.io.IOException;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 
 public class WebSocketFilter extends BaseWebSocketFilter {
 
@@ -90,9 +91,8 @@ public class WebSocketFilter extends BaseWebSocketFilter {
             setIdleTimeout(ctx);
         } catch (HandshakeException e) {
             ctx.write(composeHandshakeError(request, e));
+            throw e;
         }
-        ctx.flush(null);
-
         requestContent.recycle();
 
         return ctx.getStopAction();
@@ -103,4 +103,13 @@ public class WebSocketFilter extends BaseWebSocketFilter {
                                       final HttpContent requestContent) throws IOException {
         return !WebSocketEngine.getEngine().upgrade(ctx, requestContent);
     }
+    
+
+    private static HttpResponsePacket composeHandshakeError(final HttpRequestPacket request,
+                                                            final HandshakeException e) {
+        final HttpResponsePacket response = request.getResponse();
+        response.setStatus(e.getCode());
+        response.setReasonPhrase(e.getMessage());
+        return response;
+    }    
 }

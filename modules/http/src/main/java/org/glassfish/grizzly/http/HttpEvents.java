@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,46 +37,62 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+package org.glassfish.grizzly.http;
 
-package org.glassfish.grizzly.websockets;
-
-import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
 
 /**
- * {@link Exception}, which describes the error, occurred during the {@link WebSocket}
- * handshake phase.
+ * The class contains a set of standard HTTP events sent on FilterChain during
+ * HTTP packets processing.
  * 
  * @author Alexey Stashok
  */
-public class HandshakeException extends WebSocketException {
-    private final int code;
-
-    /**
-     * Construct a <tt>HandshakeException</tt>.
-     *
-     * @param message error description
-     */
-    public HandshakeException(String message) {
-        this(HttpStatus.BAD_REQUEST_400.getStatusCode(), message);
+public class HttpEvents {
+    public static IncomingHttpUpgradeEvent createIncomingUpgradeEvent(
+            final HttpHeader httpHeader) {
+        return new IncomingHttpUpgradeEvent(httpHeader);
+    }
+    
+    public static OutgoingHttpUpgradeEvent createOutgoingUpgradeEvent(
+            final HttpHeader httpHeader) {
+        return new OutgoingHttpUpgradeEvent(httpHeader);
     }
 
-    /**
-     * Construct a <tt>HandshakeException</tt>.
-     *
-     * @param code error code
-     * @param message error description
-     */
-    public HandshakeException(int code, String message) {
-        super(message);
-        this.code = code;
+    public static final class IncomingHttpUpgradeEvent extends HttpUpgradeEvent {
+        public static final Object TYPE = IncomingHttpUpgradeEvent.class.getName();
+
+        private IncomingHttpUpgradeEvent(final HttpHeader httpHeader) {
+            super(httpHeader);
+        }
+        
+        @Override
+        public Object type() {
+            return TYPE;
+        }
+    }
+    
+    public static final class OutgoingHttpUpgradeEvent extends HttpUpgradeEvent {
+        public static final Object TYPE = OutgoingHttpUpgradeEvent.class.getName();
+
+        private OutgoingHttpUpgradeEvent(final HttpHeader httpHeader) {
+            super(httpHeader);
+        }
+        
+        @Override
+        public Object type() {
+            return TYPE;
+        }
     }
 
-    /**
-     * Get the error code.
-     *
-     * @return the error code.
-     */
-    public int getCode() {
-        return code;
+    private static abstract class HttpUpgradeEvent implements FilterChainEvent {
+        private final HttpHeader httpHeader;
+        
+        private HttpUpgradeEvent(final HttpHeader httpHeader) {
+            this.httpHeader = httpHeader;
+        }
+
+        public HttpHeader getHttpHeader() {
+            return httpHeader;
+        }
     }
 }

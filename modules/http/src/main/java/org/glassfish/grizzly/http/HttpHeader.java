@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -355,8 +355,9 @@ public abstract class HttpHeader extends HttpPacket
      * "Content-Encoding" headers and act as none of them were specified.
      */
     public boolean isIgnoreContentModifiers() {
-        return isIgnoreContentModifiers || (!upgrade.isNull() &&
-                !upgrade.startsWith("h2c", 0)); // don't ignore content modifiers for HTTP2 upgrade
+        return isIgnoreContentModifiers;
+//                || (!upgrade.isNull() &&
+//                !upgrade.startsWith("h2c", 0)); // don't ignore content modifiers for HTTP2 upgrade
     }
 
     /**

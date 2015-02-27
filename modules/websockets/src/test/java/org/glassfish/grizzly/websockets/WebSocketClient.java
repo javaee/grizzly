@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -51,14 +52,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.Futures;
 
 public class WebSocketClient extends SimpleWebSocket {
     private static final Logger logger = Logger.getLogger(Constants.WEBSOCKET);
@@ -118,26 +121,46 @@ public class WebSocketClient extends SimpleWebSocket {
                     protocolHandler.setConnection(conn);
                     final WebSocketHolder holder = WebSocketHolder.set(conn, protocolHandler,
                             WebSocketClient.this);
-                    holder.handshake = protocolHandler.createHandShake(address);
+                    holder.handshake = protocolHandler.createClientHandShake(address);
                 }
             };
-            final CountDownLatch latch = new CountDownLatch(1);
+            final FutureImpl<Boolean> completeFuture = Futures.createSafeFuture();
             add(new WebSocketAdapter() {
                 @Override
                 public void onConnect(final WebSocket socket) {
                     super.onConnect(socket);
-                    latch.countDown();
+                    completeFuture.result(Boolean.TRUE);
                 }
             });
-            connectorHandler.setFilterChain(createFilterChain());
+            connectorHandler.setFilterChain(createFilterChain(completeFuture));
             // start connect
             connectorHandler.connect(new InetSocketAddress(
-                    address.getHost(), address.getPort()), (CompletionHandler<Connection>) null);
-            latch.await(timeout, unit);
+                    address.getHost(), address.getPort()),
+                    new EmptyCompletionHandler<Connection>() {
 
+                        @Override
+                        public void failed(Throwable throwable) {
+                            completeFuture.failure(throwable);
+                        }
+
+                        @Override
+                        public void cancelled() {
+                            completeFuture.failure(new CancellationException());
+                        }
+                        
+                    });
+            
+            completeFuture.get(timeout, unit);
             return this;
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Throwable e) {
+            if (e instanceof ExecutionException) {
+                e = e.getCause();
+            }
+            
+            if (e instanceof HandshakeException) {
+                throw (HandshakeException) e;
+            }
+            
             throw new HandshakeException(e.getMessage());
         }
     }
@@ -146,11 +169,19 @@ public class WebSocketClient extends SimpleWebSocket {
         transport = TCPNIOTransportBuilder.newInstance().build();
     }
 
-    private static FilterChain createFilterChain() {
+    private static FilterChain createFilterChain(
+            final FutureImpl<Boolean> completeFuture) {
+        
         FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
         clientFilterChainBuilder.add(new TransportFilter());
         clientFilterChainBuilder.add(new HttpClientFilter());
-        clientFilterChainBuilder.add(new WebSocketClientFilter());
+        clientFilterChainBuilder.add(new WebSocketClientFilter() {
+
+            @Override
+            protected void onHandshakeFailure(Connection connection, HandshakeException e) {
+                completeFuture.failure(e);
+            }
+        });
 
         return clientFilterChainBuilder.build();
     }

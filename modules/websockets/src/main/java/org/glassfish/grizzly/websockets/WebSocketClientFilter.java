@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,10 +45,43 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
 
 public class WebSocketClientFilter extends BaseWebSocketFilter {
+    private static final Logger LOGGER = Grizzly.logger(WebSocketClientFilter.class);
 
+    // ----------------------------------------------------- Methods from Filter
+    
+    /**
+     * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection} is a client-side {@link
+     * WebSocket}, if yes - creates websocket handshake packet and send it to a server. Otherwise, if it's not websocket
+     * connection - pass processing to the next {@link Filter} in a chain.
+     *
+     * @param ctx {@link FilterChainContext}
+     *
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
+     * 
+     * @throws java.io.IOException
+     */
+    @Override
+    public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+        LOGGER.log(Level.FINEST, "handleConnect");
+        // Get connection
+        final Connection connection = ctx.getConnection();
+        // check if it's websocket connection
+        if (!webSocketInProgress(connection)) {
+            // if not - pass processing to a next filter
+            return ctx.getInvokeAction();
+        }
 
+        WebSocketHolder.get(connection).handshake.initiate(ctx);
+        // call the next filter in the chain
+        return ctx.getInvokeAction();
+    }
+    
     // ---------------------------------------- Methods from BaseWebSocketFilter
 
 
@@ -65,7 +98,7 @@ public class WebSocketClientFilter extends BaseWebSocketFilter {
         final WebSocketHolder holder = WebSocketHolder.get(ctx.getConnection());
         holder.handshake.validateServerResponse((HttpResponsePacket) content.getHttpHeader());
         holder.webSocket.onConnect();
-
+        
         if (content.getContent().hasRemaining()) {
             return ctx.getRerunFilterAction();
         } else {

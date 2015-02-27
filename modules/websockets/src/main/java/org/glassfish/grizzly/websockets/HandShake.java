@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
@@ -70,7 +71,7 @@ public abstract class HandShake {
     private String resourcePath;
     private String location;
     //private final Map<String, String[]> queryParams = new TreeMap<String, String[]>();
-    public List<String> subProtocol = new ArrayList<String>();
+    private List<String> subProtocol = new ArrayList<String>();
     private List<Extension> extensions = new ArrayList<Extension>(); // client extensions
 
     public HandShake(URI url) {
@@ -237,14 +238,17 @@ public abstract class HandShake {
 
     private void validate(String header, String validValue, String value) {
         boolean found = false;
-        if(value.contains(",")) {
-            for(String part: value.split(",")) {
-                found |= part.trim().equalsIgnoreCase(validValue);
+        if (value.contains(",")) {
+            for (String part : value.split(",")) {
+                if (part.trim().equalsIgnoreCase(validValue)) {
+                    found = true;
+                    break;
+                }
             }
         } else {
             found = value.equalsIgnoreCase(validValue);
         }
-        if(!found) {
+        if (!found) {
             throw new HandshakeException(String.format("Invalid %s header returned: '%s'", header, value));
         }
     }
@@ -291,8 +295,8 @@ public abstract class HandShake {
 
     public void validateServerResponse(HttpResponsePacket headers) {
         if (Constants.RESPONSE_CODE_VALUE != headers.getStatus()) {
-            throw new HandshakeException(String.format("Response code was not %s: %s",
-                Constants.RESPONSE_CODE_VALUE, headers.getStatus()));
+            throw new HandshakeException(String.format("Response code was not %s: %s %s",
+                Constants.RESPONSE_CODE_VALUE, headers.getStatus(), headers.getReasonPhrase()));
         }
         checkForHeader(headers, Constants.UPGRADE, Constants.WEBSOCKET);
         checkForHeader(headers, Constants.CONNECTION, Constants.UPGRADE);
@@ -301,11 +305,14 @@ public abstract class HandShake {
         }
     }
 
-    public void respond(FilterChainContext ctx, WebSocketApplication application, HttpResponsePacket response) {
+    public void respond(final FilterChainContext ctx,
+            final WebSocketApplication application,
+            final HttpResponsePacket response) {
+
         response.setProtocol(Protocol.HTTP_1_1);
         response.setStatus(HttpStatus.SWITCHING_PROTOCOLS_101);
         response.setHeader("Upgrade", "websocket");
-        response.setHeader("Connection", "Upgrade");
+        response.setHeader("Connection", "Upgrade");        
         setHeaders(response);
         if (!getSubProtocol().isEmpty()) {
             response.setHeader(Constants.SEC_WS_PROTOCOL_HEADER,
