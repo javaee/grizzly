@@ -182,25 +182,29 @@ public class HttpClientFilter extends HttpCodecFilter {
         httpResponse.initialize(this, input.position(),
                 maxHeadersSize, MimeHeaders.MAX_NUM_HEADERS_UNBOUNDED);
         httpResponse.setSecure(isSecure(connection));
+                
         // check if the client HTTP Filter knows how to parse the
         // incoming HTTP response of the specific HTTP protocol version.
-        if (!is1XProtocol(httpRequest)) {
-            // if the filter doesn't know how to parse the response
-            // just create a dummy response object, so the HTTP response
-            // will be passed upstream as an HttpContent
-            httpResponse.setProtocol(httpRequest.getProtocol());
-            httpResponse.setStatus(HttpStatus.OK_200);
-            httpResponse.setExpectContent(true);
-            httpResponse.setHeaderParsed(true);
+        
+        if (httpRequest != null) {
+            try {
+                final Protocol protocol = httpRequest.getProtocol();
+                if (Protocol.HTTP_2_0.equals(protocol)) {
+                    // for the HTTP/2.0 (PRI request) we don't expect text-based HTTP response.
+                    // create dummy HTTP response
+                    httpResponse.setProtocol(httpRequest.getProtocol());
+                    httpResponse.setStatus(HttpStatus.OK_200);
+                    httpResponse.setExpectContent(true);
+                    httpResponse.setHeaderParsed(true);
+                }
+            } catch (IllegalStateException ise) {
+                // unknown protocol
+            }
         }
+        
         return httpResponse;
     }
 
-    protected boolean is1XProtocol(final HttpRequestPacket requestPacket) {
-        return requestPacket == null ||
-                !Protocol.HTTP_2_0.equals(requestPacket.getProtocolDC());
-    }
-    
     @Override
     protected boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
         final Connection connection = ctx.getConnection();
@@ -220,7 +224,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                 || ((request != null) && request.isHeadRequest()));
         
         response.setExpectContent(!noContent);
-        
+
         return false;
     }
 
