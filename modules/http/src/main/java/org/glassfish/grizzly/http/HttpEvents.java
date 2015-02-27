@@ -39,7 +39,8 @@
  */
 package org.glassfish.grizzly.http;
 
-import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.Event;
+
 
 /**
  * The class contains a set of standard HTTP events sent on FilterChain during
@@ -84,7 +85,7 @@ public class HttpEvents {
         }
     }
 
-    private static abstract class HttpUpgradeEvent implements FilterChainEvent {
+    private static abstract class HttpUpgradeEvent implements Event {
         private final HttpHeader httpHeader;
         
         private HttpUpgradeEvent(final HttpHeader httpHeader) {
