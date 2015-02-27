@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,6 +58,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -916,11 +917,15 @@ public class OutputBuffer implements OutputSink {
         } catch (ExecutionException e) {
             // close http I/O so that the response will not be broken
             httpContext.close();
-            throw new IOException(e.getCause());
+            throw Exceptions.makeIOException(e.getCause());
+        } catch (TimeoutException e) {
+            // close http I/O so that the response will not be broken
+            httpContext.close();
+            throw new IOException("Write timeout exceeded when trying to flush the data");
         } catch (Exception e) {
             // close http I/O so that the response will not be broken
             httpContext.close();
-            throw new IOException(e);
+            throw Exceptions.makeIOException(e);
         }
     }
 
