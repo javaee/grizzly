@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -179,18 +179,19 @@ public abstract class ProtocolHandler {
     }
 
     public GrizzlyFuture<DataFrame> close(int code, String reason) {
-        return send(new ClosingFrame(code, reason),
+        final ClosingFrame closingFrame = new ClosingFrame(code, reason);
+        return send(closingFrame,
                 new EmptyCompletionHandler<DataFrame>() {
 
                     @Override
                     public void failed(final Throwable throwable) {
-                        webSocket.onClose(null);
+                        webSocket.onClose(closingFrame);
                     }
 
                     @Override
                     public void completed(DataFrame result) {
                         if (!maskData) {
-                            webSocket.onClose(null);
+                            webSocket.onClose(closingFrame);
                         }
                     }
                 });
