@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,8 +62,8 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     private final ConcurrentMap<WebSocket, Boolean> sockets =
             DataStructures.<WebSocket, Boolean>getConcurrentMap();
 
-    private List<Extension> supportedExtensions = new ArrayList<Extension>();
-    private List<String> supportedProtocols = new ArrayList<String>();
+    private final List<Extension> supportedExtensions = new ArrayList<Extension>(2);
+    private final List<String> supportedProtocols = new ArrayList<String>(2);
     
     // ---------------------------------------------------------- Public Methods
 

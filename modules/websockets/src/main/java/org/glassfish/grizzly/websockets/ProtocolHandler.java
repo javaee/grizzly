@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.websockets;
 
 import java.net.URI;
@@ -54,6 +55,7 @@ import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
@@ -76,9 +78,17 @@ public abstract class ProtocolHandler {
         this.maskData = maskData;
     }
 
-    public HandShake handshake(FilterChainContext ctx, WebSocketApplication app, HttpContent request) {
-        final HandShake handshake = createHandShake(request);
-        handshake.respond(ctx, app, ((HttpRequestPacket) request.getHttpHeader()).getResponse());
+    public HandShake handshake(FilterChainContext ctx,
+            WebSocketApplication app,
+            HttpContent request) {
+        
+        final HandShake handshake = createServerHandShake(request);
+        app.handshake(handshake);
+        
+        final HttpResponsePacket response =
+                ((HttpRequestPacket) request.getHttpHeader()).getResponse();
+        
+        handshake.respond(ctx, app, response);
         return handshake;
     }
 
@@ -158,9 +168,9 @@ public abstract class ProtocolHandler {
         return new DataFrame(new BinaryFrameType(), data, last);
     }
 
-    public abstract HandShake createHandShake(HttpContent requestContent);
+    public abstract HandShake createServerHandShake(HttpContent requestContent);
 
-    public abstract HandShake createHandShake(URI uri);
+    public abstract HandShake createClientHandShake(URI uri);
 
     public GrizzlyFuture<DataFrame> send(byte[] data) {
         return send(toDataFrame(data));

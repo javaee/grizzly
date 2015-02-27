@@ -305,6 +305,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx the {@link FilterChainContext} processing this request
      * @param t the cause of the error
+     * @throws java.io.IOException
      */
     protected abstract void onHttpHeaderError(HttpHeader httpHeader,
                                         FilterChainContext ctx,
@@ -320,6 +321,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx the {@link FilterChainContext} processing this request
      * @param t the cause of the error
+     * @throws java.io.IOException
      */
     protected abstract void onHttpContentError(HttpHeader httpHeader,
                                         FilterChainContext ctx,
@@ -495,6 +497,10 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                 } else {
                     final int headerSizeInBytes = input.position();
 
+                    if (!httpHeader.getUpgradeDC().isNull()) {
+                        onIncomingUpgrade(ctx, httpHeader);
+                    }
+                    
                     if (onHttpHeaderParsed(httpHeader, input, ctx)) {
                         throw new IllegalStateException("Bad HTTP headers");
                     }
@@ -1364,6 +1370,29 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         return ctx.getInvokeAction();
     }
     
+    /**
+     * The method is called, when a peer sends an upgrade HTTP packet
+     * (either request or response).
+     * 
+     * @param ctx
+     * @param httpHeader 
+     */
+    protected void onIncomingUpgrade(final FilterChainContext ctx,
+            final HttpHeader httpHeader) {
+        httpHeader.setIgnoreContentModifiers(true);
+        
+        ctx.notifyUpstream(
+                HttpEvents.createIncomingUpgradeEvent(httpHeader));
+    }
+    
+    protected void onOutgoingUpgrade(final FilterChainContext ctx,
+            final HttpHeader httpHeader) {
+        httpHeader.setIgnoreContentModifiers(true);
+
+        ctx.notifyUpstream(
+                HttpEvents.createOutgoingUpgradeEvent(httpHeader));
+    }
+    
     protected Buffer encodeHttpPacket(final FilterChainContext ctx, final HttpPacket input) {
         final boolean isHeader = input.isHeader();
         final HttpContent httpContent;
@@ -1388,6 +1417,11 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         Buffer encodedBuffer = null;
         
         if (!httpHeader.isCommitted()) {
+            
+            if (!httpHeader.getUpgradeDC().isNull()) {
+                onOutgoingUpgrade(ctx, httpHeader);
+            }
+            
             if (!httpHeader.isRequest()) {
                 final HttpResponsePacket response = (HttpResponsePacket) httpHeader;
                 if (response.isAcknowledgement()) {
@@ -1517,8 +1551,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         final byte[] tempBuffer = httpHeader.getTempHeaderEncodingBuffer();
         
         buffer = encodeMimeHeader(memoryManager, buffer, name, value, tempBuffer, false);
-        for (int i = 0; i < packetContentEncodings.size(); i++) {
-            final ContentEncoding encoding = packetContentEncodings.get(i);
+        for (ContentEncoding encoding : packetContentEncodings) {
             if (needComma) {
                 buffer = put(memoryManager, buffer, Constants.COMMA);
             }
@@ -1576,7 +1609,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
     final void setTransferEncodingOnParsing(HttpHeader httpHeader) {
         if (httpHeader.isIgnoreContentModifiers()) {
-            // If it's upgraded Http connection - ignore the transfer encoding
+            // ignore the transfer encoding
             return;
         }
         
@@ -1596,7 +1629,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                                                 final HttpContent httpContent) {
         
         if (httpHeader.isIgnoreContentModifiers()) {
-            // If it's upgraded Http connection - ignore the transfer encoding
+            // ignore the transfer encoding
             return;
         }
 
@@ -1647,7 +1680,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     
     final void setContentEncodingsOnParsing(final HttpHeader httpHeader) {
         if (httpHeader.isIgnoreContentModifiers()) {
-            // If it's upgraded Http connection - ignore the content encoding
+            // ignore the content encoding
             return;
         }
         
@@ -1677,7 +1710,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
     final void setContentEncodingsOnSerializing(final HttpHeader httpHeader) {
         if (httpHeader.isIgnoreContentModifiers()) {
-            // If it's upgraded Http connection - ignore the content encoding
+            // ignore the content encoding
             return;
         }
         
@@ -1783,6 +1816,10 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
      * the secured HTTP packets. For this filter flag means nothing, it's just
      * a value, which is getting set to a {@link HttpRequestPacket} or
      * {@link HttpResponsePacket}.
+     * 
+     * @param connection {@link Connection}
+     * @return <tt>true</tt>, if the {@link Connection} is secured, or <tt>false</tt>
+     *          otherwise
      */
     protected static boolean isSecure(final Connection connection) {
         return SSLUtils.getSSLEngine(connection) != null;

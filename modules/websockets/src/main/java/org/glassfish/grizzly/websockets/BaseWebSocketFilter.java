@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.websockets;
 
 import java.io.IOException;
@@ -71,7 +72,7 @@ import org.glassfish.grizzly.utils.IdleTimeoutFilter;
  */
 public abstract class BaseWebSocketFilter extends BaseFilter {
     
-    private static final Logger logger = Grizzly.logger(BaseWebSocketFilter.class);
+    private static final Logger LOGGER = Grizzly.logger(BaseWebSocketFilter.class);
     private static final long DEFAULT_WS_IDLE_TIMEOUT_IN_SECONDS = 15 * 60;
     private final long wsTimeoutMS;
     
@@ -101,34 +102,6 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
     
     // ----------------------------------------------------- Methods from Filter
     /**
-     * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection} is a client-side {@link
-     * WebSocket}, if yes - creates websocket handshake packet and send it to a server. Otherwise, if it's not websocket
-     * connection - pass processing to the next {@link Filter} in a chain.
-     *
-     * @param ctx {@link FilterChainContext}
-     *
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
-     *
-     * @throws {@link IOException}
-     */
-    @Override
-    public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-        logger.log(Level.FINEST, "handleConnect");
-        // Get connection
-        final Connection connection = ctx.getConnection();
-        // check if it's websocket connection
-        if (!webSocketInProgress(connection)) {
-            // if not - pass processing to a next filter
-            return ctx.getInvokeAction();
-        }
-
-        WebSocketHolder.get(connection).handshake.initiate(ctx);
-        ctx.flush(null);
-        // call the next filter in the chain
-        return ctx.getInvokeAction();
-    }
-
-    /**
      * Method handles Grizzly {@link Connection} close phase. Check if the {@link Connection} is a {@link WebSocket}, if
      * yes - tries to close the websocket gracefully (sending close frame) and calls {@link
      * WebSocket#onClose(DataFrame)}. If the Grizzly {@link Connection} is not websocket - passes processing to the next
@@ -138,7 +111,7 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
      *
      * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
      *
-     * @throws {@link IOException}
+     * @throws java.io.IOException
      */
     @Override
     public NextAction handleClose(FilterChainContext ctx) throws IOException {
@@ -167,8 +140,8 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
      * @param ctx {@link FilterChainContext}
      *
      * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
-     *
-     * @throws {@link IOException}
+     * 
+     * @throws java.io.IOException
      */
     @Override
     @SuppressWarnings("unchecked")
@@ -182,8 +155,8 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
         // Try to obtain associated WebSocket
         final WebSocketHolder holder = WebSocketHolder.get(connection);
         WebSocket ws = getWebSocket(connection);
-        if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "handleRead websocket: {0} content-size={1} headers=\n{2}",
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "handleRead websocket: {0} content-size={1} headers=\n{2}",
                 new Object[]{ws, message.getContent().remaining(), header});
         }
         if (ws == null || !ws.isConnected()) {
@@ -193,8 +166,21 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
                 // if it's not a websocket connection - pass the processing to the next filter
                 return ctx.getInvokeAction();
             }
-            // Handle handshake
-            return handleHandshake(ctx, message);
+            
+            try {
+                // Handle handshake
+                return handleHandshake(ctx, message);
+            } catch (HandshakeException e) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "Handshake error. Code: {0} Msg:{1}",
+                        new Object[]{e.getCode(), e.getMessage()});
+                }
+
+                onHandshakeFailure(connection, e);
+            }
+
+            // Handshake error
+            return ctx.getStopAction();
         }
         // this is websocket with the completed handshake
         if (message.getContent().hasRemaining()) {
@@ -239,7 +225,7 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
      *
      * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
      *
-     * @throws {@link IOException}
+     * @throws java.io.IOException
      */
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
@@ -252,7 +238,6 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
             final WebSocketHolder holder = WebSocketHolder.get(ctx.getConnection());
             final Buffer wrap = Buffers.wrap(ctx.getMemoryManager(), holder.handler.frame(frame));
             ctx.setMessage(wrap);
-            ctx.flush(null);
         }
         // invoke next filter in the chain
         return ctx.getInvokeAction();
@@ -269,27 +254,29 @@ public abstract class BaseWebSocketFilter extends BaseFilter {
      *
      * @return {@link NextAction} instruction for {@link FilterChain}, how it should continue the execution
      *
-     * @throws {@link IOException}
+     * @throws java.io.IOException
      */
     protected abstract NextAction handleHandshake(FilterChainContext ctx, HttpContent content)
     throws IOException;
 
+
+    /**
+     * The method is called when WebSocket handshake fails for the {@link Connection}.
+     * 
+     * @param connection
+     * @param e 
+     */
+    protected void onHandshakeFailure(final Connection connection,
+            final HandshakeException e) {
+    }
 
 
     private static WebSocket getWebSocket(final Connection connection) {
         return WebSocketHolder.getWebSocket(connection);
     }
 
-    private static boolean webSocketInProgress(final Connection connection) {
+    protected static boolean webSocketInProgress(final Connection connection) {
         return WebSocketHolder.isWebSocketInProgress(connection);
-    }
-
-    protected static HttpResponsePacket composeHandshakeError(final HttpRequestPacket request,
-                                                            final HandshakeException e) {
-        final HttpResponsePacket response = request.getResponse();
-        response.setStatus(e.getCode());
-        response.setReasonPhrase(e.getMessage());
-        return response;
     }
     
     protected void setIdleTimeout(final FilterChainContext ctx) {

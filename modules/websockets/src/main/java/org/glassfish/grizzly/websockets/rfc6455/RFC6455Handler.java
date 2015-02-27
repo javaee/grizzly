@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,6 @@ package org.glassfish.grizzly.websockets.rfc6455;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.websockets.Constants;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.FrameType;
@@ -77,12 +76,12 @@ public class RFC6455Handler extends ProtocolHandler {
 
 
     @Override
-    public HandShake createHandShake(URI uri) {
+    public HandShake createClientHandShake(URI uri) {
         return new RFC6455HandShake(uri);
     }
 
     @Override
-    public HandShake createHandShake(HttpContent requestContent) {
+    public HandShake createServerHandShake(HttpContent requestContent) {
         return new RFC6455HandShake(
                 (HttpRequestPacket) requestContent.getHttpHeader());
     }
