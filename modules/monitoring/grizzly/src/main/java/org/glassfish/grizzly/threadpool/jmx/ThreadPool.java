@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,7 +48,6 @@ import org.glassfish.gmbal.GmbalMBean;
 import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
@@ -65,8 +64,6 @@ public class ThreadPool extends JmxObject {
     private final AbstractThreadPool threadPool;
     private final ThreadPoolProbe probe = new JmxThreadPoolProbe();
 
-    private final AtomicBoolean started = new AtomicBoolean(false);
-    private final AtomicInteger currentAllocatedThreadCount = new AtomicInteger();
     private final AtomicInteger totalAllocatedThreadCount = new AtomicInteger();
     private final AtomicInteger currentQueuedTasksCount = new AtomicInteger();
     private final AtomicLong totalCompletedTasksCount = new AtomicLong();
@@ -95,6 +92,7 @@ public class ThreadPool extends JmxObject {
     @Override
     protected void onRegister(GrizzlyJmxManager mom, GmbalMBean bean) {
         threadPool.getMonitoringConfig().addProbes(probe);
+        totalAllocatedThreadCount.set(threadPool.getSize()); // set the initial value
     }
 
     /**
@@ -126,7 +124,7 @@ public class ThreadPool extends JmxObject {
     @ManagedAttribute(id="thread-pool-started")
     @Description("Indiciates whether or not the thread pool has been started.")
     public boolean isStarted() {
-        return started.get();
+        return !threadPool.isShutdown();
     }
 
 
@@ -156,7 +154,7 @@ public class ThreadPool extends JmxObject {
     @ManagedAttribute(id="thread-pool-allocated-thread-count")
     @Description("The current number of threads managed by this thread pool.")
     public int getCurrentAllocatedThreadCount() {
-        return currentAllocatedThreadCount.get();
+        return threadPool.getSize();
     }
 
 
@@ -213,25 +211,19 @@ public class ThreadPool extends JmxObject {
 
         @Override
         public void onThreadPoolStartEvent(AbstractThreadPool threadPool) {
-            started.compareAndSet(false, true);
         }
 
         @Override
         public void onThreadPoolStopEvent(AbstractThreadPool threadPool) {
-            started.compareAndSet(true, false);
         }
 
         @Override
         public void onThreadAllocateEvent(AbstractThreadPool threadPool, Thread thread) {
-            currentAllocatedThreadCount.incrementAndGet();
             totalAllocatedThreadCount.incrementAndGet();
         }
 
         @Override
         public void onThreadReleaseEvent(AbstractThreadPool threadPool, Thread thread) {
-            if (currentAllocatedThreadCount.get() > 0) {
-                currentAllocatedThreadCount.decrementAndGet();
-            }
         }
 
         @Override
