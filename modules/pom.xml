@@ -115,6 +115,7 @@
         <module>grizzly</module>
         <module>http</module>
         <module>http-server</module>
+        <module>http2</module>
         <module>http-servlet</module>
         <module>comet</module>
         <module>websockets</module>
