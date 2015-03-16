@@ -159,6 +159,7 @@ public class SSLReadFilter implements ProtocolFilter{
         }
         if (sslEngine == null) {
             sslEngine = obtainSSLEngine(key);
+            sslEngine.beginHandshake();
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "Obtained sslEngine: " + sslEngine);
             }
@@ -167,7 +168,7 @@ public class SSLReadFilter implements ProtocolFilter{
             key.attach(attachment);
         }
 
-        boolean hasHandshake = sslEngine.getSession().isValid();
+        boolean hasHandshake = !SSLUtils.isHandshaking(sslEngine);
         try {
             SSLUtils.allocateThreadBuffers(inputBBSize);
             
@@ -221,8 +222,7 @@ public class SSLReadFilter implements ProtocolFilter{
     public boolean postExecute(Context ctx) throws IOException {
         if (ctx.getKeyRegistrationState()
                 == Context.KeyRegistrationState.CANCEL){
-            ctx.getSelectorHandler().getSelectionKeyHandler().
-                    cancel(ctx.getSelectionKey());
+            ctx.getSelectorHandler().addPendingKeyCancel(ctx.getSelectionKey());
         } else if (ctx.getKeyRegistrationState()
                 == Context.KeyRegistrationState.REGISTER){            
             saveSecuredBufferRemainders(ctx.getSelectionKey());
