@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,7 +39,7 @@
  */
 package org.glassfish.grizzly.http.util;
 
-import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import org.glassfish.grizzly.utils.Charsets;
@@ -121,6 +121,7 @@ public enum Header {
     private final byte[] headerNameBytes;
     private final byte[] headerNameLowerCaseBytes;
     private final String headerName;
+    private final String headerNameLowerCase;
     private final int length;
 
     // ------------------------------------------------------------ Constructors
@@ -130,8 +131,9 @@ public enum Header {
         this.headerName = headerName;
         headerNameBytes = headerName.getBytes(Charsets.ASCII_CHARSET);
         
-        headerNameLowerCaseBytes = Arrays.copyOf(headerNameBytes, headerNameBytes.length);
-        Ascii.toLower(headerNameLowerCaseBytes);
+        this.headerNameLowerCase = headerName.toLowerCase(Locale.ENGLISH);
+        headerNameLowerCaseBytes = headerNameLowerCase.getBytes(Charsets.ASCII_CHARSET);
+        
         length = headerNameBytes.length;
     }
 
@@ -152,6 +154,17 @@ public enum Header {
         return headerNameBytes;
     }
 
+    /**
+     * <p>
+     * Returns the lower-case {@link String} representation of this header.
+     * </p>
+     *
+     * @return the lower-case {@link String} representation of this header
+     */
+    public final String getLowerCase() {
+        return headerNameLowerCase;
+    }
+    
     /**
      * <p>
      * Returns the lower-case byte representation of this header encoded using

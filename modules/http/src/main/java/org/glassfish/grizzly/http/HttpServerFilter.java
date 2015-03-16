@@ -81,12 +81,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             HttpServerFilter.class.getName() + ".HttpRequest";
 
     public static final Event RESPONSE_COMPLETE_EVENT =
-            new Event() {
-        @Override
-        public Object type() {
-            return "RESPONSE_COMPLETE_EVENT";
-        }
-    };
+            new HttpEvents.ResponseCompleteEvent();
 
     
     private final Attribute<ServerHttpRequestImpl> httpRequestInProcessAttr;
@@ -1355,6 +1350,11 @@ public class HttpServerFilter extends HttpCodecFilter {
             this.isHeaderParsed = isHeaderParsed;
         }
 
+        @Override
+        protected HttpPacketParsing getParsingState() {
+            return this;
+        }
+        
         /**
          * {@inheritDoc}
          */

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -676,7 +676,7 @@ public class URLDecoder {
         int mPos = 0;        // mark position
         int strPos = 0;
         int strLen = str.length();
-        StringBuilder dec = new StringBuilder(strLen);    // decoded string output
+        StringBuilder dec = null;    // decoded string output
         
         while (strPos < strLen) {
             // process next metacharacter
@@ -687,6 +687,10 @@ public class URLDecoder {
             if (isNorm) {
                 strPos++;
             } else {
+                if (dec == null) {
+                    dec = new StringBuilder(strLen);
+                }
+                
                 // if there were non-metacharacters, copy them all as a block
                 if (mPos < strPos) {
                     dec.append(str, mPos, strPos);
@@ -708,12 +712,17 @@ public class URLDecoder {
             }
         }
 
-        // if there were non-metacharacters, copy them all as a block
-        if (mPos < strPos) {
-            dec.append(str, mPos, strPos);
+        if (dec != null) {
+            // copy the normal characters remainder (if any)
+            if (mPos < strPos) {
+                dec.append(str, mPos, strPos);
+            }
+            
+            return dec.toString();
         }
         
-        return dec.toString();
+        // all characters were normal
+        return str;
     }
     
     private static int x2c(byte b1, byte b2) {

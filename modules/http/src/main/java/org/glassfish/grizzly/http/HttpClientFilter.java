@@ -40,16 +40,18 @@
 
 package org.glassfish.grizzly.http;
 
+import java.io.IOException;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Event;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.MemoryManager;
-import java.io.IOException;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import org.glassfish.grizzly.ThreadCache;
 
 import org.glassfish.grizzly.http.util.Ascii;
@@ -75,7 +77,7 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 public class HttpClientFilter extends HttpCodecFilter {
 
     private final Attribute<Queue<HttpRequestPacket>> httpRequestQueueAttr;
-    private final Attribute<ClientHttpResponseImpl> httpResponseInProcessAttr;
+    private final Attribute<HttpResponsePacket> httpResponseInProcessAttr;
 
     /**
      * Constructor, which creates <tt>HttpClientFilter</tt> instance
@@ -140,8 +142,7 @@ public class HttpClientFilter extends HttpCodecFilter {
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-
-        ClientHttpResponseImpl httpResponse = httpResponseInProcessAttr.get(connection);
+        HttpResponsePacket httpResponse = httpResponseInProcessAttr.get(connection);
         
         if (httpResponse == null) {
             httpResponse = createHttpResponse(ctx);
@@ -171,6 +172,23 @@ public class HttpClientFilter extends HttpCodecFilter {
         return handleRead(ctx, httpResponse);
     }
 
+    @Override
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final Event event) throws Exception {
+        if (event.type() == HttpEvents.ChangePacketInProgressEvent.TYPE) {
+            final HttpResponsePacket responsePacket = (HttpResponsePacket)
+                    ((HttpEvents.ChangePacketInProgressEvent) event).getPacket();
+            
+            httpResponseInProcessAttr.set(
+                    responsePacket.getProcessingState().getHttpContext(),
+                    responsePacket);
+            
+            return ctx.getStopAction();
+        } else {
+            return super.handleEvent(ctx, event);
+        }
+    }
+    
     private ClientHttpResponseImpl createHttpResponse(FilterChainContext ctx) {
         final Buffer input = ctx.getMessage();
         final Connection connection = ctx.getConnection();
@@ -670,6 +688,11 @@ public class HttpClientFilter extends HttpCodecFilter {
                     setContentType(dc.toString());
                 }
             }
+        }
+
+        @Override
+        protected HttpPacketParsing getParsingState() {
+            return this;
         }
         
         @Override

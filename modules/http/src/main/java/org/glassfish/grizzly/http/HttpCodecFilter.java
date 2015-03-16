@@ -495,13 +495,13 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
      * which contains HTTP message header.
      *
      * @param ctx Request processing context
-     * @param httpPacket the current HttpPacket, which is being processed.
+     * @param httpHeader the current {@link HttpHeader}, which is being processed.
      *
      * @return {@link NextAction}
      * @throws IOException
      */
     public final NextAction handleRead(final FilterChainContext ctx,
-            final HttpPacketParsing httpPacket) throws IOException {
+            final HttpHeader httpHeader) throws IOException {
 
         // Get the input buffer
         Buffer input = ctx.getMessage();
@@ -511,15 +511,19 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
         HttpProbeNotifier.notifyDataReceived(this, connection, input);
 
+        final HttpPacketParsing parsingState = httpHeader.getParsingState();
+        
          // Check if HTTP header has been parsed
-        final boolean wasHeaderParsed = httpPacket.isHeaderParsed();
-        final HttpHeader httpHeader = (HttpHeader) httpPacket;
+        final boolean wasHeaderParsed = parsingState == null ||
+                parsingState.isHeaderParsed();
         
         if (!wasHeaderParsed) {
             try {
+                assert parsingState != null;
+                
                 // if header wasn't parsed - parse
-                if (!decodeHttpPacket(ctx, httpPacket, input)) {
-                    // if there is not enough data to parse the HTTP header - shutdownNow
+                if (!decodeHttpPacket(ctx, parsingState, input)) {
+                    // if there is not enough data to parse the HTTP header - stop
                     // filterchain processing
                     return ctx.getStopAction(input);
                 } else {
@@ -534,10 +538,10 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                     }
 
                     // if headers get parsed - set the flag
-                    httpPacket.setHeaderParsed(true);
+                    parsingState.setHeaderParsed(true);
 
                     // recycle header parsing state
-                    httpPacket.getHeaderParsingState().recycle();
+                    parsingState.getHeaderParsingState().recycle();
 
                     final Buffer remainder = input.hasRemaining()
                             ? input.split(input.position()) : Buffers.EMPTY_BUFFER;
@@ -568,6 +572,19 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         }
 
         if (httpHeader.isExpectContent()) {
+            
+            if (httpHeader.isIgnoreContentModifiers()) {
+                // If this header suggests to ignore content modifiers - just pass
+                // the payload as it is
+                // Build HttpContent message on top of existing content chunk and parsed Http message header
+                final HttpContent message = HttpContent.create(httpHeader);
+                message.setContent(input);
+                ctx.setMessage(message);
+
+                // Instruct filterchain to continue the processing.
+                return ctx.getInvokeAction();
+            }
+            
             try {
                 final TransferEncoding transferEncoding =
                         httpHeader.getTransferEncoding();

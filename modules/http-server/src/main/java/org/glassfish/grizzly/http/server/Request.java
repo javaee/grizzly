@@ -2405,6 +2405,9 @@ public class Request {
             case Chars:
                 isUpdated = parseSessionId(uriDC.getCharChunk());
                 break;
+            case String:
+                isUpdated = parseSessionId(uriDC);
+                break;
             default:
                 throw new IllegalStateException("Unexpected DataChunk type: " + uriDC.getType());
         }
@@ -2456,6 +2459,50 @@ public class Request {
         return isUpdated;
     }
 
+    private boolean parseSessionId(DataChunk dataChunkStr) {
+        assert dataChunkStr.getType() == DataChunk.Type.String;
+        
+        final String uri = dataChunkStr.toString();
+        final String sessionParamNameMatch = sessionCookieName != null
+                ? ';' + sessionCookieName + '='
+                : match;
+        
+        boolean isUpdated = false;
+        final int semicolon = uri.indexOf(sessionParamNameMatch);
+
+        if (semicolon > 0) {
+            // Parse session ID, and extract it from the decoded request URI
+//            final int start = uriChunk.getStart();
+
+            final int sessionIdStart = semicolon + sessionParamNameMatch.length();
+            final int semicolon2 = uri.indexOf(';', sessionIdStart);
+            
+            isUpdated = semicolon2 >= 0;
+            final int end = isUpdated ? semicolon2 : uri.length();
+
+            final String sessionId = uri.substring(sessionIdStart, end);
+
+            final int jrouteIndex = sessionId.lastIndexOf(':');
+            if (jrouteIndex > 0) {
+                setRequestedSessionId(sessionId.substring(0, jrouteIndex));
+                if (jrouteIndex < (sessionId.length() - 1)) {
+                    setJrouteId(sessionId.substring(jrouteIndex + 1));
+                }
+            } else {
+                setRequestedSessionId(sessionId);
+            }
+
+            setRequestedSessionURL(true);
+
+            dataChunkStr.setString(uri.substring(0, semicolon));
+        } else {
+            setRequestedSessionId(null);
+            setRequestedSessionURL(false);
+        }
+        
+        return isUpdated;
+    }
+    
     /**
      * Set a flag indicating whether or not the requested session ID for this
      * request came in through a cookie.  This is normally called by the

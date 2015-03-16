@@ -175,8 +175,15 @@ public abstract class HttpHeader extends HttpPacket
         return this;
     }
 
-
     public abstract ProcessingState getProcessingState();
+
+    /**
+     * @return the parsing state of this HTTP header, or <tt>null</tt> if the
+     *      message is complete or shouldn't be parsed at all
+     */
+    protected HttpPacketParsing getParsingState() {
+        return null;
+    }
 
     protected void addContentEncoding(ContentEncoding contentEncoding) {
         contentEncodings.add(contentEncoding);
@@ -545,7 +552,7 @@ public abstract class HttpHeader extends HttpPacket
      * @return <code>true</code> if a content type has been set.
      */
     public boolean isContentTypeSet() {
-        return contentType.isMimeTypeSet()||
+        return contentType.isMimeTypeSet() ||
                 headers.getValue(Header.ContentType) != null;
     }
 
