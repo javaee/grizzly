@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,7 +56,7 @@ import static org.glassfish.grizzly.utils.Charsets.*;
  *
  * HttpRequestURIDecoder.decode(decodedURI, urlDecoder, encoding, b2cConverter);
  *
- * </code></pre></code>
+ * </code></pre>
  *
  * @author Jeanfrancois Arcand
  */
@@ -114,7 +114,7 @@ public class HttpRequestURIDecoder {
     /**
      * Decode the HTTP request represented by the bytes inside {@link DataChunk}.
      * @param decodedURI - The bytes to decode
-     * @throws java.lang.Exception
+     * @throws java.io.CharConversionException
      */
     public static void decode(final DataChunk decodedURI)
             throws CharConversionException {
@@ -125,7 +125,7 @@ public class HttpRequestURIDecoder {
      * Decode the HTTP request represented by the bytes inside {@link DataChunk}.
      * @param decodedURI - The bytes to decode
      * @param isSlashAllowed allow encoded slashes
-     * @throws java.lang.Exception
+     * @throws java.io.CharConversionException
      */
     public static void decode(final DataChunk decodedURI,
             final boolean isSlashAllowed) throws CharConversionException {
@@ -135,8 +135,9 @@ public class HttpRequestURIDecoder {
     /**
      * Decode the HTTP request represented by the bytes inside {@link DataChunk}.
      * @param decodedURI - The bytes to decode
+     * @param isSlashAllowed allow encoded slashes
      * @param encoding the encoding value, default is UTF-8.
-     * @throws java.lang.Exception
+     * @throws java.io.CharConversionException
      */
     public static void decode(final DataChunk decodedURI,
             final boolean isSlashAllowed, final Charset encoding)
@@ -150,7 +151,7 @@ public class HttpRequestURIDecoder {
      * @param targetDecodedURI the target {@link DataChunk} URI will be decoded to
      * @param isSlashAllowed is '/' an allowable character
      * @param encoding the encoding value, default is UTF-8
-     * @throws java.lang.Exception
+     * @throws java.io.CharConversionException
      */
     public static void decode(final DataChunk originalURI,
             final DataChunk targetDecodedURI, final boolean isSlashAllowed,
@@ -171,7 +172,7 @@ public class HttpRequestURIDecoder {
      * {@link DataChunk} to chars representation, using the passed encoding.
      * @param decodedURI - The bytes to decode
      * @param encoding the encoding value, default is UTF-8.
-     * @throws java.lang.Exception
+     * @throws java.io.CharConversionException
      */
     public static void convertToChars(final DataChunk decodedURI,
             Charset encoding) throws CharConversionException {
@@ -244,6 +245,7 @@ public class HttpRequestURIDecoder {
      * a null byte.
      *
      * @param uriMB URI to be normalized
+     * @return <tt>true</tt> if normalization was successful, or <tt>false</tt> otherwise
      */
     public static boolean normalize(MessageBytes uriMB) {
 
@@ -263,6 +265,7 @@ public class HttpRequestURIDecoder {
      * a null byte.
      *
      * @param dataChunk URI to be normalized
+     * @return <tt>true</tt> if normalization was successful, or <tt>false</tt> otherwise
      */
     public static boolean normalize(final DataChunk dataChunk) {
 
@@ -271,10 +274,16 @@ public class HttpRequestURIDecoder {
                 return normalizeBytes(dataChunk.getByteChunk());
             case Buffer:
                 return normalizeBuffer(dataChunk.getBufferChunk());
+            case String:
+                try {
+                    dataChunk.toChars(null);
+                } catch (CharConversionException unexpected) {
+                    // should never occur
+                    throw new IllegalStateException("Unexpected exception", unexpected);
+                }
+                // pass to Chars case
             case Chars:
                 return normalizeChars(dataChunk.getCharChunk());
-            case String:
-                throw new IllegalStateException("Can't normalize the string representation");
             default:
                 throw new NullPointerException();
         }
@@ -288,6 +297,7 @@ public class HttpRequestURIDecoder {
      * present in the URI.
      *
      * @param uriCC URI to be checked (should be chars)
+     * @return <tt>true</tt> if the uriCC represents a normalized URI, or <tt>false</tt> otherwise
      */
     public static boolean checkNormalize(final CharChunk uriCC) {
 

@@ -58,6 +58,40 @@ public class HttpEvents {
         return new OutgoingHttpUpgradeEvent(httpHeader);
     }
 
+    public static ChangePacketInProgressEvent createChangePacketInProgressEvent(
+            final HttpHeader packet) {
+        return new ChangePacketInProgressEvent(packet);
+    }
+    
+    public static final class ChangePacketInProgressEvent implements FilterChainEvent {
+        public static final Object TYPE = ChangePacketInProgressEvent.class.getName();
+        
+        private final HttpHeader httpHeader;
+
+        private ChangePacketInProgressEvent(HttpHeader httpHeader) {
+            this.httpHeader = httpHeader;
+        }
+        
+        public HttpHeader getPacket() {
+            return httpHeader;
+        }
+
+        @Override
+        public Object type() {
+            return TYPE;
+        }
+    }
+
+    public static final class ResponseCompleteEvent implements FilterChainEvent {
+        public static final Object TYPE = ResponseCompleteEvent.class.getName();
+        
+        @Override
+        public Object type() {
+            return TYPE;
+        }
+        
+    }
+    
     public static final class IncomingHttpUpgradeEvent extends HttpUpgradeEvent {
         public static final Object TYPE = IncomingHttpUpgradeEvent.class.getName();
 

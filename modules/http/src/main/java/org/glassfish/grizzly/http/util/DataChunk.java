@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,7 +53,7 @@ import org.glassfish.grizzly.Buffer;
  */
 public class DataChunk implements Chunk {
 
-    public enum Type {None, Bytes, Buffer, Chars, String}
+    public static enum Type {None, Bytes, Buffer, Chars, String}
     
     public static DataChunk newInstance() {
         return newInstance(new ByteChunk(), new BufferChunk(), new CharChunk(), null);
@@ -269,7 +269,14 @@ public class DataChunk implements Chunk {
                 setChars(charChunk.getChars(), charChunk.getStart(), charChunk.getEnd());
                 return;
             case String:
-                setChars(stringValue.toCharArray(), 0, stringValue.length());
+                charChunk.recycle();
+                try {
+                    charChunk.append(stringValue);
+                } catch (IOException e) {
+                    throw new IllegalStateException("Unexpected exception");
+                }
+                
+                setChars(charChunk.getChars(), charChunk.getStart(), charChunk.getEnd());
                 return;
             case Chars:
                 return;
@@ -475,14 +482,16 @@ public class DataChunk implements Chunk {
      * {@inheritDoc}
      */
     @Override
-    public java.lang.String toString(int start, int end) {
+    public java.lang.String toString(final int start, final int end) {
         switch (type) {
             case Bytes:
                 return byteChunk.toString(start, end);
             case Buffer:
                 return bufferChunk.toString(start, end);
             case String:
-                return stringValue;
+                return (start == 0 && end == stringValue.length())
+                        ? stringValue
+                        : stringValue.substring(start, end);
             case Chars:
                 return charChunk.toString(start, end);
             default:
