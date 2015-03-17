@@ -420,20 +420,20 @@ public class HuffmanCoding {
                     } else {
                         b |= (code >>> (r - a));
                         destination.write((byte) b);
-                        code <<= (32 - r + a);  // zero appended bits
-                        code >>>= (32 - r + a); // code left to be written
+                        
+                        code &= (1 << (r - a)) - 1; // keep only (r-a) lower bits
                         r -= a;
                         b = 0;
                         a = 8;
                     }
                 }
             }
-            if (a < 8) { // have to pad
-                destination.write((byte) (b | (EOS.code >>> (EOS.length - a))));
+            if (a < 8) { // have to pad with EOS
+                destination.write((byte) (b | ((1 << a) - 1)));
             }
         } catch (RuntimeException e) {
             throw new RuntimeException(
-                    "Couldn't write string: value=" + value, e);
+                    "Couldn't write string: value=" + new String(value, off, len), e);
         }
     }
 

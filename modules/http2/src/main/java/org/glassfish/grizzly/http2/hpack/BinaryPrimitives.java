@@ -252,7 +252,8 @@ public final class BinaryPrimitives {
         Objects.requireNonNull(destination, "destination == null");
         Objects.requireNonNull(value, "value == null");
         
-        writeInteger(destination, huffmanCoding.lengthOf(value, off, len), 7, 0b10000000);
+        writeInteger(destination,
+                huffmanCoding.lengthOf(value, off, len), 7, 0b10000000);
         huffmanCoding.to(destination, value, off, len);
     }
 
