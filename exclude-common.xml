@@ -2,7 +2,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -119,6 +119,7 @@
             <Class name="org.glassfish.grizzly.utils.Holder$LazyIntHolder"/>
             <Class name="org.glassfish.grizzly.websockets.WebSocketEngine" />
             <Class name="org.glassfish.grizzly.http.server.NetworkListener" />
+            <Class name="org.glassfish.grizzly.http2.Http2State" />
         </Or>
     </Match>
 

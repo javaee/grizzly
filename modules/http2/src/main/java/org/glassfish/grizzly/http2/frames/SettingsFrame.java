@@ -87,7 +87,7 @@ public class SettingsFrame extends Http2Frame {
             new HashMap<Integer, String>(2);
     
     static {
-        FLAG_NAMES_MAP.put(new Integer(ACK_FLAG), "ACK");
+        FLAG_NAMES_MAP.put(Integer.valueOf(ACK_FLAG), "ACK");
     }
     
     public static final int MAX_DEFINED_SETTINGS = 6;

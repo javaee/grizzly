@@ -440,6 +440,8 @@ public class Http2ClientFilter extends Http2BaseFilter {
                 http2State.onClientHttpUpgradeRequestFinished();
                 final Http2State finalState = http2State;
 
+                // send the preface once the last payload chunk reaches the
+                // network layer
                 ctx.addCompletionListener(
                         new FilterChainContext.CompletionListener() {
 

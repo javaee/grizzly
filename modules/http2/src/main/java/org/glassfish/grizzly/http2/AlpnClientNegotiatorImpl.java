@@ -41,8 +41,6 @@
 package org.glassfish.grizzly.http2;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
@@ -59,7 +57,6 @@ class AlpnClientNegotiatorImpl implements AlpnClientNegotiator {
 
     private static final String HTTP11 = "http/1.1";
     private final String[] supportedProtocolsStr;
-    private final Map<String, DraftVersion> name2Draft;
     private final Http2ClientFilter filter;
 
     public AlpnClientNegotiatorImpl(final DraftVersion[] supportedHttp2Drafts,
@@ -67,12 +64,8 @@ class AlpnClientNegotiatorImpl implements AlpnClientNegotiator {
         this.filter = filter;
         
         supportedProtocolsStr = new String[supportedHttp2Drafts.length + 1];
-        name2Draft = new HashMap<String, DraftVersion>(supportedHttp2Drafts.length);
         for (int i = 0; i < supportedHttp2Drafts.length; i++) {
-            final DraftVersion draft = supportedHttp2Drafts[i];
-            final String tlsId = draft.getTlsId();
-            supportedProtocolsStr[i] = tlsId;
-            name2Draft.put(tlsId, draft);
+            supportedProtocolsStr[i] = supportedHttp2Drafts[i].getTlsId();
         }
         supportedProtocolsStr[supportedProtocolsStr.length - 1] = HTTP11;
     }
@@ -94,7 +87,7 @@ class AlpnClientNegotiatorImpl implements AlpnClientNegotiator {
         }
         
         final Connection connection = AlpnSupport.getConnection(sslEngine);
-        final DraftVersion draft = name2Draft.get(selectedProtocol);
+        final DraftVersion draft = DraftVersion.fromString(selectedProtocol);
         if (draft != null) {
             final Http2Connection http2Connection =
                     filter.createClientHttp2Connection(draft, connection);

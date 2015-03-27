@@ -68,13 +68,13 @@ import org.glassfish.grizzly.ssl.SSLBaseFilter;
  *
  */
 public class Http2AddOn implements AddOn {
-    protected static final DraftVersion[] ALL_HTTP2_DRAFTS =
-            {DraftVersion.DRAFT_14};
-    
     private static final Logger LOGGER = Grizzly.logger(Http2AddOn.class);
+    
+    static final DraftVersion[] ALL_HTTP2_DRAFTS =
+            {DraftVersion.DRAFT_14};
 
     protected final DraftVersion[] supportedDrafts;
-    
+        
     private int maxConcurrentStreams = -1;
     private int initialWindowSize = -1;
     private int maxFramePayloadSize = -1;
@@ -86,7 +86,7 @@ public class Http2AddOn implements AddOn {
     public Http2AddOn(final DraftVersion... supportedDrafts) {
         this.supportedDrafts =
                 (supportedDrafts == null || supportedDrafts.length == 0)
-                ? ALL_HTTP2_DRAFTS
+                ? Arrays.copyOf(ALL_HTTP2_DRAFTS, ALL_HTTP2_DRAFTS.length)
                 : Arrays.copyOf(supportedDrafts, supportedDrafts.length);
     }    
 

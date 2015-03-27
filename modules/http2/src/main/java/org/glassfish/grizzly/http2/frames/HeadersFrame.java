@@ -64,8 +64,8 @@ public class HeadersFrame extends HeaderBlockHead {
     
     static {
         FLAG_NAMES_MAP.putAll(HeaderBlockHead.FLAG_NAMES_MAP);
-        FLAG_NAMES_MAP.put(new Integer(END_STREAM), "END_STREAM");
-        FLAG_NAMES_MAP.put(new Integer(PRIORITIZED), "PRIORITIZED");
+        FLAG_NAMES_MAP.put(Integer.valueOf(END_STREAM), "END_STREAM");
+        FLAG_NAMES_MAP.put(Integer.valueOf(PRIORITIZED), "PRIORITIZED");
     }
     
     private int streamDependency;

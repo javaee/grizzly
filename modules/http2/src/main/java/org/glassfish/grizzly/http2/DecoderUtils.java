@@ -209,7 +209,6 @@ class DecoderUtils {
     private static void finalizeKnownHeader(final HttpHeader httpHeader,
             final String name, final String value) {
         
-        final int valueLen = value.length();
         switch (name) {
             case "content-length": {
                 httpHeader.setContentLengthLong(Long.parseLong(value));

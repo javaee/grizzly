@@ -62,8 +62,8 @@ public class DataFrame extends Http2Frame {
             new HashMap<Integer, String>(4);
     
     static {
-        FLAG_NAMES_MAP.put(new Integer(END_STREAM), "END_STREAM");
-        FLAG_NAMES_MAP.put(new Integer(PADDED), "PADDED");
+        FLAG_NAMES_MAP.put(Integer.valueOf(END_STREAM), "END_STREAM");
+        FLAG_NAMES_MAP.put(Integer.valueOf(PADDED), "PADDED");
     }
 
     private Buffer data;

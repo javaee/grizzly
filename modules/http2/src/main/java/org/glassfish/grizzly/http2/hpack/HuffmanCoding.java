@@ -65,6 +65,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import static java.lang.String.format;
+import java.nio.charset.StandardCharsets;
 import org.glassfish.grizzly.Buffer;
 
 public class HuffmanCoding {
@@ -433,7 +434,9 @@ public class HuffmanCoding {
             }
         } catch (RuntimeException e) {
             throw new RuntimeException(
-                    "Couldn't write string: value=" + new String(value, off, len), e);
+                    "Couldn't write string: value=" +
+                            new String(value, off, len, StandardCharsets.ISO_8859_1),
+                    e);
         }
     }
 

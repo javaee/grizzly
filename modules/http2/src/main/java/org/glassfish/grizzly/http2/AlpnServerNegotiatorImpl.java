@@ -40,9 +40,7 @@
 
 package org.glassfish.grizzly.http2;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
@@ -56,18 +54,18 @@ final class AlpnServerNegotiatorImpl implements AlpnServerNegotiator {
     private final static Logger LOGGER = Grizzly.logger(AlpnServerNegotiatorImpl.class);
 
     private static final String HTTP11 = "http/1.1";
-    private final List<String> supportedProtocols;
+    private final String[] supportedProtocols;
     private final Http2BaseFilter filter;
     // ---------------------------------------------------- Constructors
 
     public AlpnServerNegotiatorImpl(final DraftVersion[] supportedDrafts,
             final Http2ServerFilter http2HandlerFilter) {
         this.filter = http2HandlerFilter;
-        supportedProtocols = new ArrayList<String>(supportedDrafts.length + 1);
-        for (DraftVersion version : supportedDrafts) {
-            supportedProtocols.add(version.getTlsId());
+        supportedProtocols = new String[supportedDrafts.length + 1];
+        for (int i = 0; i < supportedDrafts.length; i++) {
+            supportedProtocols[i] = supportedDrafts[i].getTlsId();
         }
-        supportedProtocols.add(HTTP11);
+        supportedProtocols[supportedProtocols.length - 1] = HTTP11;
     }
 
     // ------------------------------- Methods from ServerSideNegotiator

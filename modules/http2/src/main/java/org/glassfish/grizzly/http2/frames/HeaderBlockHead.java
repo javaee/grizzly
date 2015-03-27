@@ -53,7 +53,7 @@ public abstract class HeaderBlockHead extends HeaderBlockFragment {
     
     static {
         FLAG_NAMES_MAP.putAll(HeaderBlockFragment.FLAG_NAMES_MAP);
-        FLAG_NAMES_MAP.put(new Integer(PADDED), "PADDED");
+        FLAG_NAMES_MAP.put(Integer.valueOf(PADDED), "PADDED");
     }
     
     protected int padLength;

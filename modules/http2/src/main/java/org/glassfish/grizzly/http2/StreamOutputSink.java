@@ -476,7 +476,8 @@ final class StreamOutputSink {
         List<Http2Frame> headerFrames;
         OutputQueueRecord outputQueueRecord = null;
         
-        boolean isDeflaterLocked = false;
+        // !!!!! LOCK the deflater
+        http2Connection.getDeflaterLock().lock();
         
         try { // try-finally block to release deflater lock if needed
             
@@ -487,10 +488,6 @@ final class StreamOutputSink {
                     !httpHeader.isExpectContent() ||
                     source == null || !source.hasRemaining();
 
-            // !!!!! LOCK the deflater
-            isDeflaterLocked = true;
-            http2Connection.getDeflaterLock().lock();
-            
             headerFrames = http2Connection.encodeHttpHeaderAsHeaderFrames(
                     ctx, httpHeader, stream.getId(), isNoPayload, null);
 
@@ -543,9 +540,7 @@ final class StreamOutputSink {
                     new FlushCompletionHandler(null), null, isLast);
         
         } finally {
-            if (isDeflaterLocked) {
-                http2Connection.getDeflaterLock().unlock();
-            }
+            http2Connection.getDeflaterLock().unlock();
         }
         
         if (outputQueueRecord == null) {

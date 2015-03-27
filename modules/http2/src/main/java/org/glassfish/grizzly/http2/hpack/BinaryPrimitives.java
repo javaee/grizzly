@@ -243,7 +243,9 @@ public final class BinaryPrimitives {
             destination.write(value, off, len);
         } catch (RuntimeException e) {
             throw new RuntimeException(
-                    "Couldn't write string: value=" + new String(value, off, len), e);
+                    "Couldn't write string: value=" +
+                            new String(value, off, len, StandardCharsets.ISO_8859_1),
+                    e);
         }
     }
     

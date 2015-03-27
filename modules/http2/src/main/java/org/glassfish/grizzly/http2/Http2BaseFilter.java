@@ -110,14 +110,14 @@ import org.glassfish.grizzly.http2.frames.PriorityFrame;
  */
 public class Http2BaseFilter extends HttpBaseFilter {
     private final static Logger LOGGER = Grizzly.logger(Http2BaseFilter.class);
-    static final String HTTP2_CLEAR_TCP_UPGRADE_SIGNATURE = "h2c";
-    
-    protected static final DraftVersion[] ALL_HTTP2_DRAFTS =
-            {DraftVersion.DRAFT_14};
     
     private static final TransferEncoding FIXED_LENGTH_ENCODING =
             new FixedLengthTransferEncoding();
 
+    static final String HTTP2_CLEAR_TCP_UPGRADE_SIGNATURE = "h2c";
+    static final DraftVersion[] ALL_HTTP2_DRAFTS =
+            {DraftVersion.DRAFT_14};
+    
     static final byte[] PRI_MSG = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".getBytes(Charsets.ASCII_CHARSET);
     static final byte[] PRI_PAYLOAD = "SM\r\n\r\n".getBytes(Charsets.ASCII_CHARSET);
     
@@ -161,7 +161,7 @@ public class Http2BaseFilter extends HttpBaseFilter {
         
         this.supportedHttp2Drafts =
                 (supportedDraftVersions == null || supportedDraftVersions.length == 0)
-                ? ALL_HTTP2_DRAFTS
+                ? Arrays.copyOf(ALL_HTTP2_DRAFTS, ALL_HTTP2_DRAFTS.length)
                 : Arrays.copyOf(supportedDraftVersions, supportedDraftVersions.length);
     }
 

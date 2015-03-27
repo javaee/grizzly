@@ -1161,7 +1161,6 @@ public abstract class Http2Connection {
     
     public final class RegularStreamBuilder extends HttpHeader.Builder<RegularStreamBuilder> {
         private int priority;
-        private int slot;
         private boolean isFin;
         private Method method;
         private String methodString;
@@ -1236,18 +1235,6 @@ public abstract class Http2Connection {
             return this;
         }
 
-        /**
-         * Set the <code>slot</code> parameter of a {@link Http2Stream}.
-         *
-         * @param slot the slot
-         *
-         * @return the current <code>Builder</code>
-         */
-        public RegularStreamBuilder slot(final int slot) {
-            this.slot = slot;
-            return this;
-        }
-        
         /**
          * Sets the <code>fin</code> flag of a {@link Http2Stream}.
          * 
