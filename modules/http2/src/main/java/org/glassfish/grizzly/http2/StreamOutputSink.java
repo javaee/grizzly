@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http2;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -477,9 +478,10 @@ final class StreamOutputSink {
         OutputQueueRecord outputQueueRecord = null;
         
         // !!!!! LOCK the deflater
-        http2Connection.getDeflaterLock().lock();
+        final Lock deflaterLock = http2Connection.getDeflaterLock();
+        deflaterLock.lock();
         
-        try { // try-finally block to release deflater lock if needed
+        try { // try-finally block to release deflater lock
             
             // We assume HTTP header hasn't been commited
             
@@ -540,7 +542,7 @@ final class StreamOutputSink {
                     new FlushCompletionHandler(null), null, isLast);
         
         } finally {
-            http2Connection.getDeflaterLock().unlock();
+            deflaterLock.unlock();
         }
         
         if (outputQueueRecord == null) {
