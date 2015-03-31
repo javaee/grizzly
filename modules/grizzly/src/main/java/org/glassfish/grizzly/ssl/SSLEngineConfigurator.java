@@ -42,8 +42,6 @@ package org.glassfish.grizzly.ssl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Locale;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -91,11 +89,6 @@ public class SSLEngineConfigurator {
      * Has the enabled Cipher configured.
      */
     private boolean isCipherConfigured = false;
-    /**
-     * The array consisting all the supported protocols, except the ones we
-     * want to filter off.
-     */
-    private volatile String[] filteredSupportedProtocols;
     
     /**
      * Create SSL Engine configuration basing on passed {@link SSLContext}.
@@ -252,23 +245,12 @@ public class SSLEngineConfigurator {
 
         if (enabledProtocols != null) {
             if (!isProtocolConfigured) {
-                enabledProtocols = filterEnabledProtocols(
+                enabledProtocols = 
                         configureEnabledProtocols(sslEngine,
-                        enabledProtocols));
+                        enabledProtocols);
                 isProtocolConfigured = true;
             }
             sslEngine.setEnabledProtocols(enabledProtocols);
-        } else {
-            if (filteredSupportedProtocols == null) {
-                synchronized (sync) {
-                    if (filteredSupportedProtocols == null) {
-                        filteredSupportedProtocols = filterEnabledProtocols(
-                                        sslEngine.getSupportedProtocols());
-                    }
-                }
-            }
-            
-            sslEngine.setEnabledProtocols(filteredSupportedProtocols);
         }
 
         sslEngine.setUseClientMode(clientMode);
@@ -495,15 +477,5 @@ public class SSLEngineConfigurator {
 
     public SSLEngineConfigurator copy() {
         return new SSLEngineConfigurator(this);
-    }
-
-    /**
-     * Method filters off the protocol we don't want to support.
-     * 
-     * @param protocols the protocol names array
-     * @return filtered protocol names array
-     */
-    protected String[] filterEnabledProtocols(final String[] protocols) {
-        return protocols;
     }
 }
