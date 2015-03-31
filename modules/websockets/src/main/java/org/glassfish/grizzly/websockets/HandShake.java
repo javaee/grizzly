@@ -132,13 +132,13 @@ public abstract class HandShake {
     protected abstract int getVersion();
 
     protected final void buildLocation() {
-        StringBuilder builder = new StringBuilder(getScheme() + "://" + serverHostName);
-        appendPort(builder);
+        final StringBuilder sb = new StringBuilder(getScheme() + "://" + serverHostName);
+        appendPort(sb);
         if (resourcePath == null || !resourcePath.startsWith("/") && !"".equals(resourcePath)) {
-            builder.append("/");
+            sb.append("/");
         }
-        builder.append(resourcePath);
-        location = builder.toString();
+        sb.append(resourcePath);
+        location = sb.toString();
     }
 
 
@@ -147,28 +147,12 @@ public abstract class HandShake {
         return location;
     }
 
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
     public String getOrigin() {
         return origin;
     }
 
-    public void setOrigin(String origin) {
-        this.origin = origin;
-    }
-
     public int getPort() {
         return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public void setResourcePath(String resourcePath) {
-        this.resourcePath = resourcePath;
     }
 
     public String getResourcePath() {
@@ -179,16 +163,8 @@ public abstract class HandShake {
         return secure;
     }
 
-    public void setSecure(boolean secure) {
-        this.secure = secure;
-    }
-
     public String getServerHostName() {
         return serverHostName;
-    }
-
-    public void setServerHostName(String serverHostName) {
-        this.serverHostName = serverHostName;
     }
 
     public List<String> getSubProtocol() {
@@ -261,9 +237,9 @@ public abstract class HandShake {
     /**
      * Reads the header value using UTF-8 encoding
      */
-    public final String readHeader(MimeHeaders headers, final String name) {
+    private String readHeader(MimeHeaders headers, final String name) {
         final DataChunk value = headers.getValue(name);
-        return value == null ? null : value.toString();
+        return value == null || value.isNull() ? null : value.toString();
     }
 
     private void determineHostAndPort(MimeHeaders headers) {
@@ -271,11 +247,13 @@ public abstract class HandShake {
         header = readHeader(headers, "host");
         final int i = header == null ? -1 : header.indexOf(":");
         if (i == -1) {
-            setServerHostName(header);
-            setPort(80);
+            serverHostName = header;
+            port = 80;
         } else {
-            setServerHostName(header.substring(0, i));
-            setPort(Integer.valueOf(header.substring(i + 1)));
+            assert header != null;
+            
+            serverHostName = header.substring(0, i);
+            port = Integer.parseInt(header.substring(i + 1));
         }
     }
 
