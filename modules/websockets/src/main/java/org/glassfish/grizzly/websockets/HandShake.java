@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
@@ -91,7 +92,11 @@ public abstract class HandShake {
         serverHostName = url.getHost();
         secure = "wss://".equals(url.getScheme());
         port = url.getPort();
-        origin = appendPort(new StringBuilder(url.getHost())).toString();
+        
+        final StringBuilder sb = new StringBuilder(32)
+                .append(getScheme()).append("://").append(url.getHost());
+        origin = appendPort(sb).toString().toLowerCase(Locale.ENGLISH);
+        
         buildLocation();
     }
 
@@ -127,7 +132,7 @@ public abstract class HandShake {
     protected abstract int getVersion();
 
     protected final void buildLocation() {
-        StringBuilder builder = new StringBuilder((isSecure() ? "wss" : "ws") + "://" + serverHostName);
+        StringBuilder builder = new StringBuilder(getScheme() + "://" + serverHostName);
         appendPort(builder);
         if (resourcePath == null || !resourcePath.startsWith("/") && !"".equals(resourcePath)) {
             builder.append("/");
@@ -404,5 +409,9 @@ public abstract class HandShake {
             }
         }
         return builder;
+    }
+    
+    private String getScheme() {
+        return isSecure() ? "ws" : "wss";
     }
 }
