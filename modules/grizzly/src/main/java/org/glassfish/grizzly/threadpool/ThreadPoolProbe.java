@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -120,11 +120,25 @@ public interface ThreadPoolProbe {
      * <p>
      * This event may be fired when a task has been pulled from the queue and
      * is about to be processed.
+     * </p>
      *
      * @param threadPool the {@link AbstractThreadPool} being monitored
      * @param task a unit of work that is about to be processed.
      */
     public void onTaskDequeueEvent(AbstractThreadPool threadPool, Runnable task);
+
+    /**
+     * <p>
+     * This event may be fired when a dequeued task has been canceled.
+     * </p>
+     * This event can occur during shutdownNow() invocation, where tasks are
+     * getting pulled out of thread pool queue and returned as the result of
+     * shutdownNow() method call.
+     *
+     * @param threadPool the {@link AbstractThreadPool} being monitored
+     * @param task a unit of work that has been canceled
+     */
+    public void onTaskCancelEvent(AbstractThreadPool threadPool, Runnable task);
 
     /**
      * <p>
@@ -205,6 +219,12 @@ public interface ThreadPoolProbe {
         @Override
         public void onTaskDequeueEvent(AbstractThreadPool threadPool, Runnable task) {}
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onTaskCancelEvent(AbstractThreadPool threadPool, Runnable task) {}
+        
         /**
          * {@inheritDoc}
          */
