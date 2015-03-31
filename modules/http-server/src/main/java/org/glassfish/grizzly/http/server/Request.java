@@ -123,23 +123,31 @@ public class Request {
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
 
-    private static LocaleParser localeParser;
+    private static final LocaleParser localeParser;
     static {
-        JdkVersion version = JdkVersion.getJdkVersion();
+        LocaleParser lp;
+        final JdkVersion version = JdkVersion.getJdkVersion();
+        
         if (version.compareTo("1.7.0") >= 0) {
             try {
                 @SuppressWarnings("unchecked")
                 Class<? extends LocaleParser> localeParserClazz =
                         (Class<? extends LocaleParser>)
                                 Class.forName("org.glassfish.grizzly.http.server.TagLocaleParser");
-                localeParser = localeParserClazz.newInstance();
-            } catch (Exception e) {
+                lp = localeParserClazz.newInstance();
+            } catch (Throwable e) {
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, e.toString(), e);
+                    LOGGER.log(Level.FINE, "Can't load JDK7 TagLocaleParser", e);
                 }
-                localeParser = new LegacyLocaleParser();
+                lp = new LegacyLocaleParser();
             }
+        } else {
+            lp = new LegacyLocaleParser();
         }
+        
+        localeParser = lp;
+        
+        assert localeParser != null;
     }
 
     public static Request create() {
@@ -282,7 +290,7 @@ public class Request {
      * The preferred Locales associated with this Request.
      */
     protected final ArrayList<Locale> locales = new ArrayList<Locale>();
-
+    
 
     /**
      * The current dispatcher type.
