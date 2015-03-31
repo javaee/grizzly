@@ -219,6 +219,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                 drain(getQueue(), drained);
                 for (Runnable task : drained) {
                     onTaskDequeued(task);
+                    onTaskCancelled(task);
                 }
                 poisonAll();
                 //try to interrupt their current work so they can get their poison fast
@@ -466,6 +467,16 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      */
     protected void onTaskDequeued(Runnable task) {
         ProbeNotifier.notifyTaskDequeued(this, task);
+    }
+
+    /**
+     * Method is called by a thread pool each time a dequeued task has been canceled
+     * instead of being processed.
+     *
+     * @param task
+     */
+    protected void onTaskCancelled(Runnable task) {
+        ProbeNotifier.notifyTaskCancelled(this, task);
     }
 
     /**

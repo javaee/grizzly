@@ -65,7 +65,7 @@ public class ThreadPool extends JmxObject {
     private final ThreadPoolProbe probe = new JmxThreadPoolProbe();
 
     private final AtomicInteger totalAllocatedThreadCount = new AtomicInteger();
-    private final AtomicInteger currentQueuedTasksCount = new AtomicInteger();
+    private final AtomicInteger busyThreadsCount = new AtomicInteger();
     private final AtomicLong totalCompletedTasksCount = new AtomicLong();
     private final AtomicInteger totalTaskQueueOverflowCount = new AtomicInteger();
 
@@ -83,7 +83,7 @@ public class ThreadPool extends JmxObject {
 
     @Override
     public String getJmxName() {
-        return "ThreadPool";
+        return threadPool.getConfig().getPoolName();
     }
 
     /**
@@ -168,15 +168,23 @@ public class ThreadPool extends JmxObject {
         return totalAllocatedThreadCount.get();
     }
 
-
+    /**
+     * @return the number of threads, which are currently busy processing the tasks.
+     * @since 2.3.20
+     */
+    @ManagedAttribute(id="thread-pool-busy-thread-count")
+    @Description("The number of threads, which are currently busy processing the tasks.")
+    public int getBusyThreadCount() {
+        return busyThreadsCount.get();
+    }
     /**
      * @return the current number of tasks that have been queued for processing
      *  by this thread pool.
      */
     @ManagedAttribute(id="thread-pool-queued-task-count")
-    @Description("The number of tasks currently being processed by this thread pool.")
+    @Description("The number of tasks currently being queued by this thread pool.")
     public int getCurrentTaskCount() {
-        return currentQueuedTasksCount.get();
+        return threadPool.getQueue().size();
     }
 
 
@@ -203,19 +211,11 @@ public class ThreadPool extends JmxObject {
     // ---------------------------------------------------------- Nested Classes
 
 
-    private final class JmxThreadPoolProbe implements ThreadPoolProbe {
+    private final class JmxThreadPoolProbe extends ThreadPoolProbe.Adapter {
 
 
         // ---------------------------------------- Methods from ThreadPoolProbe
 
-
-        @Override
-        public void onThreadPoolStartEvent(AbstractThreadPool threadPool) {
-        }
-
-        @Override
-        public void onThreadPoolStopEvent(AbstractThreadPool threadPool) {
-        }
 
         @Override
         public void onThreadAllocateEvent(AbstractThreadPool threadPool, Thread thread) {
@@ -223,35 +223,36 @@ public class ThreadPool extends JmxObject {
         }
 
         @Override
-        public void onThreadReleaseEvent(AbstractThreadPool threadPool, Thread thread) {
-        }
-
-        @Override
-        public void onMaxNumberOfThreadsEvent(AbstractThreadPool threadPool, int maxNumberOfThreads) {
-        }
-
-        @Override
-        public void onTaskQueueEvent(AbstractThreadPool threadPool, Runnable task) {
-            currentQueuedTasksCount.incrementAndGet();
-        }
-
-        @Override
         public void onTaskDequeueEvent(AbstractThreadPool threadPool, Runnable task) {
-            if (currentQueuedTasksCount.get() > 0) {
-                currentQueuedTasksCount.decrementAndGet();
-            }
+            busyThreadsCount.incrementAndGet();
         }
 
+        @Override
+        public void onTaskCancelEvent(AbstractThreadPool threadPool, Runnable task) {
+            decBusyThreadCount();
+        }
+        
         @Override
         public void onTaskCompleteEvent(AbstractThreadPool threadPool, Runnable task) {
             totalCompletedTasksCount.incrementAndGet();
+            decBusyThreadCount();
         }
 
         @Override
         public void onTaskQueueOverflowEvent(AbstractThreadPool threadPool) {
             totalTaskQueueOverflowCount.incrementAndGet();
         }
-
+        
+        private void decBusyThreadCount() {
+            final int val = busyThreadsCount.decrementAndGet();
+            if (val < 0) {
+                // it may happen if monitoring probe was added at the time, when
+                // the task had beed dequeued.
+                // So we have to re-balance the counter, sooner or later it will
+                // get the proper value.
+                busyThreadsCount.compareAndSet(val, 0);
+            }
+        }        
     } // END JmxThreadPoolProbe
 
 }

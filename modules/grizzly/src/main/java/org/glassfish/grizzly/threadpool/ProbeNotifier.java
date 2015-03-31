@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -164,6 +164,23 @@ final class ProbeNotifier {
         }
     }
 
+    /**
+     * Notify registered {@link ThreadPoolProbe}s about the "task cancelled" event.
+     *
+     * @param threadPool the {@link AbstractThreadPool} being monitored
+     * @param task a unit of work to be processed
+     */
+    static void notifyTaskCancelled(final AbstractThreadPool threadPool,
+            final Runnable task) {
+
+        final ThreadPoolProbe[] probes = threadPool.monitoringConfig.getProbesUnsafe();
+        if (probes != null) {
+            for (ThreadPoolProbe probe : probes) {
+                probe.onTaskCancelEvent(threadPool, task);
+            }
+        }
+    }
+    
     /**
      * Notify registered {@link ThreadPoolProbe}s about the "task completed" event.
      *
