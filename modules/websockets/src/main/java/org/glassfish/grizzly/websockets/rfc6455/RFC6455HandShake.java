@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,9 +57,9 @@ import static org.glassfish.grizzly.websockets.Constants.*;
 
 public class RFC6455HandShake extends HandShake {
 
-    private SecKey secKey;
-    private List<String> enabledExtensions = Collections.emptyList();
-    private List<String> enabledProtocols = Collections.emptyList();
+    private final SecKey secKey;
+    private final List<String> enabledExtensions = Collections.emptyList();
+    private final List<String> enabledProtocols = Collections.emptyList();
 
     // ------------------------------------------------------------ Constructors
 
