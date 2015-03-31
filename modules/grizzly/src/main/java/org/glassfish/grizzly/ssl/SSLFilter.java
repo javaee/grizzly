@@ -257,7 +257,7 @@ public class SSLFilter extends SSLBaseFilter {
         notifyHandshakeStart(connection);
         
         // if the session is still valid - we're most probably
-        // tearing down the SSL session and we can't do beginHandshake(),
+        // tearing down the SSL connection and we can't do beginHandshake(),
         // because it will throw an exception
         if (forceBeginHandshake || !sslEngine.getSession().isValid()) {
             sslEngine.beginHandshake();

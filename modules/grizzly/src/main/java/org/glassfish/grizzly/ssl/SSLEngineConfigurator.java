@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,8 +42,12 @@ package org.glassfish.grizzly.ssl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import org.glassfish.grizzly.Grizzly;
 
 /**
  * Utility class, which helps to configure {@link SSLEngine}.
@@ -51,6 +55,10 @@ import javax.net.ssl.SSLEngine;
  * @author Alexey Stashok
  */
 public class SSLEngineConfigurator {
+    private static final Logger LOGGER = Grizzly.logger(SSLEngineConfigurator.class);
+    private static final boolean ALLOW_SSL_V3 =
+            Boolean.getBoolean("org.glassfish.grizzly.ssl.SSLEngineConfigurator.allow-sslv3");
+    
     private final Object sync = new Object();
     
     protected volatile SSLContextConfigurator sslContextConfiguration;
@@ -85,7 +93,12 @@ public class SSLEngineConfigurator {
      * Has the enabled Cipher configured.
      */
     private boolean isCipherConfigured = false;
-
+    /**
+     * The array consisting all the supported protocols, except the ones we
+     * want to filter off.
+     */
+    private volatile String[] filteredSupportedProtocols;
+    
     /**
      * Create SSL Engine configuration basing on passed {@link SSLContext}.
      * 
@@ -158,8 +171,13 @@ public class SSLEngineConfigurator {
         this.needClientAuth = pattern.needClientAuth;
         this.wantClientAuth = pattern.wantClientAuth;
 
-        this.enabledCipherSuites = pattern.enabledCipherSuites;
-        this.enabledProtocols = pattern.enabledProtocols;
+        this.enabledCipherSuites = pattern.enabledCipherSuites != null
+                ? Arrays.copyOf(pattern.enabledCipherSuites, pattern.enabledCipherSuites.length)
+                : null;
+        
+        this.enabledProtocols = pattern.enabledProtocols != null
+                ? Arrays.copyOf(pattern.enabledProtocols, pattern.enabledProtocols.length)
+                : null;
 
         this.isCipherConfigured = pattern.isCipherConfigured;
         this.isProtocolConfigured = pattern.isProtocolConfigured;
@@ -236,11 +254,23 @@ public class SSLEngineConfigurator {
 
         if (enabledProtocols != null) {
             if (!isProtocolConfigured) {
-                enabledProtocols = configureEnabledProtocols(sslEngine,
-                        enabledProtocols);
+                enabledProtocols = filterEnabledProtocols(
+                        configureEnabledProtocols(sslEngine,
+                        enabledProtocols));
                 isProtocolConfigured = true;
             }
             sslEngine.setEnabledProtocols(enabledProtocols);
+        } else {
+            if (filteredSupportedProtocols == null) {
+                synchronized (sync) {
+                    if (filteredSupportedProtocols == null) {
+                        filteredSupportedProtocols = filterEnabledProtocols(
+                                        sslEngine.getSupportedProtocols());
+                    }
+                }
+            }
+            
+            sslEngine.setEnabledProtocols(filteredSupportedProtocols);
         }
 
         sslEngine.setUseClientMode(clientMode);
@@ -270,6 +300,7 @@ public class SSLEngineConfigurator {
      * @param clientMode <tt>true</tt>, if {@link SSLEngine} will be configured
      * to work in <tt>client</tt> mode, or <tt>false</tt> for <tt>server</tt>
      * mode.
+     * @return this SSLEngineConfigurator
      */
     public SSLEngineConfigurator setClientMode(boolean clientMode) {
         this.clientMode = clientMode;
@@ -295,21 +326,55 @@ public class SSLEngineConfigurator {
         return this;
     }
 
+    /**
+     * @return an array of enabled cipher suites. Modifications made on the array
+     *      content won't be propagated to SSLEngineConfigurator
+     */
     public String[] getEnabledCipherSuites() {
-        return enabledCipherSuites;
+        return enabledCipherSuites != null
+                ? Arrays.copyOf(enabledCipherSuites, enabledCipherSuites.length)
+                : null;
     }
 
-    public SSLEngineConfigurator setEnabledCipherSuites(String[] enabledCipherSuites) {
-        this.enabledCipherSuites = enabledCipherSuites;
+    /**
+     * Sets a list of enabled cipher suites.
+     * Note: further modifications made on the passed array won't be propagated
+     *       to SSLEngineConfigurator.
+     * 
+     * @param enabledCipherSuites list of enabled cipher suites
+     * @return this SSLEngineConfigurator
+     */
+    public SSLEngineConfigurator setEnabledCipherSuites(
+            final String[] enabledCipherSuites) {
+        this.enabledCipherSuites = enabledCipherSuites != null
+                ? Arrays.copyOf(enabledCipherSuites, enabledCipherSuites.length)
+                : null;
         return this;
     }
 
+    /**
+     * @return an array of enabled protocols. Modifications made on the array
+     *      content won't be propagated to SSLEngineConfigurator
+     */
     public String[] getEnabledProtocols() {
-        return enabledProtocols;
+        return enabledProtocols != null
+                ? Arrays.copyOf(enabledProtocols, enabledProtocols.length)
+                : null;
     }
 
-    public SSLEngineConfigurator setEnabledProtocols(String[] enabledProtocols) {
-        this.enabledProtocols = enabledProtocols;
+    /**
+     * Sets a list of enabled protocols.
+     * Note: further modifications made on the passed array won't be propagated
+     *       to SSLEngineConfigurator.
+     * 
+     * @param enabledProtocols list of enabled protocols
+     * @return this SSLEngineConfigurator
+     */
+    public SSLEngineConfigurator setEnabledProtocols(
+            final String[] enabledProtocols) {
+        this.enabledProtocols = enabledProtocols != null
+                ? Arrays.copyOf(enabledProtocols, enabledProtocols.length)
+                : null;
         return this;
     }
 
@@ -432,5 +497,29 @@ public class SSLEngineConfigurator {
 
     public SSLEngineConfigurator copy() {
         return new SSLEngineConfigurator(this);
+    }
+
+    /**
+     * Method filters off the protocol we don't want to support.
+     * 
+     * @param protocols the protocol names array
+     * @return filtered protocol names array
+     */
+    protected String[] filterEnabledProtocols(final String[] protocols) {
+        int k = 0;
+        for (int i = 0; i < protocols.length; i++) {
+            if (ALLOW_SSL_V3 || !"sslv3".equals(
+                    protocols[i].toLowerCase(Locale.ENGLISH))) {
+                protocols[k] = protocols[i];
+                k++;
+            } else {
+                LOGGER.log(Level.FINE, "The secured protocol {0} will be filtered off and won''t be used for SSLEngine",
+                        protocols[i]);
+            }
+        }
+        
+        return k == protocols.length
+                ? protocols
+                : Arrays.copyOf(protocols, k);
     }
 }
