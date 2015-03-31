@@ -56,9 +56,7 @@ import org.glassfish.grizzly.Grizzly;
  */
 public class SSLEngineConfigurator {
     private static final Logger LOGGER = Grizzly.logger(SSLEngineConfigurator.class);
-    private static final boolean ALLOW_SSL_V3 =
-            Boolean.getBoolean("org.glassfish.grizzly.ssl.SSLEngineConfigurator.allow-sslv3");
-    
+
     private final Object sync = new Object();
     
     protected volatile SSLContextConfigurator sslContextConfiguration;
@@ -506,20 +504,6 @@ public class SSLEngineConfigurator {
      * @return filtered protocol names array
      */
     protected String[] filterEnabledProtocols(final String[] protocols) {
-        int k = 0;
-        for (int i = 0; i < protocols.length; i++) {
-            if (ALLOW_SSL_V3 || !"sslv3".equals(
-                    protocols[i].toLowerCase(Locale.ENGLISH))) {
-                protocols[k] = protocols[i];
-                k++;
-            } else {
-                LOGGER.log(Level.FINE, "The secured protocol {0} will be filtered off and won''t be used for SSLEngine",
-                        protocols[i]);
-            }
-        }
-        
-        return k == protocols.length
-                ? protocols
-                : Arrays.copyOf(protocols, k);
+        return protocols;
     }
 }
