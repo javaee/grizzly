@@ -771,8 +771,8 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
-    @Deprecated
     protected void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                       final MimeHeaders headers,
                                        final FilterChainContext ctx) {
         // no-op
 

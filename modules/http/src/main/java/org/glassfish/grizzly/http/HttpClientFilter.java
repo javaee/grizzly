@@ -236,8 +236,9 @@ public class HttpClientFilter extends HttpCodecFilter {
     @Override
     protected boolean onHttpHeaderParsed(final HttpHeader httpHeader, final Buffer buffer,
             final FilterChainContext ctx) {
+        
         final ClientHttpResponseImpl response = (ClientHttpResponseImpl) httpHeader;
-        final HttpRequestPacket request = response.getRequest();
+        final HttpRequestPacket request = response.getRequest();        
         final int statusCode = response.getStatus();
 
         final boolean noContent = 
@@ -246,7 +247,10 @@ public class HttpClientFilter extends HttpCodecFilter {
         
         response.setExpectContent(!noContent);
 
-        response.getProcessingState().setKeepAlive(checkKeepAlive(response));
+        if (request != null) {
+            // if request is null - we can't really check and set the keep-alive state
+            response.getProcessingState().setKeepAlive(checkKeepAlive(response));
+        }
         
         return false;
     }
@@ -280,8 +284,8 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
 
     @Override
-    @Deprecated
     protected void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                       final MimeHeaders headers,
                                        final FilterChainContext ctx) {
         // no-op
     }

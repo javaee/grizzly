@@ -252,7 +252,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
      /**
      * <p>
-     * Invoked when the intial response line has been  encoded in preparation
+     * Invoked when the initial response line has been  encoded in preparation
      * to being transmitted to the user-agent.
      * </p>
      *
@@ -267,17 +267,17 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
     /**
      * <p>
-     * Invoked when all headers of the packet have been parsed.  Depending on the
-     * transfer encoding being used by the current request, this method may be
+     * Invoked when HTTP headers portion comes for {@link HttpHeader} message.
+     * Depending on the transfer encoding being used by the current request, this method may be
      * invoked multiple times.
      * </p>
      *
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param headers the headers portion, that has been parsed
      * @param ctx processing context.
-     * 
-     * @deprecated please use {@link #onHttpHeaderParsed(HttpHeader, Buffer, FilterChainContext)}
      */
     protected abstract void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                                final MimeHeaders headers,
                                                 final FilterChainContext ctx);
 
 
@@ -712,7 +712,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             }
 
             case 2: { // Headers are ready
-                onHttpHeadersParsed((HttpHeader) httpPacket, ctx);
+                onHttpHeadersParsed((HttpHeader) httpPacket,
+                        httpPacket.getHeaders(), ctx);
                 if (httpPacket.getHeaders().size() == 0) {
                     // no headers - do not expect further content
                     ((HttpHeader) httpPacket).setExpectContent(false);
@@ -982,7 +983,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             }
 
             case 2: { // Headers are ready
-                onHttpHeadersParsed((HttpHeader) httpPacket, ctx);
+                onHttpHeadersParsed((HttpHeader) httpPacket,
+                        httpPacket.getHeaders(), ctx);
                 if (httpPacket.getHeaders().size() == 0) {
                     // no headers - do not expect further content
                     ((HttpHeader) httpPacket).setExpectContent(false);
