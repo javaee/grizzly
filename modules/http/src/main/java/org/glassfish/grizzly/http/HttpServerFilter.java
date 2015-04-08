@@ -745,6 +745,14 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
+    protected void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                       final MimeHeaders headers,
+                                       final FilterChainContext ctx) {
+        // no-op
+
+    }
+    
+    @Override
     protected void onHttpContentParsed(HttpContent content, FilterChainContext ctx) {
 
         // no-op

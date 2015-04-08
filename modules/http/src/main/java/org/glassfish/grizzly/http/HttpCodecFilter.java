@@ -267,6 +267,22 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
     /**
      * <p>
+     * Invoked when HTTP headers portion comes for {@link HttpHeader} message.
+     * Depending on the transfer encoding being used by the current request,
+     * this method may be invoked multiple times.
+     * </p>
+     *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
+     * @param headers the headers portion, that has been parsed
+     * @param ctx processing context.
+     */
+    protected abstract void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                                final MimeHeaders headers,
+                                                final FilterChainContext ctx);
+    
+    
+    /**
+     * <p>
      *  Invoked when HTTP headers have been encoded in preparation to being
      *  transmitted to the user-agent.
      * </p>
@@ -679,6 +695,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             }
 
             case 2: { // Headers are ready
+                onHttpHeadersParsed((HttpHeader) httpPacket,
+                        httpPacket.getHeaders(), ctx);
                 if (httpPacket.getHeaders().size() == 0) {
                     // no headers - do not expect further content
                     ((HttpHeader) httpPacket).setExpectContent(false);
@@ -948,6 +966,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             }
 
             case 2: { // Headers are ready
+                onHttpHeadersParsed((HttpHeader) httpPacket,
+                        httpPacket.getHeaders(), ctx);
                 if (httpPacket.getHeaders().size() == 0) {
                     // no headers - do not expect further content
                     ((HttpHeader) httpPacket).setExpectContent(false);

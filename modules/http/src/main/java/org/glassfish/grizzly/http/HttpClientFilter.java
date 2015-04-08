@@ -225,7 +225,10 @@ public class HttpClientFilter extends HttpCodecFilter {
         
         response.setExpectContent(!noContent);
 
-        response.getProcessingState().setKeepAlive(checkKeepAlive(response));
+        if (request != null) {
+            // if request is null - we can't really check and set the keep-alive state
+            response.getProcessingState().setKeepAlive(checkKeepAlive(response));
+        }
         
         return false;
     }
@@ -256,6 +259,13 @@ public class HttpClientFilter extends HttpCodecFilter {
 
         // no-op
 
+    }
+
+    @Override    
+    protected void onHttpHeadersParsed(final HttpHeader httpHeader,
+                                       final MimeHeaders headers,
+                                       final FilterChainContext ctx) {
+        // no-op
     }
 
     @Override
