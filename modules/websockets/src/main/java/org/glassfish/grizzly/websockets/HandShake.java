@@ -47,6 +47,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
@@ -217,18 +219,57 @@ public abstract class HandShake {
         validate(header, validValue, headers.getHeader(header));
     }
 
-    private void validate(String header, String validValue, String value) {
-        boolean found = false;
-        if (value.contains(",")) {
-            for (String part : value.split(",")) {
-                if (part.trim().equalsIgnoreCase(validValue)) {
+    private void checkForSubProtocol(final HttpResponsePacket headers) {
+        if (!getSubProtocol().isEmpty()) {
+            final String value = headers.getHeader(Constants.SEC_WS_PROTOCOL_HEADER);
+            boolean found = false;
+            if (value != null) {
+                final Set<String> validValues =
+                        new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+                final List<String> acceptedSubProtocol =
+                        new ArrayList<String>(validValues.size());
+                
+                validValues.addAll(getSubProtocol());
+
+                if (value.contains(",")) {
+                    for (String part : value.split(",")) {
+                        final String protocol = part.trim();
+                        if (validValues.contains(protocol)) {
+                            acceptedSubProtocol.add(protocol);
+                        }
+                    }
+                } else if (validValues.contains(value)) {
+                    acceptedSubProtocol.add(value);
+                }
+
+                if (!acceptedSubProtocol.isEmpty()) {
                     found = true;
-                    break;
+                    setSubProtocol(acceptedSubProtocol);
                 }
             }
-        } else {
-            found = value.equalsIgnoreCase(validValue);
+            if (!found) {
+                throw new HandshakeException(String.format("Invalid Sec-WebSocket-Protocol header returned: '%s'", value));
+            }
         }
+    }
+
+    private void validate(final String header,
+            final String validValue, final String value) {
+        boolean found = false;
+        
+        if (value != null) {
+            if (value.contains(",")) {
+                for (String part : value.split(",")) {
+                    if (part.trim().equalsIgnoreCase(validValue)) {
+                        found = true;
+                        break;
+                    }
+                }
+            } else {
+                found = value.equalsIgnoreCase(validValue);
+            }
+        }
+        
         if (!found) {
             throw new HandshakeException(String.format("Invalid %s header returned: '%s'", header, value));
         }
@@ -283,9 +324,7 @@ public abstract class HandShake {
         }
         checkForHeader(headers, Constants.UPGRADE, Constants.WEBSOCKET);
         checkForHeader(headers, Constants.CONNECTION, Constants.UPGRADE);
-        if (!getSubProtocol().isEmpty()) {
-            checkForHeader(headers, Constants.SEC_WS_PROTOCOL_HEADER, Constants.SEC_WS_PROTOCOL_HEADER);
-        }
+        checkForSubProtocol(headers);
     }
 
     public void respond(final FilterChainContext ctx,
