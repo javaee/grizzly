@@ -246,6 +246,8 @@ public class HttpClientFilter extends HttpCodecFilter {
         
         response.setExpectContent(!noContent);
 
+        response.getProcessingState().setKeepAlive(checkKeepAlive(response));
+        
         return false;
     }
 
@@ -278,6 +280,7 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
 
     @Override
+    @Deprecated
     protected void onHttpHeadersParsed(final HttpHeader httpHeader,
                                        final FilterChainContext ctx) {
         // no-op
@@ -565,13 +568,6 @@ public class HttpClientFilter extends HttpCodecFilter {
         return output;
     }
 
-    private void prepareRequest(final HttpRequestPacket request) {
-        String contentType = request.getContentType();
-        if (contentType != null) {
-            request.getHeaders().setValue(Header.ContentType).setString(contentType);
-        }
-    }
-
     private Queue<HttpRequestPacket> getRequestQueue(final Connection c) {
 
         Queue<HttpRequestPacket> q = httpRequestQueueAttr.get(c);
@@ -583,6 +579,39 @@ public class HttpClientFilter extends HttpCodecFilter {
 
     }
 
+    private static void prepareRequest(final HttpRequestPacket request) {
+        String contentType = request.getContentType();
+        if (contentType != null) {
+            request.getHeaders().setValue(Header.ContentType).setString(contentType);
+        }
+    }
+
+    private static boolean checkKeepAlive(final HttpResponsePacket response) {
+        final int statusCode = response.getStatus();
+        final boolean isExpectContent = response.isExpectContent();
+        
+        boolean keepAlive = !statusDropsConnection(statusCode) ||
+                (!isExpectContent || !response.isChunked() || response.getContentLength() == -1); // double-check the transfer encoding here
+        
+        if (keepAlive) {
+            // Check the Connection header
+            final DataChunk cVal =
+                    response.getHeaders().getValue(Header.Connection);
+            
+            if (response.getProtocol().compareTo(Protocol.HTTP_1_1) < 0) {
+                // HTTP 1.0 response
+                // "Connection: keep-alive" should be specified explicitly
+                keepAlive = cVal != null && cVal.equalsIgnoreCase(KEEPALIVE_BYTES);
+            } else {
+                // HTTP 1.1+
+                // keep-alive by default, if there's no "Connection: close"
+                keepAlive = cVal == null || !cVal.equalsIgnoreCase(CLOSE_BYTES);
+            }
+        }
+        
+        return keepAlive;
+    }
+    
     private static final class ClientHttpResponseImpl
             extends HttpResponsePacket implements HttpPacketParsing {
 

@@ -107,6 +107,32 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
      */
     static final byte[] CRLF_BYTES = {(byte) '\r', (byte) '\n'};
 
+    /**
+     * Close bytes.
+     */
+    protected static final byte[] CLOSE_BYTES = {
+        (byte) 'c',
+        (byte) 'l',
+        (byte) 'o',
+        (byte) 's',
+        (byte) 'e'
+    };
+    /**
+     * Keep-alive bytes.
+     */
+    protected static final byte[] KEEPALIVE_BYTES = {
+        (byte) 'k',
+        (byte) 'e',
+        (byte) 'e',
+        (byte) 'p',
+        (byte) '-',
+        (byte) 'a',
+        (byte) 'l',
+        (byte) 'i',
+        (byte) 'v',
+        (byte) 'e'
+    };
+    
     private final ArraySet<TransferEncoding> transferEncodings =
             new ArraySet<TransferEncoding>(TransferEncoding.class);
     
@@ -248,6 +274,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
      *
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx processing context.
+     * 
+     * @deprecated please use {@link #onHttpHeaderParsed(HttpHeader, Buffer, FilterChainContext)}
      */
     protected abstract void onHttpHeadersParsed(final HttpHeader httpHeader,
                                                 final FilterChainContext ctx);
@@ -1842,6 +1870,23 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         return SSLUtils.getSSLEngine(connection) != null;
     }
 
+    /**
+     * Determine if we must drop the connection because of the HTTP status
+     * code. Use the same list of codes as Apache/httpd.
+     */
+    protected static boolean statusDropsConnection(int status) {
+        return status == 400 /* SC_BAD_REQUEST */ ||
+               status == 408 /* SC_REQUEST_TIMEOUT */ ||
+               status == 411 /* SC_LENGTH_REQUIRED */ ||
+               status == 413 /* SC_REQUEST_ENTITY_TOO_LARGE */ ||
+               status == 414 /* SC_REQUEST_URI_TOO_LARGE */ ||
+               status == 417 /* FAILED EXPECTATION */ || 
+               status == 500 /* SC_INTERNAL_SERVER_ERROR */ ||
+               status == 503 /* SC_SERVICE_UNAVAILABLE */ ||
+               status == 501 /* SC_NOT_IMPLEMENTED */ ||
+               status == 505 /* SC_VERSION_NOT_SUPPORTED */;
+    }
+    
     /**
      * 
      * @param httpHeader

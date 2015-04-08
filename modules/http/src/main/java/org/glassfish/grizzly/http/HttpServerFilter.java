@@ -84,31 +84,6 @@ public class HttpServerFilter extends HttpCodecFilter {
     public static final FilterChainEvent RESPONSE_COMPLETE_EVENT =
             new HttpEvents.ResponseCompleteEvent();
 
-    /**
-     * Close bytes.
-     */
-    private static final byte[] CLOSE_BYTES = {
-        (byte) 'c',
-        (byte) 'l',
-        (byte) 'o',
-        (byte) 's',
-        (byte) 'e'
-    };
-    /**
-     * Keep-alive bytes.
-     */
-    private static final byte[] KEEPALIVE_BYTES = {
-        (byte) 'k',
-        (byte) 'e',
-        (byte) 'e',
-        (byte) 'p',
-        (byte) '-',
-        (byte) 'a',
-        (byte) 'l',
-        (byte) 'i',
-        (byte) 'v',
-        (byte) 'e'
-    };
     
     private final Attribute<ServerHttpRequestImpl> httpRequestInProcessAttr;
     private final Attribute<KeepAliveContext> keepAliveContextAttr;
@@ -796,6 +771,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
+    @Deprecated
     protected void onHttpHeadersParsed(final HttpHeader httpHeader,
                                        final FilterChainContext ctx) {
         // no-op
@@ -1161,23 +1137,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         
         response.setContentLength(0);
         return HttpContent.builder(response).last(true).build();
-    }
-
-    /**
-     * Determine if we must drop the connection because of the HTTP status
-     * code. Use the same list of codes as Apache/httpd.
-     */
-    private static boolean statusDropsConnection(int status) {
-        return status == 400 /* SC_BAD_REQUEST */ ||
-               status == 408 /* SC_REQUEST_TIMEOUT */ ||
-               status == 411 /* SC_LENGTH_REQUIRED */ ||
-               status == 413 /* SC_REQUEST_ENTITY_TOO_LARGE */ ||
-               status == 414 /* SC_REQUEST_URI_TOO_LARGE */ ||
-               status == 417 /* FAILED EXPECTATION */ || 
-               status == 500 /* SC_INTERNAL_SERVER_ERROR */ ||
-               status == 503 /* SC_SERVICE_UNAVAILABLE */ ||
-               status == 501 /* SC_NOT_IMPLEMENTED */ ||
-               status == 505 /* SC_VERSION_NOT_SUPPORTED */;
     }
 
     private boolean checkKeepAliveRequestsCount(final HttpContext httpContext) {
