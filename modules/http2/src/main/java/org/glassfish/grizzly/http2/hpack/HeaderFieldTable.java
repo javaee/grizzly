@@ -79,67 +79,67 @@ import java.util.*;
  */
 public class HeaderFieldTable {
     private final static HeaderField[] staticEntries = {
-            new HeaderField(":authority"),
-            new HeaderField(":method", "GET"),
-            new HeaderField(":method", "POST"),
-            new HeaderField(":path", "/"),
-            new HeaderField(":path", "/index.html"),
-            new HeaderField(":scheme", "http"),
-            new HeaderField(":scheme", "https"),
-            new HeaderField(":status", "200"),
-            new HeaderField(":status", "204"),
-            new HeaderField(":status", "206"),
-            new HeaderField(":status", "304"),
-            new HeaderField(":status", "400"),
-            new HeaderField(":status", "404"),
-            new HeaderField(":status", "500"),
-            new HeaderField("accept-charset"),
-            new HeaderField("accept-encoding", "gzip, deflate"),
-            new HeaderField("accept-language"),
-            new HeaderField("accept-ranges"),
-            new HeaderField("accept"),
-            new HeaderField("access-control-allow-origin"),
-            new HeaderField("age"),
-            new HeaderField("allow"),
-            new HeaderField("authorization"),
-            new HeaderField("cache-control"),
-            new HeaderField("content-disposition"),
-            new HeaderField("content-encoding"),
-            new HeaderField("content-language"),
-            new HeaderField("content-length"),
-            new HeaderField("content-location"),
-            new HeaderField("content-range"),
-            new HeaderField("content-type"),
-            new HeaderField("cookie"),
-            new HeaderField("date"),
-            new HeaderField("etag"),
-            new HeaderField("expect"),
-            new HeaderField("expires"),
-            new HeaderField("from"),
-            new HeaderField("host"),
-            new HeaderField("if-match"),
-            new HeaderField("if-modified-since"),
-            new HeaderField("if-none-match"),
-            new HeaderField("if-range"),
-            new HeaderField("if-unmodified-since"),
-            new HeaderField("last-modified"),
-            new HeaderField("link"),
-            new HeaderField("location"),
-            new HeaderField("max-forwards"),
-            new HeaderField("proxy-authenticate"),
-            new HeaderField("proxy-authorization"),
-            new HeaderField("range"),
-            new HeaderField("referer"),
-            new HeaderField("refresh"),
-            new HeaderField("retry-after"),
-            new HeaderField("server"),
-            new HeaderField("set-cookie"),
-            new HeaderField("strict-transport-security"),
-            new HeaderField("transfer-encoding"),
-            new HeaderField("user-agent"),
-            new HeaderField("vary"),
-            new HeaderField("via"),
-            new HeaderField("www-authenticate")
+            HeaderField.of(":authority"),
+            HeaderField.of(":method", "GET"),
+            HeaderField.of(":method", "POST"),
+            HeaderField.of(":path", "/"),
+            HeaderField.of(":path", "/index.html"),
+            HeaderField.of(":scheme", "http"),
+            HeaderField.of(":scheme", "https"),
+            HeaderField.of(":status", "200"),
+            HeaderField.of(":status", "204"),
+            HeaderField.of(":status", "206"),
+            HeaderField.of(":status", "304"),
+            HeaderField.of(":status", "400"),
+            HeaderField.of(":status", "404"),
+            HeaderField.of(":status", "500"),
+            HeaderField.of("accept-charset"),
+            HeaderField.of("accept-encoding", "gzip, deflate"),
+            HeaderField.of("accept-language"),
+            HeaderField.of("accept-ranges"),
+            HeaderField.of("accept"),
+            HeaderField.of("access-control-allow-origin"),
+            HeaderField.of("age"),
+            HeaderField.of("allow"),
+            HeaderField.of("authorization"),
+            HeaderField.of("cache-control"),
+            HeaderField.of("content-disposition"),
+            HeaderField.of("content-encoding"),
+            HeaderField.of("content-language"),
+            HeaderField.of("content-length"),
+            HeaderField.of("content-location"),
+            HeaderField.of("content-range"),
+            HeaderField.of("content-type"),
+            HeaderField.of("cookie"),
+            HeaderField.of("date"),
+            HeaderField.of("etag"),
+            HeaderField.of("expect"),
+            HeaderField.of("expires"),
+            HeaderField.of("from"),
+            HeaderField.of("host"),
+            HeaderField.of("if-match"),
+            HeaderField.of("if-modified-since"),
+            HeaderField.of("if-none-match"),
+            HeaderField.of("if-range"),
+            HeaderField.of("if-unmodified-since"),
+            HeaderField.of("last-modified"),
+            HeaderField.of("link"),
+            HeaderField.of("location"),
+            HeaderField.of("max-forwards"),
+            HeaderField.of("proxy-authenticate"),
+            HeaderField.of("proxy-authorization"),
+            HeaderField.of("range"),
+            HeaderField.of("referer"),
+            HeaderField.of("refresh"),
+            HeaderField.of("retry-after"),
+            HeaderField.of("server"),
+            HeaderField.of("set-cookie"),
+            HeaderField.of("strict-transport-security"),
+            HeaderField.of("transfer-encoding"),
+            HeaderField.of("user-agent"),
+            HeaderField.of("vary"),
+            HeaderField.of("via"),
+            HeaderField.of("www-authenticate")
     };
     private final static int STATIC_TABLE_SIZE = staticEntries.length;
     private final static Map<HeaderField, Integer> staticIndexes;
@@ -229,14 +229,14 @@ public class HeaderFieldTable {
         }
 
         public final void put(String name) {
-            put(new HeaderField(name));
+            put(HeaderField.of(name));
         }
 
         public final void put(String name, String value) {
-            put(new HeaderField(name, value));
+            put(HeaderField.of(name, value));
         }
 
-        public final void put(HeaderField entry) {
+        public final void put(final HeaderField entry) {
             int entrySize = sizeOf(entry);
 
             if (entrySize > maxSize) {
@@ -325,9 +325,9 @@ public class HeaderFieldTable {
         // [*] The latter implies that eviction of entries reduces the size of the
         // table.
         //
-        public final int sizeOf(HeaderField f) {
-            String name = f.getName();
-            String value = f.getValue();
+        public final int sizeOf(final HeaderField f) {
+            final String name = f.getName();
+            final String value = f.getValue();
             return name.length() + (value == null ? 0 : value.length()) + 32;
         }
 
@@ -398,6 +398,8 @@ public class HeaderFieldTable {
          */
         private final HashMap<HeaderField, Integer> dynamicIndexes;
 
+        private final HeaderField.DynamicHeaderField dynamicEntry =
+                HeaderField.dynamic();
         /**
          * @param maxSize maximum table size in bytes
          * @param initialCapacity initial capacity for dynamic entries
@@ -409,8 +411,15 @@ public class HeaderFieldTable {
             dynamicIndexes = new HashMap<>(initialCapacity);
         }
 
-        public int indexOf(final HeaderField entry) {
-            final Integer realIdx = dynamicIndexes.get(entry);
+        public int indexOf(final String name) {
+            return indexOf(name, null);
+        }
+        
+        public int indexOf(final String name, final String value) {
+            dynamicEntry.set(name, value);
+            final Integer realIdx = dynamicIndexes.get(dynamicEntry);
+            dynamicEntry.reset();
+            
             return realIdx != null
                     ? realToTableIdx(realIdx) + STATIC_TABLE_SIZE
                     : -1;

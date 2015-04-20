@@ -84,11 +84,11 @@ public class DefaultEncoding implements EncodingStrategy {
             final OutputStream destination, final EncTable table)
             throws IOException {
         
-        int index = table.indexOf(new HeaderField(name, value));
+        int index = table.indexOf(name, value);
         if (index != -1) {
             Indexed.write(index, destination);
         } else {
-            index = table.indexOf(new HeaderField(name));
+            index = table.indexOf(name);
             if (index != -1) {
                 Literal.write(index, value, destination, useHuffman);
             } else {

@@ -195,8 +195,11 @@ public final class BinaryPrimitives {
     public static void writeString(final OutputStream destination,
             final String value, final boolean useHuffmanCoding)
             throws IOException {
-        writeString(destination, value.getBytes(StandardCharsets.ISO_8859_1),
-                useHuffmanCoding);
+        if (useHuffmanCoding) {
+            writeHuffmanString(destination, value);
+        } else {
+            writeString(destination, value);
+        }
     }
 
     public static void writeString(OutputStream destination,
@@ -238,14 +241,36 @@ public final class BinaryPrimitives {
         Objects.requireNonNull(destination, "destination == null");
         Objects.requireNonNull(value, "value == null");
         
-        try {
-            writeInteger(destination, len, 7, 0);
-            destination.write(value, off, len);
-        } catch (RuntimeException e) {
-            throw new RuntimeException(
-                    "Couldn't write string: value=" +
-                            new String(value, off, len, StandardCharsets.ISO_8859_1),
-                    e);
+        writeInteger(destination, len, 7, 0);
+        destination.write(value, off, len);
+    }
+    
+    /**
+     * Writes a string to a wire in a {@link StandardCharsets#ISO_8859_1 plain}
+     * encoding.
+     * <p>
+     * Some obvious comments. Both the output stream and the string
+     * supposed not to be {@code null}. Moreover, the output stream
+     * supposed not to be closed. In case of any problem occurred inside,
+     * the method won't try to close or modify the output stream in any way.
+     * It will also never flush it. Those are the calls the owner of the
+     * stream has to make.
+     *
+     * @param destination output stream to write to
+     * @param value       string to be written to the output stream
+     * @throws java.io.IOException
+     */
+    private static void writeString(final OutputStream destination,
+            final String value)
+            throws IOException {
+        
+        Objects.requireNonNull(destination, "destination == null");
+        Objects.requireNonNull(value, "value == null");
+        
+        final int len = value.length();
+        writeInteger(destination, len, 7, 0);
+        for (int i = 0; i < len; i++) {
+            destination.write(value.charAt(i));
         }
     }
     
@@ -257,6 +282,16 @@ public final class BinaryPrimitives {
         writeInteger(destination,
                 huffmanCoding.lengthOf(value, off, len), 7, 0b10000000);
         huffmanCoding.to(destination, value, off, len);
+    }
+
+    private static void writeHuffmanString(final OutputStream destination,
+            final String value) throws IOException {
+        Objects.requireNonNull(destination, "destination == null");
+        Objects.requireNonNull(value, "value == null");
+        
+        writeInteger(destination,
+                huffmanCoding.lengthOf(value), 7, 0b10000000);
+        huffmanCoding.to(destination, value);
     }
 
     private static void checkPrefix(int N) {

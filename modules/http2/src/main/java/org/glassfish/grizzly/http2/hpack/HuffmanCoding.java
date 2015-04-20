@@ -65,7 +65,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import static java.lang.String.format;
-import java.nio.charset.StandardCharsets;
 import org.glassfish.grizzly.Buffer;
 
 public class HuffmanCoding {
@@ -399,47 +398,81 @@ public class HuffmanCoding {
         for (int i = off; i < end; i++) {
             rsltLen += codeOf(value[i]).length;
         }
-        return rsltLen / 8 + (rsltLen % 8 != 0 ? 1 : 0);
+        return (rsltLen >> 3) + ((rsltLen & 7) != 0 ? 1 : 0);
+    }
+
+    public int lengthOf(final String value) {
+        int rsltLen = 0;
+        
+        final int length = value.length();
+        for (int i = 0; i < length; i++) {
+            rsltLen += codeOf((byte) value.charAt(i)).length;
+        }
+        return (rsltLen >> 3) + ((rsltLen & 7) != 0 ? 1 : 0);
     }
 
     public void to(OutputStream destination, byte[] value, int off, int len)
             throws IOException {
-        try {
-            int a = 8; // how much space left in 'b' to append to (available)
-            int b = 0; // the byte to write next (8 least significant bits)
-            
-            final int end = off + len;
-            for (int i = off; i < end; i++) {
-                Code desc = codeOf(value[i]);
-                int code = desc.code;
-                int r = desc.length; // remaining number code bits to write
-                while (r > 0) {
-                    if (r < a) {
-                        b |= (code << (a - r));
-                        a -= r;
-                        r = 0;
-                    } else {
-                        b |= (code >>> (r - a));
-                        destination.write((byte) b);
-                        
-                        code &= (1 << (r - a)) - 1; // keep only (r-a) lower bits
-                        r -= a;
-                        b = 0;
-                        a = 8;
-                    }
+        int a = 8; // how much space left in 'b' to append to (available)
+        int b = 0; // the byte to write next (8 least significant bits)
+
+        final int end = off + len;
+        for (int i = off; i < end; i++) {
+            Code desc = codeOf(value[i]);
+            int code = desc.code;
+            int r = desc.length; // remaining number code bits to write
+            while (r > 0) {
+                if (r < a) {
+                    b |= (code << (a - r));
+                    a -= r;
+                    r = 0;
+                } else {
+                    b |= (code >>> (r - a));
+                    destination.write((byte) b);
+
+                    code &= (1 << (r - a)) - 1; // keep only (r-a) lower bits
+                    r -= a;
+                    b = 0;
+                    a = 8;
                 }
             }
-            if (a < 8) { // have to pad with EOS
-                destination.write((byte) (b | ((1 << a) - 1)));
-            }
-        } catch (RuntimeException e) {
-            throw new RuntimeException(
-                    "Couldn't write string: value=" +
-                            new String(value, off, len, StandardCharsets.ISO_8859_1),
-                    e);
+        }
+        if (a < 8) { // have to pad with EOS
+            destination.write((byte) (b | ((1 << a) - 1)));
         }
     }
 
+    public void to(final OutputStream destination, final String value)
+            throws IOException {
+        int a = 8; // how much space left in 'b' to append to (available)
+        int b = 0; // the byte to write next (8 least significant bits)
+
+        final int len = value.length();
+        for (int i = 0; i < len; i++) {
+            Code desc = codeOf((byte) value.charAt(i));
+            int code = desc.code;
+            int r = desc.length; // remaining number code bits to write
+            while (r > 0) {
+                if (r < a) {
+                    b |= (code << (a - r));
+                    a -= r;
+                    r = 0;
+                } else {
+                    b |= (code >>> (r - a));
+                    destination.write((byte) b);
+
+                    code &= (1 << (r - a)) - 1; // keep only (r-a) lower bits
+                    r -= a;
+                    b = 0;
+                    a = 8;
+                }
+            }
+        }
+        if (a < 8) { // have to pad with EOS
+            destination.write((byte) (b | ((1 << a) - 1)));
+        }
+    }
+    
     private void addChar(int c, int code, int bitLength) {
         addLeaf(c, code, bitLength, false);
         codes[c] = new Code(code, bitLength);

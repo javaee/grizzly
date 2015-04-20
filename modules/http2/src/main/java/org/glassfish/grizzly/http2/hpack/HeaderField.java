@@ -63,14 +63,29 @@ package org.glassfish.grizzly.http2.hpack;
 
 public class HeaderField {
 
-    private final String name;
-    private final String value;
+    String name;
+    String value;
 
-    public HeaderField(String name) {
+    public static HeaderField of(final String name) {
+        return new HeaderField(name);
+    }
+    
+    public static HeaderField of(final String name, final String value) {
+        return new HeaderField(name, value);
+    }
+
+    public static DynamicHeaderField dynamic() {
+        return new DynamicHeaderField();
+    }
+    
+    HeaderField(){
+    }
+    
+    HeaderField(final String name) {
         this(name, null);
     }
 
-    public HeaderField(String name, String value) {
+    HeaderField(final String name, final String value) {
         this.name = name;
         this.value = value;
     }
@@ -85,22 +100,30 @@ public class HeaderField {
 
     @Override
     public String toString() {
-        if (value == null)
+        if (value == null) {
             return name;
-        else
+        } else {
             return name + ": " + value;
+        }
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof HeaderField)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof HeaderField)) {
+            return false;
+        }
 
         HeaderField that = (HeaderField) o;
 
-        if (!name.equals(that.name)) return false;
-        if (value != null ? !value.equals(that.value) : that.value != null)
+        if (!name.equals(that.name)) {
             return false;
+        }
+        if (value != null ? !value.equals(that.value) : that.value != null) {
+            return false;
+        }
 
         return true;
     }
@@ -110,5 +133,21 @@ public class HeaderField {
         int result = name.hashCode();
         result = 31 * result + (value != null ? value.hashCode() : 0);
         return result;
+    }
+    
+    public static final class DynamicHeaderField extends HeaderField {
+
+        DynamicHeaderField() {
+        }
+        
+        public void set(final String name, final String value) {
+            this.name = name;
+            this.value = value;
+        }
+        
+        public void reset() {
+            name = null;
+            value = null;
+        }
     }
 }
