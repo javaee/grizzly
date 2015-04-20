@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Connection;
@@ -121,15 +122,15 @@ public class MultiEndPointPoolTest {
                 new InetSocketAddress("localhost", 60000);
         final MultiEndpointPool<SocketAddress> pool = MultiEndpointPool
                         .builder(SocketAddress.class)
-                        .connectorHandler(transport)
                         .maxConnectionsPerEndpoint(3)
                         .maxConnectionsTotal(15)
                         .keepAliveTimeout(-1, TimeUnit.SECONDS)
                         .build();
-        final EndpointKey<SocketAddress> key1 =
-                            new EndpointKey<SocketAddress>("endpoint1",
-                                                           new InetSocketAddress("localhost", PORT),
-                                                           localAddress);
+        final Endpoint<SocketAddress> key1 =
+                Endpoint.Factory.<SocketAddress>create(
+                        new InetSocketAddress("localhost", PORT),
+                        localAddress,
+                        transport);
         try {
             Connection c1 = pool.take(key1).get();
             assertEquals(localAddress, c1.getLocalAddress());
@@ -142,20 +143,22 @@ public class MultiEndPointPoolTest {
     public void testBasicPollRelease() throws Exception {
         final MultiEndpointPool<SocketAddress> pool = MultiEndpointPool
                 .builder(SocketAddress.class)
-                .connectorHandler(transport)
                 .maxConnectionsPerEndpoint(3)
                 .maxConnectionsTotal(15)
                 .keepAliveTimeout(-1, TimeUnit.SECONDS)
                 .build();
         
         try {
-            final EndpointKey<SocketAddress> key1 =
-                    new EndpointKey<SocketAddress>("endpoint1",
-                    new InetSocketAddress("localhost", PORT));
+        
+            final Endpoint<SocketAddress> key1
+                    = Endpoint.Factory.<SocketAddress>create(
+                            new InetSocketAddress("localhost", PORT),
+                            transport);
 
-            final EndpointKey<SocketAddress> key2 =
-                    new EndpointKey<SocketAddress>("endpoint2",
-                    new InetSocketAddress("localhost", PORT + 1));
+            final Endpoint<SocketAddress> key2
+                    = Endpoint.Factory.<SocketAddress>create(
+                            new InetSocketAddress("localhost", PORT + 1),
+                            transport);
 
             Connection c11 = pool.take(key1).get();
             assertNotNull(c11);
@@ -187,7 +190,7 @@ public class MultiEndPointPoolTest {
             assertTrue(pool.attach(key1, c11));
             assertEquals(4, pool.size());
 
-            assertFalse(pool.release(c11));
+            assertTrue(pool.release(c11));
 
             assertEquals(4, pool.size());
 
@@ -217,20 +220,21 @@ public class MultiEndPointPoolTest {
     public void testTotalPoolSizeLimit() throws Exception {
         final MultiEndpointPool<SocketAddress> pool = MultiEndpointPool
                 .builder(SocketAddress.class)
-                .connectorHandler(transport)
                 .maxConnectionsPerEndpoint(2)
                 .maxConnectionsTotal(2)
                 .keepAliveTimeout(-1, TimeUnit.SECONDS)
                 .build();
         
         try {
-            final EndpointKey<SocketAddress> key1 =
-                    new EndpointKey<SocketAddress>("endpoint1",
-                    new InetSocketAddress("localhost", PORT));
+            final Endpoint<SocketAddress> key1
+                    = Endpoint.Factory.<SocketAddress>create(
+                            new InetSocketAddress("localhost", PORT),
+                            transport);
 
-            final EndpointKey<SocketAddress> key2 =
-                    new EndpointKey<SocketAddress>("endpoint2",
-                    new InetSocketAddress("localhost", PORT + 1));
+            final Endpoint<SocketAddress> key2
+                    = Endpoint.Factory.<SocketAddress>create(
+                            new InetSocketAddress("localhost", PORT + 1),
+                            transport);
 
             Connection c11 = pool.take(key1).get();
             assertNotNull(c11);
@@ -284,20 +288,21 @@ public class MultiEndPointPoolTest {
         
         final MultiEndpointPool<SocketAddress> pool = MultiEndpointPool
                 .builder(SocketAddress.class)
-                .connectorHandler(transport)
                 .maxConnectionsPerEndpoint(maxConnectionsPerEndpoint)
                 .maxConnectionsTotal(maxConnectionsPerEndpoint * 2)
                 .keepAliveTimeout(-1, TimeUnit.SECONDS)
                 .build();
         
         try {
-            final EndpointKey<SocketAddress> key1 =
-                    new EndpointKey<SocketAddress>("endpoint1",
-                    new InetSocketAddress("localhost", PORT));
+            final Endpoint<SocketAddress> key1
+                    = Endpoint.Factory.<SocketAddress>create(
+                            new InetSocketAddress("localhost", PORT),
+                            transport);
 
-            final EndpointKey<SocketAddress> key2 =
-                    new EndpointKey<SocketAddress>("endpoint2",
-                    new InetSocketAddress("localhost", PORT + 1));
+            final Endpoint<SocketAddress> key2
+                    = Endpoint.Factory.<SocketAddress>create(
+                            new InetSocketAddress("localhost", PORT + 1),
+                            transport);
 
             final Connection[] e1Connections = new Connection[maxConnectionsPerEndpoint];
             final Connection[] e2Connections = new Connection[maxConnectionsPerEndpoint];
@@ -340,4 +345,107 @@ public class MultiEndPointPoolTest {
             pool.close();
         }
     }
+    
+    @Test
+    public void testEmbeddedPollTimeout() throws Exception {
+        final int maxConnectionsPerEndpoint = 2;
+
+        final MultiEndpointPool<SocketAddress> pool = MultiEndpointPool
+                .builder(SocketAddress.class)
+                .maxConnectionsPerEndpoint(maxConnectionsPerEndpoint)
+                .maxConnectionsTotal(maxConnectionsPerEndpoint * 2)
+                .keepAliveTimeout(-1, TimeUnit.SECONDS)
+                .asyncPollTimeout(2, TimeUnit.SECONDS)
+                .build();
+
+        try {
+            final Endpoint<SocketAddress> key =
+                    Endpoint.Factory.<SocketAddress>create(
+                            new InetSocketAddress("localhost", PORT),
+                            transport);
+
+            Connection c1 = pool.take(key).get();
+            assertNotNull(c1);
+            assertEquals(1, pool.size());
+
+            Connection c2 = pool.take(key).get();
+            assertNotNull(c2);
+            assertEquals(2, pool.size());
+
+            final GrizzlyFuture<Connection> c3Future = pool.take(key);
+            try {
+                c3Future.get();
+            } catch (ExecutionException e) {
+                final Throwable cause = e.getCause();
+                assertTrue("Unexpected exception " + cause, cause instanceof TimeoutException);
+            } catch (Throwable e) {
+                fail("Unexpected exception " + e);
+            }
+            
+            assertFalse(c3Future.cancel(false));
+            
+            assertEquals(2, pool.size());
+
+            pool.release(c2);
+
+            Connection c3 = pool.take(key).get(2, TimeUnit.SECONDS);
+            assertNotNull(c3);
+            assertEquals(2, pool.size());
+        } finally {
+            pool.close();
+        }
+    }
+    
+    @Test
+    public void testEndpointPoolCustomizer() throws Exception {
+        final Endpoint<SocketAddress> key1
+                = Endpoint.Factory.<SocketAddress>create(
+                        new InetSocketAddress("localhost", PORT),
+                        transport);
+
+        final Endpoint<SocketAddress> key2
+                = Endpoint.Factory.<SocketAddress>create(
+                        new InetSocketAddress("localhost", PORT + 1),
+                        transport);
+
+        final int maxConnectionsPerEndpoint = 2;
+
+        final MultiEndpointPool<SocketAddress> pool = MultiEndpointPool
+                .builder(SocketAddress.class)
+                .maxConnectionsPerEndpoint(maxConnectionsPerEndpoint)
+                .maxConnectionsTotal(maxConnectionsPerEndpoint * 2)
+                .keepAliveTimeout(-1, TimeUnit.SECONDS)
+                .endpointPoolCustomizer(new MultiEndpointPool.EndpointPoolCustomizer<SocketAddress>() {
+
+                    @Override
+                    public void customize(final Endpoint<SocketAddress> endpoint,
+                            MultiEndpointPool.EndpointPoolBuilder<SocketAddress> builder) {
+                        if (endpoint.equals(key1)) {
+                            builder.keepAliveTimeout(0, TimeUnit.SECONDS); // no pooling
+                        }
+                    }
+                })
+                .build();
+
+        try {
+            Connection c1 = pool.take(key1).get();
+            assertNotNull(c1);
+            assertEquals(1, pool.size());
+
+            Connection c2 = pool.take(key2).get();
+            assertNotNull(c2);
+            assertEquals(2, pool.size());
+
+            pool.release(c2);
+            assertEquals(2, pool.size());
+            assertEquals(2, pool.getOpenConnectionsCount());
+
+            // c1 should be closed immediately
+            pool.release(c1);
+            assertEquals(1, pool.size());
+            assertEquals(1, pool.getOpenConnectionsCount());
+        } finally {
+            pool.close();
+        }
+    }    
 }

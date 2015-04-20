@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,7 +61,7 @@ import static org.glassfish.grizzly.connectionpool.SingleEndpointPool.*;
 
 /**
  * The multi endpoint {@link Connection} pool implementation where each endpoint
- * sub-pool is represented by {@link SingleEndpointPool} and referenced by an {@link EndpointKey}.
+ * sub-pool is represented by {@link SingleEndpointPool} and referenced by an {@link Endpoint}.
  * 
  * There are number of configuration options supported by the <tt>MultiEndpointPool</tt>:
  *      - <tt>maxConnectionsPerEndpoint</tt>: the maximum number of {@link Connection}s each
@@ -74,6 +74,13 @@ import static org.glassfish.grizzly.connectionpool.SingleEndpointPool.*;
  *                                               perform idle {@link Connection}s check;
  *      - <tt>reconnectDelayMillis</tt>: the delay to be used before the pool will repeat the attempt to connect to
  *                                       the endpoint after previous connect had failed.
+ *      - <tt>asyncPollTimeoutMillis</tt>: maximum amount of time, after which
+ *                                         the async connection poll operation will
+ *                                         be failed with a timeout exception
+ *      - <tt>connectionTTLMillis</tt>: the maximum amount of time, a
+ *                                      {@link Connection} could be associated with the pool
+ * 
+ * @param <E> the address type, for example for TCP transport it's {@link SocketAddress}
  * 
  * @author Alexey Stashok
  */
@@ -85,6 +92,8 @@ public class MultiEndpointPool<E> {
      * 
      * @param endpointType endpoint address type, for example
      *        {@link java.net.SocketAddress} for TCP and UDP transports
+     * @param <T> endpoint type
+     * 
      * @return {@link Builder} 
      */
     public static <T> Builder<T> builder(Class<T> endpointType) {
@@ -94,8 +103,8 @@ public class MultiEndpointPool<E> {
     /**
      * Maps endpoint -to- SingleEndpointPool
      */
-    protected final Map<EndpointKey<E>, SingleEndpointPool<E>> endpointToPoolMap =
-            DataStructures.<EndpointKey<E>, SingleEndpointPool<E>>getConcurrentMap();
+    protected final Map<Endpoint<E>, SingleEndpointPool<E>> endpointToPoolMap =
+            DataStructures.<Endpoint<E>, SingleEndpointPool<E>>getConcurrentMap();
     /**
      * Maps Connection -to- ConnectionInfo
      */
@@ -132,6 +141,11 @@ public class MultiEndpointPool<E> {
             new Chain<EndpointPoolImpl>();
     
     /**
+     * The {@link DelayedExecutor} either own or provided, used for
+     * keep-alive, re-connect or other timeout related mechanisms.
+     */
+    private final DelayedExecutor delayedExecutor;
+    /**
      * The thread-pool used by theownDelayedExecutor
      */
     private final ExecutorService ownDelayedExecutorThreadPool;
@@ -143,21 +157,36 @@ public class MultiEndpointPool<E> {
     /**
      * DelayQueue for connect timeout mechanism
      */
-    private final DelayQueue<ConnectTimeoutTask> connectTimeoutQueue;
+    private DelayQueue<ConnectTimeoutTask> connectTimeoutQueue;
     /**
      * DelayQueue for reconnect mechanism
      */
-    private final DelayQueue<ReconnectTask> reconnectQueue;
+    private DelayQueue<ReconnectTask> reconnectQueue;
     /**
      * DelayQueue for keep-alive mechanism
      */
-    private final DelayQueue<KeepAliveCleanerTask> keepAliveCleanerQueue;
-
+    private DelayQueue<KeepAliveCleanerTask> keepAliveCleanerQueue;
+    /**
+     * DelayQueue for async poll timeout mechanism
+     */
+    private DelayQueue<Link<AsyncPoll>> asyncPollTimeoutQueue;
+    /**
+     * DelayQueue for connection time to live mechanism
+     */
+    private DelayQueue<ConnectionInfo> connectionTTLQueue;
+    
     /**
      * The default {@link ConnectorHandler} used to establish new
      * {@link Connection}s is none is specified by {@link EndpointKey}
      */
     private final ConnectorHandler<E> defaultConnectorHandler;
+    
+    /**
+     * The customizer, which will be used to modify a specific endpoint pool
+     * settings and overwrite the default settings assigned by this <tt>MultiEndpointPool</tt>.
+     */
+    private final EndpointPoolCustomizer<E> endpointPoolCustomizer;
+    
     /**
      * the maximum number of {@link Connection}s each
      * {@link SingleEndpointPool} sub-pool is allowed to have
@@ -188,11 +217,27 @@ public class MultiEndpointPool<E> {
      * the interval, which specifies how often the pool will perform idle {@link Connection}s check
      */
     private final long keepAliveCheckIntervalMillis;
+    /**
+     * Async poll timeout, after which, the async connection poll operation will
+     * be failed with a timeout exception
+     */
+    private final long asyncPollTimeoutMillis;
+    /**
+     * the maximum amount of time, a {@link Connection} could stay registered with the pool
+     * Once timeout is hit - the connection will be either closed, if it's idle,
+     * or detached from the pool, if it's being used.
+     */
+    private final long connectionTTLMillis;
 
     /**
      * Maximum number of reconnect attempts.
      */
     private final int maxReconnectAttempts;
+    /**
+     * if true, the "take" method will fail fast if there is no free connection
+     * in the pool and max pool size is reached.
+     */
+    private final boolean failFastWhenMaxSizeReached;
     
     /**
      * Constructs MultiEndpointPool instance.
@@ -206,6 +251,12 @@ public class MultiEndpointPool<E> {
      * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check
      * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
      * @param maxReconnectAttempts the maximum number of reconnect attempts that may be made before failure notification.
+     * @param asyncPollTimeoutMillis the maximum time, the async poll operation could wait for a connection to become available
+     * @param connectionTTLMillis the maximum time, a connection could stay registered with the pool
+     * @param failFastWhenMaxSizeReached <tt>true</tt> if the "take" method should fail fast if there is no free connection in the pool and max pool size is reached
+     * @param endpointPoolCustomizer the customizer, which will be used to modify a specific endpoint pool settings and overwrite the default settings assigned by this <tt>MultiEndpointPool</tt>
+     * 
+     * @deprecated defaultConnectorHandler is deprecated
      */
     protected MultiEndpointPool(
             final ConnectorHandler<E> defaultConnectorHandler,
@@ -216,7 +267,11 @@ public class MultiEndpointPool<E> {
             final long keepAliveTimeoutMillis,
             final long keepAliveCheckIntervalMillis,
             final long reconnectDelayMillis,
-            final int maxReconnectAttempts) {
+            final int maxReconnectAttempts,
+            final long asyncPollTimeoutMillis,
+            final long connectionTTLMillis,
+            final boolean failFastWhenMaxSizeReached,
+            final EndpointPoolCustomizer<E> endpointPoolCustomizer) {
         this.defaultConnectorHandler = defaultConnectorHandler;
         this.maxConnectionsPerEndpoint = maxConnectionsPerEndpoint;
         this.maxConnectionsTotal = maxConnectionsTotal;
@@ -226,6 +281,10 @@ public class MultiEndpointPool<E> {
         this.keepAliveTimeoutMillis = keepAliveTimeoutMillis;
         this.keepAliveCheckIntervalMillis = keepAliveCheckIntervalMillis;
         this.maxReconnectAttempts = maxReconnectAttempts;
+        this.asyncPollTimeoutMillis = asyncPollTimeoutMillis;
+        this.connectionTTLMillis = connectionTTLMillis;
+        this.failFastWhenMaxSizeReached = failFastWhenMaxSizeReached;
+        this.endpointPoolCustomizer = endpointPoolCustomizer;
         
         if (delayedExecutor == null) {
             final ThreadPoolConfig tpc = ThreadPoolConfig.defaultConfig()
@@ -238,40 +297,65 @@ public class MultiEndpointPool<E> {
             ownDelayedExecutor = new DelayedExecutor(
                     ownDelayedExecutorThreadPool);
             ownDelayedExecutor.start();
-            
-            delayedExecutor = ownDelayedExecutor;
+            this.delayedExecutor = ownDelayedExecutor;
         } else {
             ownDelayedExecutorThreadPool = null;
             ownDelayedExecutor = null;
+            this.delayedExecutor = delayedExecutor;
         }
         
-        if (connectTimeoutMillis >= 0) {
-            connectTimeoutQueue = delayedExecutor.createDelayQueue(
-                    new ConnectTimeoutWorker(),
-                    new ConnectTimeoutTaskResolver());
-        } else {
-            connectTimeoutQueue = null;
-        }
+        checkConnectTimeoutQueue(connectTimeoutMillis);
         
-        if (reconnectDelayMillis >= 0) {
-            reconnectQueue = delayedExecutor.createDelayQueue(new Reconnector(),
-                    new ReconnectTaskResolver());
-        } else {
-            reconnectQueue = null;
-        }
+        checkReconnectQueue(reconnectDelayMillis);
         
-        if (keepAliveTimeoutMillis >= 0) {
-            keepAliveCleanerQueue = delayedExecutor.createDelayQueue(
-                    new KeepAliveCleaner(), new KeepAliveCleanerTaskResolver());
-        } else {
-            keepAliveCleanerQueue = null;
-        }        
+        checkKeepAliveCleanerQueue(keepAliveTimeoutMillis);
+        
+        checkAsyncPollTimeoutQueue(asyncPollTimeoutMillis);
+        
+        checkConnectionTTLQueue(connectionTTLMillis);
+    }
+
+    /**
+     * Constructs MultiEndpointPool instance.
+     * 
+     * @param maxConnectionsPerEndpoint the maximum number of {@link Connection}s single endpoint sub-pool is allowed to have
+     * @param maxConnectionsTotal the total maximum number of {@link Connection}s the pool is allowed to have
+     * @param delayedExecutor custom {@link DelayedExecutor} to be used by keep-alive and reconnect mechanisms
+     * @param connectTimeoutMillis timeout, after which, if a connection is not established, it is considered failed
+     * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool
+     * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check
+     * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
+     * @param maxReconnectAttempts the maximum number of reconnect attempts that may be made before failure notification.
+     * @param asyncPollTimeoutMillis the maximum time, the async poll operation could wait for a connection to become available
+     * @param connectionTTLMillis the maximum time, a connection could stay registered with the pool
+     * @param failFastWhenMaxSizeReached <tt>true</tt> if the "take" method should fail fast if there is no free connection in the pool and max pool size is reached
+     * @param endpointPoolCustomizer the customizer, which will be used to modify a specific endpoint pool settings and overwrite the default settings assigned by this <tt>MultiEndpointPool</tt>
+     */
+    protected MultiEndpointPool(
+            final int maxConnectionsPerEndpoint,
+            final int maxConnectionsTotal,
+            final DelayedExecutor delayedExecutor,
+            final long connectTimeoutMillis,
+            final long keepAliveTimeoutMillis,
+            final long keepAliveCheckIntervalMillis,
+            final long reconnectDelayMillis,
+            final int maxReconnectAttempts,
+            final long asyncPollTimeoutMillis,
+            final long connectionTTLMillis,
+            final boolean failFastWhenMaxSizeReached,
+            final EndpointPoolCustomizer<E> endpointPoolCustomizer) {    
+        this(null, maxConnectionsPerEndpoint, maxConnectionsTotal,
+                delayedExecutor, connectTimeoutMillis, keepAliveTimeoutMillis,
+                keepAliveCheckIntervalMillis, reconnectDelayMillis,
+                maxReconnectAttempts, asyncPollTimeoutMillis,
+                connectionTTLMillis, failFastWhenMaxSizeReached,
+                endpointPoolCustomizer);
     }
     
     /**
-     * Returns the current pool size.
+     * @return  the current pool size.
      * This value includes connected and connecting (connect in progress)
-     * {@link Connection}s.
+     * {@link Connection}s
      */
     public int size() {
         synchronized (countersSync) {
@@ -280,9 +364,9 @@ public class MultiEndpointPool<E> {
     }
     
     /**
-     * Returns the number of connected {@link Connection}s in the pool.
+     * @return the number of connected {@link Connection}s in the pool.
      * Unlike {@link #size()} the value doesn't include connecting
-     * (connect in progress) {@link Connection}s.
+     * (connect in progress) {@link Connection}s
      */
     public int getOpenConnectionsCount() {
         synchronized (countersSync) {
@@ -291,8 +375,8 @@ public class MultiEndpointPool<E> {
     }
     
     /**
-     * Returns <tt>true</tt> is maximum number of {@link Connection}s the pool
-     * can keep is reached and no new {@link Connection} can established, or
+     * @return <tt>true</tt> is maximum number of {@link Connection}s the pool
+     * can keep is reached and no new {@link Connection} can be established, or
      * <tt>false</tt> otherwise.
      */
     public boolean isMaxCapacityReached() {
@@ -357,7 +441,7 @@ public class MultiEndpointPool<E> {
      * <p>
      * If you would like to immediately block waiting
      * for a {@link Connection}, you can use constructions of the form
-     * <tt>connection = pool.take(endpointKey).get();</tt>
+     * <tt>connection = pool.take(endpoint).get();</tt>
      * 
      * <p> Note: returned {@link GrizzlyFuture} must be checked and released
      * properly. It must not be forgotten, because a {@link Connection}, that
@@ -372,13 +456,13 @@ public class MultiEndpointPool<E> {
      * }
      * </pre>
      * 
-     * @param endpointKey {@link EndpointKey}, that represents an endpoint
+     * @param endpoint {@link Endpoint}, that represents an endpoint
      * @return {@link GrizzlyFuture}
      */
-    public GrizzlyFuture<Connection> take(final EndpointKey<E> endpointKey) {
+    public GrizzlyFuture<Connection> take(final Endpoint<E> endpoint) {
         try {
             final SingleEndpointPool<E> sePool =
-                    obtainSingleEndpointPool(endpointKey);
+                    obtainSingleEndpointPool(endpoint);
 
             return sePool.take();
         } catch (IOException e) {
@@ -392,28 +476,42 @@ public class MultiEndpointPool<E> {
      * The passed {@link CompletionHandler} will be notified about the result of the
      * non-blocking/asynchronous obtain task.
      * 
-     * @param endpointKey {@link EndpointKey}, that represents an endpoint
+     * @param endpoint {@link Endpoint}, that represents an endpoint
+     * @param completionHandler
      */
-    public void take(final EndpointKey<E> endpointKey,
+    public void take(final Endpoint<E> endpoint,
             final CompletionHandler<Connection> completionHandler) {
         if (completionHandler == null) {
             throw new IllegalArgumentException("The completionHandler argument can not be null");
         }
         
         try {
-            final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
+            final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpoint);
 
             sePool.take(completionHandler);
         } catch (IOException e) {
             completionHandler.failed(e);
         }
     }
+    
+    /**
+     * @param endpoint {@link Endpoint}, that represents an endpoint
+     * 
+     * @return a {@link Connection} from the pool, if there is one available at the moment,
+     *          or <tt>null</tt> otherwise
+     * @throws java.io.IOException if the pool is closed
+     */
+    public Connection poll(final Endpoint<E> endpoint) throws IOException {
+        final SingleEndpointPool<E> sePool = endpointToPoolMap.get(endpoint);
+
+        return sePool != null ? sePool.poll() : null;
+    }
 
     /**
      * Returns the {@link Connection} to the pool.
      * 
      * The {@link Connection} will be returned to the pool only in case it
-     * was created by this pool, or it was attached to it using {@link #attach(EndpointKey, org.glassfish.grizzly.Connection)}
+     * was created by this pool, or it was attached to it using {@link #attach(Endpoint, org.glassfish.grizzly.Connection)}
      * method.
      * If the {@link Connection} is not registered in the pool - it will be closed.
      * If the {@link Connection} is registered in the pool and already marked as ready - this method call will not have any effect.
@@ -452,7 +550,7 @@ public class MultiEndpointPool<E> {
      * This method might be used to add to the pool a {@link Connection}, that
      * either has not been created by this pool or has been detached.
      * 
-     * @param endpointKey {@link EndpointKey}, that represents an endpoint to
+     * @param endpoint {@link Endpoint}, that represents an endpoint to
      *              which the the {@link Connection} will be attached
      * @param connection {@link Connection}
      * @return <tt>true</tt> if the {@link Connection} has been successfully attached,
@@ -461,15 +559,15 @@ public class MultiEndpointPool<E> {
      *              have any effect and <tt>true</tt> will be returned.
      * @throws IOException thrown if this pool has been already closed
      */
-    public boolean attach(final EndpointKey<E> endpointKey,
+    public boolean attach(final Endpoint<E> endpoint,
             final Connection connection)
             throws IOException {
 
-        final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpointKey);
+        final SingleEndpointPool<E> sePool = obtainSingleEndpointPool(endpoint);
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE,
                        "Associating foreign connection with pool {0} using endpoint key {1}.",
-                       new Object[] {sePool, endpointKey});
+                       new Object[] {sePool, endpoint});
         }
         return sePool.attach(connection);
     }
@@ -478,7 +576,7 @@ public class MultiEndpointPool<E> {
      * Detaches a {@link Connection} from the pool.
      * De-registers the {@link Connection} from the pool and decreases the pool
      * size by 1. It is possible to re-attach the detached {@link Connection}
-     * later by calling {@link #attach(org.glassfish.grizzly.connectionpool.EndpointKey, org.glassfish.grizzly.Connection)}.
+     * later by calling {@link #attach(org.glassfish.grizzly.connectionpool.Endpoint, org.glassfish.grizzly.Connection)}.
      * 
      * If the {@link Connection} was not registered in the pool - the
      * method call doesn't have any effect.
@@ -504,15 +602,15 @@ public class MultiEndpointPool<E> {
      * closed, the busy {@link Connection}, that are still in use - will be kept open and
      * will be automatically closed when returned to the pool by {@link #release(org.glassfish.grizzly.Connection)}.
      * 
-     * @param endpointKey {@link EndpointKey}, that represents an endpoint
+     * @param endpoint {@link Endpoint}, that represents an endpoint
      */
-    public void close(final EndpointKey<E> endpointKey) {
-        final SingleEndpointPool<E> sePool = endpointToPoolMap.remove(endpointKey);
+    public void close(final Endpoint<E> endpoint) {
+        final SingleEndpointPool<E> sePool = endpointToPoolMap.remove(endpoint);
         if (sePool != null) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE,
                            "Closing pool associated with endpoint key {0}",
-                           endpointKey);
+                           endpoint);
             }
             sePool.close();
         }
@@ -535,7 +633,7 @@ public class MultiEndpointPool<E> {
             }
             isClosed = true;
 
-            for (Map.Entry<EndpointKey<E>, SingleEndpointPool<E>> entry :
+            for (Map.Entry<Endpoint<E>, SingleEndpointPool<E>> entry :
                     endpointToPoolMap.entrySet()) {
                 try {
                     entry.getValue().close();
@@ -566,33 +664,33 @@ public class MultiEndpointPool<E> {
 
     /**
      * Obtains {@link SingleEndpointPool} associated with the specific endpoint
-     * represented by {@link EndpointKey}. If there is no {@link SingleEndpointPool}
+     * represented by {@link Endpoint}. If there is no {@link SingleEndpointPool}
      * associated with the endpoint - the one will be created.
      * 
-     * @param endpointKey {@link EndpointKey}, that represents an endpoint
+     * @param endpoint {@link Endpoint}, that represents an endpoint
      * @return {@link SingleEndpointPool}
      * @throws IOException if the pool is already closed
      */
     protected SingleEndpointPool<E> obtainSingleEndpointPool(
-            final EndpointKey<E> endpointKey) throws IOException {
-        SingleEndpointPool<E> sePool = endpointToPoolMap.get(endpointKey);
+            final Endpoint<E> endpoint) throws IOException {
+        SingleEndpointPool<E> sePool = endpointToPoolMap.get(endpoint);
         if (sePool == null) {
             synchronized (poolSync) {
                 checkNotClosed();
                 
-                sePool = endpointToPoolMap.get(endpointKey);
+                sePool = endpointToPoolMap.get(endpoint);
                 if (sePool == null) {
                     if (LOGGER.isLoggable(Level.FINE)) {
                         LOGGER.log(Level.FINE,
                                    "Creating new endpoint pool for key {0}",
-                                   endpointKey);
+                                   endpoint);
                     }
-                    sePool = createSingleEndpointPool(endpointKey);
-                    endpointToPoolMap.put(endpointKey, sePool);
+                    sePool = createSingleEndpointPool(endpoint);
+                    endpointToPoolMap.put(endpoint, sePool);
                 } else if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE,
                                "Returning existing pool {0} for key {1}",
-                               new Object[]{sePool, endpointKey});
+                               new Object[]{sePool, endpoint});
                 }
             }
         }
@@ -602,25 +700,124 @@ public class MultiEndpointPool<E> {
     
     /**
      * Creates {@link SingleEndpointPool} instance.
-     * @param endpointKey the endpoint key
+     * @param endpoint the endpoint key
      * @return {@link SingleEndpointPool}
      */
     protected SingleEndpointPool<E> createSingleEndpointPool(
-            final EndpointKey<E> endpointKey) {
-        return new EndpointPoolImpl(endpointKey.getEndpoint(),
-                                    endpointKey.getLocalEndpoint(),
-                                    endpointKey.getConnectorHandler() == null
-                                            ? defaultConnectorHandler
-                                            : endpointKey.getConnectorHandler());
+            Endpoint<E> endpoint) {
+        
+        if (endpointPoolCustomizer == null) {
+            return new EndpointPoolImpl(endpoint);
+        } else {
+            final EndpointPoolBuilder<E> builder =
+                    new EndpointPoolBuilder<E>(this, endpoint);
+            endpointPoolCustomizer.customize(endpoint, builder);
+            return builder.build();
+        }
     }
-    
+
     /**
      * Method throws {@link IOException} if the pool has been closed.
+     * @throws java.io.IOException if the pool has been closed
      */
     protected void checkNotClosed() throws IOException {
         if (isClosed) {
             throw new IOException("The pool is closed");
         }
+    }
+        
+    private EndpointPoolImpl getPrioritizedPool() {
+        EndpointPoolImpl prioritizedPool;
+        final Link<EndpointPoolImpl> firstLink =
+                maxPoolSizeHitsChain.pollFirst();
+
+        if (firstLink != null) {
+            prioritizedPool = firstLink.getValue();
+            prioritizedPool.maxPoolSizeHits = 0;
+        } else {
+            prioritizedPool = null;
+        }
+        return prioritizedPool;
+    }
+    
+    /**
+     * For backwards compatibility reasons (defaultConnectorHandler is
+     * deprecated in the builder), the method checks if the {@link Endpoint}
+     * is an {@link EndpointKey}, which doesn't provide a {@link ConnectorHandler},
+     * in this case it sets the {@link #defaultConnectorHandler}.
+     * 
+     * @param endpoint
+     * @return
+     */
+    private Endpoint<E> checkWithDefaultConnectorHandler(Endpoint<E> endpoint) {
+        // we need it for backwards compatibility of defaultConnectorHandler
+        if (defaultConnectorHandler != null
+                && endpoint instanceof EndpointKey) {
+            final EndpointKey<E> epk = (EndpointKey<E>) endpoint;
+            if (epk.getConnectorHandler() == null) {
+                endpoint = new Endpoint<E>() {
+                    
+                    @Override
+                    public Object getId() {
+                        return epk.getId();
+                    }
+                    
+                    @Override
+                    public GrizzlyFuture<Connection> connect() {
+                        return (GrizzlyFuture<Connection>) defaultConnectorHandler
+                                .connect(epk.getEndpoint(), epk.getLocalEndpoint());
+                    }
+                };
+            }
+        }
+        return endpoint;
+    }
+    
+    private void checkConnectTimeoutQueue(final long connectTimeoutMillis) {
+        if (connectTimeoutMillis >= 0 && connectTimeoutQueue == null) {
+            connectTimeoutQueue = delayedExecutor.createDelayQueue(
+                    new ConnectTimeoutWorker(), new ConnectTimeoutTaskResolver());
+        }
+    }
+    
+    private void checkReconnectQueue(final long reconnectDelayMillis) {
+        if (reconnectDelayMillis >= 0 && reconnectQueue == null) {
+            reconnectQueue = delayedExecutor.createDelayQueue(
+                    new Reconnector(), new ReconnectTaskResolver());
+        }
+    }
+
+    private void checkKeepAliveCleanerQueue(final long keepAliveTimeoutMillis) {
+        // if keepAliveTimeoutMillis == 0 - we close connection right away
+        // and don't rely on keep-alive cleaner
+        if (keepAliveTimeoutMillis > 0 && keepAliveCleanerQueue == null) {
+            keepAliveCleanerQueue = delayedExecutor.createDelayQueue(
+                    new KeepAliveCleaner(), new KeepAliveCleanerTaskResolver());
+        }
+    }
+
+    private void checkAsyncPollTimeoutQueue(final long asyncPollTimeoutMillis) {
+        if (asyncPollTimeoutMillis >= 0 && asyncPollTimeoutQueue == null) {
+            asyncPollTimeoutQueue = delayedExecutor.createDelayQueue(
+                    new AsyncPollTimeoutWorker(), new AsyncPollTimeoutTaskResolver());
+        }
+    }
+    
+    private void checkConnectionTTLQueue(final long connectionTTLMillis) {
+        if (connectionTTLMillis >= 0 && connectionTTLQueue == null) {
+            connectionTTLQueue = delayedExecutor.createDelayQueue(
+                    new ConnectionTTLWorker(), new ConnectionTTLTaskResolver());
+        }
+    }
+    
+    /**
+     * The customizer, which could be used to modify an endpoint pool setting
+     * before it will be created.
+     * 
+     * @param <E> the address type, for example for TCP transport it's {@link SocketAddress}
+     */
+    public interface EndpointPoolCustomizer<E> {
+        public void customize(Endpoint<E> endpoint, EndpointPoolBuilder<E> builder);
     }
     
     /**
@@ -632,19 +829,47 @@ public class MultiEndpointPool<E> {
         
         private int maxPoolSizeHits;
         
-        public EndpointPoolImpl(final E endpoint,
-                                final E localEndpoint,
-                final ConnectorHandler<E> connectorHandler) {
-            super(connectorHandler,
-                endpoint, localEndpoint, 0, maxConnectionsPerEndpoint,
-                connectTimeoutQueue, reconnectQueue, keepAliveCleanerQueue,
-                connectTimeoutMillis, keepAliveTimeoutMillis,
-                keepAliveCheckIntervalMillis, reconnectDelayMillis, maxReconnectAttempts);
+        public EndpointPoolImpl(final Endpoint<E> endpoint) {
+            super(checkWithDefaultConnectorHandler(endpoint),
+                    0, maxConnectionsPerEndpoint,
+                    connectTimeoutQueue, reconnectQueue, keepAliveCleanerQueue,
+                    asyncPollTimeoutQueue, connectionTTLQueue,
+                    connectTimeoutMillis, keepAliveTimeoutMillis,
+                    keepAliveCheckIntervalMillis, reconnectDelayMillis,
+                    maxReconnectAttempts, asyncPollTimeoutMillis,
+                    connectionTTLMillis, failFastWhenMaxSizeReached);
+        }
+
+        public EndpointPoolImpl(final Endpoint<E> endpoint,
+            final int corePoolSize, final int maxPoolSize,
+            final DelayQueue<ConnectTimeoutTask> connectTimeoutQueue,
+            final DelayQueue<ReconnectTask> reconnectQueue,
+            final DelayQueue<KeepAliveCleanerTask> keepAliveCleanerQueue,
+            final DelayQueue<Link<AsyncPoll>> asyncPollTimeoutQueue,
+            final DelayQueue<ConnectionInfo> connectionTTLQueue,
+            final long connectTimeoutMillis,
+            final long keepAliveTimeoutMillis,
+            final long keepAliveCheckIntervalMillis,
+            final long reconnectDelayMillis,
+            final int maxReconnectAttempts,
+            final long asyncPollTimeoutMillis,
+            final long connectionTTLMillis,
+            final boolean failFastWhenMaxSizeReached) {
+            
+            super(checkWithDefaultConnectorHandler(endpoint),
+                    corePoolSize, maxPoolSize,
+                    connectTimeoutQueue, reconnectQueue, keepAliveCleanerQueue,
+                    asyncPollTimeoutQueue, connectionTTLQueue,
+                    connectTimeoutMillis, keepAliveTimeoutMillis,
+                    keepAliveCheckIntervalMillis, reconnectDelayMillis,
+                    maxReconnectAttempts, asyncPollTimeoutMillis,
+                    connectionTTLMillis, failFastWhenMaxSizeReached);
         }
 
         @Override
         protected boolean checkBeforeOpeningConnection() {
-            if (this.isMaxCapacityReached()) {
+            if (pendingConnections >= getWaitingListSize() ||
+                    super.isMaxCapacityReached()) {
                 return false;
             }
             
@@ -659,21 +884,50 @@ public class MultiEndpointPool<E> {
                 return true;
             }
         }
-
+    
         @Override
-        void onOpenConnection(final ConnectionInfo<E> info) {
-            final Connection connection = info.connection;
+        void onConnected(final Connection connection) {
+            super.onConnected(connection);
+            
+            synchronized (countersSync) {
+                totalPendingConnections--;
+            }
+        }
+
+        /**
+         * @return <tt>true</tt> is maximum number of {@link Connection}s the pool
+         * can keep is reached and no new {@link Connection} can be established, or
+         * <tt>false</tt> otherwise.
+         */
+        @Override
+        public boolean isMaxCapacityReached() {
+            return MultiEndpointPool.this.isMaxCapacityReached()
+                    || super.isMaxCapacityReached();
+        }
+        
+        /**
+         * @return <tt>true</tt> if number of live connections is more or equal
+         * to max pool size
+         */
+        @Override
+        boolean isOverflown() {
+            return maxConnectionsTotal != -1 &&
+                    MultiEndpointPool.this.poolSize >= maxConnectionsTotal;
+        }
+        
+        @Override
+        ConnectionInfo<E> attach0(final Connection connection) {
+            final ConnectionInfo<E> info = super.attach0(connection);
             
             connectionToSubPoolMap.put(connection, info);
             
             synchronized (countersSync) {
-                totalPendingConnections--;
-                poolSize++;
+                MultiEndpointPool.this.poolSize++;
             }
             
-            super.onOpenConnection(info);
+            return info;
         }
-
+        
         @Override
         void onFailedConnection() {
             synchronized (countersSync) {
@@ -727,19 +981,55 @@ public class MultiEndpointPool<E> {
                 }
             }
         }        
+    }
+    
+    public static class EndpointPoolBuilder<E> extends SingleEndpointPool.Builder<E> {
 
-        private EndpointPoolImpl getPrioritizedPool() {
-            EndpointPoolImpl prioritizedPool;
-            final Link<EndpointPoolImpl> firstLink =
-                    maxPoolSizeHitsChain.pollFirst();
+        private final MultiEndpointPool<E> multiEndpointPool;
+        /**
+         * Set the default builder settings.
+         * 
+         * @param endpoint 
+         */
+        EndpointPoolBuilder(final MultiEndpointPool<E> multiEndpointPool,
+                final Endpoint<E> endpoint) {
             
-            if (firstLink != null) {
-                prioritizedPool = firstLink.getValue();
-                prioritizedPool.maxPoolSizeHits = 0;
-            } else {
-                prioritizedPool = null;
-            }
-            return prioritizedPool;
+            super(endpoint, null, null, null,
+                    0, multiEndpointPool.maxConnectionsPerEndpoint,
+                    multiEndpointPool.delayedExecutor,
+                    multiEndpointPool.connectTimeoutMillis,
+                    multiEndpointPool.reconnectDelayMillis,
+                    multiEndpointPool.maxReconnectAttempts,
+                    multiEndpointPool.asyncPollTimeoutMillis,
+                    multiEndpointPool.connectionTTLMillis,
+                    multiEndpointPool.failFastWhenMaxSizeReached,
+                    multiEndpointPool.keepAliveTimeoutMillis,
+                    multiEndpointPool.keepAliveCheckIntervalMillis);
+            
+            this.multiEndpointPool = multiEndpointPool;
+        }
+
+        @Override
+        public SingleEndpointPool<E> build0(final Endpoint<E> e) {
+            multiEndpointPool.checkConnectTimeoutQueue(connectTimeoutMillis);
+            multiEndpointPool.checkReconnectQueue(reconnectDelayMillis);
+            multiEndpointPool.checkKeepAliveCleanerQueue(keepAliveTimeoutMillis);
+            multiEndpointPool.checkAsyncPollTimeoutQueue(asyncPollTimeoutMillis);
+            multiEndpointPool.checkConnectionTTLQueue(connectionTTLMillis);
+            
+            // creating non-static class EndpointPoolImpl :)
+            return multiEndpointPool.new EndpointPoolImpl(e,
+                    corePoolSize, maxPoolSize,
+                    multiEndpointPool.connectTimeoutQueue,
+                    multiEndpointPool.reconnectQueue,
+                    multiEndpointPool.keepAliveCleanerQueue,
+                    multiEndpointPool.asyncPollTimeoutQueue,
+                    multiEndpointPool.connectionTTLQueue,
+                    connectTimeoutMillis, keepAliveTimeoutMillis,
+                    keepAliveCheckIntervalMillis,
+                    reconnectDelayMillis, maxReconnectAttempts,
+                    asyncPollTimeoutMillis, connectionTTLMillis,
+                    failFastWhenMaxSizeReached);
         }
     }
     
@@ -784,6 +1074,22 @@ public class MultiEndpointPool<E> {
          */
         private int maxReconnectAttempts = 5;
         /**
+         * Async poll timeout, after which, the async connection poll operation will
+         * be failed with a timeout exception
+         */
+        private long asyncPollTimeoutMillis = -1;
+        /**
+         * the maximum amount of time, a {@link Connection} could stay registered with the pool
+         * Once timeout is hit - the connection will be either closed, if it's idle,
+         * or detached from the pool, if it's being used.
+         */
+        private long connectionTTLMillis = -1;
+        /**
+         * if true, the "take" method will fail fast if there is no free connection
+         * in the pool and max pool size is reached.
+         */
+        private boolean failFastWhenMaxSizeReached;
+        /**
          * the maximum number of milliseconds an idle {@link Connection} will be kept
          * in the pool.
          */
@@ -792,13 +1098,19 @@ public class MultiEndpointPool<E> {
          * the interval, which specifies how often the pool will perform idle {@link Connection}s check
          */
         private long keepAliveCheckIntervalMillis = 5000;
+        /**
+         * The customizer, which will be used to modify a specific endpoint pool
+         * settings and overwrite the default settings assigned by this <tt>MultiEndpointPool</tt>.
+         */
+        private EndpointPoolCustomizer<E> endpointPoolCustomizer;
         
         /**
          * Sets the default {@link ConnectorHandler} to be used to establish new
-         * {@link Connection}s if none is specified by {@link EndpointKey}.
+         * {@link Connection}s if none is specified by {@link Endpoint}.
          * 
          * @param defaultConnectorHandler {@link ConnectorHandler}
          * @return this {@link Builder}
+         * @deprecated {@link Endpoint} must always know how to establish the connection
          */
         public Builder<E> connectorHandler(
                 final ConnectorHandler<E> defaultConnectorHandler) {
@@ -906,6 +1218,73 @@ public class MultiEndpointPool<E> {
         }
 
         /**
+         * Sets the max time consumer will wait for a {@link Connection} to
+         * become available. When timeout expires the consumer will
+         * be notified about the failure ({@link TimeoutException})
+         * via {@link CompletionHandler} or {@link Future}.
+         * 
+         * If asyncPollTimeout &lt; 0 - timeout will not be set.
+         * By default the timeout is not set and consumer may wait forever for
+         * a {@link Connection}.
+         * 
+         * @param asyncPollTimeout the maximum time, the async poll operation
+         *        could wait for a connection to become available
+         * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
+         *        <tt>timeout</tt> parameter
+         * @return this {@link Builder}
+         */ 
+        public Builder<E> asyncPollTimeout(final long asyncPollTimeout,
+                final TimeUnit timeunit) {
+
+            this.asyncPollTimeoutMillis = asyncPollTimeout > 0
+                    ? TimeUnit.MILLISECONDS.convert(asyncPollTimeout, timeunit)
+                    : asyncPollTimeout;
+            return this;
+        }
+        
+        /**
+         * Sets the max amount of time a {@link Connection} could be associated
+         * with the pool.
+         * Once timeout expired the {@link Connection} will be either closed,
+         * if it's idle, or detached from the pool, if it's being used.
+         * 
+         * If connectionTTL &lt; 0 - the {@link Connection} time to live will
+         * not be set and the {@link Connection} can be associated with
+         * a pool forever, if no other limit is hit (like keep-alive).
+         * By default the connectionTTL is not set.
+         * 
+         * @param connectionTTL the max amount of time a {@link Connection} could be associated
+         *        with the pool
+         * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
+         *        <tt>connectionTTL</tt> parameter
+         * @return this {@link Builder}
+         */ 
+        public Builder<E> connectionTTL(final long connectionTTL,
+                final TimeUnit timeunit) {
+
+            this.connectionTTLMillis = connectionTTL > 0
+                    ? TimeUnit.MILLISECONDS.convert(connectionTTL, timeunit)
+                    : connectionTTL;
+            return this;
+        }        
+        
+        /**
+         * if <tt>true</tt>, the "take" method will fail fast if there is no
+         * free connection in the pool and max pool size is reached. Otherwise
+         * the pool will queue up the take request and wait for a {@link Connection}
+         * to become available
+         * 
+         * @param failFastWhenMaxSizeReached
+         *
+         * @return this {@link Builder}
+         */
+        public Builder<E> failFastWhenMaxSizeReached(
+                final boolean failFastWhenMaxSizeReached) {
+            this.failFastWhenMaxSizeReached = failFastWhenMaxSizeReached;
+            return this;
+        }
+        
+        /**
          * Sets the maximum number of milliseconds an idle {@link Connection}
          * will be kept in the pool.
          * The idle {@link Connection}s will be closed till the pool size is
@@ -950,15 +1329,26 @@ public class MultiEndpointPool<E> {
         }
         
         /**
+         * Set the customizer, which will be used to modify a specific endpoint pool
+         * settings and overwrite the default settings assigned by
+         * this <tt>MultiEndpointPool</tt>.
+         * 
+         * @param endpointPoolCustomizer {@link EndpointPoolCustomizer}
+         * 
+         * @return this {@link Builder}
+         */
+        public Builder<E> endpointPoolCustomizer(
+                final EndpointPoolCustomizer<E> endpointPoolCustomizer) {
+            this.endpointPoolCustomizer = endpointPoolCustomizer;
+            return this;
+        }
+        
+        /**
          * Constructs {@link MultiEndpointPool}.
          * @return {@link MultiEndpointPool}
          */
         
         public MultiEndpointPool<E> build() {
-            if (defaultConnectorHandler == null) {
-                throw new IllegalStateException("The default ConnectorHandler is not set");
-            }
-            
             if (keepAliveTimeoutMillis >= 0 && keepAliveCheckIntervalMillis < 0) {
                 throw new IllegalStateException("Keep-alive timeout is set, but keepAliveCheckInterval is invalid");
             }
@@ -970,7 +1360,10 @@ public class MultiEndpointPool<E> {
             return new MultiEndpointPool<E>(defaultConnectorHandler,
                     maxConnectionsPerEndpoint, maxConnectionsTotal, delayedExecutor,
                     connectTimeoutMillis, keepAliveTimeoutMillis,
-                    keepAliveCheckIntervalMillis, reconnectDelayMillis, maxReconnectAttempts);
+                    keepAliveCheckIntervalMillis, reconnectDelayMillis,
+                    maxReconnectAttempts, asyncPollTimeoutMillis,
+                    connectionTTLMillis, failFastWhenMaxSizeReached,
+                    endpointPoolCustomizer);
         }
     }    
 }

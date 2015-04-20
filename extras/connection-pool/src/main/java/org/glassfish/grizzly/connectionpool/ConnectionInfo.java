@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,12 +44,15 @@ import org.glassfish.grizzly.Connection;
 /**
  * Pooled {@link Connection} information, that might be used for monitoring reasons.
  * 
+ * @param <E>
  * @author Alexey Stashok
  */
 public final class ConnectionInfo<E> {
     final Connection connection;
     final Link<ConnectionInfo<E>> readyStateLink;
     final SingleEndpointPool<E> endpointPool;
+    
+    long ttlTimeout; // the place holder for TTL time stamp
     
     private final long pooledTimeStamp;
 
@@ -61,7 +64,7 @@ public final class ConnectionInfo<E> {
     }
 
     /**
-     * Returns <tt>true</tt> if the {@link Connection} is in ready state,
+     * @return <tt>true</tt> if the {@link Connection} is in ready state,
      * waiting for a user to pull it out from the pool. Returns <tt>false</tt>
      * if the {@link Connection} is currently busy.
      */
@@ -72,7 +75,7 @@ public final class ConnectionInfo<E> {
     }
     
     /**
-     * Returns the timestamp (in milliseconds) when this {@link Connection} was
+     * @return the timestamp (in milliseconds) when this {@link Connection} was
      * returned to the pool and its state switched to ready, or <tt>-1</tt> if
      * the {@link Connection} is currently in busy state.
      */
@@ -83,7 +86,7 @@ public final class ConnectionInfo<E> {
     }
     
     /**
-     * Returns the timestamp (in milliseconds) when this {@link Connection} was
+     * @return the timestamp (in milliseconds) when this {@link Connection} was
      * added to the pool: either created directly by pool or attached.
      */
     public long getPooledTimeStamp() {

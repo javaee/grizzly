@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.CloseListener;
@@ -87,6 +88,13 @@ import org.glassfish.grizzly.utils.Futures;
  *                                               perform idle {@link Connection}s check;
  *      - <tt>reconnectDelayMillis</tt>: the delay to be used before the pool will repeat the attempt to connect to
  *                                       the endpoint after previous connect had failed.
+ *      - <tt>asyncPollTimeoutMillis</tt>: maximum amount of time, after which
+ *                                         the async connection poll operation will
+ *                                         be failed with a timeout exception
+ *      - <tt>connectionTTLMillis</tt>: the maximum amount of time, a
+ *                                      {@link Connection} could be associated with the pool
+ * 
+ * @param <E> the address type, for example for TCP transport it's {@link SocketAddress}
  * 
  * @author Alexey Stashok
  */
@@ -96,6 +104,7 @@ public class SingleEndpointPool<E> {
     /**
      * Returns single endpoint pool {@link Builder}.
      * 
+     * @param <T> endpoint type
      * @param endpointType endpoint address type, for example
      *        {@link SocketAddress} for TCP and UDP transports
      * @return {@link Builder} 
@@ -154,7 +163,6 @@ public class SingleEndpointPool<E> {
      * DelayQueue for reconnect mechanism
      */
     private final DelayQueue<ReconnectTask> reconnectQueue;
-
     /**
      * Maximum number of reconnect attempts.
      */
@@ -164,19 +172,21 @@ public class SingleEndpointPool<E> {
      * DelayQueue for keep-alive mechanism
      */
     private final DelayQueue<KeepAliveCleanerTask> keepAliveCleanerQueue;
-    
+
     /**
-     * {@link ConnectorHandler} used to establish new {@link Connection}s
+     * DelayQueue for async poll timeout mechanism
      */
-    private final ConnectorHandler<E> connectorHandler;
+    private final DelayQueue<Link<AsyncPoll>> asyncPollTimeoutQueue;
+
     /**
-     * Endpoint address
+     * DelayQueue for connection time to live mechanism
      */
-    private final E endpointAddress;
+    private final DelayQueue<ConnectionInfo> connectionTTLQueue;
+
     /**
-     * Local bind address.
+     * The endpoint description
      */
-    private final E localEndpointAddress;
+    private final Endpoint<E> endpoint;
     /**
      * The number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
      */
@@ -184,7 +194,7 @@ public class SingleEndpointPool<E> {
     /**
      * The max number of {@link Connection}s kept by this pool
      */
-    private final int maxPoolSize;
+    protected final int maxPoolSize;
     /**
      * Connect timeout, after which, if a connection is not established, it is
      * considered failed
@@ -205,6 +215,22 @@ public class SingleEndpointPool<E> {
      * the interval, which specifies how often the pool will perform idle {@link Connection}s check
      */
     private final long keepAliveCheckIntervalMillis;
+    /**
+     * Async poll timeout, after which, the async connection poll operation will
+     * be failed with a timeout exception
+     */
+    private final long asyncPollTimeoutMillis;
+    /**
+     * the maximum amount of time, a {@link Connection} could be associated with the pool
+     * Once timeout is hit - the connection will be either closed, if it's idle,
+     * or detached from the pool, if it's being used.
+     */
+    private final long connectionTTLMillis;
+    /**
+     * if true, the "take" method will fail fast if there is no free connection
+     * in the pool and max pool size is reached.
+     */
+    private final boolean failFastWhenMaxSizeReached;
     
     /**
      * current pool size
@@ -219,7 +245,7 @@ public class SingleEndpointPool<E> {
      * Number of failed connect attempts.
      */
     private int failedConnectAttempts;
-
+    
     /**
      * The waiting list of asynchronous polling clients
      */
@@ -228,9 +254,7 @@ public class SingleEndpointPool<E> {
     /**
      * Constructs SingleEndpointPool instance.
      * 
-     * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s
-     * @param endpointAddress endpoint address
-     * @param localEndpointAddress local bind address.  May be <code>null</code>.
+     * @param endpoint {@link Endpoint} to be used to establish new {@link Connection}s
      * @param corePoolSize the number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
      * @param maxPoolSize the max number of {@link Connection}s kept by this pool
      * @param delayedExecutor custom {@link DelayedExecutor} to be used by keep-alive and reconnect mechanisms
@@ -239,23 +263,24 @@ public class SingleEndpointPool<E> {
      * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check
      * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
      * @param maxReconnectAttempts the maximum number of reconnect attempts that may be made before failure notification.
+     * @param asyncPollTimeoutMillis the maximum time, the async poll operation could wait for a connection to become available
+     * @param connectionTTLMillis the maximum time, a connection could stay registered with the pool
+     * @param failFastWhenMaxSizeReached <tt>true</tt> if the "take" method should fail fast if there is no free connection in the pool and max pool size is reached
      */
     @SuppressWarnings("unchecked")
-    protected SingleEndpointPool(
-            final ConnectorHandler<E> connectorHandler,
-            final E endpointAddress,
-            final E localEndpointAddress,
+    protected SingleEndpointPool(final Endpoint<E> endpoint,
             final int corePoolSize, final int maxPoolSize,
             DelayedExecutor delayedExecutor,
             final long connectTimeoutMillis,
             final long keepAliveTimeoutMillis,
             final long keepAliveCheckIntervalMillis,
             final long reconnectDelayMillis,
-            final int maxReconnectAttempts) {
-        this.connectorHandler = connectorHandler;
-        this.endpointAddress = endpointAddress;
-        this.localEndpointAddress = localEndpointAddress;
-
+            final int maxReconnectAttempts,
+            final long asyncPollTimeoutMillis,
+            final long connectionTTLMillis,
+            final boolean failFastWhenMaxSizeReached) {
+        
+        this.endpoint = endpoint;
         this.corePoolSize = corePoolSize;
         this.maxPoolSize = maxPoolSize;
         this.connectTimeoutMillis = connectTimeoutMillis;
@@ -263,6 +288,9 @@ public class SingleEndpointPool<E> {
         this.keepAliveTimeoutMillis = keepAliveTimeoutMillis;
         this.keepAliveCheckIntervalMillis = keepAliveCheckIntervalMillis;
         this.maxReconnectAttempts = maxReconnectAttempts;
+        this.asyncPollTimeoutMillis = asyncPollTimeoutMillis;
+        this.connectionTTLMillis = connectionTTLMillis;
+        this.failFastWhenMaxSizeReached = failFastWhenMaxSizeReached;
         
         if (delayedExecutor == null) {
             // if custom DelayedExecutor is null - create our own
@@ -298,7 +326,7 @@ public class SingleEndpointPool<E> {
             reconnectQueue = null;
         }
         
-        if (keepAliveTimeoutMillis >= 0) {
+        if (keepAliveTimeoutMillis > 0) {
             keepAliveCleanerQueue = delayedExecutor.createDelayQueue(
                     new KeepAliveCleaner(), new KeepAliveCleanerTaskResolver());
             
@@ -307,43 +335,64 @@ public class SingleEndpointPool<E> {
         } else {
             keepAliveCleanerQueue = null;
         }
+        
+        if (asyncPollTimeoutMillis >= 0) {
+            asyncPollTimeoutQueue = delayedExecutor.createDelayQueue(
+                    new AsyncPollTimeoutWorker(),
+                    new AsyncPollTimeoutTaskResolver());
+           
+        } else {
+            asyncPollTimeoutQueue = null;
+        }
+        
+        if (connectionTTLMillis >= 0) {
+            connectionTTLQueue = delayedExecutor.createDelayQueue(
+                    new ConnectionTTLWorker(),
+                    new ConnectionTTLTaskResolver());
+        } else {
+            connectionTTLQueue = null;
+        }
     }
 
     /**
      * Constructs SingleEndpointPool instance.
      * 
-     * @param connectorHandler {@link ConnectorHandler} to be used to establish new {@link Connection}s
-     * @param endpointAddress endpoint address
-     * @param localEndpointAddress local bind address.  May be <code>null</code>.
+     * @param endpoint {@link Endpoint} to be used to establish new {@link Connection}s
      * @param corePoolSize the number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
      * @param maxPoolSize the max number of {@link Connection}s kept by this pool
      * @param connectTimeoutQueue the {@link DelayQueue} used by connect timeout mechanism
      * @param reconnectQueue the {@link DelayQueue} used by reconnect mechanism
      * @param keepAliveCleanerQueue the {@link DelayQueue} used by keep-alive mechanism
+     * @param asyncPollTimeoutQueue the {@link DelayQueue} used by async connection poll mechanism
+     * @param connectionTTLQueue the {@link DelayQueue} used by connection TTL mechanism
      * @param connectTimeoutMillis timeout, after which, if a connection is not established, it is considered failed
      * @param keepAliveTimeoutMillis the maximum number of milliseconds an idle {@link Connection} will be kept in the pool
      * @param keepAliveCheckIntervalMillis the interval, which specifies how often the pool will perform idle {@link Connection}s check
      * @param reconnectDelayMillis the delay to be used before the pool will repeat the attempt to connect to the endpoint after previous connect had failed
      * @param maxReconnectAttempts the maximum number of reconnect attempts that may be made before failure notification.
+     * @param asyncPollTimeoutMillis the maximum time, the async poll operation could wait for a connection to become available
+     * @param connectionTTLMillis the maximum time, a connection could stay registered with the pool
+     * @param failFastWhenMaxSizeReached <tt>true</tt> if the "take" method should fail fast if there is no free connection in the pool and max pool size is reached
      */    
     @SuppressWarnings("unchecked")
     protected SingleEndpointPool(
-            final ConnectorHandler<E> connectorHandler,
-            final E endpointAddress,
-            final E localEndpointAddress,
+            final Endpoint<E> endpoint,
             final int corePoolSize, final int maxPoolSize,
             final DelayQueue<ConnectTimeoutTask> connectTimeoutQueue,
             final DelayQueue<ReconnectTask> reconnectQueue,
             final DelayQueue<KeepAliveCleanerTask> keepAliveCleanerQueue,
+            final DelayQueue<Link<AsyncPoll>> asyncPollTimeoutQueue,
+            final DelayQueue<ConnectionInfo> connectionTTLQueue,
             final long connectTimeoutMillis,
             final long keepAliveTimeoutMillis,
             final long keepAliveCheckIntervalMillis,
             final long reconnectDelayMillis,
-            final int maxReconnectAttempts) {
-        this.connectorHandler = connectorHandler;
-        this.endpointAddress = endpointAddress;
-        this.localEndpointAddress = localEndpointAddress;
-
+            final int maxReconnectAttempts,
+            final long asyncPollTimeoutMillis,
+            final long connectionTTLMillis,
+            final boolean failFastWhenMaxSizeReached) {
+        
+        this.endpoint = endpoint;
         this.corePoolSize = corePoolSize;
         this.maxPoolSize = maxPoolSize;
         this.connectTimeoutMillis = connectTimeoutMillis;
@@ -351,22 +400,30 @@ public class SingleEndpointPool<E> {
         this.keepAliveTimeoutMillis = keepAliveTimeoutMillis;
         this.keepAliveCheckIntervalMillis = keepAliveCheckIntervalMillis;
         this.maxReconnectAttempts = maxReconnectAttempts;
+        this.asyncPollTimeoutMillis = asyncPollTimeoutMillis;
+        this.connectionTTLMillis = connectionTTLMillis;
+        this.failFastWhenMaxSizeReached = failFastWhenMaxSizeReached;
+        
         ownDelayedExecutor = null;
         ownDelayedExecutorThreadPool = null;
         
         this.connectTimeoutQueue = connectTimeoutQueue;
         this.reconnectQueue = reconnectQueue;
         this.keepAliveCleanerQueue = keepAliveCleanerQueue;
-        if (keepAliveTimeoutMillis >= 0) {
+        if (keepAliveTimeoutMillis > 0) {
             keepAliveCleanerQueue.add(new KeepAliveCleanerTask(this),
                     keepAliveCheckIntervalMillis, TimeUnit.MILLISECONDS);
         }
+        this.asyncPollTimeoutQueue = asyncPollTimeoutQueue;
+        this.connectionTTLQueue = connectionTTLQueue;
     }
     
     /**
      * Returns the current pool size.
      * This value includes connected and connecting (connect in progress)
      * {@link Connection}s.
+     * 
+     * @return the current pool size
      */
     public int size() {
         synchronized (poolSync) {
@@ -375,7 +432,7 @@ public class SingleEndpointPool<E> {
     }
     
     /**
-     * Returns the number of connected {@link Connection}s in the pool.
+     * @return the number of connected {@link Connection}s in the pool.
      * Unlike {@link #size()} the value doesn't include connecting
      * (connect in progress) {@link Connection}s.
      */
@@ -395,8 +452,8 @@ public class SingleEndpointPool<E> {
     }
 
     /**
-     * Returns <tt>true</tt> is maximum number of {@link Connection}s the pool
-     * can keep is reached and no new {@link Connection} can established, or
+     * @return <tt>true</tt> is maximum number of {@link Connection}s the pool
+     * can keep is reached and no new {@link Connection} can be established, or
      * <tt>false</tt> otherwise.
      */
     public boolean isMaxCapacityReached() {
@@ -441,8 +498,7 @@ public class SingleEndpointPool<E> {
     @Override
     public String toString() {
         return "SingleEndpointPool{" +
-                "endpointAddress=" + endpointAddress +
-                ", localEndpointAddress=" + localEndpointAddress +
+                "endpoint=" + endpoint +
                 ", corePoolSize=" + corePoolSize +
                 ", maxPoolSize=" + maxPoolSize +
                 ", poolSize=" + poolSize +
@@ -512,7 +568,14 @@ public class SingleEndpointPool<E> {
                             readyConnections.pollLast().getValue().connection);
                 }
 
-                final AsyncPoll asyncPoll = new AsyncPoll();
+                if (failFastWhenMaxSizeReached &&
+                        isMaxCapacityReached() &&
+                        pendingConnections < getWaitingListSize() + 1) {
+                    return Futures.createReadyFuture(
+                            new IOException("Max connections exceeded"));
+                }
+                
+                final AsyncPoll asyncPoll = new AsyncPoll(this);
                 final Link<AsyncPoll> pollLink = new Link<AsyncPoll>(asyncPoll);
                 
                 final FutureImpl<Connection> cancellableFuture =
@@ -528,13 +591,13 @@ public class SingleEndpointPool<E> {
                         }
 
                         synchronized (poolSync) {
-                            asyncWaitingList.remove(pollLink);
+                            removeFromAsyncWaitingList(pollLink);
                         }
                     }                    
                 };
                 
                 asyncPoll.future = cancellableFuture;
-                asyncWaitingList.offerLast(pollLink);
+                addToAsyncWaitingList(pollLink);
 
                 createConnectionIfPossibleNoSync();
                 
@@ -549,6 +612,8 @@ public class SingleEndpointPool<E> {
      * Obtains a {@link Connection} from the pool in non-blocking/asynchronous fashion.
      * The passed {@link CompletionHandler} will be notified about the result of the
      * non-blocking/asynchronous obtain task.
+     * @param completionHandler to be notified once {@link Connection} is available or
+     *                          an error occurred
      */
     public void take(final CompletionHandler<Connection> completionHandler) {
         if (completionHandler == null) {
@@ -568,16 +633,40 @@ public class SingleEndpointPool<E> {
                     return;
                 }
 
-                final AsyncPoll asyncPoll = new AsyncPoll();
+                if (failFastWhenMaxSizeReached &&
+                        isMaxCapacityReached() &&
+                        pendingConnections < getWaitingListSize() + 1) {
+                    completionHandler.failed(new IOException("Max connections exceeded"));
+                    return;
+                }
+                
+                final AsyncPoll asyncPoll = new AsyncPoll(this);
+                asyncPoll.completionHandler = completionHandler;
                 final Link<AsyncPoll> pollLink = new Link<AsyncPoll>(asyncPoll);
                 
-                asyncPoll.completionHandler = completionHandler;
-                asyncWaitingList.offerLast(pollLink);
+                addToAsyncWaitingList(pollLink);
                 
                 createConnectionIfPossibleNoSync();
             } catch (Exception e) {
                 completionHandler.failed(e);
             }
+        }
+    }
+
+    /**
+     * @return a {@link Connection} from the pool, if there is one available at the moment,
+     *          or <tt>null</tt> otherwise
+     * @throws java.io.IOException if the pool is closed
+     */
+    public Connection poll() throws IOException {
+        synchronized (poolSync) {
+            if (isClosed) {
+                throw new IOException("The pool is closed");
+            }
+
+            return !readyConnections.isEmpty()
+                    ? readyConnections.pollLast().getValue().connection
+                    : null;
         }
     }
     
@@ -619,6 +708,12 @@ public class SingleEndpointPool<E> {
             if (info.isReady()) {
                 return false;
             }
+
+            // close pooled connection, if keepAliveTimeoutMillis == 0
+            if (keepAliveTimeoutMillis == 0 && poolSize > corePoolSize) {
+                info.connection.closeSilently();
+                return false;
+            }
             
             readyConnections.offerLast(info.readyStateLink);
             notifyAsyncPoller();
@@ -630,6 +725,10 @@ public class SingleEndpointPool<E> {
      * Attaches "foreign" {@link Connection} to the pool.
      * This method might be used to add to the pool a {@link Connection}, that
      * either has not been created by this pool or has been detached.
+     * After calling this method, the {@link Connection} could be still used by
+     * the caller and {@link #release(org.glassfish.grizzly.Connection)} should
+     * be called to return the {@link Connection} to the pool so it could be
+     * reused.
      * 
      * @param connection {@link Connection}
      * @return <tt>true</tt> if the {@link Connection} has been successfully attached,
@@ -648,12 +747,12 @@ public class SingleEndpointPool<E> {
                 return true;
             }
             
-            if (checkBeforeOpeningConnection()) {
-                defaultConnectionCompletionHandler.completed(connection);
+            if (!isMaxCapacityReached()) {
+                attach0(connection);
                 return true;
-            } else {
-                return false;
             }
+            
+            return false;
         }
     }
     
@@ -667,17 +766,13 @@ public class SingleEndpointPool<E> {
      * method call doesn't have any effect.
      * 
      * @param connection the {@link Connection} to detach
-     * @returns <code>true</code> if the connection was successfully detached
+     * @return <code>true</code> if the connection was successfully detached
      *  from this pool, otherwise returns <code>false</code>
      */
     public boolean detach(final Connection connection) {
         synchronized (poolSync) {
             final ConnectionInfo<E> info = connectionsMap.remove(connection);
             if (info != null) {
-                if (info.isReady()) {
-                    return false;
-                }
-
                 connection.removeCloseListener(closeListener);
                 deregisterConnection(info);
                 return true;
@@ -719,7 +814,7 @@ public class SingleEndpointPool<E> {
                 final int asyncWaitingListSize = asyncWaitingList.size();
                 IOException exception = null;
                 for (int i = 0; i < asyncWaitingListSize; i++) {
-                    final AsyncPoll asyncPoll = asyncWaitingList.pollFirst().getValue();
+                    final AsyncPoll asyncPoll = obtainFromAsyncWaitingList();
                     if (exception == null) {
                         exception = new IOException("The pool is closed");
                     }
@@ -745,22 +840,63 @@ public class SingleEndpointPool<E> {
     /**
      * The method is called before the pool will try to establish new client
      * connection.
+     * Please note, if the method returns <tt>true</tt> it also increases
+     * the {@link #pendingConnections} counter, so don't forget to decrease it, if needed.
+     * 
+     * @return <tt>true</tt> if new connection could be created, or <tt>false</tt> otherwise
      */
     protected boolean checkBeforeOpeningConnection() {
-        if (!isMaxCapacityReached()) {
+        if (pendingConnections < asyncWaitingList.size()
+                && !isMaxCapacityReached()) {
             pendingConnections++;
             return true;
         }
         
         return false;
     }
-    
+
     /**
-     * The method will be called to notify about newly open connection.
+     * @return the number of consumers waiting for a connection
      */
-    void onOpenConnection(final ConnectionInfo<E> info) {
+    protected int getWaitingListSize() {
+        return asyncWaitingList.size();
     }
     
+    /**
+     * @return <tt>true</tt> if number of live connections is more or equal to
+     *          max pool size
+     */
+    boolean isOverflown() {
+        return maxPoolSize != -1 && poolSize >= maxPoolSize;
+    }
+    
+    /**
+     * The method will be called to notify about newly open connection (not attached yet)
+     */
+    void onConnected(final Connection connection) {
+        pendingConnections--;
+    }
+    
+    /**
+     * The method attaches {@link Connection} to the pool.
+     */
+    ConnectionInfo<E> attach0(final Connection connection) {
+        poolSize++;
+
+        final ConnectionInfo<E> info =
+                new ConnectionInfo<E>(connection, this);
+
+        connectionsMap.put(connection, info);
+        
+        if (connectionTTLMillis >= 0) {
+            connectionTTLQueue.add(info,
+                    connectionTTLMillis, TimeUnit.MILLISECONDS);
+        }
+
+        connection.addCloseListener(closeListener);
+        return info;
+    }
+
     /**
      * The method will be called to notify about error occurred during new
      * connection opening.
@@ -774,7 +910,7 @@ public class SingleEndpointPool<E> {
     void onCloseConnection(final ConnectionInfo<E> info) {
         // If someone is waiting for a connection
         // try to create a new one
-        if (!asyncWaitingList.isEmpty()) {
+        if (getWaitingListSize() > pendingConnections) {
             createConnectionIfPossibleNoSync();
         }
     }
@@ -818,6 +954,8 @@ public class SingleEndpointPool<E> {
      * Checks if it's possible to create a new {@link Connection} by calling
      * {@link #checkBeforeOpeningConnection()} and if it is possible - establish
      * new connection.
+     * 
+     * @return <tt>true</tt> if a new {@link Connection} could be open, or <tt>false</tt> otherwise
      */
     protected boolean createConnectionIfPossible() {
         synchronized (poolSync) {
@@ -829,34 +967,22 @@ public class SingleEndpointPool<E> {
      * Checks if it's possible to create a new {@link Connection} by calling
      * {@link #checkBeforeOpeningConnection()} and if it is possible - establish
      * new connection.
+     * 
+     * @return <tt>true</tt> if a new {@link Connection} could be open, or <tt>false</tt> otherwise
      */
     private boolean createConnectionIfPossibleNoSync() {
         if (checkBeforeOpeningConnection()) {
-            if (connectTimeoutMillis < 0) {
-                connectorHandler.connect(endpointAddress, localEndpointAddress,
-                        defaultConnectionCompletionHandler);
-            } else {
-                // In Grizzly 2.x it's not possible to change ConnectorHandler API
-                // to return GrizzlyFuture, so we have to cast Future to a GrizzlyFuture
-                // in order to support connect-timeout
-                final Future<Connection> future =
-                        connectorHandler.connect(endpointAddress, localEndpointAddress);
-                
-                if (future instanceof GrizzlyFuture) {
-                    final GrizzlyFuture<Connection> listenableFuture =
-                            (GrizzlyFuture<Connection>) future;
-                    final ConnectTimeoutTask connectTimeoutTask =
-                            new ConnectTimeoutTask(listenableFuture);
+            
+            final GrizzlyFuture<Connection> future = endpoint.connect();
+            future.addCompletionHandler(defaultConnectionCompletionHandler);
+            
+            
+            if (connectTimeoutMillis >= 0) {
+                final ConnectTimeoutTask connectTimeoutTask
+                        = new ConnectTimeoutTask(future);
 
-                    connectTimeoutQueue.add(connectTimeoutTask,
-                            connectTimeoutMillis, TimeUnit.MILLISECONDS);
-                    listenableFuture.addCompletionHandler(
-                            defaultConnectionCompletionHandler);
-                } else {
-                    LOGGER.log(Level.FINE, "ConnectorHandler doesn't support"
-                            + " interruption of the connect operation."
-                            + " Connect-timeout setting will be ignored");
-                }
+                connectTimeoutQueue.add(connectTimeoutTask,
+                        connectTimeoutMillis, TimeUnit.MILLISECONDS);
             }
             
             return true;
@@ -871,18 +997,30 @@ public class SingleEndpointPool<E> {
             
             final Connection connection = info.connection;
 
-            final AsyncPoll asyncPoll =
-                    asyncWaitingList.pollFirst().getValue();
+            final AsyncPoll asyncPoll = obtainFromAsyncWaitingList();
             Futures.notifyResult(asyncPoll.future,
                     asyncPoll.completionHandler, connection);
         }
     }
 
+    private boolean notifyAsyncPoller(final Connection connection) {
+        if (!asyncWaitingList.isEmpty()) {
+            final AsyncPoll asyncPoll = obtainFromAsyncWaitingList();
+            Futures.notifyResult(asyncPoll.future,
+                    asyncPoll.completionHandler, connection);
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
     private void notifyAsyncPollersOfFailure(final Throwable t) {
         failedConnectAttempts = 0;
-        while (!asyncWaitingList.isEmpty()) {
-            final AsyncPoll asyncPoll =
-                    asyncWaitingList.pollFirst().getValue();
+        final int waitersToFail = getWaitingListSize() - pendingConnections;
+        
+        for (int i = 0; i < waitersToFail; i++) {
+            final AsyncPoll asyncPoll = obtainFromAsyncWaitingList();
             Futures.notifyFailure(asyncPoll.future,
                                   asyncPoll.completionHandler,
                                   t);
@@ -890,12 +1028,45 @@ public class SingleEndpointPool<E> {
     }
 
     private void deregisterConnection(final ConnectionInfo<E> info) {
+        if (connectionTTLMillis >= 0) {
+            connectionTTLQueue.remove(info);
+        }
+        
         readyConnections.remove(info.readyStateLink);
         poolSize--;
 
         onCloseConnection(info);
     }
+
+    private void addToAsyncWaitingList(final Link<AsyncPoll> pollLink) {
+        asyncWaitingList.offerLast(pollLink);
+
+        if (asyncPollTimeoutMillis >= 0) {
+            asyncPollTimeoutQueue.add(pollLink,
+                    asyncPollTimeoutMillis, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private AsyncPoll obtainFromAsyncWaitingList() {
+        final Link<AsyncPoll> link = asyncWaitingList.pollFirst();
         
+        if (asyncPollTimeoutMillis >= 0) {
+            asyncPollTimeoutQueue.remove(link);
+        }
+        
+        return link.getValue();
+    }
+    
+    private boolean removeFromAsyncWaitingList(final Link<AsyncPoll> pollLink) {
+        final boolean result = asyncWaitingList.remove(pollLink);
+        
+        if (result && asyncPollTimeoutMillis >= 0) {
+            asyncPollTimeoutQueue.remove(pollLink);
+        }
+        
+        return result;
+    }    
+    
     /**
      * {@link CompletionHandler} to be notified once new {@link Connection} is
      * connected or failed to connect.
@@ -903,41 +1074,28 @@ public class SingleEndpointPool<E> {
     private final class ConnectCompletionHandler
             extends EmptyCompletionHandler<Connection> {
         
-        private final ConnectTimeoutTask connectTimeoutTask;
-
-        public ConnectCompletionHandler() {
-            this(null);
-        }
-
-        public ConnectCompletionHandler(final ConnectTimeoutTask connectTimeoutTask) {
-            this.connectTimeoutTask = connectTimeoutTask;
-        }
-
         @Override
         public void completed(final Connection connection) {
             if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINE, "Pool connection is established {0}", connection);
-            }
-            
-            if (connectTimeoutTask != null) {
-                connectTimeoutQueue.remove(connectTimeoutTask);
+                LOGGER.log(Level.FINEST, "Pool connection is established {0}", connection);
             }
             
             synchronized (poolSync) {
                if (!isClosed) {
-                    final ConnectionInfo<E> info =
-                            new ConnectionInfo<E>(connection, SingleEndpointPool.this);
+                    failedConnectAttempts = 0;
+                    onConnected(connection);
                     
-                    connectionsMap.put(connection, info);
+                    if (isOverflown()) {
+                        detach(connection);
+                        if (!notifyAsyncPoller(connection)) {
+                            connection.close();
+                        }
+                        return;
+                    }
+
+                    final ConnectionInfo<E> info = attach0(connection);
                     readyConnections.offerLast(info.readyStateLink);
                     
-                    poolSize++;
-                    pendingConnections--;
-                    failedConnectAttempts = 0;
-
-                    onOpenConnection(info);
-
-                    connection.addCloseListener(closeListener);
                     notifyAsyncPoller();
                 } else {
                     connection.closeSilently();
@@ -957,10 +1115,6 @@ public class SingleEndpointPool<E> {
 
         @SuppressWarnings("unchecked")
         private void onFailedToConnect(final Throwable t) {
-            if (connectTimeoutTask != null) {
-                connectTimeoutQueue.remove(connectTimeoutTask);
-            }
-
             synchronized (poolSync) {
                 pendingConnections--;
 
@@ -970,7 +1124,7 @@ public class SingleEndpointPool<E> {
                 // and reconnect mechanism is enabled
                 if (reconnectQueue != null && !asyncWaitingList.isEmpty()) {
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINE, "Pool connect operation failed, schedule reconnect");
+                        LOGGER.log(Level.FINEST, "Pool connect operation failed, schedule reconnect");
                     }
                     if (++failedConnectAttempts > maxReconnectAttempts) {
                         notifyAsyncPollersOfFailure(t);
@@ -1017,7 +1171,7 @@ public class SingleEndpointPool<E> {
         @Override
         public boolean doWork(final ConnectTimeoutTask connectTimeoutTask) {
             if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINE, "Pool connect timed out");
+                LOGGER.log(Level.FINEST, "Pool connect timed out");
             }
             connectTimeoutTask.connectFuture.cancel(false);
             return true;
@@ -1141,10 +1295,121 @@ public class SingleEndpointPool<E> {
             this.pool = singleEndpointPool;
         }
     }
+
+    /**
+     * Async poll timeout mechanism classes related to DelayedExecutor.
+     */
+    static final class AsyncPollTimeoutWorker
+            implements DelayedExecutor.Worker<Link<AsyncPoll>> {
+
+        @Override
+        public boolean doWork(final Link<AsyncPoll> asyncPollLink) {
+            // even though it's not volatile - dirty check should be good
+            // enough for us, because we don't plan to use asyncPollLink in this thread
+            if (asyncPollLink.isAttached()) {
+                final boolean removed;
+                // no volatile barrier, but should be safe, because we access final fields
+                final SingleEndpointPool<?> pool = asyncPollLink.getValue().pool;
+                synchronized (pool.poolSync) {
+                    removed = pool.asyncWaitingList.remove(asyncPollLink);
+                }
+                
+                if (removed) {
+                    if (LOGGER.isLoggable(Level.FINEST)) {
+                        LOGGER.log(Level.FINEST, "Async poll timed out for {0}",
+                                asyncPollLink.getValue());
+                    }
+
+                    final AsyncPoll asyncPoll = asyncPollLink.getValue();
+                    Futures.notifyFailure(asyncPoll.future,
+                                          asyncPoll.completionHandler,
+                                          new TimeoutException("Poll timeout expired"));
+                }
+            }
+            
+            return true;
+        }
+    }
+
+    final static class AsyncPollTimeoutTaskResolver
+            implements DelayedExecutor.Resolver<Link<AsyncPoll>> {
+
+        @Override
+        public boolean removeTimeout(final Link<AsyncPoll> asyncPollLink) {
+            asyncPollLink.getValue().timeout = DelayedExecutor.UNSET_TIMEOUT;
+            return true;
+        }
+
+        @Override
+        public long getTimeoutMillis(final Link<AsyncPoll> asyncPollLink) {
+            return asyncPollLink.getValue().timeout;
+        }
+
+        @Override
+        public void setTimeoutMillis(final Link<AsyncPoll> asyncPollLink,
+                final long timeoutMillis) {
+            asyncPollLink.getValue().timeout = timeoutMillis;
+        }
+    }
     
-    private final class AsyncPoll {
-        private CompletionHandler<Connection> completionHandler;
+    protected static final class AsyncPoll {
+        private final SingleEndpointPool pool;
         private FutureImpl<Connection> future;
+        private CompletionHandler<Connection> completionHandler;
+        
+        private long timeout; // timeout stamp
+
+        protected AsyncPoll(final SingleEndpointPool pool) {
+            this.pool = pool;
+        }
+    }
+    
+//================================= Connect timeout mechanism ======================
+
+    /**
+     * Connect timeout mechanism classes related to DelayedExecutor.
+     */
+    protected static final class ConnectionTTLWorker
+            implements DelayedExecutor.Worker<ConnectionInfo> {
+
+        @Override
+        public boolean doWork(final ConnectionInfo ci) {
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINEST, "Connection {0} TTL expired",
+                        ci.connection);
+            }
+            
+            synchronized(ci.endpointPool.poolSync) {
+                if (ci.isReady()) {
+                    ci.connection.close();
+                } else {
+                    ci.endpointPool.detach(ci.connection);
+                }
+            }
+            
+            return true;
+        }
+    }
+
+    protected final static class ConnectionTTLTaskResolver
+            implements DelayedExecutor.Resolver<ConnectionInfo> {
+
+        @Override
+        public boolean removeTimeout(final ConnectionInfo ci) {
+            ci.ttlTimeout = DelayedExecutor.UNSET_TIMEOUT;
+            return true;
+        }
+
+        @Override
+        public long getTimeoutMillis(final ConnectionInfo ci) {
+            return ci.ttlTimeout;
+        }
+
+        @Override
+        public void setTimeoutMillis(final ConnectionInfo ci,
+                final long timeoutMillis) {
+            ci.ttlTimeout = timeoutMillis;
+        }
     }
     
     /**
@@ -1154,58 +1419,122 @@ public class SingleEndpointPool<E> {
      */
     public static class Builder<E> {
         /**
+         * The endpoint information
+         */
+        protected Endpoint<E> endpoint;
+        /**
          * {@link ConnectorHandler} used to establish new {@link Connection}s
          */
-        private ConnectorHandler<E> connectorHandler;
+        protected ConnectorHandler<E> connectorHandler;
         /**
          * Endpoint address
          */
-        private E endpointAddress;
+        protected E endpointAddress;
 
         /**
          * Local bind address.
          */
-        private E localEndpointAddress;
+        protected E localEndpointAddress;
 
         /**
          * The number of {@link Connection}s, kept in the pool, that are immune to keep-alive mechanism
          */
-        private int corePoolSize = 0;
+        protected int corePoolSize;
         /**
          * The max number of {@link Connection}s kept by this pool
          */
-        private int maxPoolSize = 4;
+        protected int maxPoolSize;
         /**
          * the {@link DelayedExecutor} to be used for keep-alive and
          * reconnect mechanisms
          */
-        private DelayedExecutor delayedExecutor;
+        protected DelayedExecutor delayedExecutor;
         /**
          * Connect timeout, after which, if a connection is not established, it is
          * considered failed
          */
-        private long connectTimeoutMillis = -1;
+        protected long connectTimeoutMillis;
         /**
          * the delay to be used before the pool will repeat the attempt to connect to
          * the endpoint after previous connect had failed
          */
-        private long reconnectDelayMillis = -1;
-
+        protected long reconnectDelayMillis;
         /**
          * Maximum number of attempts that will be made to reconnect before
          * notification of failure occurs.
          */
-        private int maxReconnectAttempts = 5;
+        protected int maxReconnectAttempts;
         /**
-         * the maximum number of milliseconds an idle {@link Connection} will be kept
-         * in the pool. The idle {@link Connection}s will be closed till the pool
+         * Async poll timeout, after which, the async connection poll operation will
+         * be failed with a timeout exception
+         */
+        protected long asyncPollTimeoutMillis;
+        /**
+         * the maximum amount of time, a {@link Connection} could stay registered with the pool
+         * Once timeout is hit - the connection will be either closed, if it's idle,
+         * or detached from the pool, if it's being used.
+         */
+        protected long connectionTTLMillis;
+        
+        /**
+         * if true, the "take" method will fail fast if there is no free connection
+         * in the pool and max pool size is reached.
+         */
+        protected boolean failFastWhenMaxSizeReached;
+        
+        /**
+         * the maximum number of milliseconds an idle {@link Connection} will be
+         * kept in the pool. The idle {@link Connection}s will be closed till the pool
          * size is greater than <tt>corePoolSize</tt>
          */
-        private long keepAliveTimeoutMillis = 30000;
+        protected long keepAliveTimeoutMillis;
         /**
          * the interval, which specifies how often the pool will perform idle {@link Connection}s check
          */
-        private long keepAliveCheckIntervalMillis = 5000;
+        protected long keepAliveCheckIntervalMillis;
+
+        
+        protected Builder() {
+            maxPoolSize = 4;
+            connectTimeoutMillis = -1;
+            reconnectDelayMillis = -1;
+            maxReconnectAttempts = 5;
+            asyncPollTimeoutMillis = -1;
+            connectionTTLMillis = -1;
+            keepAliveTimeoutMillis = 30000;
+            keepAliveCheckIntervalMillis = 5000;
+        }
+        
+        protected Builder(final Endpoint<E> endpoint,
+                final ConnectorHandler<E> connectorHandler,
+                final E endpointAddress, final E localEndpointAddress,
+                final int corePoolSize, final int maxPoolSize,
+                final DelayedExecutor delayedExecutor,
+                final long connectTimeoutMillis,
+                final long reconnectDelayMillis,
+                final int maxReconnectAttempts,
+                final long asyncPollTimeoutMillis,
+                final long connectionTTLMillis,
+                final boolean failFastWhenMaxSizeReached,
+                final long keepAliveTimeoutMillis,
+                final long keepAliveCheckIntervalMillis) {
+            
+            this.endpoint = endpoint;
+            this.connectorHandler = connectorHandler;
+            this.endpointAddress = endpointAddress;
+            this.localEndpointAddress = localEndpointAddress;
+            this.corePoolSize = corePoolSize;
+            this.maxPoolSize = maxPoolSize;
+            this.delayedExecutor = delayedExecutor;
+            this.connectTimeoutMillis = connectTimeoutMillis;
+            this.reconnectDelayMillis = reconnectDelayMillis;
+            this.maxReconnectAttempts = maxReconnectAttempts;
+            this.asyncPollTimeoutMillis = asyncPollTimeoutMillis;
+            this.connectionTTLMillis = connectionTTLMillis;
+            this.failFastWhenMaxSizeReached = failFastWhenMaxSizeReached;
+            this.keepAliveTimeoutMillis = keepAliveTimeoutMillis;
+            this.keepAliveCheckIntervalMillis = keepAliveCheckIntervalMillis;
+        }
         
         /**
          * Sets the {@link ConnectorHandler} used to establish new {@link Connection}s.
@@ -1232,10 +1561,25 @@ public class SingleEndpointPool<E> {
         /**
          * Sets the local endpoint address.
          *
+         * @param localEndpointAddress
          * @return this {@link Builder}
          */
         public Builder<E> localEndpointAddress(final E localEndpointAddress) {
             this.localEndpointAddress = localEndpointAddress;
+            return this;
+        }
+        
+        /**
+         * Sets the endpoint information.
+         * If set, this setting precedes the {@link #connectorHandler(org.glassfish.grizzly.ConnectorHandler)},
+         * {@link #endpointAddress(java.lang.Object)} and {@link #localEndpointAddress(java.lang.Object)}
+         * values, if they were or will be set.
+         * 
+         * @param endpoint {@link Endpoint}
+         * @return this {@link Builder}
+         */
+        public Builder<E> endpoint(final Endpoint<E> endpoint) {
+            this.endpoint = endpoint;
             return this;
         }
         
@@ -1339,6 +1683,73 @@ public class SingleEndpointPool<E> {
         }
 
         /**
+         * Sets the max time consumer will wait for a {@link Connection} to
+         * become available. When timeout expires the consumer will
+         * be notified about the failure ({@link TimeoutException})
+         * via {@link CompletionHandler} or {@link Future}.
+         * 
+         * If asyncPollTimeout &lt; 0 - timeout will not be set.
+         * By default the timeout is not set and consumer may wait forever for
+         * a {@link Connection}.
+         * 
+         * @param asyncPollTimeout the maximum time, the async poll operation
+         *        could wait for a connection to become available
+         * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
+         *        <tt>timeout</tt> parameter
+         * @return this {@link Builder}
+         */ 
+        public Builder<E> asyncPollTimeout(final long asyncPollTimeout,
+                final TimeUnit timeunit) {
+
+            this.asyncPollTimeoutMillis = asyncPollTimeout > 0
+                    ? TimeUnit.MILLISECONDS.convert(asyncPollTimeout, timeunit)
+                    : asyncPollTimeout;
+            return this;
+        }
+        
+        /**
+         * Sets the max amount of time a {@link Connection} could be associated
+         * with the pool.
+         * Once timeout expired the {@link Connection} will be either closed,
+         * if it's idle, or detached from the pool, if it's being used.
+         * 
+         * If connectionTTL &lt; 0 - the {@link Connection} time to live will
+         * not be set and the {@link Connection} can be associated with
+         * a pool forever, if no other limit is hit (like keep-alive).
+         * By default the connectionTTL is not set.
+         * 
+         * @param connectionTTL the max amount of time a {@link Connection} could be associated
+         *        with the pool
+         * @param timeunit a <tt>TimeUnit</tt> determining how to interpret the
+         *        <tt>connectionTTL</tt> parameter
+         * @return this {@link Builder}
+         */ 
+        public Builder<E> connectionTTL(final long connectionTTL,
+                final TimeUnit timeunit) {
+
+            this.connectionTTLMillis = connectionTTL > 0
+                    ? TimeUnit.MILLISECONDS.convert(connectionTTL, timeunit)
+                    : connectionTTL;
+            return this;
+        }
+        
+        /**
+         * if <tt>true</tt>, the "take" method will fail fast if there is no
+         * free connection in the pool and max pool size is reached. Otherwise
+         * the pool will queue up the take request and wait for a {@link Connection}
+         * to become available
+         * 
+         * @param failFastWhenMaxSizeReached
+         *
+         * @return this {@link Builder}
+         */
+        public Builder<E> failFastWhenMaxSizeReached(
+                final boolean failFastWhenMaxSizeReached) {
+            this.failFastWhenMaxSizeReached = failFastWhenMaxSizeReached;
+            return this;
+        }
+        
+        /**
          * Sets the maximum number of milliseconds an idle {@link Connection}
          * will be kept in the pool.
          * The idle {@link Connection}s will be closed till the pool size is
@@ -1388,12 +1799,23 @@ public class SingleEndpointPool<E> {
          */
         
         public SingleEndpointPool<E> build() {
-            if (connectorHandler == null) {
-                throw new IllegalStateException("ConnectorHandler is not set");
-            }
-            
-            if (endpointAddress == null) {
-                throw new IllegalStateException("Endpoint address is not set");
+            final Endpoint<E> e;
+            if (endpoint == null) {
+                if (connectorHandler == null) {
+                    throw new IllegalStateException("Neither Endpoint nor ConnectorHandler is set");
+                }
+
+                if (endpointAddress == null) {
+                    throw new IllegalStateException("Neither Endpoint nor endpoint address is set");
+                }
+                
+                e = Endpoint.Factory.create(endpointAddress.toString() +
+                        (localEndpointAddress != null
+                                ? localEndpointAddress.toString()
+                                : ""), endpointAddress, localEndpointAddress,
+                                connectorHandler);
+            } else {
+                e = endpoint;
             }
 
             if (keepAliveTimeoutMillis >= 0 && keepAliveCheckIntervalMillis < 0) {
@@ -1403,12 +1825,17 @@ public class SingleEndpointPool<E> {
             if (maxReconnectAttempts < 0) {
                 throw new IllegalStateException("Max reconnect attempts must not be a negative value");
             }
-            
-            return new SingleEndpointPool<E>(connectorHandler, endpointAddress,
-                    localEndpointAddress, corePoolSize, maxPoolSize, delayedExecutor,
+
+            return build0(e);
+        }
+
+        protected SingleEndpointPool<E> build0(final Endpoint<E> e) {
+            return new SingleEndpointPool<E>(e,
+                    corePoolSize, maxPoolSize, delayedExecutor,
                     connectTimeoutMillis, keepAliveTimeoutMillis,
                     keepAliveCheckIntervalMillis, reconnectDelayMillis,
-                    maxReconnectAttempts);
+                    maxReconnectAttempts, asyncPollTimeoutMillis,
+                    connectionTTLMillis, failFastWhenMaxSizeReached);
         }
     }
 

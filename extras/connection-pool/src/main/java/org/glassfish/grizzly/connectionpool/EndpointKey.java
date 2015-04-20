@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,10 +39,12 @@
  */
 package org.glassfish.grizzly.connectionpool;
 
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ConnectorHandler;
+import org.glassfish.grizzly.GrizzlyFuture;
 
 /**
- * The key object representing single endpoint in the {@link MultiEndpointPool}.
+ * Simple {@link Endpoint} implementation.
  * 
  * The <tt>EndpointKey</tt> contains the endpoint address, that will be used by
  * a {@link ConnectorHandler} passed to {@link MultiEndpointPool} to establish a
@@ -51,84 +53,106 @@ import org.glassfish.grizzly.ConnectorHandler;
  * ({@link #getInternalKey()}) that is used in the {@link #equals(java.lang.Object)}
  * and {@link #hashCode()} methods.
  * 
+ * @param <E>
  * @author Alexey Stashok
  */
-public class EndpointKey<E> {
+public class EndpointKey<E> extends Endpoint<E> {
     private final Object internalKey;
-    private final E endpoint;
-    private final E localEndpoint;
+    private final E targetEndpointAddress;
+    private final E localEndpointAddress;
     
     private final ConnectorHandler<E> connectorHandler;
 
-
     /**
-     * Construct <tt>EndpointKey<tt> based on the given internalKey and endpoint.
+     * Construct <tt>EndpointKey</tt> based on the given internalKey and endpoint.
      * 
      * @param internalKey the internal key to be used in {@link #equals(java.lang.Object)}
      *          and {@link #hashCode()} methods
-     * @param endpoint the endpoint address, that will be used by
+     * @param endpointAddress the endpoint address, that will be used by
      *          a {@link ConnectorHandler} passed to {@link MultiEndpointPool}
      *          to establish new client-side {@link org.glassfish.grizzly.Connection}
      */
-    public EndpointKey(final Object internalKey, final E endpoint) {
-        this(internalKey, endpoint, null, null);
+    public EndpointKey(final Object internalKey, final E endpointAddress) {
+        this(internalKey, endpointAddress, null, null);
     }
 
     /**
-     * Construct <tt>EndpointKey<tt> based on the given internalKey, endpoint,
+     * Construct <tt>EndpointKey</tt> based on the given internalKey, endpoint,
      * and local endpoint.
      *
      * @param internalKey the internal key to be used in {@link #equals(java.lang.Object)}
      *                    and {@link #hashCode()} methods
-     * @param endpoint the endpoint address, that will be used by
+     * @param endpointAddress the endpoint address, that will be used by
      *                 a {@link ConnectorHandler} passed to {@link MultiEndpointPool}
      *                 to establish new client-side {@link org.glassfish.grizzly.Connection}
-     * @param localEndpoint the local address that will be used by the
+     * @param localEndpointAddress the local address that will be used by the
      *                      {@link ConnectorHandler} to bind the local side of
      *                      the outgoing connection.
      */
-    public EndpointKey(final Object internalKey, final E endpoint, final E localEndpoint) {
-        this(internalKey, endpoint, localEndpoint, null);
+    public EndpointKey(final Object internalKey, final E endpointAddress,
+            final E localEndpointAddress) {
+        this(internalKey, endpointAddress, localEndpointAddress, null);
     }
 
     /**
-     * Construct <tt>EndpointKey<tt> based on the given internalKey, endpoint, and
+     * Construct <tt>EndpointKey</tt> based on the given internalKey, endpoint, and
      * {@link ConnectorHandler}.
      * 
      * @param internalKey the internal key to be used in {@link #equals(java.lang.Object)}
      *          and {@link #hashCode()} methods
-     * @param endpoint the endpoint address, that will be used by
+     * @param endpointAddress the endpoint address, that will be used by
      *          a {@link ConnectorHandler} passed to {@link MultiEndpointPool}
      *          to establish new client-side {@link org.glassfish.grizzly.Connection}
      * @param connectorHandler customized {@link ConnectorHandler} for this endpoint
      */
-    public EndpointKey(final Object internalKey, final E endpoint,
+    public EndpointKey(final Object internalKey, final E endpointAddress,
             final ConnectorHandler<E> connectorHandler) {
-        this(internalKey, endpoint, null, connectorHandler);
+        this(internalKey, endpointAddress, null, connectorHandler);
     }
 
     /**
      *
      * @param internalKey the internal key to be used in {@link #equals(java.lang.Object)}
      *                    and {@link #hashCode()} methods
-     * @param endpoint the endpoint address, that will be used by
+     * @param endpointAddress the endpoint address, that will be used by
      *                 a {@link ConnectorHandler} passed to {@link MultiEndpointPool}
      *                 to establish new client-side {@link org.glassfish.grizzly.Connection}
-     * @param localEndpoint the local address that will be used by the
+     * @param localEndpointAddress the local address that will be used by the
      *                      {@link ConnectorHandler} to bind the local side of
      *                      the outgoing connection.
      * @param connectorHandler customized {@link ConnectorHandler} for this endpoint
      */
-    public EndpointKey(final Object internalKey, final E endpoint,
-                       final E localEndpoint, final ConnectorHandler<E> connectorHandler) {
+    public EndpointKey(final Object internalKey, final E endpointAddress,
+                       final E localEndpointAddress,
+                       final ConnectorHandler<E> connectorHandler) {
+        if (internalKey == null) {
+            throw new NullPointerException("internal key can't be null");
+        }
+
+        if (endpointAddress == null) {
+            throw new NullPointerException("target endpoint address can't be null");
+        }
+
         this.internalKey = internalKey;
-        this.endpoint = endpoint;
-        this.localEndpoint = localEndpoint;
+        this.targetEndpointAddress = endpointAddress;
+        this.localEndpointAddress = localEndpointAddress;
         this.connectorHandler = connectorHandler;
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public GrizzlyFuture<Connection> connect() {
+        return (GrizzlyFuture) connectorHandler.connect(
+                targetEndpointAddress, localEndpointAddress);
+    }
+    
+    @Override
+    public Object getId() {
+        return getInternalKey();
+    }
+    
     /**
-     * Returns the internal key used in {@link #equals(java.lang.Object)}
+     * @return the internal key used in {@link #equals(java.lang.Object)}
      *          and {@link #hashCode()} methods
      */
     public Object getInternalKey() {
@@ -136,11 +160,11 @@ public class EndpointKey<E> {
     }
 
     /**
-     * Returns the endpoint address, used by a {@link ConnectorHandler} passed
+     * @return the endpoint address, used by a {@link ConnectorHandler} passed
      * to {@link MultiEndpointPool} to establish new client-side {@link org.glassfish.grizzly.Connection}
      */
     public E getEndpoint() {
-        return endpoint;
+        return targetEndpointAddress;
     }
 
     /**
@@ -148,11 +172,11 @@ public class EndpointKey<E> {
      *  outgoing connection.
      */
     public E getLocalEndpoint() {
-        return localEndpoint;
+        return localEndpointAddress;
     }
 
     /**
-     * Returns a customized {@link ConnectorHandler}, which will be used to
+     * @return a customized {@link ConnectorHandler}, which will be used to
      * create {@link org.glassfish.grizzly.Connection}s to this endpoint.
      */
     public ConnectorHandler<E> getConnectorHandler() {
@@ -160,47 +184,11 @@ public class EndpointKey<E> {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        EndpointKey that = (EndpointKey) o;
-
-        if (!endpoint.equals(that.endpoint)) {
-            return false;
-        }
-        if (!internalKey.equals(that.internalKey)) {
-            return false;
-        }
-        if (localEndpoint != null
-                ? !localEndpoint.equals(that.localEndpoint)
-                : that.localEndpoint != null) {
-            return false;
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = internalKey.hashCode();
-        result = 31 * result + endpoint.hashCode();
-        result = 31 * result + (localEndpoint != null
-                ? localEndpoint.hashCode()
-                : 0);
-        return result;
-    }
-
-    @Override
     public String toString() {
         return "EndpointKey{"
                     + "internalKey=" + internalKey
-                    + ", endpoint=" + endpoint
-                    + ", localEndpoint=" + localEndpoint
+                    + ", targetEndpointAddress=" + targetEndpointAddress
+                    + ", localEndpointAddress=" + localEndpointAddress
                     + ", connectorHandler=" + connectorHandler
                     + "} " + super.toString();
     }
