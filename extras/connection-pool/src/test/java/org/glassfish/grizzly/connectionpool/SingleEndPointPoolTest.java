@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,6 +45,7 @@ import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -165,9 +166,9 @@ public class SingleEndPointPoolTest {
 
             assertTrue(pool.attach(c1));
             assertEquals(2, pool.size());
-            assertEquals(2, pool.getReadyConnectionsCount());
+            assertEquals(1, pool.getReadyConnectionsCount());
 
-            assertFalse(pool.release(c1));
+            assertTrue(pool.release(c1));
 
             assertEquals(2, pool.size());
             assertEquals(2, pool.getReadyConnectionsCount());
@@ -262,6 +263,50 @@ public class SingleEndPointPoolTest {
             }
             
             assertTrue(c3Future.cancel(false));
+            
+            assertEquals(2, pool.size());
+
+            pool.release(c2);
+
+            Connection c3 = pool.take().get(2, TimeUnit.SECONDS);
+            assertNotNull(c3);
+            assertEquals(2, pool.size());
+        } finally {
+            pool.close();
+        }
+    }
+    
+    @Test
+    public void testEmbeddedPollTimeout() throws Exception {
+        final SingleEndpointPool<SocketAddress> pool = SingleEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(transport)
+                .endpointAddress(new InetSocketAddress("localhost", PORT))
+                .corePoolSize(2)
+                .maxPoolSize(2)
+                .asyncPollTimeout(2, TimeUnit.SECONDS)
+                .build();
+
+        try {
+            Connection c1 = pool.take().get();
+            assertNotNull(c1);
+            assertEquals(1, pool.size());
+
+            Connection c2 = pool.take().get();
+            assertNotNull(c2);
+            assertEquals(2, pool.size());
+
+            final GrizzlyFuture<Connection> c3Future = pool.take();
+            try {
+                c3Future.get();
+            } catch (ExecutionException e) {
+                final Throwable cause = e.getCause();
+                assertTrue("Unexpected exception " + cause, cause instanceof TimeoutException);
+            } catch (Throwable e) {
+                fail("Unexpected exception " + e);
+            }
+            
+            assertFalse(c3Future.cancel(false));
             
             assertEquals(2, pool.size());
 
@@ -429,4 +474,93 @@ public class SingleEndPointPoolTest {
             clientTransport.shutdownNow();
         }
     }
+    
+    @Test
+    public void testConnectionTTL() throws Exception {
+        final SingleEndpointPool<SocketAddress> pool = SingleEndpointPool
+                .builder(SocketAddress.class)
+                .connectorHandler(transport)
+                .endpointAddress(new InetSocketAddress("localhost", PORT))
+                .connectionTTL(2, TimeUnit.SECONDS)
+                .build();
+        
+        try {
+            Connection c1 = pool.take().get();
+            assertNotNull(c1);
+            assertEquals(1, pool.size());
+            Connection c2 = pool.take().get();
+            assertNotNull(c2);
+            assertEquals(2, pool.size());
+            
+            pool.release(c1);
+            
+            final long t1 = System.currentTimeMillis();
+            while (pool.size() > 0) {
+                assertTrue("Timeout. pool size is still: " + pool.size(),
+                        System.currentTimeMillis() - t1 <= 5000);
+                Thread.sleep(1000);
+            }
+            
+            assertEquals(0, pool.size()); // both connection should be detached
+            assertTrue(!c1.isOpen());
+            assertTrue(c2.isOpen());
+            
+            pool.release(c2);
+            assertTrue(!c2.isOpen());
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            pool.close();
+            transport.shutdownNow();
+        }
+    }
+    
+    @Test
+    public void testKeepAliveZero() throws Exception {
+        final SingleEndpointPool<SocketAddress> pool = SingleEndpointPool
+                .builder(SocketAddress.class)
+                .corePoolSize(2)
+                .maxPoolSize(4)
+                .failFastWhenMaxSizeReached(true)
+                .connectorHandler(transport)
+                .endpointAddress(new InetSocketAddress("localhost", PORT))
+                .keepAliveTimeout(0, TimeUnit.MILLISECONDS)
+                .build();
+        
+        try {
+            Connection c1 = pool.take().get();
+            assertNotNull(c1);
+            assertEquals(1, pool.size());
+            Connection c2 = pool.take().get();
+            assertNotNull(c2);
+            assertEquals(2, pool.size());
+            Connection c3 = pool.take().get();
+            assertNotNull(c3);
+            assertEquals(3, pool.size());
+            Connection c4 = pool.take().get();
+            assertNotNull(c4);
+            assertEquals(4, pool.size());
+            
+            pool.release(c1);
+            assertEquals(3, pool.size());
+            pool.release(c2);
+            assertEquals(2, pool.size()); // core pool size
+            pool.release(c3);
+            assertEquals(2, pool.size()); // core pool size
+            pool.release(c4);
+            assertEquals(2, pool.size()); // core pool size
+            
+            assertTrue(!c1.isOpen());
+            assertTrue(!c2.isOpen());
+            assertTrue(c3.isOpen());
+            assertTrue(c4.isOpen());
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            pool.close();
+            transport.shutdownNow();
+        }
+    }    
 }

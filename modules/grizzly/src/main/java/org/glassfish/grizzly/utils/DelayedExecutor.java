@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -207,6 +207,14 @@ public class DelayedExecutor {
     }
 
     public interface Worker<E> {
+        /**
+         * The method is executed by <tt>DelayExecutor</tt> once element's timeout expires.
+         * 
+         * @param element
+         * @return <tt>true</tt>, if the work is done and element has to be removed
+         *          from the delay queue, or <tt>false</tt> if the element
+         *          should be re-registered on the delay queue again
+         */
         public boolean doWork(E element);
     }
 

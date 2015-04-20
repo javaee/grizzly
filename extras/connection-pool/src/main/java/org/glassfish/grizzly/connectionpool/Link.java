@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,9 +49,10 @@ package org.glassfish.grizzly.connectionpool;
  * 
  * If a <tt>Link</tt> is attached - it can only be attached to one {@link Chain}.
  * 
+ * @param <E>
  * @author Alexey Stashok
  */
-final class Link<E> {
+public final class Link<E> {
     /**
      * The Link payload/value
      */
@@ -85,7 +86,7 @@ final class Link<E> {
     }
 
     /**
-     * Returns the value held by this {@link Link}.
+     * @return the value held by this {@link Link}.
      */
     public E getValue() {
         return value;
@@ -109,7 +110,7 @@ final class Link<E> {
     }
 
     /**
-     * Returns the timestamp, that represents the time (in milliseconds) when
+     * @return the timestamp, that represents the time (in milliseconds) when
      * the <tt>Link</tt> was attached to a {@link Chain}, or <tt>-1</tt> if the
      * <tt>Link</tt> is not currently attached to a {@link Chain}.
      */
@@ -118,7 +119,7 @@ final class Link<E> {
     }
     
     /**
-     * Returns <tt>true</tt> if the <tt>Link</tt> is currently attached to a
+     * @return <tt>true</tt> if the <tt>Link</tt> is currently attached to a
      * {@link Chain} or <tt>false</tt> otherwise.
      */
     public boolean isAttached() {
