@@ -44,14 +44,14 @@
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2.3.20</version>
+        <version>2.3.21-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
     <name>Grizzly OSGi HttpService</name>
-    <version>2.3.20</version>
+    <version>2.3.21-SNAPSHOT</version>
     <groupId>org.glassfish.grizzly.osgi</groupId>
     <artifactId>grizzly-httpservice</artifactId>
     <dependencies>
