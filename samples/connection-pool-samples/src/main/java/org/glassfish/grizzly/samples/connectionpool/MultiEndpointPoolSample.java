@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,7 +57,7 @@ import org.glassfish.grizzly.ConnectorHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.connectionpool.EndpointKey;
+import org.glassfish.grizzly.connectionpool.Endpoint;
 import org.glassfish.grizzly.connectionpool.MultiEndpointPool;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
@@ -125,18 +125,18 @@ public class MultiEndpointPoolSample implements ClientCallback {
             initializeClientTransport();
             
             // create a connection-pool EndpointKey for the server #1
-            final EndpointKey<SocketAddress> server1EndpointKey =
-                    new EndpointKey<SocketAddress>("server1",
-                    server1.getEndpointAddress());
+            final Endpoint<SocketAddress> server1Endpoint =
+                    Endpoint.Factory.<SocketAddress>create("server1",
+                    server1.getEndpointAddress(), null, connectorHandler);
+            
             // create a connection-pool EndpointKey for the server #2
-            final EndpointKey<SocketAddress> server2EndpointKey =
-                    new EndpointKey<SocketAddress>("server2",
-                    server2.getEndpointAddress());
+            final Endpoint<SocketAddress> server2Endpoint =
+                    Endpoint.Factory.<SocketAddress>create("server2",
+                    server2.getEndpointAddress(), null, connectorHandler);
 
             // create a connection pool
             connectionPool = MultiEndpointPool
                             .builder(SocketAddress.class)
-                            .connectorHandler(connectorHandler)
                             .maxConnectionsPerEndpoint(2)
                             .maxConnectionsTotal(4)
                             .build();
@@ -160,10 +160,10 @@ public class MultiEndpointPoolSample implements ClientCallback {
                 // send 100000 requests
                 for (int i = 0; i < requestsCount; i++) {
                     // randomly pick up a target server
-                    final EndpointKey<SocketAddress> serverEndpoint =
+                    final Endpoint<SocketAddress> serverEndpoint =
                             RANDOM.nextBoolean() ?
-                            server1EndpointKey :
-                            server2EndpointKey;
+                            server1Endpoint :
+                            server2Endpoint;
                     final String testMessage = "Message #" + (i + 1);
                     // add the message to the tracking set
                     messageTracker.add(testMessage);
