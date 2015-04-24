@@ -71,6 +71,7 @@ public class WebSocketEngine {
 
     public static final Version DEFAULT_VERSION = Version.RFC6455;
     public static final int DEFAULT_TIMEOUT = 30;
+    private static final String[] EMPTY_STRING_ARRAY = new String[0];
     private static final WebSocketEngine engine = new WebSocketEngine();
     static final Logger logger = Logger.getLogger(Constants.WEBSOCKET);
 
@@ -274,7 +275,7 @@ public class WebSocketEngine {
      */
     public synchronized void register(String contextPath, String urlPattern, WebSocketApplication app) {
         String contextPathLocal = getContextPath(contextPath);
-        mapper.addContext("localhost", contextPathLocal, app, null, null);
+        mapper.addContext("localhost", contextPathLocal, app, EMPTY_STRING_ARRAY, null);
         mapper.addWrapper("localhost", contextPathLocal, urlPattern, app);
         applicationMap.put(app, contextPathLocal + '|' + urlPattern);
         if (contextApplications.containsKey(contextPathLocal)) {
@@ -331,7 +332,7 @@ public class WebSocketEngine {
 
 
     private static String getContextPath(String mapping) {
-        String ctx = "";
+        String ctx;
         int slash = mapping.indexOf("/", 1);
         if (slash != -1) {
             ctx = mapping.substring(0, slash);
