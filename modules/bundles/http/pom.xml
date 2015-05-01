@@ -152,7 +152,7 @@
                 <executions>
                     <execution>
                         <id>src-dependencies</id>
-                        <phase>prepare-package</phase>
+                        <phase>generate-sources</phase>
                         <goals>
                             <!-- use copy-dependencies instead if you don't want to explode the sources -->
                             <goal>unpack-dependencies</goal>
