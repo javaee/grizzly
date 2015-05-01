@@ -53,34 +53,6 @@
     <version>3.0-SNAPSHOT</version>
     <groupId>org.glassfish.grizzly.osgi</groupId>
     <artifactId>grizzly-httpservice-bundle</artifactId>
-    <dependencies>
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.compendium</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-http-servlet</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-comet</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.grizzly.osgi</groupId>
-            <artifactId>grizzly-httpservice</artifactId>
-        </dependency>
-    </dependencies>
     <build>
         <plugins>
             <plugin>
@@ -122,8 +94,122 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <sourcepath>
+                        ${basedir}/../../grizzly-httpservice/src/main/java;
+                        ${basedir}/../../../modules/bundles/http-servlet/src/main/java;
+                    </sourcepath>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>fudge-source</id>
+                        <phase>install</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <filesets>
+                        <!-- Make sure we remove the fake source directory. -->
+                        <fileset>
+                            <directory>src</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.7</version>
+                <executions>
+                    <execution>
+                        <phase>install</phase>
+                        <configuration>
+                            <target>
+                                <delete dir="src" includeemptydirs="true" />
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.8</version>
+                <executions>
+                    <execution>
+                        <id>src-dependencies</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <!-- use copy-dependencies instead if you don't want to explode the sources -->
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>sources</classifier>
+                            <excludeScope>provided</excludeScope>
+                            <excludeArtifactIds>junit</excludeArtifactIds>
+                            <!-- fudge an actual source hierarchy so that the source
+                                 plugin can actually do something useful.  Otherwise,
+                                 you'll end up with an empty source jar -->
+                            <outputDirectory>${basedir}/src/main/java
+                            </outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.compendium</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-http-servlet</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-comet</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.grizzly.osgi</groupId>
+            <artifactId>grizzly-httpservice</artifactId>
+        </dependency>
+    </dependencies>
 
     <properties>
         <findbugs.skip>true</findbugs.skip>
