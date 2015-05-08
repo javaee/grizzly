@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -111,7 +111,7 @@ public class ParametersTest {
             final CountDownLatch latch = new CountDownLatch(1);
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new DelayFilter(0, 2000));
+            clientFilterChainBuilder.add(new DelayFilter(0, 500));
             clientFilterChainBuilder.add(new ChunkingFilter(256));
             clientFilterChainBuilder.add(new HttpClientFilter());
             clientFilterChainBuilder.add(new BaseFilter() {
@@ -126,7 +126,7 @@ public class ParametersTest {
 
             server.start();
             TCPNIOConnectorHandler handler = TCPNIOConnectorHandler.builder(clientTransport).build();
-            GrizzlyFuture<Connection> future = handler.connect("0.0.0.0", PORT);
+            GrizzlyFuture<Connection> future = handler.connect("localhost", PORT);
             final Buffer bodyBuffer = Buffers.wrap(clientTransport.getMemoryManager(), body);
             HttpRequestPacket request = HttpRequestPacket.builder()
                     .chunked(true)
@@ -195,7 +195,7 @@ public class ParametersTest {
 
             server.start();
             TCPNIOConnectorHandler handler = TCPNIOConnectorHandler.builder(clientTransport).build();
-            GrizzlyFuture<Connection> future = handler.connect("0.0.0.0", PORT);
+            GrizzlyFuture<Connection> future = handler.connect("localhost", PORT);
             final Buffer bodyBuffer = Buffers.wrap(clientTransport.getMemoryManager(), body);
             HttpRequestPacket request = HttpRequestPacket.builder()
                     .chunked(true)
