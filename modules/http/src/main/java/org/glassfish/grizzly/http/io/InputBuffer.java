@@ -322,12 +322,7 @@ public class InputBuffer {
             }
         }
         
-        if (readAheadLimit != -1) {
-            readCount++;
-            if (readCount > readAheadLimit) {
-                markPos = -1;
-            }
-        }
+        checkMarkAfterRead(1);
         return inputContentBuffer.get() & 0xFF;
 
     }
@@ -486,12 +481,8 @@ public class InputBuffer {
             throw new IllegalArgumentException("target cannot be null.");
         }
         final int read = fillChars(1, target);
-        if (readAheadLimit != -1) {
-            readCount += read;
-            if (readCount > readAheadLimit) {
-                markPos = -1;
-            }
-        }
+        checkMarkAfterRead(read);
+        
         return read;
 
     }
@@ -610,7 +601,7 @@ public class InputBuffer {
      * @see java.io.Reader#mark(int)
      */
     public void mark(final int readAheadLimit) {
-
+        
         if (readAheadLimit > 0) {
             markPos = inputContentBuffer.position();
             readCount = 0;
@@ -650,15 +641,11 @@ public class InputBuffer {
             throw new IOException();
         }
 
-        if (readAheadLimit == -1 && markPos == -1) {
+        if (readAheadLimit == -1) {
             throw new IOException("Mark not set");
         }
-        if (readAheadLimit != -1) {
-            if (markPos == -1) {
-                throw new IOException("Mark not set");
-            }
-            readCount = 0;
-        }
+        
+        readCount = 0;
         inputContentBuffer.position(markPos);
 
     }
@@ -1191,7 +1178,9 @@ public class InputBuffer {
             if (consumedBytes > 0) {
                 bytes.position(bytesPos);
                 inputContentBuffer.position(inputContentBuffer.position() + consumedBytes);
-                inputContentBuffer.shrink();
+                if (readAheadLimit == -1) {
+                    inputContentBuffer.shrink();
+                }
             } else {
                 isNeedMoreInput = true;
             }
@@ -1353,7 +1342,7 @@ public class InputBuffer {
      *      mark hasn't been set or has been invalidated
      */
     private boolean checkMarkAfterRead(final long n) {
-        if (readAheadLimit != -1) {
+        if (n > 0 && readAheadLimit != -1) {
             if ((long) readCount + n <= readAheadLimit) {
                 readCount += n;
                 return true;
