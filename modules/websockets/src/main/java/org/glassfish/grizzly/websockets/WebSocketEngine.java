@@ -81,11 +81,14 @@ public class WebSocketEngine {
     // Association between WebSocketApplication and a value based on the
     // context path and url pattern.
     private final HashMap<WebSocketApplication, String> applicationMap =
-            new HashMap<WebSocketApplication, String>();
+            new HashMap<WebSocketApplication, String>(4);
+    // Association between full path and registered application.
+    private final HashMap<String, WebSocketApplication> fullPathToApplication =
+            new HashMap<String, WebSocketApplication>(4);
     // Association between a particular context path and all applications with
     // sub-paths registered to that context path.
     private final HashMap<String, List<WebSocketApplication>> contextApplications =
-            new HashMap<String, List<WebSocketApplication>>();
+            new HashMap<String, List<WebSocketApplication>>(2);
 
     private final HttpResponsePacket.Builder unsupportedVersionsResponseBuilder;
 
@@ -107,7 +110,8 @@ public class WebSocketEngine {
 
 
     public WebSocketApplication getApplication(HttpRequestPacket request) {
-        return getApplication(request, mapper).app;
+        final WebSocketApplicationReg appReg = getApplication(request, mapper);
+        return appReg != null ? appReg.app : null;
     }
 
     private WebSocketApplicationReg getApplication(
@@ -273,11 +277,29 @@ public class WebSocketEngine {
      * @param urlPattern url pattern (per servlet rules)
      * @param app the WebSocket application.
      */
-    public synchronized void register(String contextPath, String urlPattern, WebSocketApplication app) {
+    public synchronized void register(final String contextPath,
+            final String urlPattern, final WebSocketApplication app) {
+        if (contextPath == null || urlPattern == null) {
+            throw new IllegalArgumentException("contextPath and urlPattern must not be null");
+        }
+        
+        if (!urlPattern.startsWith("/")) {
+            throw new IllegalArgumentException("The urlPattern must start with '/'");
+        }
+        
         String contextPathLocal = getContextPath(contextPath);
-        mapper.addContext("localhost", contextPathLocal, app, EMPTY_STRING_ARRAY, null);
+        final String fullPath = contextPathLocal + '|' + urlPattern;
+        
+        final WebSocketApplication oldApp = fullPathToApplication.get(fullPath);
+        if (oldApp != null) {
+            unregister(oldApp);
+        }
+        
+        mapper.addContext("localhost", contextPathLocal,
+                "[Context '" + contextPath + "']", EMPTY_STRING_ARRAY, null);
         mapper.addWrapper("localhost", contextPathLocal, urlPattern, app);
-        applicationMap.put(app, contextPathLocal + '|' + urlPattern);
+        applicationMap.put(app, fullPath);
+        fullPathToApplication.put(fullPath, app);
         if (contextApplications.containsKey(contextPathLocal)) {
             contextApplications.get(contextPathLocal).add(app);
         } else {
@@ -297,14 +319,16 @@ public class WebSocketEngine {
     }
 
     public synchronized void unregister(WebSocketApplication app) {
-        String pattern = applicationMap.remove(app);
-        if (pattern != null) {
-            String[] parts = pattern.split("\\|");
+        String fullPath = applicationMap.remove(app);
+        if (fullPath != null) {
+            fullPathToApplication.remove(fullPath);
+            String[] parts = fullPath.split("\\|");
             mapper.removeWrapper("localhost", parts[0], parts[1]);
             List<WebSocketApplication> apps = contextApplications.get(parts[0]);
             apps.remove(app);
             if (apps.isEmpty()) {
                 mapper.removeContext("localhost", parts[0]);
+                contextApplications.remove(parts[0]);
             }
             return;
         }
@@ -317,6 +341,7 @@ public class WebSocketEngine {
      */
     public synchronized void unregisterAll() {
         applicationMap.clear();
+        fullPathToApplication.clear();
         contextApplications.clear();
         applications.clear();
         mapper = new Mapper();
