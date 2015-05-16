@@ -778,6 +778,12 @@ public final class DefaultFilterChain implements FilterChain {
         if (TAIL_NAME.equalsIgnoreCase(name)) {
             throw new IllegalStateException(TAIL_NAME + " is reserved name");
         }
+        
+        if (name.startsWith(AUTO_GENERATED_NAME_MARKER)) {
+            throw new IllegalStateException(
+                    "Custom filter name must not start with " +
+                            AUTO_GENERATED_NAME_MARKER);
+        }
     }
     
     private String generateUniqueFilterName(final Filter filter) {
@@ -791,10 +797,10 @@ public final class DefaultFilterChain implements FilterChain {
         
         if (idToRegMap.containsKey(name)) {
             String uniqueName;
-            int counter = 0;
+            int counter = 1;
             do {
                 uniqueName = new StringBuilder(name.length() + 3).append(name)
-                        .append('(').append(counter).append(')').toString();
+                        .append('-').append(counter).toString();
                 counter++;
             } while (idToRegMap.containsKey(uniqueName));
             
@@ -1309,6 +1315,28 @@ public final class DefaultFilterChain implements FilterChain {
         synchronized (idToRegMap) {
             idToRegMap.clear();
         }
+    }
+    
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder(256);
+        sb.append(getClass().getSimpleName())
+                .append('@')
+                .append(Integer.toHexString(hashCode()))
+                .append(" {");
+        
+        FilterReg reg = head.next;
+        
+        if (reg != tail) {
+            sb.append(reg.name);
+            for (reg = reg.next; reg != tail; reg = reg.next) {
+                sb.append(" <-> ");
+                sb.append(reg.name);
+            }
+        }
+        
+        sb.append('}');
+        return sb.toString();
     }
     
     @Override
