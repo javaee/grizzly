@@ -778,12 +778,6 @@ public final class DefaultFilterChain implements FilterChain {
         if (TAIL_NAME.equalsIgnoreCase(name)) {
             throw new IllegalStateException(TAIL_NAME + " is reserved name");
         }
-        
-        if (name.startsWith(AUTO_GENERATED_NAME_MARKER)) {
-            throw new IllegalStateException(
-                    "Custom filter name must not start with " +
-                            AUTO_GENERATED_NAME_MARKER);
-        }
     }
     
     private String generateUniqueFilterName(final Filter filter) {
