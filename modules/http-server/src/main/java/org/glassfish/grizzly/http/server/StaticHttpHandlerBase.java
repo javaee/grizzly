@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -228,11 +228,13 @@ public abstract class StaticHttpHandlerBase extends HttpHandler {
     }
 
     /**
-     * Lookup a resource based on the request URI, and send it using send file.
+     * Lookup a resource based on the request URI, and process it.
      *
      * @param uri The request URI
      * @param request the {@link Request}
      * @param response the {@link Response}
+     * @return <tt>true</tt>, if the static resource has been found and processed,
+     *          or <tt>false</tt>, if the static resource hasn't been found
      * @throws Exception
      */
     protected abstract boolean handle(final String uri,
@@ -247,7 +249,7 @@ public abstract class StaticHttpHandlerBase extends HttpHandler {
         final FilterChain fc = fcContext.getFilterChain();
         final int lastFileCacheIdx = fileCacheFilterIdx;
 
-        if (lastFileCacheIdx != -1) {
+        if (lastFileCacheIdx != -1 && lastFileCacheIdx < fc.size()) {
             final Filter filter = fc.get(lastFileCacheIdx);
             if (filter instanceof FileCacheFilter) {
                 return (FileCacheFilter) filter;
