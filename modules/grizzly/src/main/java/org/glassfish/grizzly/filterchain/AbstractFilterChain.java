@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -141,6 +141,28 @@ public abstract class AbstractFilterChain implements FilterChain {
         ctx.setFilterIdx(currentIdx);
 
         return ctx;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder(256);
+        sb.append(getClass().getSimpleName())
+                .append('@')
+                .append(Integer.toHexString(hashCode()))
+                .append(" {");
+        
+        final int size = size();
+        
+        if (size > 0) {
+            sb.append(get(0).toString());
+            for (int i = 1; i < size; i++) {
+                sb.append(" <-> ");
+                sb.append(get(i).toString());
+            }
+        }
+        
+        sb.append('}');
+        return sb.toString();
     }
 
     /**
