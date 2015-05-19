@@ -55,10 +55,12 @@ import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpEvents;
+import org.glassfish.grizzly.http.HttpEvents.OutgoingHttpUpgradeEvent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
@@ -251,6 +253,29 @@ public class Http2ClientFilter extends Http2BaseFilter {
         return super.handleWrite(ctx);
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public NextAction handleEvent(final FilterChainContext ctx,
+            final FilterChainEvent event) throws IOException {
+        if (!Http2State.isHttp2(ctx.getConnection())) {
+            return ctx.getInvokeAction();
+        }
+        
+        final Object type = event.type();
+        
+        if (type == OutgoingHttpUpgradeEvent.TYPE) {
+            assert event instanceof OutgoingHttpUpgradeEvent;
+            
+            final OutgoingHttpUpgradeEvent outUpgradeEvent =
+                    (OutgoingHttpUpgradeEvent) event;
+            // If it's HTTP2 outgoing upgrade message - we have to re-enable content modifiers control
+            outUpgradeEvent.getHttpHeader().setIgnoreContentModifiers(false);
+            
+            return ctx.getStopAction();
+        }
+        
+        return ctx.getInvokeAction();
+    }
     
     /**
      * Creates client-side {@link Http2Connection} with preconfigured

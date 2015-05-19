@@ -260,7 +260,7 @@ public abstract class AbstractHttp2Test {
                 contentBuffer = Buffers.wrap(mm, content);
             }
 
-            b.contentLength(contentBuffer.remaining());
+            request.setContentLength(contentBuffer.remaining());
             
             if (encoding != null) {
                 request.setCharacterEncoding(encoding);

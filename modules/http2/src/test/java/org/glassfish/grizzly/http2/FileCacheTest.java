@@ -54,7 +54,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import java.io.File;
@@ -84,7 +83,6 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
-import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.utils.DataStructures;
 import org.junit.After;
@@ -115,7 +113,7 @@ public class FileCacheTest extends AbstractHttp2Test {
     }
 
     @Parameters
-    public static Collection<Object[]> getModes() {
+    public static Collection<Object[]> isSecure() {
         return AbstractHttp2Test.isSecure();
     }
 

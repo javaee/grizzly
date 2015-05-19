@@ -229,8 +229,12 @@ public class Http2ServerFilter extends Http2BaseFilter {
                     // for the HTTP/2 upgrade request we want to obbey HTTP/1.1
                     // content modifiers (transfer and content encodings)
                     header.setIgnoreContentModifiers(false);
+                    
+                    return ctx.getStopAction();
                 }
             }
+            
+            return ctx.getInvokeAction();
         }
 
         final Http2State state = Http2State.get(ctx.getConnection());
