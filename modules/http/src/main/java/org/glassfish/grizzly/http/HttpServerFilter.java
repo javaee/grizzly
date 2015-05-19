@@ -757,8 +757,8 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         final boolean error = request.getProcessingState().error;
         if (!error) {
-            final HttpContext context = httpHeader.getProcessingState().getHttpContext();
-            httpRequestInProcessAttr.remove(context);
+            // remove the Connection -> HttpRequestPackeet association
+            httpRequestInProcessAttr.remove(ctx.getConnection());
         }
         return error;
     }
@@ -1044,8 +1044,8 @@ public class HttpServerFilter extends HttpCodecFilter {
     public NextAction handleEvent(final FilterChainContext ctx,
             final FilterChainEvent event) throws IOException {
 
-        if (event.type() == RESPONSE_COMPLETE_EVENT.type()) {
-
+        if (event.type() == HttpEvents.ResponseCompleteEvent.TYPE) {
+            
             if (ctx.getConnection().isOpen()) {
                 final HttpContext context = HttpContext.get(ctx);
                 final HttpRequestPacket httpRequest = context.getRequest();
