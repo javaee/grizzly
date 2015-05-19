@@ -726,7 +726,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         final boolean error = request.getProcessingState().error;
         if (!error) {
-            // remove the Connection -> HttpRequestPackeet association
+            // remove the Connection -> HttpRequestPacket association
             httpRequestInProcessAttr.remove(ctx.getConnection());
         }
         return error;
