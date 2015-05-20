@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -164,7 +164,10 @@ public final class Constants {
      * TODO Grizzly 2.0, by default, parsed the request URI using UTF-8.
      * We should probably do so with query parameters
      */
-    public static final String DEFAULT_HTTP_CHARACTER_ENCODING = "ISO-8859-1";
+    public static final String DEFAULT_HTTP_CHARACTER_ENCODING =
+            System.getProperty(
+                    Constants.class.getName() + ".default-character-encoding",
+                    "ISO-8859-1");
     
     /**
      * Default HTTP {@link Charset}

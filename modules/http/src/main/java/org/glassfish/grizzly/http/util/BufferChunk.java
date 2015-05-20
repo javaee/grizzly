@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http.util;
 import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * {@link Buffer} chunk representation.
@@ -52,6 +51,12 @@ import org.glassfish.grizzly.utils.Charsets;
  * @author Alexey Stashok
  */
 public class BufferChunk implements Chunk {
+    /** Default encoding used to convert to strings. It should be UTF8,
+	as most standards seem to converge, but the servlet API requires
+	8859_1, and this object is used mostly for servlets.
+    */
+    private static final Charset DEFAULT_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
+
     private Buffer buffer;
 
     private int start;
@@ -488,7 +493,7 @@ public class BufferChunk implements Chunk {
     }
 
     public String toString(Charset charset) {
-        if (charset == null) charset = Charsets.UTF8_CHARSET;
+        if (charset == null) charset = DEFAULT_CHARSET;
 
         if (cachedString != null && charset.equals(cachedStringCharset)) {
             return cachedString;
@@ -503,7 +508,7 @@ public class BufferChunk implements Chunk {
 
     @Override
     public String toString(final int start, final int end) {
-        return buffer.toStringContent(Charsets.UTF8_CHARSET, this.start + start,
+        return buffer.toStringContent(DEFAULT_CHARSET, this.start + start,
                 this.start + end);
     }
 
