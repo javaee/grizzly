@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -122,7 +122,7 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
 	as most standards seem to converge, but the servlet API requires
 	8859_1, and this object is used mostly for servlets.
     */
-    public static final Charset DEFAULT_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
+    private static final Charset DEFAULT_CHARSET = Constants.DEFAULT_HTTP_CHARSET;
 
     // byte[]
     private byte[] buff;
@@ -641,7 +641,7 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
 
     public String toString(Charset charset) {
         if (charset == null) {
-            charset = this.charset != null ? this.charset : Charsets.UTF8_CHARSET;
+            charset = this.charset != null ? this.charset : DEFAULT_CHARSET;
         }
 
         if (cachedString != null && charset.equals(cachedStringCharset)) {
