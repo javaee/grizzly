@@ -704,6 +704,9 @@ public class SingleEndpointPool<E> {
      * on connection {@link Link}.
      */
     boolean release0(final ConnectionInfo<E> info) {
+        final boolean isKeepAlive;
+        AsyncPoll asyncPoller = null;
+        
         synchronized (poolSync) {
             if (info.isReady()) {
                 return false;
@@ -711,14 +714,27 @@ public class SingleEndpointPool<E> {
 
             // close pooled connection, if keepAliveTimeoutMillis == 0
             if (keepAliveTimeoutMillis == 0 && poolSize > corePoolSize) {
-                info.connection.closeSilently();
-                return false;
+                isKeepAlive = false;
+            } else {
+                isKeepAlive = true;
+                asyncPoller = getAsyncPoller();
+                if (asyncPoller == null) {
+                    readyConnections.offerLast(info.readyStateLink);
+                }
             }
-            
-            readyConnections.offerLast(info.readyStateLink);
-            notifyAsyncPoller();
-            return true;
         }
+        
+        if (!isKeepAlive) {
+            info.connection.closeSilently();
+            return false;
+        }
+        
+        if (asyncPoller != null) {
+            Futures.notifyResult(asyncPoller.future,
+                    asyncPoller.completionHandler, info.connection);
+        }
+        
+        return true;
     }
     
     /**
@@ -989,29 +1005,13 @@ public class SingleEndpointPool<E> {
         
         return false;
     }
-    
-    private void notifyAsyncPoller() {
-        if (!asyncWaitingList.isEmpty() && !readyConnections.isEmpty()) {
-            ConnectionInfo<E> info = readyConnections.pollLast().getValue();
-            
-            final Connection connection = info.connection;
 
-            final AsyncPoll asyncPoll = obtainFromAsyncWaitingList();
-            Futures.notifyResult(asyncPoll.future,
-                    asyncPoll.completionHandler, connection);
-        }
-    }
-
-    private boolean notifyAsyncPoller(final Connection connection) {
+    private AsyncPoll getAsyncPoller() {
         if (!asyncWaitingList.isEmpty()) {
-            final AsyncPoll asyncPoll = obtainFromAsyncWaitingList();
-            Futures.notifyResult(asyncPoll.future,
-                    asyncPoll.completionHandler, connection);
-            
-            return true;
+            return obtainFromAsyncWaitingList();
         }
         
-        return false;
+        return null;
     }
     
     private void notifyAsyncPollersOfFailure(final Throwable t) {
@@ -1078,27 +1078,32 @@ public class SingleEndpointPool<E> {
             if (LOGGER.isLoggable(Level.FINEST)) {
                 LOGGER.log(Level.FINEST, "Pool connection is established {0}", connection);
             }
+
+            boolean isOk = false;
+            AsyncPoll asyncPoller = null;
             
             synchronized (poolSync) {
                if (!isClosed) {
-                    failedConnectAttempts = 0;
-                    onConnected(connection);
-                    
-                    if (isOverflown()) {
-                        detach(connection);
-                        if (!notifyAsyncPoller(connection)) {
-                            connection.close();
-                        }
-                        return;
-                    }
+                   failedConnectAttempts = 0;
+                   onConnected(connection);
 
-                    final ConnectionInfo<E> info = attach0(connection);
-                    readyConnections.offerLast(info.readyStateLink);
-                    
-                    notifyAsyncPoller();
-                } else {
-                    connection.closeSilently();
+                   if (!isOverflown()) {
+                       isOk = true;
+                       
+                       final ConnectionInfo<E> info = attach0(connection);
+                       asyncPoller = getAsyncPoller();
+                       if (asyncPoller == null) {
+                           readyConnections.offerLast(info.readyStateLink);
+                       }
+                   }
                 }
+            }
+            
+            if (!isOk) {
+                connection.closeSilently();
+            } else if (asyncPoller != null) {
+                Futures.notifyResult(asyncPoller.future,
+                        asyncPoller.completionHandler, connection);
             }
         }
 
