@@ -328,17 +328,19 @@ public class ServletHandler extends HttpHandler {
         if (servletInstance == null) {
             synchronized (lock) {
                 if (servletInstance == null) {
+                    Servlet newServletInstance;
                     if (servletClassName != null) {
-                        servletInstance = (Servlet) ClassLoaderUtil.load(servletClassName);
+                        newServletInstance = (Servlet) ClassLoaderUtil.load(servletClassName);
                     } else {
                         try {
-                            servletInstance = servletClass.newInstance();
+                            newServletInstance = servletClass.newInstance();
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
                     }
-                    LOGGER.log(Level.INFO, "Loading Servlet: {0}", servletInstance.getClass().getName());
-                    servletInstance.init(servletConfig);
+                    LOGGER.log(Level.INFO, "Loading Servlet: {0}", newServletInstance.getClass().getName());
+                    newServletInstance.init(servletConfig);
+                    servletInstance = newServletInstance;
                 }
             }
         }

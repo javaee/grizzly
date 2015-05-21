@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,8 +48,12 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.util.Queue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.SocketFactory;
@@ -60,6 +64,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import junit.framework.AssertionFailedError;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
@@ -446,7 +451,65 @@ public class BasicServletTest extends HttpServerAbstractTest {
         }
 
     }
-    
+
+    /**
+     * https://java.net/jira/browse/GRIZZLY-1772
+     */
+    public void testLoadServletDuringParallelRequests() throws Exception {
+        System.out.println("testLoadServletDuringParallelRequests");
+
+        final InitBlocker blocker = new InitBlocker();
+        InitBlockingServlet.setBlocker(blocker);
+        try {
+            newHttpServer(PORT);
+            WebappContext ctx = new WebappContext("testParallelLoadServlet");
+            ServletRegistration servlet = ctx.addServlet("InitBlockingServlet", InitBlockingServlet.class);
+            servlet.addMapping("/initBlockingServlet");
+
+            ctx.deploy(httpServer);
+            httpServer.start();
+
+            final FutureTask<Void> request1 = new FutureTask<Void>(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    assertEquals(200, getConnection("/initBlockingServlet", PORT).getResponseCode());
+                    return null;
+                }
+            });
+
+            final FutureTask<Void> request2 = new FutureTask<Void>(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    assertEquals(200, getConnection("/initBlockingServlet", PORT).getResponseCode());
+                    return null;
+                }
+            });
+
+            new Thread(request1).start();
+            blocker.waitUntilInitCalled();
+            new Thread(request2).start();
+
+            try {
+                request2.get(1, TimeUnit.SECONDS);
+            } catch (TimeoutException ignored) {
+                // request2 should block until the servlet instance is initialized by request1
+            } finally {
+                blocker.releaseInitCall();
+            }
+
+            request1.get();
+            request2.get();
+
+        } finally {
+            try {
+                blocker.releaseInitCall();
+                InitBlockingServlet.removeBlocker(blocker);
+            } finally {
+                stopHttpServer();
+            }
+        }
+    }
+
     private ServletRegistration addServlet(final WebappContext ctx,
                                            final String name,
                                            final String alias) {
@@ -469,7 +532,68 @@ public class BasicServletTest extends HttpServerAbstractTest {
 
         return reg;
     }
-    
+
+    private static final class InitBlocker {
+        private boolean initReleased, initCalled;
+
+        synchronized void notifyInitCalledAndWaitForRelease() throws InterruptedException {
+            assertFalse("init has already been called", initCalled);
+            initCalled = true;
+            notifyAll();
+            while (!initReleased) {
+                wait();
+            }
+        }
+
+        synchronized void releaseInitCall() {
+            initReleased = true;
+            notifyAll();
+        }
+
+        synchronized void waitUntilInitCalled() throws InterruptedException {
+            while (!initCalled) {
+                wait();
+            }
+        }
+    }
+
+    public static final class InitBlockingServlet extends HttpServlet {
+        private static final AtomicReference<InitBlocker> BLOCKER = new AtomicReference<InitBlocker>();
+
+        private volatile boolean initialized;
+
+        static void setBlocker(InitBlocker blocker) {
+            assertNotNull(blocker);
+            assertTrue(BLOCKER.compareAndSet(null, blocker));
+        }
+
+        static void removeBlocker(InitBlocker blocker) {
+            assertTrue(BLOCKER.compareAndSet(blocker, null));
+        }
+
+        @Override
+        public void init(ServletConfig config) throws ServletException {
+            super.init(config);
+
+            InitBlocker blocker = BLOCKER.get();
+            assertNotNull(blocker);
+
+            try {
+                blocker.notifyInitCalledAndWaitForRelease();
+            } catch (InterruptedException e) {
+                throw (Error) new AssertionFailedError().initCause(e);
+            }
+
+            initialized = true;
+        }
+
+        @Override
+        protected void service(HttpServletRequest req, HttpServletResponse resp) {
+            boolean ok = initialized;
+            resp.setStatus(ok ? 200 : 500);
+        }
+    }
+
     public static class MyContextListener implements ServletContextListener {
         static final String INITIALIZED = "initialized";
         static final String DESTROYED = "destroyed";
