@@ -556,55 +556,84 @@ public class SingleEndpointPool<E> {
      * @return {@link GrizzlyFuture}
      */
     public GrizzlyFuture<Connection> take() {
-        synchronized (poolSync) {
-            try {
-                if (isClosed) {
-                    return Futures.createReadyFuture(
-                            new IOException("The pool is closed"));
-                }
+        int errorCode = 0;
+        GrizzlyFuture<Connection> future = null;
+        boolean isCreateNewConnection = false;
+        
+        try {
+            synchronized (poolSync) {
+                // we need to maintain this weird if's layout to make sure we
+                // create Exceptions or new connections outside of synchronized.
+                if (!isClosed) {
+                    if (readyConnections.isEmpty()) {
+                        if (!failFastWhenMaxSizeReached
+                                || !isMaxCapacityReached()
+                                || pendingConnections >= getWaitingListSize() + 1) {
+                            
+                            final AsyncPoll asyncPoll = new AsyncPoll(this);
+                            final Link<AsyncPoll> pollLink = new Link<AsyncPoll>(asyncPoll);
 
-                if (!readyConnections.isEmpty()) {
-                    return Futures.createReadyFuture(
-                            readyConnections.pollLast().getValue().connection);
-                }
+                            final FutureImpl<Connection> cancellableFuture
+                                    = new SafeFutureImpl<Connection>() {
+                                        @Override
+                                        protected void onComplete() {
+                                            try {
+                                                if (!isCancelled()) {
+                                                    get();
+                                                    return;
+                                                }
+                                            } catch (Throwable ignored) {
+                                            }
 
-                if (failFastWhenMaxSizeReached &&
-                        isMaxCapacityReached() &&
-                        pendingConnections < getWaitingListSize() + 1) {
-                    return Futures.createReadyFuture(
-                            new IOException("Max connections exceeded"));
-                }
-                
-                final AsyncPoll asyncPoll = new AsyncPoll(this);
-                final Link<AsyncPoll> pollLink = new Link<AsyncPoll>(asyncPoll);
-                
-                final FutureImpl<Connection> cancellableFuture =
-                        new SafeFutureImpl<Connection>() {
-                    @Override
-                    protected void onComplete() {
-                        try {
-                            if (!isCancelled()) {
-                                get();
-                                return;
-                            }
-                        } catch (Throwable ignored) {
+                                            synchronized (poolSync) {
+                                                removeFromAsyncWaitingList(pollLink);
+                                            }
+                                        }
+                                    };
+
+                            asyncPoll.future = cancellableFuture;
+                            addToAsyncWaitingList(pollLink);
+
+                            isCreateNewConnection = checkBeforeOpeningConnection();
+                            future = cancellableFuture;
+                        } else {
+                            errorCode = 2;
                         }
-
-                        synchronized (poolSync) {
-                            removeFromAsyncWaitingList(pollLink);
-                        }
-                    }                    
-                };
-                
-                asyncPoll.future = cancellableFuture;
-                addToAsyncWaitingList(pollLink);
-
-                createConnectionIfPossibleNoSync();
-                
-                return cancellableFuture;
-            } catch (Exception e) {
-                return Futures.createReadyFuture(e);
+                    } else {
+                        future = Futures.createReadyFuture(
+                                readyConnections.pollLast().getValue().connection);
+                    }
+                } else {
+                    errorCode = 1;
+                }
             }
+
+            switch (errorCode) {
+                case 0: {
+                    assert future != null;
+                    
+                    if (isCreateNewConnection) {
+                        connect();
+                    }
+                    
+                    return future;
+                }
+                
+                case 1: 
+                    return Futures.createReadyFuture(new IOException("The pool is closed"));
+                
+                case 2: {
+                    return Futures.createReadyFuture(new IOException("Max connections exceeded"));
+                }
+                
+                default: {
+                    // should never reach this point
+                    return Futures.createReadyFuture(new IllegalStateException("Unexpected state"));
+                }
+            }        
+        
+        } catch (Exception e) {
+            return Futures.createReadyFuture(e);
         }
     }
 
@@ -620,36 +649,61 @@ public class SingleEndpointPool<E> {
             throw new IllegalArgumentException("The completionHandler argument can not be null");
         }
         
-        synchronized (poolSync) {
-            try {
-                if (isClosed) {
-                    completionHandler.failed(new IOException("The pool is closed"));
-                    return;
-                }
+        int errorCode = 0;
+        Connection connection = null;
+        boolean isCreateNewConnection = false;
+        
+        try {
+            synchronized (poolSync) {
+                // we need to maintain this weird if's layout to make sure we
+                // create Exceptions or new connections outside of synchronized.
+                if (!isClosed) {
+                    if (readyConnections.isEmpty()) {
+                        if (!failFastWhenMaxSizeReached
+                                || !isMaxCapacityReached()
+                                || pendingConnections >= getWaitingListSize() + 1) {
+                            
+                            final AsyncPoll asyncPoll = new AsyncPoll(this);
+                            asyncPoll.completionHandler = completionHandler;
+                            final Link<AsyncPoll> pollLink = new Link<AsyncPoll>(asyncPoll);
 
-                if (!readyConnections.isEmpty()) {
-                    completionHandler.completed(
-                            readyConnections.pollLast().getValue().connection);
-                    return;
-                }
+                            addToAsyncWaitingList(pollLink);
 
-                if (failFastWhenMaxSizeReached &&
-                        isMaxCapacityReached() &&
-                        pendingConnections < getWaitingListSize() + 1) {
-                    completionHandler.failed(new IOException("Max connections exceeded"));
-                    return;
+                            isCreateNewConnection = checkBeforeOpeningConnection();
+                        } else {
+                            errorCode = 2;
+                        }
+                    } else {
+                        connection = readyConnections.pollLast().getValue().connection;
+                    }
+                } else {
+                    errorCode = 1;
                 }
-                
-                final AsyncPoll asyncPoll = new AsyncPoll(this);
-                asyncPoll.completionHandler = completionHandler;
-                final Link<AsyncPoll> pollLink = new Link<AsyncPoll>(asyncPoll);
-                
-                addToAsyncWaitingList(pollLink);
-                
-                createConnectionIfPossibleNoSync();
-            } catch (Exception e) {
-                completionHandler.failed(e);
             }
+            
+            switch (errorCode) {
+                case 0: {
+                    if (connection != null) {
+                        completionHandler.completed(connection);
+                    } else if (isCreateNewConnection) {
+                        connect();
+                    }
+                    
+                    break;
+                }
+                
+                case 1: {
+                    completionHandler.failed(new IOException("The pool is closed"));
+                    break;
+                }
+                
+                case 2: {
+                    completionHandler.failed(new IOException("Max connections exceeded"));
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            completionHandler.failed(e);
         }
     }
 
@@ -989,22 +1043,29 @@ public class SingleEndpointPool<E> {
     private boolean createConnectionIfPossibleNoSync() {
         if (checkBeforeOpeningConnection()) {
             
-            final GrizzlyFuture<Connection> future = endpoint.connect();
-            future.addCompletionHandler(defaultConnectionCompletionHandler);
-            
-            
-            if (connectTimeoutMillis >= 0) {
-                final ConnectTimeoutTask connectTimeoutTask
-                        = new ConnectTimeoutTask(future);
-
-                connectTimeoutQueue.add(connectTimeoutTask,
-                        connectTimeoutMillis, TimeUnit.MILLISECONDS);
-            }
+            connect();
             
             return true;
         }
         
         return false;
+    }
+
+    /**
+     * Establish new pool connection.
+     */
+    private void connect() {
+        final GrizzlyFuture<Connection> future = endpoint.connect();
+        future.addCompletionHandler(defaultConnectionCompletionHandler);
+        
+        
+        if (connectTimeoutMillis >= 0) {
+            final ConnectTimeoutTask connectTimeoutTask
+                    = new ConnectTimeoutTask(future);
+            
+            connectTimeoutQueue.add(connectTimeoutTask,
+                    connectTimeoutMillis, TimeUnit.MILLISECONDS);
+        }
     }
 
     private AsyncPoll getAsyncPoller() {
