@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,17 +54,23 @@ import org.glassfish.grizzly.Grizzly;
  * @author gustav trede
  */
 public class DataStructures {
+    private final static boolean USE_CUSTOM_CHM8;
     private final static Class<?> LTQclass;
 
     static {
         String className = null;
+        boolean useCustomCHM8 = false;
         
         Class<?> c;
         try {
-            JdkVersion jdkVersion = JdkVersion.getJdkVersion();
-            JdkVersion minimumVersion = JdkVersion.parseVersion("1.7.0");
+            final JdkVersion jdkVersion = JdkVersion.getJdkVersion();
+            final JdkVersion jdk18Version = JdkVersion.parseVersion("1.8.0");
             
-            className = (minimumVersion.compareTo(jdkVersion) <= 0)
+            useCustomCHM8 = jdkVersion.isUnsafeSupported() &&
+                    jdk18Version.compareTo(jdkVersion) > 0;
+            
+            final JdkVersion jdk17Version = JdkVersion.parseVersion("1.7.0");
+            className = (jdk17Version.compareTo(jdkVersion) <= 0)
                     ? "java.util.concurrent.LinkedTransferQueue"
                     : "org.glassfish.grizzly.utils.LinkedTransferQueue";
             
@@ -79,6 +85,7 @@ public class DataStructures {
         }
         
         LTQclass = c;
+        USE_CUSTOM_CHM8 = useCustomCHM8;
     }
 
     private static Class<?> getAndVerify(String cname) throws Throwable {
@@ -110,7 +117,7 @@ public class DataStructures {
      * @since 2.3.5
      */
     public static <K, V> ConcurrentMap<K, V> getConcurrentMap() {
-        return JdkVersion.getJdkVersion().isUnsafeSupported() ?
+        return USE_CUSTOM_CHM8 ?
                 new ConcurrentHashMapV8<K, V>() :
                 new ConcurrentHashMap<K, V>();
     }
@@ -124,7 +131,7 @@ public class DataStructures {
      */
     public static <K, V> ConcurrentMap<K, V> getConcurrentMap(
             final Map<? extends K, ? extends V> map) {
-        return JdkVersion.getJdkVersion().isUnsafeSupported() ?
+        return USE_CUSTOM_CHM8 ?
                 new ConcurrentHashMapV8<K, V>(map) :
                 new ConcurrentHashMap<K, V>(map);
     }
@@ -143,7 +150,7 @@ public class DataStructures {
      */
     public static <K, V> ConcurrentMap<K, V> getConcurrentMap(
             final int initialCapacity) {
-        return JdkVersion.getJdkVersion().isUnsafeSupported() ?
+        return USE_CUSTOM_CHM8 ?
                 new ConcurrentHashMapV8<K, V>(initialCapacity) :
                 new ConcurrentHashMap<K, V>(initialCapacity);
     }
@@ -171,7 +178,7 @@ public class DataStructures {
     public static <K, V> ConcurrentMap<K, V> getConcurrentMap(
             final int initialCapacity, final float loadFactor,
             final int concurrencyLevel) {
-        return JdkVersion.getJdkVersion().isUnsafeSupported() ?
+        return USE_CUSTOM_CHM8 ?
                 new ConcurrentHashMapV8<K, V>(initialCapacity, loadFactor, concurrencyLevel) :
                 new ConcurrentHashMap<K, V>(initialCapacity, loadFactor, concurrencyLevel);
     }
