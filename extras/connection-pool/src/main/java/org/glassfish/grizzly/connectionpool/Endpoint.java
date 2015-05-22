@@ -55,6 +55,16 @@ public abstract class Endpoint<E> {
     public abstract Object getId();
     public abstract GrizzlyFuture<Connection> connect();
     
+    /**
+     * The method is called, once new {@link Connection} related to the
+     * <tt>Endpoint</tt> is established.
+     * 
+     * @param connection the {@link Connection}
+     * @param pool the pool, to which the {@link Connection} is bound
+     */
+    protected void onConnect(Connection connection, SingleEndpointPool<E> pool) {
+    }
+    
     @Override
     public boolean equals(Object o) {
         if (this == o) {
