@@ -353,6 +353,107 @@ public class MultiEndpointPool<E> {
     }
     
     /**
+     * @return the total maximum number of {@link Connection}s to be kept by the pool
+     */
+    public int getMaxConnectionsTotal() {
+        return maxConnectionsTotal;
+    }
+
+    /**
+     * @return the maximum number of {@link Connection}s each
+     *         {@link SingleEndpointPool} sub-pool is allowed to have
+     */
+    public int getMaxConnectionsPerEndpoint() {
+        return maxConnectionsPerEndpoint;
+    }
+
+    /**
+     * @param timeUnit {@link TimeUnit}
+     * @return the connection timeout, after which, if a connection is not
+     *         established, it is considered failed
+     */
+    public long getConnectTimeout(final TimeUnit timeUnit) {
+        return connectTimeoutMillis <= 0 ?
+                connectTimeoutMillis :
+                timeUnit.convert(connectTimeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * @param timeUnit {@link TimeUnit}
+     * @return the delay to be used before the pool will repeat the attempt
+     *         to connect to the endpoint after previous attempt fail
+     */
+    public long getReconnectDelay(final TimeUnit timeUnit) {
+        return reconnectDelayMillis <= 0 ?
+                reconnectDelayMillis :
+                timeUnit.convert(reconnectDelayMillis, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * @return the maximum number of reconnect attempts
+     */
+    public int getMaxReconnectAttempts() {
+        return maxReconnectAttempts;
+    }
+
+    /**
+     * Returns the maximum amount of time an idle {@link Connection} will be kept
+     * in the pool.
+     * 
+     * @param timeUnit {@link TimeUnit}
+     * @return the maximum amount of time an idle {@link Connection} will be kept
+     * in the pool
+     */
+    public long getKeepAliveTimeout(final TimeUnit timeUnit) {
+        return keepAliveTimeoutMillis <= 0 ?
+                keepAliveTimeoutMillis :
+                timeUnit.convert(keepAliveTimeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * @param timeUnit {@link TimeUnit}
+     * @return the interval, which specifies how often the pool will perform idle {@link Connection}s check
+     */
+    public long getKeepAliveCheckInterval(final TimeUnit timeUnit) {
+        return keepAliveCheckIntervalMillis <= 0 ?
+                keepAliveCheckIntervalMillis :
+                timeUnit.convert(keepAliveCheckIntervalMillis, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * @param timeUnit {@link TimeUnit}
+     * @return the timeout, after which, the async connection poll operation will
+     *         fail with a timeout exception
+     */
+    public long getAsyncPollTimeout(final TimeUnit timeUnit) {
+        return asyncPollTimeoutMillis <= 0 ?
+                asyncPollTimeoutMillis :
+                timeUnit.convert(asyncPollTimeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Return the maximum amount of time, a {@link Connection} could be associated with the pool.
+     * Once timeout is hit - the connection will be either closed, if it's idle,
+     * or detached from the pool, if it's being used.
+     * 
+     * @param timeUnit {@link TimeUnit}
+     * @return the maximum amount of time, a {@link Connection} could be associated with the pool
+     */
+    public long getConnectionTTL(final TimeUnit timeUnit) {
+        return connectionTTLMillis <= 0 ?
+                connectionTTLMillis :
+                timeUnit.convert(connectionTTLMillis, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * @return <tt>true</tt>, if the "take" method will fail fast if
+     *         there is no free connection in the pool and max pool size is reached
+     */
+    public boolean isFailFastWhenMaxSizeReached() {
+        return failFastWhenMaxSizeReached;
+    }
+    
+    /**
      * @return  the current pool size.
      * This value includes connected and connecting (connect in progress)
      * {@link Connection}s
@@ -655,11 +756,12 @@ public class MultiEndpointPool<E> {
 
     @Override
     public String toString() {
-        return "MultiEndpointPool{"
+        return getClass().getSimpleName() + "@" + Integer.toHexString(hashCode()) +
+                "{"
                 + "endpoint count=" + endpointToPoolMap.size()
                 + "poolSize=" + poolSize
                 + ", isClosed=" + isClosed
-                + "} " + super.toString();
+                + "}";
     }
 
     /**
