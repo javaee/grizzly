@@ -63,6 +63,7 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collection;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.EventListener;
 import java.util.Locale;
@@ -1188,24 +1189,39 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         if (internalCookies == null) {
             return null;
         }
+        
+        int cookieIdx = 0;
         javax.servlet.http.Cookie[] cookies = new javax.servlet.http.Cookie[internalCookies.length];
-        for (int i = 0; i < internalCookies.length; i++) {
-            final Cookie cook = internalCookies[i];
-            if (cook instanceof CookieWrapper) {
-                cookies[i] = ((CookieWrapper) internalCookies[i]).getWrappedCookie();
+        for (Cookie cookie : internalCookies) {
+            if (cookie instanceof CookieWrapper) {
+                cookies[cookieIdx++] = ((CookieWrapper) cookie).getWrappedCookie();
             } else {
-                cookies[i] = new javax.servlet.http.Cookie(cook.getName(), cook.getValue());
-                cookies[i].setComment(cook.getComment());
-                if (cook.getDomain() != null) {
-                    cookies[i].setDomain(cook.getDomain());
+                try {
+                    javax.servlet.http.Cookie currentCookie =
+                            new javax.servlet.http.Cookie(
+                                    cookie.getName(), cookie.getValue());
+                    currentCookie.setComment(cookie.getComment());
+                    if (cookie.getDomain() != null) {
+                        currentCookie.setDomain(cookie.getDomain());
+                    }
+                    currentCookie.setMaxAge(cookie.getMaxAge());
+                    currentCookie.setPath(cookie.getPath());
+                    currentCookie.setSecure(cookie.isSecure());
+                    currentCookie.setVersion(cookie.getVersion());
+                    cookies[cookieIdx++] = currentCookie;
+                } catch (IllegalArgumentException iae) {
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING,
+                                LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_COOKIE_CREATE_ERROR(
+                                        cookie.getName(), iae.getLocalizedMessage()));
+                    }
                 }
-                cookies[i].setMaxAge(cook.getMaxAge());
-                cookies[i].setPath(cook.getPath());
-                cookies[i].setSecure(cook.isSecure());
-                cookies[i].setVersion(cook.getVersion());
             }
         }
-        return cookies;
+        
+        return cookieIdx == cookies.length
+                ? cookies
+                : Arrays.copyOf(cookies, cookieIdx);
     }
 
  

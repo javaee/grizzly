@@ -46,10 +46,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -57,36 +53,20 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpSessionEvent;
 import javax.servlet.http.HttpSessionIdListener;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Cookies;
-import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.Method;
-import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.ChunkingFilter;
+import static org.glassfish.grizzly.servlet.ClientUtil.*;
 
 /**
  * {@link HttpSessionTest}
  * 
- * @author <a href="mailto:marc	.arens@open-xchange.com">Marc Arens</a>
+ * @author <a href="mailto:marc.arens@open-xchange.com">Marc Arens</a>
  */
 public class HttpSessionTest extends HttpServerAbstractTest {
 
@@ -128,7 +108,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
 
             //get response update JSESSIONID if needed
             System.out.println("Sending Request with SessionId: "+headers.get("Cookie"));
-            HttpContent response = sendRequest(request, 60);
+            HttpContent response = sendRequest(request, 60, PORT);
             String cookieValue1 = getJSessionCookies(response);
             assertNotNull(cookieValue1);
             assertNotSame("Cookies have to be different", cookieValue0, cookieValue1);
@@ -137,7 +117,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
             headers.clear();
             headers.put("Cookie", JSESSIONID_COOKIE_NAME+"="+cookieValue1);
             request = createRequest(CONTEXT+SERVLETMAPPING, PORT, headers);
-            response = sendRequest(request, 60);
+            response = sendRequest(request, 60, PORT);
             String cookieValue2 = getJSessionCookies(response);
             assertNull(cookieValue2);
             
@@ -180,7 +160,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
 
             //get response update JSESSIONID if needed
             System.out.println("Sending Request with SessionId: "+headers.get("Cookie"));
-            HttpContent response = sendRequest(request, 60);
+            HttpContent response = sendRequest(request, 60, PORT);
             String cookieValue1 = getJSessionCookies(response);
             assertNotNull(cookieValue1);
             assertNotSame("Cookies have to be different", cookieValue0, cookieValue1);
@@ -189,7 +169,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
             headers.clear();
             headers.put("Cookie", JSESSIONID_COOKIE_NAME+"="+cookieValue1);
             request = createRequest(CONTEXT+SERVLETMAPPING, PORT, headers);
-            response = sendRequest(request, 60);
+            response = sendRequest(request, 60, PORT);
             String cookieValue2 = getJSessionCookies(response);
             assertNotNull(cookieValue2);
             assertNotSame("Cookies have to be different", cookieValue1, cookieValue2);
@@ -234,7 +214,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
 
         try {
             final HttpPacket request1 = createRequest(CONTEXT + SERVLETMAPPING, PORT, null);
-            final HttpContent response1 = sendRequest(request1, 10);
+            final HttpContent response1 = sendRequest(request1, 10, PORT);
             
             Cookie[] cookies1 = getCookies(response1.getHttpHeader().getHeaders());
             
@@ -249,7 +229,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
                     Collections.<String, String>singletonMap(Header.Cookie.toString(),
                     Globals.SESSION_COOKIE_NAME + "=" + cookies1[0].getValue()));
             
-            final HttpContent response2 = sendRequest(request2, 10);
+            final HttpContent response2 = sendRequest(request2, 10, PORT);
             Cookie[] cookies2 = getCookies(response2.getHttpHeader().getHeaders());
             
             assertEquals(1, cookies2.length);
@@ -265,7 +245,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
                     Collections.<String, String>singletonMap(Header.Cookie.toString(),
                     Globals.SESSION_COOKIE_NAME + "=" + cookies1[0].getValue()));
 
-            final HttpContent response3 = sendRequest(request3, 10);
+            final HttpContent response3 = sendRequest(request3, 10, PORT);
             Cookie[] cookies3 = getCookies(response3.getHttpHeader().getHeaders());
             
             assertEquals(1, cookies3.length);
@@ -281,7 +261,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
                     Collections.<String, String>singletonMap(Header.Cookie.toString(),
                     Globals.SESSION_COOKIE_NAME + "=" + cookies2[0].getValue()));
 
-            final HttpContent response4 = sendRequest(request4, 10);
+            final HttpContent response4 = sendRequest(request4, 10, PORT);
             Cookie[] cookies4 = getCookies(response4.getHttpHeader().getHeaders());
             
             assertEquals(0, cookies4.length);
@@ -308,55 +288,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
         
         return null;
     }
-    
-    @SuppressWarnings({"unchecked"})
-    private HttpPacket createRequest(String uri, int port, Map<String, String> headers) {
 
-        HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-        b.method(Method.GET).protocol(Protocol.HTTP_1_1).uri(uri).header("Host", "localhost:" + port);
-        if (headers != null) {
-            for (Map.Entry<String, String> entry : headers.entrySet()) {
-                b.header(entry.getKey(), entry.getValue());
-            }
-        }
-
-        return b.build();
-    }
-    
-    @SuppressWarnings("unchecked")
-    private HttpContent sendRequest(final HttpPacket request, final int timeout) throws Exception {
-
-        final TCPNIOTransport clientTransport =
-                TCPNIOTransportBuilder.newInstance().build();
-        try {
-            final FutureImpl<HttpContent> testResultFuture = SafeFutureImpl.create();
-
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
-            clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new ChunkingFilter(5));
-            clientFilterChainBuilder.add(new HttpClientFilter());
-            clientFilterChainBuilder.add(new ClientFilter(testResultFuture));
-            clientTransport.setFilterChain(clientFilterChainBuilder.build());
-
-            clientTransport.start();
-
-            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
-            Connection connection = null;
-            try {
-                connection = connectFuture.get(timeout, TimeUnit.SECONDS);
-                connection.write(request);
-                return testResultFuture.get(timeout, TimeUnit.SECONDS);
-            } finally {
-                // Close the client connection
-                if (connection != null) {
-                    connection.closeSilently();
-                }
-            }
-        } finally {
-            clientTransport.shutdownNow();
-        }
-    }
-    
     private Cookie[] getCookies(MimeHeaders headers) {
         final Cookies cookies = new Cookies();
         cookies.setHeaders(headers, false);
@@ -372,65 +304,4 @@ public class HttpSessionTest extends HttpServerAbstractTest {
         
         return values.toArray(new String[values.size()]);
     }
-    
-    private static class ClientFilter extends BaseFilter {
-        private final static Logger logger = Grizzly.logger(ClientFilter.class);
-
-        private FutureImpl<HttpContent> testFuture;
-
-        // -------------------------------------------------------- Constructors
-
-
-        public ClientFilter(FutureImpl<HttpContent> testFuture) {
-
-            this.testFuture = testFuture;
-
-        }
-
-
-        // ------------------------------------------------- Methods from Filter
-
-        @Override
-        public NextAction handleRead(FilterChainContext ctx)
-                throws IOException {
-
-            // Cast message to a HttpContent
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
-
-            logger.log(Level.FINE, "Got HTTP response chunk");
-
-            // Get HttpContent's Buffer
-            final Buffer buffer = httpContent.getContent();
-
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "HTTP content size: {0}", buffer.remaining());
-            }
-
-            if (!httpContent.isLast()) {
-                return ctx.getStopAction(httpContent);
-            }
-
-            testFuture.result(httpContent);
-
-            return ctx.getStopAction();
-        }
-
-        @Override
-        public NextAction handleClose(FilterChainContext ctx)
-                throws IOException {
-            close();
-            return ctx.getStopAction();
-        }
-
-        private void close() throws IOException {
-
-            if (!testFuture.isDone()) {
-                //noinspection ThrowableInstanceNeverThrown
-                testFuture.failure(new IOException("Connection was closed"));
-            }
-
-        }
-
-    } // END ClientFilter
-
 }
