@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,15 +62,16 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.EventListener;
-import java.util.Map;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.servlet.ServletInputStream;
 import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletInputStream;
 import javax.servlet.ServletRequestAttributeEvent;
 import javax.servlet.ServletRequestAttributeListener;
 import javax.servlet.http.HttpServletRequest;
@@ -138,8 +139,6 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
     /**
      * Construct a wrapper for the specified request.
-     *
-     * @throws IOException if an input/output error occurs
      */
     protected HttpServletRequestImpl() {
         this.inputStream = new ServletInputStreamImpl();
@@ -1118,24 +1117,39 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         if (internalCookies == null) {
             return null;
         }
+        
+        int cookieIdx = 0;
         javax.servlet.http.Cookie[] cookies = new javax.servlet.http.Cookie[internalCookies.length];
-        for (int i = 0; i < internalCookies.length; i++) {
-            final Cookie cook = internalCookies[i];
-            if (cook instanceof CookieWrapper) {
-                cookies[i] = ((CookieWrapper) internalCookies[i]).getWrappedCookie();
+        for (Cookie cookie : internalCookies) {
+            if (cookie instanceof CookieWrapper) {
+                cookies[cookieIdx++] = ((CookieWrapper) cookie).getWrappedCookie();
             } else {
-                cookies[i] = new javax.servlet.http.Cookie(cook.getName(), cook.getValue());
-                cookies[i].setComment(cook.getComment());
-                if (cook.getDomain() != null) {
-                    cookies[i].setDomain(cook.getDomain());
+                try {
+                    javax.servlet.http.Cookie currentCookie =
+                            new javax.servlet.http.Cookie(
+                                    cookie.getName(), cookie.getValue());
+                    currentCookie.setComment(cookie.getComment());
+                    if (cookie.getDomain() != null) {
+                        currentCookie.setDomain(cookie.getDomain());
+                    }
+                    currentCookie.setMaxAge(cookie.getMaxAge());
+                    currentCookie.setPath(cookie.getPath());
+                    currentCookie.setSecure(cookie.isSecure());
+                    currentCookie.setVersion(cookie.getVersion());
+                    cookies[cookieIdx++] = currentCookie;
+                } catch (IllegalArgumentException iae) {
+                    if (logger.isLoggable(Level.WARNING)) {
+                        logger.log(Level.WARNING,
+                                LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_COOKIE_CREATE_ERROR(
+                                        cookie.getName(), iae.getLocalizedMessage()));
+                    }
                 }
-                cookies[i].setMaxAge(cook.getMaxAge());
-                cookies[i].setPath(cook.getPath());
-                cookies[i].setSecure(cook.isSecure());
-                cookies[i].setVersion(cook.getVersion());
             }
         }
-        return cookies;
+        
+        return cookieIdx == cookies.length
+                ? cookies
+                : Arrays.copyOf(cookies, cookieIdx);
     }
 
  

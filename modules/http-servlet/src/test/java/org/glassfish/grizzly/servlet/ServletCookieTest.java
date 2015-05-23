@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,89 +43,81 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpHeader;
+import static junit.framework.Assert.assertEquals;
 import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.http.util.MimeHeaders;
 
 /**
- * {@link HttpSessionTest}
+ * Verify that request processing isn't broken by malformed Cookies
  * 
  * @author <a href="mailto:marc.arens@open-xchange.com">Marc Arens</a>
  */
-public class HttpSessionTest extends HttpServerAbstractTest {
+public class ServletCookieTest extends HttpServerAbstractTest {
 
     private static final int PORT = 12345;
     private static final String CONTEXT = "/test";
     private static final String SERVLETMAPPING = "/servlet";
-    private static final String JSESSIONID_COOKIE_NAME = "JSESSIONID";
-    private static String JSESSIONID_COOKIE_VALUE = "975159770778015515.OX0";
-    private static final int MAX_INACTIVE_INTERVAL = 20;
-
+    private static final String FIRST_COOKIE_NAME = "firstCookie";
+    private static final String FIRST_COOKIE_VALUE = "its_a_me-firstCookie";
+    private static final String SECOND_COOKIE_NAME = "secondCookie";
+    private static final String SECOND_COOKIE_VALUE = "{\"a\": 1,\"Version\":2}";
+    private static final String THIRD_COOKIE_NAME = "thirdCookie";
+    private static final String THIRD_COOKIE_VALUE = "its_a_me-thirdCookie";
+    
     /**
-     * Want to set the MaxInactiveInterval of the HttpSession in seconds via a HttpServletRequest/HttpSession.
+     * Assert basic cookie parsing 
      * @throws Exception 
      */
-    public void testMaxInactiveInterval() throws Exception {
+    public void testServletCookieParsing() throws Exception {
+        
         try {
             startHttpServer(PORT);
-            
+
             WebappContext ctx = new WebappContext("Test", CONTEXT);
             ServletRegistration servletRegistration = ctx.addServlet("intervalServlet", new HttpServlet() {
 
                 @Override
                 protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-                    HttpSession httpSession1 = req.getSession(true);
-                    httpSession1.setMaxInactiveInterval(MAX_INACTIVE_INTERVAL);
-                    assertEquals(MAX_INACTIVE_INTERVAL, httpSession1.getMaxInactiveInterval());
-                    HttpSession httpSession2 = req.getSession(true);
-                    assertEquals(httpSession1, httpSession2);
+                    Cookie[] cookies = req.getCookies();
+                    assertEquals(3, cookies.length);
+                    Cookie currentCookie = cookies[0];
+                    assertEquals(FIRST_COOKIE_NAME, currentCookie.getName());
+                    assertEquals(FIRST_COOKIE_VALUE, currentCookie.getValue());
+                    
+                    currentCookie = cookies[1];
+                    assertEquals(SECOND_COOKIE_NAME, currentCookie.getName());
+                    /* The cookie isn't read completely but instead of throwing
+                     * an Exception we discard the remainder and continue request
+                     * processing while logging an error.
+                     */
+                    assertEquals("{\"a\": 1", currentCookie.getValue());
+                    
+                    currentCookie = cookies[2];
+                    assertEquals(THIRD_COOKIE_NAME, currentCookie.getName());
+                    assertEquals(THIRD_COOKIE_VALUE, currentCookie.getValue());
                 }
             });
-            
+
             servletRegistration.addMapping(SERVLETMAPPING);
             ctx.deploy(httpServer);
-            
+
             //build and send request
+            StringBuilder sb = new StringBuilder(256);
+            sb.append(FIRST_COOKIE_NAME).append("=").append(FIRST_COOKIE_VALUE);
+            sb.append(";");
+            sb.append(SECOND_COOKIE_NAME).append("=").append(SECOND_COOKIE_VALUE);
+            sb.append(";");
+            sb.append(THIRD_COOKIE_NAME).append("=").append(THIRD_COOKIE_VALUE);
+                    
             Map<String, String> headers = new HashMap<String, String>();
-            headers.put("Cookie", JSESSIONID_COOKIE_NAME+"="+JSESSIONID_COOKIE_VALUE);
-            HttpPacket request = ClientUtil.createRequest(CONTEXT+SERVLETMAPPING, PORT, headers);
-            
-            //get response update JSESSIONID if needed
-            System.out.println("Sending Request with SessionId: "+headers.get("Cookie"));
-            HttpContent response = ClientUtil.sendRequest(request, 60, PORT);
-            updateJSessionCookies(response);
-            String cookieValue1 = JSESSIONID_COOKIE_VALUE;
-            System.out.println("---");
-            Thread.sleep(10000);
-            headers.clear();
-            headers.put("Cookie", JSESSIONID_COOKIE_NAME+"="+JSESSIONID_COOKIE_VALUE);
-            request = ClientUtil.createRequest(CONTEXT+SERVLETMAPPING, PORT, headers);
-            response = ClientUtil.sendRequest(request, 60, PORT);
-            updateJSessionCookies(response);
-            String cookieValue2 = JSESSIONID_COOKIE_VALUE;
-            assertEquals(cookieValue1, cookieValue2);
-            
+            headers.put("Cookie", sb.toString());
+            HttpPacket request = ClientUtil.createRequest(CONTEXT + SERVLETMAPPING, PORT, headers);
+            ClientUtil.sendRequest(request, 60, PORT);
         } finally {
             stopHttpServer();
-        }
-    }
-    
-    private void updateJSessionCookies(HttpContent response) {
-        HttpHeader responseHeader = response.getHttpHeader();
-        MimeHeaders mimeHeaders = responseHeader.getHeaders();
-        Iterable<String> values = mimeHeaders.values(Header.SetCookie);
-        for (String value : values) {
-            if(value.startsWith("JSESSIONID=")) {
-                JSESSIONID_COOKIE_VALUE = value.substring(value.indexOf("=")+1);
-                System.out.println("Updated JSESSIONID to: "+JSESSIONID_COOKIE_VALUE);
-                break;
-            }
         }
     }
 
