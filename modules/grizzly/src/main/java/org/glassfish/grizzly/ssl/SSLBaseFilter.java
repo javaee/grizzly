@@ -122,10 +122,6 @@ public class SSLBaseFilter extends BaseFilter {
             DataStructures.<HandshakeListener, Boolean>getConcurrentMap(2));
     
     private long handshakeTimeoutMillis = -1;
-    
-    // the reason to be passed to a Connection, once the connection is getting
-    // closed because its SSL session gets closed
-    private IOException sslSessionClosedReason;
         
     private SSLTransportFilterWrapper optimizedTransportFilter;
     
@@ -197,7 +193,8 @@ public class SSLBaseFilter extends BaseFilter {
     }
 
     /**
-     * Returns the handshake timeout, <code>-1</code> if blocking handshake mode
+     * @param timeUnit {@link TimeUnit}
+     * @return the handshake timeout, <code>-1</code> if blocking handshake mode
      * is disabled (default).
      */
     public long getHandshakeTimeout(final TimeUnit timeUnit) {
@@ -212,6 +209,7 @@ public class SSLBaseFilter extends BaseFilter {
      * Sets the handshake timeout.
      * @param handshakeTimeout timeout value, or <code>-1</code> means for
      * non-blocking handshake mode.
+     * @param timeUnit {@link TimeUnit}
      */
     public void setHandshakeTimeout(final long handshakeTimeout,
             final TimeUnit timeUnit) {
@@ -944,16 +942,6 @@ public class SSLBaseFilter extends BaseFilter {
             for (final HandshakeListener listener : handshakeListeners) {
                 listener.onComplete(connection);
             }
-        }
-        
-        if (sslEngine.isInboundDone() && sslEngine.isOutboundDone()) {
-            IOException reason = sslSessionClosedReason;
-            if (reason == null) {
-                reason = new IOException("SSL session was closed");
-                sslSessionClosedReason = reason;
-            }
-            
-            connection.closeWithReason(reason);
         }
     }
 
