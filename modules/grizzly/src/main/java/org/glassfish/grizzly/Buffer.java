@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -76,7 +76,7 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
     /**
      * Trim the buffer by reducing capacity to position, if possible.
      * May return without changing capacity. Also resets the position to 0,
-     * like reset().
+     * like {@link #flip()}.
      */
     void trim();
     
