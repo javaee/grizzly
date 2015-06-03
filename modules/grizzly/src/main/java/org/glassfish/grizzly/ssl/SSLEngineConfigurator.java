@@ -52,7 +52,7 @@ import org.glassfish.grizzly.Grizzly;
  * 
  * @author Alexey Stashok
  */
-public class SSLEngineConfigurator {
+public class SSLEngineConfigurator implements SSLEngineFactory {
     private static final Logger LOGGER = Grizzly.logger(SSLEngineConfigurator.class);
 
     private final Object sync = new Object();
@@ -183,18 +183,7 @@ public class SSLEngineConfigurator {
      * @return {@link SSLEngine}.
      */
     public SSLEngine createSSLEngine() {
-        if (sslContext == null) {
-            synchronized(sync) {
-                if (sslContext == null) {
-                    sslContext = sslContextConfiguration.createSSLContext();
-                }
-            }
-        }
-        
-        final SSLEngine sslEngine = sslContext.createSSLEngine();
-        configure(sslEngine);
-
-        return sslEngine;
+        return createSSLEngine(null, -1);
     }
 
     /**
@@ -212,6 +201,7 @@ public class SSLEngineConfigurator {
      * 
      * @return {@link SSLEngine}.
      */
+    @Override
     public SSLEngine createSSLEngine(final String peerHost, final int peerPort) {
         if (sslContext == null) {
             synchronized(sync) {
