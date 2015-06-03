@@ -109,6 +109,11 @@ public class SSLFilter extends SSLBaseFilter {
      *
      * @param serverSSLEngineConfigurator SSLEngine configurator for server side connections
      * @param clientSSLEngineConfigurator SSLEngine configurator for client side connections
+     * @param renegotiateOnClientAuthWant <tt>true</tt>, if SSLBaseFilter has to force client authentication
+     *              during re-handshake, in case the client didn't send its credentials
+     *              during the initial handshake in response to "wantClientAuth" flag.
+     *              In this case "needClientAuth" flag will be raised and re-handshake
+     *              will be initiated
      */
     public SSLFilter(SSLEngineConfigurator serverSSLEngineConfigurator,
                      SSLEngineConfigurator clientSSLEngineConfigurator,
@@ -232,12 +237,7 @@ public class SSLFilter extends SSLBaseFilter {
         SSLEngine sslEngine = sslCtx.getSslEngine();
         
         if (sslEngine == null) {
-            if (IS_JDK7_OR_HIGHER) {
-                sslEngine = sslEngineConfigurator.createSSLEngine(
-                        HostNameResolver.getPeerHostName(connection), -1);
-            } else {
-                sslEngine = sslEngineConfigurator.createSSLEngine();
-            }
+            sslEngine = createClientSSLEngine(sslCtx, sslEngineConfigurator);
             
             sslCtx.configure(sslEngine);
         } else if (!isHandshaking(sslEngine)) { // if handshake haven't been started
@@ -336,6 +336,16 @@ public class SSLFilter extends SSLBaseFilter {
             }
             throw ioe;
         }
+    }
+
+    protected SSLEngine createClientSSLEngine(
+            final SSLConnectionContext sslCtx,
+            final SSLEngineConfigurator sslEngineConfigurator) {
+
+        return IS_JDK7_OR_HIGHER
+                ? sslEngineConfigurator.createSSLEngine(
+                        HostNameResolver.getPeerHostName(sslCtx.getConnection()), -1)
+                : sslEngineConfigurator.createSSLEngine();
     }
 
 
