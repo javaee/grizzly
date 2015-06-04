@@ -78,7 +78,7 @@ public class SSLFilter extends SSLBaseFilter {
             JdkVersion.getJdkVersion().compareTo("1.7.0") >= 0;
                 
     private final Attribute<SSLHandshakeContext> handshakeContextAttr;
-    private final SSLEngineConfigurator clientSSLEngineConfigurator;
+    private final SSLEngineFactory clientSSLEngineFactory;
 
     private final ConnectionCloseListener closeListener = new ConnectionCloseListener();
     
@@ -96,38 +96,38 @@ public class SSLFilter extends SSLBaseFilter {
     /**
      * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator}.
      *
-     * @param serverSSLEngineConfigurator SSLEngine configurator for server side connections
-     * @param clientSSLEngineConfigurator SSLEngine configurator for client side connections
+     * @param serverSSLEngineFactory SSLEngine factory for server side connections
+     * @param clientSSLEngineFactory SSLEngine factory for client side connections
      */
-    public SSLFilter(SSLEngineConfigurator serverSSLEngineConfigurator,
-                     SSLEngineConfigurator clientSSLEngineConfigurator) {
-        this(serverSSLEngineConfigurator, clientSSLEngineConfigurator, true);
+    public SSLFilter(final SSLEngineFactory serverSSLEngineFactory,
+                     final SSLEngineFactory clientSSLEngineFactory) {
+        this(serverSSLEngineFactory, clientSSLEngineFactory, true);
     }
 
 
     /**
      * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator}.
      *
-     * @param serverSSLEngineConfigurator SSLEngine configurator for server side connections
-     * @param clientSSLEngineConfigurator SSLEngine configurator for client side connections
+     * @param serverSSLEngineFactory SSLEngine factory for server side connections
+     * @param clientSSLEngineFactory SSLEngine factory for client side connections
      * @param renegotiateOnClientAuthWant <tt>true</tt>, if SSLBaseFilter has to force client authentication
      *              during re-handshake, in case the client didn't send its credentials
      *              during the initial handshake in response to "wantClientAuth" flag.
      *              In this case "needClientAuth" flag will be raised and re-handshake
      *              will be initiated
      */
-    public SSLFilter(SSLEngineConfigurator serverSSLEngineConfigurator,
-                     SSLEngineConfigurator clientSSLEngineConfigurator,
-                     boolean renegotiateOnClientAuthWant) {
+    public SSLFilter(final SSLEngineFactory serverSSLEngineFactory,
+                     final SSLEngineFactory clientSSLEngineFactory,
+                     final boolean renegotiateOnClientAuthWant) {
         
-        super(serverSSLEngineConfigurator, renegotiateOnClientAuthWant);
+        super(serverSSLEngineFactory, renegotiateOnClientAuthWant);
 
-        if (clientSSLEngineConfigurator == null) {
-            this.clientSSLEngineConfigurator = new SSLEngineConfigurator(
+        if (clientSSLEngineFactory == null) {
+            this.clientSSLEngineFactory = new SSLEngineConfigurator(
                     SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
                     true, false, false);
         } else {
-            this.clientSSLEngineConfigurator = clientSSLEngineConfigurator;
+            this.clientSSLEngineFactory = clientSSLEngineFactory;
         }
 
         handshakeContextAttr =
@@ -135,11 +135,11 @@ public class SSLFilter extends SSLBaseFilter {
     }
 
     /**
-     * @return {@link SSLEngineConfigurator} used by the filter to create new
+     * @return {@link SSLEngineFactory} used by the filter to create new
      *      {@link SSLEngine} for client-side {@link Connection}s
      */
-    public SSLEngineConfigurator getClientSSLEngineConfigurator() {
-        return clientSSLEngineConfigurator;
+    public SSLEngineFactory getClientSSLEngineFactory() {
+        return clientSSLEngineFactory;
     }
 
     // ----------------------------------------------------- Methods from Filter
@@ -165,7 +165,7 @@ public class SSLFilter extends SSLBaseFilter {
                 if (sslEngine == null ||
                         !handshakeContextAttr.isSet(connection)) {
                     handshake(connection, null, null,
-                            clientSSLEngineConfigurator, ctx, false);
+                            clientSSLEngineFactory, ctx, false);
                 }
 
                 return accurateWrite(ctx, false);
@@ -205,7 +205,7 @@ public class SSLFilter extends SSLBaseFilter {
                           final CompletionHandler<SSLEngine> completionHandler)
     throws IOException {
         handshake(connection, completionHandler, null,
-                clientSSLEngineConfigurator);
+                clientSSLEngineFactory);
     }
 
     public void handshake(final Connection connection,
@@ -213,13 +213,13 @@ public class SSLFilter extends SSLBaseFilter {
                           final Object dstAddress)
     throws IOException {
         handshake(connection, completionHandler, dstAddress,
-                clientSSLEngineConfigurator);
+                clientSSLEngineFactory);
     }
 
     public void handshake(final Connection connection,
                           final CompletionHandler<SSLEngine> completionHandler,
                           final Object dstAddress,
-                          final SSLEngineConfigurator sslEngineConfigurator)
+                          final SSLEngineFactory sslEngineFactory)
     throws IOException {
         // Try to find corresponding FilterChain
         
@@ -233,13 +233,13 @@ public class SSLFilter extends SSLBaseFilter {
         final FilterChainContext context = filterChain.obtainFilterChainContext(
                 connection, sslFilterReg, null, sslFilterReg);
         handshake(connection, completionHandler, dstAddress,
-                sslEngineConfigurator, context, true);
+                sslEngineFactory, context, true);
     }
 
     protected void handshake(final Connection<?> connection,
                           final CompletionHandler<SSLEngine> completionHandler,
                           final Object dstAddress,
-                          final SSLEngineConfigurator sslEngineConfigurator,
+                          final SSLEngineFactory sslEngineFactory,
                           final FilterChainContext context,
                           final boolean forceBeginHandshake)
     throws IOException {
@@ -247,11 +247,9 @@ public class SSLFilter extends SSLBaseFilter {
         SSLEngine sslEngine = sslCtx.getSslEngine();
         
         if (sslEngine == null) {
-            sslEngine = createClientSSLEngine(sslCtx, sslEngineConfigurator);
+            sslEngine = createClientSSLEngine(sslCtx, sslEngineFactory);
             
             sslCtx.configure(sslEngine);
-        } else if (!isHandshaking(sslEngine)) { // if handshake haven't been started
-            sslEngineConfigurator.configure(sslEngine);
         }
         
         notifyHandshakeStart(connection);
@@ -332,12 +330,12 @@ public class SSLFilter extends SSLBaseFilter {
 
     protected SSLEngine createClientSSLEngine(
             final SSLConnectionContext sslCtx,
-            final SSLEngineConfigurator sslEngineConfigurator) {
+            final SSLEngineFactory sslEngineFactory) {
 
         return IS_JDK7_OR_HIGHER
-                ? sslEngineConfigurator.createSSLEngine(
+                ? sslEngineFactory.createSSLEngine(
                         HostNameResolver.getPeerHostName(sslCtx.getConnection()), -1)
-                : sslEngineConfigurator.createSSLEngine();
+                : sslEngineFactory.createSSLEngine(null, -1);
     }
 
     // ----------------------------------------------------------- Inner Classes

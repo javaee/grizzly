@@ -54,7 +54,7 @@ public class SNIConfig {
     private static final SSLEngineConfigurator NULL_SERVER_CONFIG =
             new NullSSLEngineConfigurator();
     
-    final SSLEngineConfigurator sslEngineConfigurator;
+    final SSLEngineConfigurator sslEngineFactory;
     final String host;
     final boolean isClientConfig;
 
@@ -100,7 +100,7 @@ public class SNIConfig {
     
     private SNIConfig(final SSLEngineConfigurator engineConfig,
             final String host, final boolean isClientConfig) {
-        this.sslEngineConfigurator = engineConfig;
+        this.sslEngineFactory = engineConfig;
         this.host = host;
         this.isClientConfig = isClientConfig;
     }

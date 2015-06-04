@@ -114,7 +114,7 @@ public class SSLBaseFilter extends BaseFilter {
         }
     };
     
-    private final SSLEngineConfigurator serverSSLEngineConfigurator;
+    private final SSLEngineFactory serverSSLEngineFactory;
     private final boolean renegotiateOnClientAuthWant;
 
     protected final Set<HandshakeListener> handshakeListeners =
@@ -133,35 +133,35 @@ public class SSLBaseFilter extends BaseFilter {
     }
 
     /**
-     * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator}.
+     * Build <tt>SSLFilter</tt> with the given {@link SSLEngineFactory}.
      *
-     * @param serverSSLEngineConfigurator SSLEngine configurator for server side connections
+     * @param serverSSLEngineFactory SSLEngine factory for server side connections
      */
-    public SSLBaseFilter(SSLEngineConfigurator serverSSLEngineConfigurator) {
-        this(serverSSLEngineConfigurator, true);
+    public SSLBaseFilter(final SSLEngineFactory serverSSLEngineFactory) {
+        this(serverSSLEngineFactory, true);
     }
 
 
     /**
-     * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator}.
+     * Build <tt>SSLFilter</tt> with the given {@link SSLEngineFactory}.
      *
-     * @param serverSSLEngineConfigurator SSLEngine configurator for server side connections
+     * @param serverSSLEngineFactory SSLEngine factory for server side connections
      * @param renegotiateOnClientAuthWant <tt>true</tt>, if SSLBaseFilter has to force client authentication
      *              during re-handshake, in case the client didn't send its credentials
      *              during the initial handshake in response to "wantClientAuth" flag.
      *              In this case "needClientAuth" flag will be raised and re-handshake
      *              will be initiated
      */
-    public SSLBaseFilter(SSLEngineConfigurator serverSSLEngineConfigurator,
+    public SSLBaseFilter(final SSLEngineFactory serverSSLEngineFactory,
                      boolean renegotiateOnClientAuthWant) {
         
         this.renegotiateOnClientAuthWant = renegotiateOnClientAuthWant;
-        if (serverSSLEngineConfigurator == null) {
-            this.serverSSLEngineConfigurator = new SSLEngineConfigurator(
+        if (serverSSLEngineFactory == null) {
+            this.serverSSLEngineFactory = new SSLEngineConfigurator(
                     SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
                     false, false, false);
         } else {
-            this.serverSSLEngineConfigurator = serverSSLEngineConfigurator;
+            this.serverSSLEngineFactory = serverSSLEngineFactory;
         }
     }
 
@@ -177,11 +177,11 @@ public class SSLBaseFilter extends BaseFilter {
     }
     
     /**
-     * @return {@link SSLEngineConfigurator} used by the filter to create new
+     * @return {@link getServerSSLEngineFactory} used by the filter to create new
      *      {@link SSLEngine} for server-side {@link Connection}s
      */
-    public SSLEngineConfigurator getServerSSLEngineConfigurator() {
-        return serverSSLEngineConfigurator;
+    public SSLEngineFactory getServerSSLEngineFactory() {
+        return serverSSLEngineFactory;
     }
     
     public void addHandshakeListener(final HandshakeListener listener) {
@@ -300,7 +300,7 @@ public class SSLBaseFilter extends BaseFilter {
             return unwrapAll(ctx, sslCtx);
         } else {
             if (sslEngine == null) {
-                sslEngine = serverSSLEngineConfigurator.createSSLEngine();
+                sslEngine = serverSSLEngineFactory.createSSLEngine(null, -1);
                 sslEngine.beginHandshake();
                 sslCtx.configure(sslEngine);
                 notifyHandshakeStart(connection);
@@ -1050,7 +1050,7 @@ public class SSLBaseFilter extends BaseFilter {
                     obtainSslConnectionContext(connection);
             
             if (sslCtx.getSslEngine() == null) {
-                final SSLEngine sslEngine = serverSSLEngineConfigurator.createSSLEngine();
+                final SSLEngine sslEngine = serverSSLEngineFactory.createSSLEngine(null, -1);
                 sslEngine.beginHandshake();
                 sslCtx.configure(sslEngine);
                 notifyHandshakeStart(connection);

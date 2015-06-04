@@ -51,7 +51,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.ssl.SSLConnectionContext;
-import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineFactory;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.utils.Charsets;
 
@@ -64,10 +64,10 @@ import org.glassfish.grizzly.utils.JdkVersion;
  * the client side logic works on JDK 7+ only.
  * 
  * On the <tt>server-side</tt> this filter allows developers to set custom
- * {@link SSLEngineConfigurator}, based on the host name provided by the client
+ * {@link SSLEngineFactory}, based on the host name provided by the client
  * in the SSL CLIENT_HELLO message.
  * An {@link SNIServerConfigResolver} registered via {@link #setServerSSLConfigResolver(org.glassfish.grizzly.sni.SNIServerConfigResolver)}
- * would be responsible for customizing {@link SSLEngineConfigurator}.
+ * would be responsible for customizing {@link SSLEngineFactory}.
  * 
  * On the other hand for client-side it's not mandatory to register {@link SNIClientConfigResolver},
  * because the host name information could be obtained from the {@link Connection#getPeerAddress()}.
@@ -94,32 +94,32 @@ public class SNIFilter extends SSLFilter {
 
     /**
      * Construct an <tt>SNIFilter</tt> with the given default client and server
-     * side {@link SSLEngineConfigurator}.
+     * side {@link SSLEngineFactory}.
      * 
-     * @param serverSSLEngineConfigurator
-     * @param clientSSLEngineConfigurator 
+     * @param serverSSLEngineFactory
+     * @param clientSSLEngineFactory 
      */
-    public SNIFilter(final SSLEngineConfigurator serverSSLEngineConfigurator,
-            final SSLEngineConfigurator clientSSLEngineConfigurator) {
-        super(serverSSLEngineConfigurator, clientSSLEngineConfigurator);
+    public SNIFilter(final SSLEngineFactory serverSSLEngineFactory,
+            final SSLEngineFactory clientSSLEngineFactory) {
+        super(serverSSLEngineFactory, clientSSLEngineFactory);
     }
 
     /**
-     * Construct an <tt>SNIFilter</tt> with the given default {@link SSLEngineConfigurator}.
+     * Construct an <tt>SNIFilter</tt> with the given default {@link SSLEngineFactory}.
      *
-     * @param serverSSLEngineConfigurator SSLEngine configurator for server side connections
-     * @param clientSSLEngineConfigurator SSLEngine configurator for client side connections
+     * @param serverSSLEngineFactory SSLEngine factory for server side connections
+     * @param clientSSLEngineFactory SSLEngine factory for client side connections
      * @param renegotiateOnClientAuthWant
      */
-    public SNIFilter(final SSLEngineConfigurator serverSSLEngineConfigurator,
-            final SSLEngineConfigurator clientSSLEngineConfigurator,
+    public SNIFilter(final SSLEngineFactory serverSSLEngineFactory,
+            final SSLEngineFactory clientSSLEngineFactory,
             final boolean renegotiateOnClientAuthWant) {
-        super(serverSSLEngineConfigurator, clientSSLEngineConfigurator, renegotiateOnClientAuthWant);
+        super(serverSSLEngineFactory, clientSSLEngineFactory, renegotiateOnClientAuthWant);
     }
     
     /**
      * @return {@link SNIServerConfigResolver}, which is responsible for customizing
-     *          {@link SSLEngineConfigurator} for newly accepted {@link Connection}s,
+     *          {@link SSLEngineFactory} for newly accepted {@link Connection}s,
      *          based on SNI host name information sent by a client
      */
     public SNIServerConfigResolver getServerSSLConfigResolver() {
@@ -128,7 +128,7 @@ public class SNIFilter extends SSLFilter {
 
     /**
      * Sets {@link SNIServerConfigResolver}, which is responsible for customizing
-     * {@link SSLEngineConfigurator} for newly accepted {@link Connection}s,
+     * {@link SSLEngineFactory} for newly accepted {@link Connection}s,
      * based on SNI host name information sent by a client.
      * 
      * @param resolver {@link SNIServerConfigResolver}
@@ -139,7 +139,7 @@ public class SNIFilter extends SSLFilter {
 
     /**
      * @return {@link SNIClientConfigResolver}, which is responsible for customizing
-     *          {@link SSLEngineConfigurator} and SNI host name to be sent to a server
+     *          {@link SSLEngineFactory} and SNI host name to be sent to a server
      */
     public SNIClientConfigResolver getClientSSLConfigResolver() {
         return clientResolver;
@@ -147,7 +147,7 @@ public class SNIFilter extends SSLFilter {
 
     /**
      * Sets {@link SNIClientConfigResolver}, which is responsible for customizing
-     * {@link SSLEngineConfigurator} and SNI host name to be sent to a server.
+     * {@link SSLEngineFactory} and SNI host name to be sent to a server.
      * 
      * @param resolver 
      */
@@ -178,26 +178,26 @@ public class SNIFilter extends SSLFilter {
         final Connection c = ctx.getConnection();
 
         final String host;
-        final SSLEngineConfigurator configurator;
+        final SSLEngineFactory factory;
         
         final SNIClientConfigResolver resolver = this.clientResolver;
         if (resolver != null) {
             // if there's a client resolver associated - use it to get
-            // the SNI host name and SSLEngineConfigurator
+            // the SNI host name and SSLEngineFactory
             final SNIConfig sniConfig = resolver.resolve(c);
             if (sniConfig != null && !sniConfig.isClientConfig) {
                 throw new IllegalStateException("SNIConfig has to represent client config, not a server one");
             }
 
             host = sniConfig != null ? sniConfig.host : null;
-            configurator = sniConfig != null && sniConfig.sslEngineConfigurator != null ?
-                    sniConfig.sslEngineConfigurator :
-                    getClientSSLEngineConfigurator();
+            factory = sniConfig != null && sniConfig.sslEngineFactory != null ?
+                    sniConfig.sslEngineFactory :
+                    getClientSSLEngineFactory();
             
         } else {
             // if resolver is not set - try to set default SNI host, based
             // on Connection's peer address
-            configurator = getClientSSLEngineConfigurator();
+            factory = getClientSSLEngineFactory();
             final Object addr = c.getPeerAddress();
             host = (addr instanceof InetSocketAddress) ?
                     ((InetSocketAddress) addr).getHostString() :
@@ -208,8 +208,8 @@ public class SNIFilter extends SSLFilter {
                         ctx.getConnection());
         
         final SSLEngine sslEngine = (host != null) ?
-                configurator.createSSLEngine(host, -1) :
-                configurator.createSSLEngine();
+                factory.createSSLEngine(host, -1) :
+                factory.createSSLEngine(null, -1);
         
         sslCtx.configure(sslEngine);
         sslEngine.beginHandshake();
@@ -271,16 +271,16 @@ public class SNIFilter extends SSLFilter {
                     throw new IllegalStateException("SNIConfig has to represent server config, not a client one");
                 }
                 
-                final SSLEngineConfigurator configurator =
-                        sniConfig != null && sniConfig.sslEngineConfigurator != null ?
-                        sniConfig.sslEngineConfigurator :
-                        getServerSSLEngineConfigurator();
+                final SSLEngineFactory factory =
+                        sniConfig != null && sniConfig.sslEngineFactory != null ?
+                        sniConfig.sslEngineFactory :
+                        getServerSSLEngineFactory();
                 
                 
                 final SSLConnectionContext sslCtx =
                         obtainSslConnectionContext(c);
                 
-                final SSLEngine sslEngine = configurator.createSSLEngine();
+                final SSLEngine sslEngine = factory.createSSLEngine(null, -1);
                 sslCtx.configure(sslEngine);
                 sslEngine.beginHandshake();
                 notifyHandshakeStart(c);

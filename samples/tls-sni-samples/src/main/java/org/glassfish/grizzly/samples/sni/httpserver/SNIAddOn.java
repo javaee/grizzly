@@ -87,7 +87,7 @@ public class SNIAddOn implements AddOn {
             SNIFilter sniFilterLocal = sniFilter;
             if (sniFilterLocal == null) {
                 sniFilterLocal = new SNIFilter(
-                        sslFilter.getServerSSLEngineConfigurator(), // default SSLEngineConfigurator
+                        sslFilter.getServerSSLEngineFactory(), // default SSLEngineFactory
                         null,
                         sslFilter.isRenegotiateOnClientAuthWant());
                 sniFilterLocal.setServerSSLConfigResolver(serverConfigResolver);
