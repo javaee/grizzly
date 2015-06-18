@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
@@ -139,49 +138,60 @@ public class HttpRequestParseTest extends TestCase {
     }
 
     public void testDecoderOK() {
-        try {
-            doTestDecoder("GET /index.html HTTP/1.0\n\n", 4096);
-            assertTrue(true);
-        } catch (IllegalStateException e) {
-            logger.log(Level.SEVERE, "exception", e);
-            assertTrue("Unexpected exception", false);
-        }
+        doTestDecoder("GET /index.html HTTP/1.0\n\n", 4096);
     }
 
     public void testDecoderOverflowMethod() {
         try {
             doTestDecoder("GET /index.html HTTP/1.0\n\n", 2);
-            assertTrue("Overflow exception had to be thrown", false);
+            fail("Overflow exception had to be thrown");
         } catch (IllegalStateException e) {
-            assertTrue(true);
+            // expected
         }
     }
 
     public void testDecoderOverflowURI() {
         try {
             doTestDecoder("GET /index.html HTTP/1.0\n\n", 8);
-            assertTrue("Overflow exception had to be thrown", false);
+            fail("Overflow exception had to be thrown");
         } catch (IllegalStateException e) {
-            assertTrue(true);
+            // expected
         }
     }
 
     public void testDecoderOverflowProtocol() {
         try {
             doTestDecoder("GET /index.html HTTP/1.0\n\n", 19);
-            assertTrue("Overflow exception had to be thrown", false);
+            fail("Overflow exception had to be thrown");
         } catch (IllegalStateException e) {
-            assertTrue(true);
+            // expected
         }
     }
 
-    public void testDecoderOverflowHeader() {
+    public void testDecoderOverflowHeader1() {
         try {
-            doTestDecoder("GET /index.html HTTP/1.0\nHost: localhost\n\n", 30);
-            assertTrue("Overflow exception had to be thrown", false);
+            doTestDecoder("GET /index.html HTTP/1.0\nHost: localhost\n\n", 41);
+            fail("Overflow exception had to be thrown");
         } catch (IllegalStateException e) {
-            assertTrue(true);
+            // expected
         }
+    }
+
+    public void testDecoderOverflowHeader2() {
+        doTestDecoder("GET /index.html HTTP/1.0\nHost: localhost\n\n", 42);
+    }
+    
+    public void testDecoderOverflowHeader3() {
+        try {
+            doTestDecoder("GET /index.html HTTP/1.0\nHost: localhost\r\n\r\n", 43);
+            fail("Overflow exception had to be thrown");
+        } catch (IllegalStateException e) {
+            // expected
+        }
+    }
+
+    public void testDecoderOverflowHeader4() {
+        doTestDecoder("GET /index.html HTTP/1.0\nHost: localhost\r\n\r\n", 44);
     }
     
     @SuppressWarnings({"unchecked"})
