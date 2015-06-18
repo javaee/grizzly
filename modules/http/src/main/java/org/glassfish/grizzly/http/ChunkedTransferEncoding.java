@@ -249,7 +249,8 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                         contentParsingState.trailerHeaders, ctx);
             }
         } else {
-            headerParsingState.checkOverflow("The chunked encoding trailer header is too large");
+            headerParsingState.checkOverflow(input.limit(),
+                    "The chunked encoding trailer header is too large");
         }
         
         return result;
@@ -276,7 +277,8 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                         parsingState.offset = input.limit();
                         parsingState.state = 1;
                         
-                        parsingState.checkOverflow("The chunked encoding length prefix is too large");
+                        parsingState.checkOverflow(input.limit(),
+                                "The chunked encoding length prefix is too large");
                         return false;
                     }
                     
@@ -318,8 +320,8 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                     }
 
                     parsingState.parsingNumericValue = value;
-                    parsingState.offset = offset;
-                    parsingState.checkOverflow("The chunked encoding length prefix is too large");
+                    parsingState.offset = limit;
+                    parsingState.checkOverflow(limit, "The chunked encoding length prefix is too large");
                     return false;
 
                 }

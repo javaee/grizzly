@@ -520,7 +520,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         if (!wasHeaderParsed) {
             try {
                 assert parsingState != null;
-                
+
                 // if header wasn't parsed - parse
                 if (!decodeHttpPacket(ctx, parsingState, input)) {
                     // if there is not enough data to parse the HTTP header - stop
@@ -683,7 +683,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     protected boolean decodeHttpPacketFromBytes(final FilterChainContext ctx,
                                                  final HttpPacketParsing httpPacket,
                                                  final Buffer inputBuffer) {
-                
+        
         final HeaderParsingState parsingState = httpPacket.getHeaderParsingState();
         
         parsingState.arrayOffset = inputBuffer.arrayOffset();
@@ -694,7 +694,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         switch (parsingState.state) {
             case 0: { // parsing initial line
                 if (!decodeInitialLineFromBytes(ctx, httpPacket, parsingState, input, end)) {
-                    parsingState.checkOverflow("HTTP packet intial line is too large");
+                    parsingState.checkOverflow(inputBuffer.limit(),
+                            "HTTP packet intial line is too large");
                     return false;
                 }
 
@@ -704,7 +705,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             case 1: { // parsing headers
                 if (!parseHeadersFromBytes((HttpHeader) httpPacket,
                         httpPacket.getHeaders(), parsingState, input, end)) {
-                    parsingState.checkOverflow("HTTP packet header is too large");
+                    parsingState.checkOverflow(inputBuffer.limit(),
+                            "HTTP packet header is too large");
                     return false;
                 }
 
@@ -965,7 +967,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         switch (parsingState.state) {
             case 0: { // parsing initial line
                 if (!decodeInitialLineFromBuffer(ctx, httpPacket, parsingState, input)) {
-                    parsingState.checkOverflow("HTTP packet intial line is too large");
+                    parsingState.checkOverflow(input.limit(),
+                            "HTTP packet intial line is too large");
                     return false;
                 }
 
@@ -975,7 +978,8 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             case 1: { // parsing headers
                 if (!parseHeadersFromBuffer((HttpHeader) httpPacket,
                         httpPacket.getHeaders(), parsingState, input)) {
-                    parsingState.checkOverflow("HTTP packet header is too large");
+                    parsingState.checkOverflow(input.limit(),
+                            "HTTP packet header is too large");
                     return false;
                 }
 
@@ -1954,8 +1958,11 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             contentLengthsDiffer = false;
         }
 
-        public final void checkOverflow(final String errorDescriptionIfOverflow) {
-            if (offset < packetLimit) return;
+        public final void checkOverflow(final int pos,
+                final String errorDescriptionIfOverflow) {
+            if (pos < packetLimit) {
+                return;
+            }
 
             throw new IllegalStateException(errorDescriptionIfOverflow);
         }
