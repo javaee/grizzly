@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,9 @@
 package org.glassfish.grizzly.samples.simpleauth;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
@@ -52,27 +55,23 @@ import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter} is responsible for a
- * {@link String} <-> {@link MultiLinePacket} transformations.
+ * {@link List&lt;String&gt;} <-> {@link MultiLinePacket} transformations.
  *
- * When reading - filter is gathering single {@link String} lines into a MultiLinePacket,
- * when writing - filter breaks {@link MultiLinePacket} into a single {@link String}s.
+ * When reading - filter is gathering {@link String} lines into a MultiLinePacket,
+ * when writing - filter breaks {@link MultiLinePacket} into {@link String} list.
  * 
  * @author Alexey Stashok
  */
 public class MultiLineFilter extends BaseFilter {
-    private static final Logger logger = Grizzly.logger(MultiLineFilter.class);
+    private static final Logger LOGGER = Grizzly.logger(MultiLineFilter.class);
 
     // MultiLinePacket terminating line (the String line value, which indicates last line in a MultiLinePacket}.
     private final String terminatingLine;
 
-    // Attribute to store the {@link MultiLinePacket} decoding state.
-    private static final Attribute<MultiLinePacket> decoderPacketAttr =
+    // Attribute to store the {@link String} list decoding state.
+    private static final Attribute<MultiLinePacket> incompletePacketAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("Multiline-decoder-packet");
 
-    // Attribute to store the {@link MultiLinePacket} encoding state.
-    private static final Attribute<Integer> encoderPacketAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("Multiline-encoder-packet");
-    
     public MultiLineFilter(String terminatingLine) {
         this.terminatingLine = terminatingLine;
     }
@@ -95,42 +94,45 @@ public class MultiLineFilter extends BaseFilter {
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         // Get the Connection
         final Connection connection = ctx.getConnection();
-        // Check if some MultiLinePacket is being parsed
-        MultiLinePacket packet = decoderPacketAttr.get(connection);
-        if (packet == null) {
-            // If not - create a new one
-            packet = MultiLinePacket.create();
-            // store it as connection state
-            decoderPacketAttr.set(connection, packet);
-        }
 
         // Get parsed String
-        final String input = (String) ctx.getMessage();
-
-        // Check if it's not MultiLinePacket terminating string
-        if (input.equals(terminatingLine)) {
-            // If yes - clear connection associated MultiLinePacket
-            decoderPacketAttr.remove(connection);
-            // Set MultiLinePacket packet as a context message
-            ctx.setMessage(packet);
-
-            logger.log(Level.INFO, "--------Received from network: \n" + packet);
-
-            // Pass control to a next filter in a chain
-            return ctx.getInvokeAction();
+        List<String> input = ctx.getMessage();
+        
+        MultiLinePacket packet = incompletePacketAttr.remove(connection);
+        if (packet == null) {
+            packet = MultiLinePacket.create();
         }
 
-        // If this is not terminating line - add this line to a MultiLinePacket
-        packet.getLines().add(input);
-        // Stop the request processing
-        return ctx.getStopAction();
+        boolean foundTerm = false;
+        for (Iterator<String> it = input.iterator(); it.hasNext(); ) {
+            final String line = it.next();
+            it.remove();
+            
+            if (line.equals(terminatingLine)) {
+                foundTerm = true;
+                break;
+            }
+            
+            packet.getLines().add(line);
+        }
+        
+        if (!foundTerm) {
+            incompletePacketAttr.set(connection, packet);
+            return ctx.getStopAction();
+        }
+        
+        // Set MultiLinePacket packet as a context message
+        ctx.setMessage(packet);
+        LOGGER.log(Level.INFO, "-------- Received from network:\n{0}", packet);
+        
+        return input.isEmpty()
+                ? ctx.getInvokeAction()
+                : ctx.getInvokeAction(input);
+        
     }
 
     /**
-     * The method is called whem we send MultiLinePacket.
-     *
-     * Filter is responsible to split MultiLinePacket into a single Strings and
-     * pass each String to a next Filter in chain.
+     * The method is called when we send MultiLinePacket.
      *
      * @param ctx Request processing context
      *
@@ -140,42 +142,21 @@ public class MultiLineFilter extends BaseFilter {
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
 
-        // Get a connection
-        final Connection connection = ctx.getConnection();
         // Get a processing MultiLinePacket
-        final MultiLinePacket input = (MultiLinePacket) ctx.getMessage();
+        final MultiLinePacket input = ctx.getMessage();
 
-        // Get the MultiLinePacket encoding state (the current encoding line number)
-        Integer encodingLine = encoderPacketAttr.get(connection);
-        if (encodingLine == null) {
-            // if not state is associated - it means we're just starting MultiLinePacket encoding
-            encodingLine = 0;
-            logger.log(Level.INFO, "-------Sending to network: \n" + input);
-        }
+        LOGGER.log(Level.INFO, "------- Sending to network:\n{0}", input);
 
-        // Check if the current encoding line is the last
-        if (encodingLine == input.getLines().size()) {
-            // if yes - finishing MultiLinePacket encoding
-            // remove associated encoding state
-            encoderPacketAttr.remove(connection);
-            // set the terminatingLine to be passed to a next filter in a chain
-            ctx.setMessage(terminatingLine);
-            // pass control to a next filter in a chain
-            return ctx.getInvokeAction();
-        }
-
-        // if it's not the last line
-        // extract the single line from MultiLinePacket
-        ctx.setMessage(input.getLines().get(encodingLine));
+        // pass MultiLinePacket as List<String>.
+        // we could've used input.getLines() as collection to be passed
+        // downstream, but we don't want to modify it (adding and removing terminatingLine).
+        final List<String> stringList =
+                new ArrayList<String>(input.getLines().size() + 1);
+        stringList.addAll(input.getLines());
+        stringList.add(terminatingLine);
         
-        // increment the current encoding line counter
-        encodingLine++;
-        // save the state
-        encoderPacketAttr.set(connection, encodingLine);
-
-        // pass control to a next filter in chain and pass input (MultiLinePacket) as
-        // a remainder notifying the filter chain, that we didn't process
-        // entire message yet.
-        return ctx.getInvokeAction(input);
+        ctx.setMessage(stringList);
+        
+        return ctx.getInvokeAction();
     }
 }

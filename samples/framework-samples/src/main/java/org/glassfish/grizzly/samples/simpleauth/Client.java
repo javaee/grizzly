@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,6 +43,8 @@ package org.glassfish.grizzly.samples.simpleauth;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -53,13 +55,12 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.Charsets;
-import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * Client implementation, which sends a message to a {@link Server} and checks
  * the response.
  * 
- * Client and server exachange String based messages:
+ * Client and server exchange String based messages:
  *
  * (1)
  * MultiLinePacket = command
@@ -70,8 +71,8 @@ import org.glassfish.grizzly.utils.StringFilter;
  * Server filters are built in a following way:
  *
  * {@link TransportFilter} - reads/writes data from/to network
- * {@link StringFilter} - translates Buffer <-> String. StringFilter reads just single line at a time.
- * {@link MultiLineFilter} - translates String <-> MultiLinePacket (see 1)
+ * {@link MultiStringFilter} - translates Buffer <-> List&lt;String&gt;
+ * {@link MultiLineFilter} - translates List&lt;String&gt; <-> MultiLinePacket (see 1)
  * {@link ClientAuthFilter} - checks, if client is authenticated. If not - initialize client authentication, and only then sends the message.
  * {@link ClientFilter} - client filter, which gets server echo and prints it out.
  *
@@ -87,9 +88,16 @@ public class Client {
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
         filterChainBuilder.add(new TransportFilter());
-        // StringFilter is responsible for parsing single string line
-        filterChainBuilder.add(new StringFilter(Charset.forName("ASCII"), "\n"));
-        // MultiStringFilter is responsible for gathering parsed lines in a single multi line packet
+        // MultiStringFilter is responsible for parsing list of string lines
+        filterChainBuilder.add(new MultiStringFilter(Charset.forName("ASCII"), "\n") {
+            @Override
+            protected List<String> createInList() {
+                // overwrite createInList to return LinkedList instead of ArrayList
+                return new LinkedList<String>();
+            }
+        });
+        
+        // MultiLineFilter is responsible for gathering parsed lines in a single multi line packet
         filterChainBuilder.add(new MultiLineFilter(""));
         // AuthFilter is responsible for client authentication
         filterChainBuilder.add(new ClientAuthFilter());
@@ -123,7 +131,7 @@ public class Client {
 
                 // Send echo message
                 final MultiLinePacket request = MultiLinePacket.create("echo", input);
-                logger.log(Level.INFO, "---------Client is sending the request:\n{0}", request);
+                logger.log(Level.INFO, "--------- Client is sending the request:\n{0}", request);
 
                 connection.write(request);
             }
