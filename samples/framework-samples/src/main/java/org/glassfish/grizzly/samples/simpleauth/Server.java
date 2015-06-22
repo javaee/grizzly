@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,8 @@ import org.glassfish.grizzly.utils.StringFilter;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -64,7 +66,7 @@ import java.util.logging.Logger;
  * Server filters are built in a following way:
  *
  * {@link TransportFilter} - reads/writes data from/to network
- * {@link StringFilter} - translates Buffer <-> String. StringFilter reads just single line at a time.
+ * {@link MultiStringFilter} - translates Buffer <-> List&lt;String&gt;
  * {@link MultiLineFilter} - translates String <-> MultiLinePacket (see 1)
  * {@link ServerAuthFilter} - checks authentication header in an incoming packets.
  * {@link org.glassfish.grizzly.samples.echo.EchoFilter} - sends echo to a client.
@@ -83,9 +85,16 @@ public class Server {
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
         filterChainBuilder.add(new TransportFilter());
-        // StringFilter is responsible for parsing single string line
-        filterChainBuilder.add(new StringFilter(Charset.forName("ASCII"), "\n"));
-        // MultiStringFilter is responsible for gathering parsed lines in a single multi line packet
+        // MultiStringFilter is responsible for parsing list of string lines
+        filterChainBuilder.add(new MultiStringFilter(Charset.forName("ASCII"), "\n") {
+            
+            @Override
+            protected List<String> createInList() {
+                // overwrite createInList to return LinkedList instead of ArrayList
+                return new LinkedList<String>();
+            }
+        });
+        // MultiLineFilter is responsible for gathering parsed lines in a single multi line packet
         filterChainBuilder.add(new MultiLineFilter(""));
         // AuthFilter is responsible for a client authentication
         filterChainBuilder.add(new ServerAuthFilter());
@@ -104,7 +113,7 @@ public class Server {
             // start the transport
             transport.start();
 
-            logger.info("Press any key to shutdownNow the server...");
+            logger.info("Press any key to stop the server...");
             System.in.read();
         } finally {
             logger.info("Stopping transport...");

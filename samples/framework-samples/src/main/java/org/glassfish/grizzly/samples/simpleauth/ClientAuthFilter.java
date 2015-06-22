@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,17 +61,13 @@ import org.glassfish.grizzly.utils.DataStructures;
  */
 public class ClientAuthFilter extends BaseFilter {
 
-    // Map of authenticated connections
-    private ConcurrentMap<Connection, ConnectionAuthInfo> authenticatedConnections =
-            DataStructures.<Connection, ConnectionAuthInfo>getConcurrentMap();
-
     // Authentication packet (authentication request). The packet is the same for all connections.
-    private static final MultiLinePacket authPacket;
+    private static final MultiLinePacket authPacket =
+            MultiLinePacket.create("authentication-request");
 
-    static {
-        authPacket = MultiLinePacket.create();
-        authPacket.getLines().add("authentication-request");
-    }
+    // Map of authenticated connections
+    private final ConcurrentMap<Connection, ConnectionAuthInfo> authenticatedConnections =
+            DataStructures.<Connection, ConnectionAuthInfo>getConcurrentMap();
 
     /**
      * The method is called once we have received {@link MultiLinePacket}.
@@ -184,7 +180,7 @@ public class ClientAuthFilter extends BaseFilter {
             synchronized (connection) {
                 if (authInfo.pendingMessages != null) {
                     if (authInfo.id == null) {
-                        // Authentication hs been started by another thread, but it is still in progress
+                        // Authentication has been started by another thread, but it is still in progress
                         // add suspended write context to a queue
                         ctx.suspend();
                         authInfo.pendingMessages.add(ctx);
@@ -195,6 +191,7 @@ public class ClientAuthFilter extends BaseFilter {
 
         }
 
+        System.out.println("packet: " + packet);
         // Authentication has been completed - add "auth-id" header and pass the message to a next filter in chain.
         packet.getLines().add(1, "auth-id: " + authInfo.id);
         return ctx.getInvokeAction();

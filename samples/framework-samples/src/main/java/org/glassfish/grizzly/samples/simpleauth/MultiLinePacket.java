@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.samples.simpleauth;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -50,23 +51,29 @@ import java.util.List;
  */
 public class MultiLinePacket {
     // String lines list
-    private final List<String> lines = new ArrayList<String>();
+    private final List<String> lines;
 
     public static MultiLinePacket create() {
         return new MultiLinePacket();
     }
     
     public static MultiLinePacket create(String... lines) {
-        MultiLinePacket packet = new MultiLinePacket();
-
-        for(String line : lines) {
-            packet.getLines().add(line);
-        }
-
+        final MultiLinePacket packet = new MultiLinePacket();
+        packet.getLines().addAll(Arrays.asList(lines));
+        
         return packet;
     }
 
+    static MultiLinePacket create(List<String> lines) {
+        return new MultiLinePacket(lines);
+    }
+
     private MultiLinePacket() {
+        lines = new ArrayList<String>();
+    }
+
+    private MultiLinePacket(List<String> lines) {
+        this.lines = lines;
     }
 
     /**
