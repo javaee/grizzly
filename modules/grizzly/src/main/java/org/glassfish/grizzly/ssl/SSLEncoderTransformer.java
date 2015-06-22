@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,6 +57,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
 /**
  * <tt>Transformer</tt>, which encrypts plain data, contained in the
@@ -135,7 +136,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
                 }
                 
                 final SSLEngineResult sslEngineResult =
-                        sslEngine.wrap(originalByteBuffer,
+                        sslEngineWrap(sslEngine, originalByteBuffer,
                         currentTargetByteBuffer);
 
                 // If the position of the original message hasn't changed,

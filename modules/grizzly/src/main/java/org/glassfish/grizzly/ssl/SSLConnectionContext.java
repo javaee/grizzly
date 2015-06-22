@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,6 +54,8 @@ import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferArray;
 import org.glassfish.grizzly.memory.MemoryManager;
+
+import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
 /**
  * SSL context associated with a {@link Connection}.
@@ -184,7 +186,7 @@ public final class SSLConnectionContext {
         
         try {
             if (!output.isComposite()) {
-                sslEngineResult = sslEngine.unwrap(inputByteBuffer,
+                sslEngineResult = sslEngineUnwrap(sslEngine, inputByteBuffer,
                         output.toByteBuffer());
 
             } else {
@@ -193,7 +195,7 @@ public final class SSLConnectionContext {
                 final ByteBuffer[] outputArray = bba.getArray();
 
                 try {
-                    sslEngineResult = sslEngine.unwrap(inputByteBuffer,
+                    sslEngineResult = sslEngineUnwrap(sslEngine, inputByteBuffer,
                             outputArray, 0, bba.size());
                 } finally {
                     bba.restore();
@@ -297,7 +299,8 @@ public final class SSLConnectionContext {
         final SSLEngineResult sslEngineResult;
         
         try {
-            sslEngineResult = sslEngine.wrap(inputArray, 0, inputArraySize,
+            sslEngineResult = sslEngineWrap(sslEngine,
+                    inputArray, 0, inputArraySize,
                     outputByteBuffer);
         } catch (SSLException e) {
             return new SslResult(output, e);
@@ -350,7 +353,7 @@ public final class SSLConnectionContext {
         
         try {
             if (!input.isComposite()) {
-                sslEngineResult = sslEngine.wrap(input.toByteBuffer(),
+                sslEngineResult = sslEngineWrap(sslEngine, input.toByteBuffer(),
                         outputByteBuffer);
 
             } else {
@@ -359,7 +362,8 @@ public final class SSLConnectionContext {
                 final ByteBuffer[] inputArray = bba.getArray();
 
                 try {
-                    sslEngineResult = sslEngine.wrap(inputArray, 0, bba.size(),
+                    sslEngineResult = sslEngineWrap(sslEngine,
+                            inputArray, 0, bba.size(),
                             outputByteBuffer);
                 } finally {
                     bba.restore();
