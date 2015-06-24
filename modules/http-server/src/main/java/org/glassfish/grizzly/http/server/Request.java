@@ -441,7 +441,17 @@ public class Request {
     protected final Response response;
 
     // ----------------------------------------------------------- Constructors
-
+    /**
+     * Temporarily introduce public constructor to fix GRIZZLY-1782.
+     * Just to make request instances proxiable.
+     * This constructor is not intended for client code consumption
+     * and should not be used explicitly as it creates an invalid instance.
+     * 
+     * @deprecated
+     */
+    public Request() {
+        this.response = null;
+    }
 
     protected Request(final Response response) {
         this.response = response;
