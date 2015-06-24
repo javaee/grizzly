@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -76,6 +76,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 
 
 /**
@@ -672,7 +673,7 @@ public class HttpSemanticsTest extends TestCase {
         method.invoke(httpServerFilter, "text/html;a=b;c=d;charset=iso-8859-1");
         doTest(createHttpRequest(), result, serverResponseFilter);
     }
-        
+    
     public void testHttpHeadersLimit() throws Throwable {
         final Builder builder = HttpRequestPacket.builder()
                 .method("GET")
@@ -705,6 +706,48 @@ public class HttpSemanticsTest extends TestCase {
         doTest(request, result);
     }
 
+    /**
+     * GRIZZLY-1780
+     * @throws Throwable 
+     */
+    public void testExplicitConnectionCloseHeader() throws Throwable {
+        final TCPNIOConnection connection = new TCPNIOConnection(
+                TCPNIOTransportBuilder.newInstance().build(), null);
+        
+        Buffer requestBuf = Buffers.wrap(connection.getMemoryManager(),
+                "GET /path HTTP/1.1\n"
+                        + "Host: localhost:" + PORT + "\n"
+                        + "\n");
+        
+        FilterChainContext ctx = FilterChainContext.create(connection);
+        ctx.setMessage(requestBuf);
+
+        // Simulate request parsing
+        httpServerFilter.handleRead(ctx);
+        
+        // Get parsed request
+        final HttpRequestPacket request =
+                (HttpRequestPacket) ((HttpContent) ctx.getMessage())
+                        .getHttpHeader();
+        
+        // make sure it's keep-alive
+        assertTrue(request.getProcessingState().isKeepAlive());
+        
+        // get the empty response
+        final HttpResponsePacket response = request.getResponse();
+        response.setContentLength(0);
+        // add the Connection: close header
+        response.setHeader(Header.Connection, "close");
+        
+        // encode the response to Buffer, which will call prepareResponse(...)
+        httpServerFilter.encodeHttpPacket(ctx, response);
+        
+        // check that the response has no errors
+        assertFalse(response.getProcessingState().isError());
+        // check that keep-alive is false
+        assertFalse(response.getProcessingState().isKeepAlive());
+    }
+    
     // --------------------------------------------------------- Private Methods
 
     
