@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -90,11 +90,11 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
     /**
      * Normal termination type
      */
-    public static final Object NORMAL_TERMINATE_TYPE = new Object();
+    Object NORMAL_TERMINATE_TYPE = new Object();
     /**
      * Connect termination type
      */
-    public static final Object CONNECT_TERMINATE_TYPE = new Object();
+    Object CONNECT_TERMINATE_TYPE = new Object();
     
     /**
      * Returns the registration object {@link FilterReg} for the first {@link Filter}
@@ -104,7 +104,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      *         in the chain
      * @throws NoSuchElementException if the <tt>FilterChain</tt> is empty
      */
-    public FilterReg firstFilterReg();
+    FilterReg firstFilterReg();
     
     /**
      * Returns the registration object {@link FilterReg} for the last {@link Filter}
@@ -113,8 +113,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the registration object {@link FilterReg} for the last {@link Filter}
      *         in the chain
      * @throws NoSuchElementException if the <tt>FilterChain</tt> is empty
-     */    
-    public FilterReg lastFilterReg();
+     */
+    FilterReg lastFilterReg();
     
     /**
      * Gets the registration object {@link FilterReg} for the {@link Filter}
@@ -124,8 +124,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * 
      * @return the registration object {@link FilterReg} for the {@link Filter}
      *         identified by its name
-     */  
-    public FilterReg getFilterReg(String name);
+     */
+    FilterReg getFilterReg(String name);
     
     /**
      * Gets the registration object {@link FilterReg} for the first occurrence
@@ -139,7 +139,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the registration object {@link FilterReg} for the first occurrence
      *         of the {@link Filter} in this <tt>FilterChain</tt>
      */
-    public FilterReg getFilterReg(Filter filter);
+    FilterReg getFilterReg(Filter filter);
 
     /**
      * Gets the registration object {@link FilterReg} for the first occurrence
@@ -150,7 +150,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the registration object {@link FilterReg} for the first occurrence
      *         of the given filter type in this <tt>FilterChain</tt>
      */
-    public FilterReg getRegByType(Class<? extends Filter> filterType);
+    FilterReg getRegByType(Class<? extends Filter> filterType);
     
     /**
      * Gets all the registration objects {@link FilterReg} for the {@link Filter}s
@@ -163,7 +163,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      *         in this <tt>FilterChain</tt>, whose type (class name)
      *         corresponds the passed filter type
      */
-    public FilterReg[] getAllRegsByType(Class<? extends Filter> filterType);
+    @SuppressWarnings("unused")
+    FilterReg[] getAllRegsByType(Class<? extends Filter> filterType);
 
     /**
      * Returns the {@link Filter} registered in the <tt>FilterChain</tt> by the name,
@@ -173,7 +174,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the {@link Filter} registered in the <tt>FilterChain</tt> with a name,
      *         or <tt>null</tt> there is no {@link Filter} registered with this name
      */
-    public Filter get(String name);
+    Filter get(String name);
     
     /**
      * Gets the first {@link Filter} from the <tt>FilterChain</tt>, which type 
@@ -185,7 +186,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the first {@link Filter} from the <tt>FilterChain</tt>, which type 
      *         corresponds to the passed class
      */
-    public <E extends Filter> E getByType(Class<E> filterType);
+    <E extends Filter> E getByType(Class<E> filterType);
     
     /**
      * Gets all the {@link Filter}s from the <tt>FilterChain</tt>, whose type 
@@ -196,7 +197,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return all the {@link Filter}s from the <tt>FilterChain</tt>, whose type 
      *         corresponds to the passed class.
      */
-    public Filter[] getAllByType(Class<? extends Filter> filterType);
+    @SuppressWarnings("unused")
+    Filter[] getAllByType(Class<? extends Filter> filterType);
  
     /**
      * Gets the current <tt>FilterChain</tt> size, which is the number of
@@ -205,7 +207,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the current <tt>FilterChain</tt> size, which is the number of
      *         {@link Filter}s registered in the <tt>FilterChain</tt>
      */
-    public int size();
+    int size();
     
     /**
      * Returns <tt>true</tt> if there is at least one {@link Filter} registered
@@ -214,7 +216,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return <tt>true</tt> if there is at least one {@link Filter} registered
      *         in the <tt>FilterChain</tt>, or <tt>false</tt> otherwise
      */
-    public boolean isEmpty();
+    boolean isEmpty();
     
     /**
      * Returns the first {@link Filter} in the chain.
@@ -222,7 +224,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the first {@link Filter} in the chain
      * @throws NoSuchElementException if the <tt>FilterChain</tt> is empty
      */
-    public Filter first();
+    Filter first();
     
     /**
      * Returns the last {@link Filter} in the chain.
@@ -230,7 +232,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the last {@link Filter} in the chain
      * @throws NoSuchElementException if the <tt>FilterChain</tt> is empty
      */
-    public Filter last();
+    Filter last();
     
     /**
      * Adds the passed {@link Filter}(s) to the tail of the <tt>FilterChain</tt>.
@@ -241,7 +243,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * 
      * @param filter the {@link Filter}(s) to be registered
      */
-    public void add(Filter... filter);
+    void add(Filter... filter);
 
     /**
      * Adds the {@link Filter} with the given unique name to the
@@ -255,7 +257,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @throws IllegalStateException if the passed <tt>filterName</tt> is not
      *         unique in this <tt>FilterChain</tt>
      */
-    public void add(Filter filter, String filterName);
+    void add(Filter filter, String filterName);
     
     /**
      * Adds the passed {@link Filter}(s) to the head of the <tt>FilterChain</tt>.
@@ -264,7 +266,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * 
      * @param filter the {@link Filter}(s) to be registered
      */
-    public void addFirst(Filter... filter);
+    @SuppressWarnings("unused")
+    void addFirst(Filter... filter);
     
     /**
      * Adds the {@link Filter} with the given unique name to the
@@ -276,7 +279,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @throws IllegalStateException if the passed <tt>filterName</tt> is not
      *         unique in this <tt>FilterChain</tt>
      */
-    public void addFirst(Filter filter, String filterName);
+    @SuppressWarnings("unused")
+    void addFirst(Filter filter, String filterName);
     
     /**
      * Adds the passed {@link Filter}(s) to the tail of the <tt>FilterChain</tt>.
@@ -287,7 +291,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * 
      * @param filter the {@link Filter}(s) to be registered
      */
-    public void addLast(Filter... filter);
+    void addLast(Filter... filter);
 
     /**
      * Adds the {@link Filter} with the given unique name to the
@@ -301,7 +305,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @throws IllegalStateException if the passed <tt>filterName</tt> is not
      *         unique in this <tt>FilterChain</tt>
      */
-    public void addLast(Filter filter, String filterName);
+    void addLast(Filter filter, String filterName);
     
     /**
      * Adds the passed {@link Filter}(s) after the first occurrence of the
@@ -316,7 +320,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @throws NoSuchElementException if baseFilter is not found registered in
      *         this <tt>FilterChain</tt>
      */
-    public void addAfter(Filter baseFilter, Filter... filter);
+    @SuppressWarnings("unused")
+    void addAfter(Filter baseFilter, Filter... filter);
     
     /**
      * Adds the {@link Filter} with the given unique name after the first
@@ -333,7 +338,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @throws NoSuchElementException if baseFilter is not found registered in
      *         this <tt>FilterChain</tt>
      */
-    public void addAfter(Filter baseFilter, Filter filter, String filterName);
+    @SuppressWarnings("unused")
+    void addAfter(Filter baseFilter, Filter filter, String filterName);
     
     /**
      * Adds the passed {@link Filter}(s) after the base {@link Filter}
@@ -349,7 +355,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      *         with the <tt>baseFilterName</tt> was not found in this
      *         <tt>FilterChain</tt>
      */
-    public void addAfter(String baseFilterName, Filter... filter);
+    void addAfter(String baseFilterName, Filter... filter);
 
     /**
      * Adds the {@link Filter} with the given unique name after the base
@@ -367,7 +373,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      *         with the <tt>baseFilterName</tt> was not found in this
      *         <tt>FilterChain</tt>
      */
-    public void addAfter(String baseFilterName, Filter filter, String filterName);
+    @SuppressWarnings("unused")
+    void addAfter(String baseFilterName, Filter filter, String filterName);
 
     /**
      * Adds the passed {@link Filter}(s) before the first occurrence of the
@@ -382,7 +389,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @throws NoSuchElementException if baseFilter is not found registered in
      *         this <tt>FilterChain</tt>
      */
-    public void addBefore(Filter baseFilter, Filter... filter);
+    @SuppressWarnings("unused")
+    void addBefore(Filter baseFilter, Filter... filter);
 
     /**
      * Adds the {@link Filter} with the given unique name before the first
@@ -399,7 +407,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @throws NoSuchElementException if baseFilter is not found registered in
      *         this <tt>FilterChain</tt>
      */
-    public void addBefore(Filter baseFilter, Filter filter, String filterName);
+    @SuppressWarnings("unused")
+    void addBefore(Filter baseFilter, Filter filter, String filterName);
     
     /**
      * Adds the passed {@link Filter}(s) before the base {@link Filter}
@@ -415,7 +424,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      *         with the <tt>baseFilterName</tt> was not found in this
      *         <tt>FilterChain</tt>
      */
-    public void addBefore(String baseFilterName, Filter... filter);
+    void addBefore(String baseFilterName, Filter... filter);
 
     /**
      * Adds the {@link Filter} with the given unique name before the base
@@ -433,7 +442,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      *         with the <tt>baseFilterName</tt> was not found in this
      *         <tt>FilterChain</tt>
      */
-    public void addBefore(String baseFilterName, Filter filter, String filterName);
+    @SuppressWarnings("unused")
+    void addBefore(String baseFilterName, Filter filter, String filterName);
     
     /**
      * Replaces the first occurrence of the old {@link Filter} with the new {@link Filter}.
@@ -447,7 +457,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @throws NoSuchElementException if oldFilter is not found registered in
      *         this <tt>FilterChain</tt>
      */
-    public void replace(Filter oldFilter, Filter newFilter);
+    void replace(Filter oldFilter, Filter newFilter);
 
     /**
      * Replaces the first occurrence of the old {@link Filter} with
@@ -462,7 +472,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @throws NoSuchElementException if oldFilter is not found registered in
      *         this <tt>FilterChain</tt>
      */
-    public void replace(Filter oldFilter, Filter newFilter, String newFilterName);
+    void replace(Filter oldFilter, Filter newFilter, String newFilterName);
     
     /**
      * Replaces the old {@link Filter} represented by the unique
@@ -479,7 +489,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      *         with the <tt>oldFilterName</tt> was not found in this
      *         <tt>FilterChain</tt>
      */
-    public void replace(String oldFilterName, Filter newFilter);
+    void replace(String oldFilterName, Filter newFilter);
     
     /**
      * Replaces the old {@link Filter} represented by the unique
@@ -496,7 +506,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      *         with the <tt>oldFilterName</tt> was not found in this
      *         <tt>FilterChain</tt>
      */
-    public void replace(String oldFilterName, Filter newFilter, String newFilterName);
+    void replace(String oldFilterName, Filter newFilter, String newFilterName);
 
     /**
      * Removes the first occurrence of the {@link Filter}.
@@ -505,7 +515,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return <tt>true</tt> if the {@link Filter} was found in the <tt>FilterChain</tt>
      *         and successfully removed, or <tt>false</tt> otherwise
      */
-    public boolean remove(Filter filter);
+    boolean remove(Filter filter);
     
     /**
      * Removes the {@link Filter} represented by the unique <tt>filterName</tt>.
@@ -514,7 +524,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return <tt>true</tt> if the {@link Filter} was found in the <tt>FilterChain</tt>
      *         and successfully removed, or <tt>false</tt> otherwise
      */
-    public boolean remove(String filterName);
+    boolean remove(String filterName);
     
     /**
      * Removes the first {@link Filter} in the chain and returns it as a result.
@@ -522,15 +532,17 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the removed {@link Filter}
      * @throws NoSuchElementException if the <tt>FilterChain</tt> is empty
      */
-    public Filter removeFirst();
+    @SuppressWarnings("unused")
+    Filter removeFirst();
     
     /**
      * Removes the last {@link Filter} in the chain and returns it as a result.
      * 
      * @return the removed {@link Filter}
      * @throws NoSuchElementException if the <tt>FilterChain</tt> is empty
-     */    
-    public Filter removeLast();
+     */
+    @SuppressWarnings("unused")
+    Filter removeLast();
     
     /**
      * Removes all the {@link Filter}s in the chain preceding the specified {@link Filter},
@@ -541,7 +553,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      *         with the <tt>filterName</tt> was not found in this
      *         <tt>FilterChain</tt>
      */
-    public void removeAllBefore(final String filterName);
+    void removeAllBefore(final String filterName);
     
     /**
      * Removes all the {@link Filter}s in the chain following the specified {@link Filter},
@@ -552,7 +564,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      *         with the <tt>filterName</tt> was not found in this
      *         <tt>FilterChain</tt>
      */
-    public void removeAllAfter(final String filterName);
+    void removeAllAfter(final String filterName);
     
     /**
      * Returns <tt>true</tt> if the {@link Filter} is registered in this
@@ -562,7 +574,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return <tt>true</tt> if the {@link Filter} is registered in this
      *         <tt>FilterChain</tt>, or <tt>false</tt> otherwise
      */
-    public boolean contains(Filter filter);
+    boolean contains(Filter filter);
     
     /**
      * Returns <tt>true</tt> if the {@link Filter} represented by the
@@ -573,8 +585,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return <tt>true</tt> if the {@link Filter} represented by the
      *         <tt>filterName</tt> is registered in this <tt>FilterChain</tt>,
      *         or <tt>false</tt> otherwise.
-     */    
-    public boolean contains(String filterName);
+     */
+    boolean contains(String filterName);
 
     /**
      * Returns an unmodifiable ordered {@link List} of all {@link Filter}
@@ -587,18 +599,18 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return an unmodifiable ordered {@link List} of all {@link Filter}
      *         registration names in this <tt>FilterChain</tt>
      */
-    public List<String> names();
+    List<String> names();
     
     /**
      * Removes all the {@link Filter}s from this <tt>FilterChain</tt>.
      */
-    public void clear();
+    void clear();
     
     /**
      * {@inheritDoc}
      */
     @Override
-    public FilterChainIterator iterator();
+    FilterChainIterator iterator();
 
     /**
      * Returns a chain iterator over the filters in this <tt>FilterChain</tt>
@@ -617,7 +629,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @throws NoSuchElementException if the {@link Filter} registered
      *         with the <tt>name</tt> was not found in this <tt>FilterChain</tt>
      */
-    public FilterChainIterator iterator(String name);
+    FilterChainIterator iterator(String name);
 
     /**
      * Returns a copy of this <tt>FilterChain</tt>, which contains the same set
@@ -633,7 +645,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * 
      * @see FilterState
      */
-    public FilterChain copy();
+    FilterChain copy();
     
     /**
      * Method processes occurred {@link Event} on this {@link FilterChain}.
@@ -641,7 +653,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @param context processing context
      * @return {@link ProcessorResult}
      */
-    public abstract ProcessorResult execute(FilterChainContext context);
+    ProcessorResult execute(FilterChainContext context);
 
     /**
      * Sends {@link TransportFilter#FLUSH_EVENT} associated with the specified
@@ -650,8 +662,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @param connection the {@link Connection}
      * @param completionHandler the {@link CompletionHandler}
      */
-    public abstract void flush(Connection connection,
-            CompletionHandler<WriteResult> completionHandler);
+    void flush(Connection connection,
+               CompletionHandler<WriteResult> completionHandler);
 
     /**
      * Sends custom {@link Event} associated with the specified
@@ -664,9 +676,9 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @param event the {@link Event}
      * @param completionHandler the {@link CompletionHandler}
      */
-    public abstract void fireEventUpstream(Connection connection,
-            Event event,
-            CompletionHandler<FilterChainContext> completionHandler);
+    void fireEventUpstream(Connection connection,
+                           Event event,
+                           CompletionHandler<FilterChainContext> completionHandler);
     
     /**
      * Sends custom {@link Event} associated with the specified
@@ -679,9 +691,9 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @param event the {@link Event}
      * @param completionHandler the {@link CompletionHandler}
      */
-    public abstract void fireEventDownstream(Connection connection,
-            Event event,
-            CompletionHandler<FilterChainContext> completionHandler);
+    void fireEventDownstream(Connection connection,
+                             Event event,
+                             CompletionHandler<FilterChainContext> completionHandler);
 
     /**
      * Executed blocking read operation using specified {@link FilterChainContext},
@@ -697,7 +709,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * 
      * @throws IOException 
      */
-    public abstract ReadResult read(FilterChainContext context) throws IOException;
+    ReadResult read(FilterChainContext context) throws IOException;
 
     /**
      * Notifies the {@link Filter}s in this <tt>FilterChain</tt> about the error
@@ -710,7 +722,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @param context the {@link FilterChainContext} for the current event.
      * @param failure the failure that triggered this method.
      */
-    public abstract void fail(FilterChainContext context, Throwable failure);
+    void fail(FilterChainContext context, Throwable failure);
     
     /**
      * Returns the {@link FilterChainContext} for the specified {@link Connection},
@@ -720,7 +732,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the {@link FilterChainContext} for the specified {@link Connection},
      *         which could be used to initialize filter chain processing
      */
-    public FilterChainContext obtainFilterChainContext(Connection connection);
+    FilterChainContext obtainFilterChainContext(Connection connection);
 
     /**
      * Returns the {@link FilterChainContext} for the specified {@link Connection},
@@ -733,8 +745,8 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the {@link FilterChainContext} for the specified {@link Connection},
      *         which could be used to initialize filter chain processing
      */
-    public FilterChainContext obtainFilterChainContext(Connection connection,
-            Closeable closeable);
+    FilterChainContext obtainFilterChainContext(Connection connection,
+                                                Closeable closeable);
 
     /**
      * Returns the {@link FilterChainContext} with the specified {@link Connection},
@@ -749,9 +761,9 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the {@link FilterChainContext} for the specified {@link Connection},
      *         which could be used to initialize filter chain processing
      */
-    public FilterChainContext obtainFilterChainContext(Connection connection,
-            FilterReg startFilterReg, FilterReg endFilterReg,
-            FilterReg currentFilterReg);
+    FilterChainContext obtainFilterChainContext(Connection connection,
+                                                FilterReg startFilterReg, FilterReg endFilterReg,
+                                                FilterReg currentFilterReg);
     
     /**
      * Returns the {@link FilterChainContext} with the specified {@link Connection},
@@ -769,7 +781,7 @@ public interface FilterChain extends Processor<Context>, Iterable<Filter> {
      * @return the {@link FilterChainContext} for the specified {@link Connection},
      *         which could be used to initialize filter chain processing
      */
-    public FilterChainContext obtainFilterChainContext(Connection connection,
-            FilterReg startFilterReg, FilterReg endFilterReg,
-            FilterReg currentFilterReg, Closeable closeable);    
+    FilterChainContext obtainFilterChainContext(Connection connection,
+                                                FilterReg startFilterReg, FilterReg endFilterReg,
+                                                FilterReg currentFilterReg, Closeable closeable);
 }
