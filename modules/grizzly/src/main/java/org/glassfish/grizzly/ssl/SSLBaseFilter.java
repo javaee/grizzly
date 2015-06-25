@@ -124,7 +124,7 @@ public class SSLBaseFilter extends BaseFilter {
     private long handshakeTimeoutMillis = -1;
         
     private SSLTransportFilterWrapper optimizedTransportFilter;
-    
+
     // ------------------------------------------------------------ Constructors
 
 
@@ -177,7 +177,7 @@ public class SSLBaseFilter extends BaseFilter {
     }
     
     /**
-     * @return {@link getServerSSLEngineFactory} used by the filter to create new
+     * @return {@link SSLEngineFactory} used by the filter to create new
      *      {@link SSLEngine} for server-side {@link Connection}s
      */
     public SSLEngineFactory getServerSSLEngineFactory() {
@@ -188,6 +188,7 @@ public class SSLBaseFilter extends BaseFilter {
         handshakeListeners.add(listener);
     }
     
+    @SuppressWarnings("unused")
     public void removeHandshakeListener(final HandshakeListener listener) {
         handshakeListeners.remove(listener);
     }
@@ -197,6 +198,7 @@ public class SSLBaseFilter extends BaseFilter {
      * @return the handshake timeout, <code>-1</code> if blocking handshake mode
      * is disabled (default)
      */
+    @SuppressWarnings("unused")
     public long getHandshakeTimeout(final TimeUnit timeUnit) {
         if (handshakeTimeoutMillis < 0) {
             return -1;
@@ -211,6 +213,7 @@ public class SSLBaseFilter extends BaseFilter {
      * non-blocking handshake mode.
      * @param timeUnit {@link TimeUnit}
      */
+    @SuppressWarnings("unused")
     public void setHandshakeTimeout(final long handshakeTimeout,
             final TimeUnit timeUnit) {
         if (handshakeTimeout < 0) {
@@ -362,7 +365,8 @@ public class SSLBaseFilter extends BaseFilter {
         }
 
         final Connection connection = ctx.getConnection();
-        
+
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized(connection) {
             final Buffer output =
                     wrapAll(ctx, obtainSslConnectionContext(connection));
@@ -1020,10 +1024,10 @@ public class SSLBaseFilter extends BaseFilter {
 
     } // END InternalProcessingHandler
     
-    public static interface HandshakeListener {
-        public void onStart(Connection connection);
-        public void onComplete(Connection connection);
-        public void onFailure(Connection connection, Throwable t);
+    public interface HandshakeListener {
+        void onStart(Connection connection);
+        void onComplete(Connection connection);
+        void onFailure(Connection connection, Throwable t);
     }
     
     protected class SSLTransportFilterWrapper extends TransportFilter {
