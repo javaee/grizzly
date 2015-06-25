@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -151,6 +151,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
      *
      * @param isDirect flag, indicating whether direct or heap based {@link Buffer}s will be allocated
      */
+    @SuppressWarnings("unused")
     public PooledMemoryManager(final boolean isDirect) {
         this(DEFAULT_BASE_BUFFER_SIZE,
                 DEFAULT_NUMBER_OF_POOLS,
@@ -898,12 +899,12 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
     } // END BufferPool
 
 
-    static interface PoolBuffer extends Buffer {
-        public PoolBuffer prepare();
-        public boolean free();
-        public PoolBuffer free(boolean free);
+    interface PoolBuffer extends Buffer {
+        PoolBuffer prepare();
+        boolean free();
+        PoolBuffer free(boolean free);
 
-        public PoolSlice owner();
+        PoolSlice owner();
     }
     
     private static final class PoolHeapBuffer extends HeapBuffer
@@ -933,7 +934,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          * Creates a new PoolBuffer instance wrapping the specified
          * {@link java.nio.ByteBuffer}.
          *
-         * @param underlyingByteBuffer the {@link java.nio.ByteBuffer} instance to wrap.
+         * @param heap the {@code byte[]} instance to wrap.
          * @param owner the {@link org.glassfish.grizzly.memory.PooledMemoryManager.PoolSlice} that owns
          *              this <tt>PoolBuffer</tt> instance.
          */
@@ -946,7 +947,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          * Creates a new PoolBuffer instance wrapping the specified
          * {@link java.nio.ByteBuffer}.
          *
-         * @param underlyingByteBuffer the {@link java.nio.ByteBuffer} instance to wrap.
+         * @param heap                 the {@code byte[]} instance to wrap.
          * @param owner                the {@link org.glassfish.grizzly.memory.PooledMemoryManager.PoolSlice} that owns
          *                             this <tt>PoolBuffer</tt> instance.
          *                             May be <tt>null</tt>.
@@ -1100,8 +1101,9 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          * Create a new {@link HeapBuffer} based on the current heap.
          * 
          * @param offs relative offset, the absolute value will calculated as (this.offset + offs)
-         * @param capacity
-         * @return
+         * @param capacity the capacity of this {@link HeapBuffer}.
+         *
+         * @return a new {@link HeapBuffer} based on the the method arguments.
          */
         @Override
         protected HeapBuffer createHeapBuffer(final int offs, final int capacity) {
@@ -1197,8 +1199,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             this.owner = owner;
             this.shareCount = shareCount;
             this.source = source != null ? source : this;
-            
-            assert this.source != null;
             
             this.origVisible = this.source.visible;
         }
