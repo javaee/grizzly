@@ -169,7 +169,7 @@ public class RequestURIRef {
 
     public final String getDecodedURI(final boolean isSlashAllowed,
             final boolean isBackSlashAllowed) throws CharConversionException {
-        return getDecodedURI(isSlashAllowed, isBackSlashAllowed, null);
+        return getDecodedURI(isSlashAllowed, isBackSlashAllowed, defaultURIEncoding);
     }
 
     public String getDecodedURI(final boolean isSlashAllowed,
