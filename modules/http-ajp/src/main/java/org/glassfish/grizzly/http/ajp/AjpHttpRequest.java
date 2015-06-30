@@ -201,7 +201,7 @@ public final class AjpHttpRequest extends HttpRequestPacket {
     }
     
     /**
-     * Get the instance id (or JVM route). Curently Ajp is sending it with each
+     * Get the instance id (or JVM route). Currently Ajp is sending it with each
      * request. In future this should be fixed, and sent only once ( or
      * 'negotiated' at config time so both tomcat and apache share the same name.
      *
