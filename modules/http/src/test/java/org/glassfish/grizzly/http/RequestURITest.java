@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http;
 
 import java.io.CharConversionException;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.util.ByteChunk;
@@ -49,6 +50,7 @@ import org.glassfish.grizzly.http.util.Constants;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.memory.Buffers;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.utils.Charsets;
 
 /**
@@ -114,6 +116,30 @@ public class RequestURITest extends TestCase {
         assertEquals(url, rur.getOriginalRequestURIBC().toString());
     }
 
+    public void testDefaultEncoding() throws Exception {
+        String pattern = new String(
+                new byte[] {'/', (byte) 0x82, (byte) 0xc4, (byte) 0x82,
+                    (byte) 0xb7, (byte) 0x82, (byte) 0xc6, '.', 'j', 's', 'p'},
+                "Shift_JIS");
+        
+        final Buffer b = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER,
+                "/%82%c4%82%b7%82%c6.jsp");
+        
+        RequestURIRef rur = new RequestURIRef();
+        
+        rur.init(b, 0, b.capacity());
+        
+        try {
+            rur.getDecodedRequestURIBC(false);
+            fail("Exception must be thrown");
+        } catch (CharConversionException e) {
+        }
+        
+        rur.setDefaultURIEncoding(Charset.forName("Shift_JIS"));
+        
+        assertEquals(pattern, rur.getDecodedURI());
+    }
+    
     public void testURIChangeTrigger() {
         RequestURIRef rur = new RequestURIRef();
         rur.init(buffer, 0, buffer.capacity());
