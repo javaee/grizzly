@@ -88,7 +88,6 @@ public class HttpInputStreamsTest extends AbstractHttp2Test {
 
     private static final int PORT = 18300;
 
-
     private final boolean isSecure;
     
     public HttpInputStreamsTest(final boolean isSecure) {
