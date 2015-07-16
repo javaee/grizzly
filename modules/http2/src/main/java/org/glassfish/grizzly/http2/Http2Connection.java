@@ -252,6 +252,11 @@ public abstract class Http2Connection {
                 priority);
     }
     
+    protected Http2Stream newUpgradeStream(final HttpRequestPacket request,
+            final int priority) {
+        
+        return new Http2Stream(this, request, priority);
+    }
 
     protected void checkFrameSequenceSemantics(final Http2Frame frame)
             throws Http2ConnectionException {
@@ -817,6 +822,13 @@ public abstract class Http2Connection {
      * within {@link #getNewClientStreamLock()} lock scope.
      * The caller code is responsible for obtaining and releasing the mentioned
      * {@link #getNewClientStreamLock()} lock.
+     * @param request
+     * @param streamId
+     * @param refStreamId
+     * @param priority
+     * @param fin
+     * @return 
+     * @throws org.glassfish.grizzly.http2.Http2StreamException 
      */
     public Http2Stream openStream(final HttpRequestPacket request,
             final int streamId, final int refStreamId, 
@@ -830,7 +842,8 @@ public abstract class Http2Connection {
         
         synchronized(sessionLock) {
             if (isClosed()) {
-                return null; // if the session is closed is set - return null to ignore stream creation
+                throw new Http2StreamException(streamId,
+                        ErrorCode.REFUSED_STREAM, "Session is closed");
             }
             
             if (streamsMap.size() >= getLocalMaxConcurrentStreams()) {
@@ -854,6 +867,37 @@ public abstract class Http2Connection {
         return stream;
     }
 
+    /**
+     * Method is not thread-safe, it is expected that it will be called
+     * within {@link #getNewClientStreamLock()} lock scope.
+     * The caller code is responsible for obtaining and releasing the mentioned
+     * {@link #getNewClientStreamLock()} lock.
+     * @param request
+     * @param priority
+     * @param fin
+     * @return 
+     * @throws org.glassfish.grizzly.http2.Http2StreamException 
+     */
+    public Http2Stream openUpgradeStream(final HttpRequestPacket request,
+            final int priority, final boolean fin)
+            throws Http2StreamException {
+        
+        request.setExpectContent(!fin);
+        final Http2Stream stream = newUpgradeStream(request, priority);
+        
+        synchronized(sessionLock) {
+            if (isClosed()) {
+                throw new Http2StreamException(Http2Stream.UPGRADE_STREAM_ID,
+                        ErrorCode.REFUSED_STREAM, "Session is closed");
+            }
+            
+            streamsMap.put(Http2Stream.UPGRADE_STREAM_ID, stream);
+            lastLocalStreamId = Http2Stream.UPGRADE_STREAM_ID;
+        }
+        
+        return stream;
+    }
+    
     /**
      * Initializes HTTP2 communication (if not initialized before) by forming
      * HTTP2 connection and stream {@link FilterChain}s.

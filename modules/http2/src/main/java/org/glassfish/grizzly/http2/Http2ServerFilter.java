@@ -364,8 +364,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
         httpResponse.getProcessingState().setKeepAlive(true);
         
         // create a virtual stream for this request
-        final Http2Stream stream = http2Connection.openStream(
-                httpRequest, 1, 0, 0, !httpRequest.isExpectContent());
+        final Http2Stream stream = http2Connection.openUpgradeStream(
+                httpRequest, 0, !httpRequest.isExpectContent());
         
         // replace the HttpContext
         final HttpContext httpContext = HttpContext.newInstance(stream,

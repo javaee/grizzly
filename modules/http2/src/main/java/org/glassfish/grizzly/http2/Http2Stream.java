@@ -70,19 +70,23 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
 import org.glassfish.grizzly.utils.Futures;
 
-import static org.glassfish.grizzly.http2.Constants.*;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
+
+import static org.glassfish.grizzly.http2.Constants.*;
+
 /**
- * The abstraction representing SPDY stream.
+ * The abstraction representing HTTP2 stream.
  * 
  * @author Grizzly team
  */
 public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     public static final String HTTP2_STREAM_ATTRIBUTE = Http2Stream.class.getName();
 
+    static final int UPGRADE_STREAM_ID = 1;
+    
     private enum CompletionUnit {
         Input, Output, Complete
     }
@@ -110,7 +114,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
             new ConcurrentLinkedQueue<CloseListener>();
     private final AtomicInteger completeFinalizationCounter = new AtomicInteger();
     
-    // flag, which is indicating if SpdyStream processing has been marked as complete by external code
+    // flag, which is indicating if Http2Stream processing has been marked as complete by external code
     volatile boolean isProcessingComplete;
     
     // the counter for inbound HeaderFrames
@@ -148,12 +152,39 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         this.refStreamId = refStreamId;
         this.priority = priority;
         
-        inputBuffer = new StreamInputBuffer(this);
-        outputSink = new StreamOutputSink(this);
+        inputBuffer = new DefaultInputBuffer(this);
+        outputSink = new DefaultOutputSink(this);
         
         HTTP_RQST_HTTP2_STREAM_ATTR.set(request, this);
     }
 
+    /**
+     * Construct upgrade stream, which is half HTTP, half HTTP2
+     * 
+     * @param http2Connection
+     * @param request
+     * @param priority 
+     */
+    protected Http2Stream(final Http2Connection http2Connection,
+            final HttpRequestPacket request,
+            final int priority) {
+        this.http2Connection = http2Connection;
+        this.request = request;
+        this.streamId = UPGRADE_STREAM_ID;
+        this.refStreamId = 0;
+        this.priority = priority;
+        
+        inputBuffer = http2Connection.isServer()
+                ? new UpgradeInputBuffer()
+                : new DefaultInputBuffer(this);
+        
+        outputSink = http2Connection.isServer()
+                ? new DefaultOutputSink(this)
+                : new UpgradeOutputSink(http2Connection);
+        
+        HTTP_RQST_HTTP2_STREAM_ATTR.set(request, this);
+    }
+    
     Http2Connection getHttp2Connection() {
         return http2Connection;
     }
@@ -347,7 +378,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     }
 
     /**
-     * Notifies the SpdyStream that it's been closed remotely.
+     * Notifies the Http2Stream that it's been closed remotely.
      */
     void closedRemotely() {
         // Schedule (add to the stream's input queue) the Termination,
@@ -363,7 +394,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     }
     
     /**
-     * Notify the SpdyStream that peer sent RST_FRAME.
+     * Notify the Http2Stream that peer sent RST_FRAME.
      */
     void resetRemotely() {
         if (closeReasonRef.compareAndSet(null,

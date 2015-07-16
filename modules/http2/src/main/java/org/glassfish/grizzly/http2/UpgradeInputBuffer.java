@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,7 +37,6 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
@@ -45,46 +44,51 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpContent;
 
 /**
- *
- * @author oleksiys
+ * The {@link StreamInputBuffer} implementation, which is used when upgrading
+ * HTTP -> HTTP/2 connections.
+ * 
+ * @author Alexey Stashok
  */
-interface StreamInputBuffer {
-    /**
-     * The method will be invoked once upstream completes READ operation processing.
-     * Here we have to simulate NIO OP_READ event re-registration.
-     */
-    void onReadEventComplete();
+class UpgradeInputBuffer implements StreamInputBuffer {
 
-    /**
-     * The method is called, when new input data arrives.
-     */
-    boolean offer(final Buffer data, final boolean isLast);
-
-    /**
-     * Retrieves available input buffer payload, waiting up to the
-     * {@link Connection#getReadTimeout(java.util.concurrent.TimeUnit)}
-     * wait time if necessary for payload to become available.
-     * 
-     * @throws IOException
-     */
-    HttpContent poll() throws IOException;
-
-    /**
-     * Graceful input buffer close.
-     * 
-     * Marks the input buffer as closed by adding Termination input element to the input queue.
-     */
-    void close(final Http2Stream.Termination termination);
-
-    /**
-     * Forcibly closes the input buffer.
-     * 
-     * All the bufferred data will be discarded.
-     */
-    void terminate(final Http2Stream.Termination termination);
+    private boolean isClosed;
     
-    /**
-     * Returns <tt>true</tt> if the <tt>InputBuffer</tt> has been closed.
-     */
-    boolean isClosed();
+    @Override
+    public void onReadEventComplete() {
+        throw new UnsupportedOperationException("Not supported");
+    }
+
+    @Override
+    public boolean offer(Buffer data, boolean isLast) {
+        throw new UnsupportedOperationException("Not supported");
+    }
+
+    @Override
+    public HttpContent poll() throws IOException {
+        throw new UnsupportedOperationException("Not supported");
+    }
+
+    @Override
+    public void close(Http2Stream.Termination termination) {
+        terminate(termination);
+    }
+
+    @Override
+    public void terminate(Http2Stream.Termination termination) {
+        synchronized (this) {
+            if (isClosed) {
+                return;
+            }
+            
+            isClosed = true;
+        }
+        
+        termination.doTask();
+    }
+
+    @Override
+    public synchronized boolean isClosed() {
+        return isClosed;
+    }
+    
 }
