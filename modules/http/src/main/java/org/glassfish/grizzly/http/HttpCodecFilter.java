@@ -949,7 +949,10 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             
             parsingState.isContentLengthHeader = false;
         } else if (parsingState.isTransferEncodingHeader) {
-            if (ByteChunk.startsWith(input, start, end,
+            // here we do case-insensitive ByteChunk.startsWith(...)
+            if (end - start >= CHUNKED_ENCODING_BYTES.length &&
+                    ByteChunk.equalsIgnoreCaseLowerCase(input, start,
+                    start + CHUNKED_ENCODING_BYTES.length,
                     CHUNKED_ENCODING_BYTES)) {
                 httpHeader.setChunked(true);
             }
