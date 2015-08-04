@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -357,9 +357,9 @@ public class BasicAjpTest extends AjpTestBase {
 
         Buffer responseBuffer = send("localhost", PORT, request).get(10, TimeUnit.SECONDS);
 
-        // Successful response length is 37 bytes.  This includes the status
+        // Successful response length is 16 bytes.  This includes the status
         // line and a content-length
-        boolean isFailure = responseBuffer.remaining() != 37;
+        boolean isFailure = responseBuffer.remaining() != 16;
 
         if (isFailure) {
             byte[] response = new byte[responseBuffer.remaining()];
@@ -417,9 +417,9 @@ public class BasicAjpTest extends AjpTestBase {
                 Buffers.appendBuffers(mm, requestPart1, requestPart2))
                 .get(10, TimeUnit.SECONDS);
 
-        // Successful response length is 37 bytes.  This includes the status
+        // Successful response length is 16 bytes.  This includes the status
         // line and a content-length
-        boolean isFailure = responseBuffer.remaining() != 37;
+        boolean isFailure = responseBuffer.remaining() != 16;
 
         if (isFailure) {
             byte[] response = new byte[responseBuffer.remaining()];
@@ -468,9 +468,9 @@ public class BasicAjpTest extends AjpTestBase {
         
         Buffer responseBuffer = send("localhost", PORT, request).get(10, TimeUnit.SECONDS);
 
-        // Successful response length is 37 bytes.  This includes the status
+        // Successful response length is 16 bytes.  This includes the status
         // line and a content-length
-        boolean isFailure = responseBuffer.remaining() != 37;
+        boolean isFailure = responseBuffer.remaining() != 16;
 
         if (isFailure) {
             byte[] response = new byte[responseBuffer.remaining()];
@@ -532,9 +532,9 @@ public class BasicAjpTest extends AjpTestBase {
         
         Buffer responseBuffer = send("localhost", PORT, request).get(60, TimeUnit.SECONDS);
 
-        // Successful response length is 37 bytes.  This includes the status
+        // Successful response length is 16 bytes.  This includes the status
         // line and a content-length
-        boolean isFailure = responseBuffer.remaining() != 37;
+        boolean isFailure = responseBuffer.remaining() != 16;
 
         if (isFailure) {
             byte[] response = new byte[responseBuffer.remaining()];
