@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -83,7 +83,7 @@ import static org.junit.Assert.*;
 public class BasicAjpTest extends AjpTestBase {
     private static final Logger LOGGER = Grizzly.logger(BasicAjpTest.class);
     @Test
-    public void test100ContinuePost() throws IOException, InstantiationException, Exception {
+    public void test100ContinuePost() throws Exception {
         HttpHandler httpHanlder = new HttpHandler() {
 
             @Override
@@ -145,7 +145,7 @@ public class BasicAjpTest extends AjpTestBase {
      * @throws Exception 
      */
     @Test
-    public void testZeroContentLengthGet() throws IOException, InstantiationException, Exception {
+    public void testZeroContentLengthGet() throws Exception {
         HttpHandler httpHanlder = new HttpHandler() {
 
             @Override
@@ -197,7 +197,7 @@ public class BasicAjpTest extends AjpTestBase {
      * @throws Exception 
      */
     @Test
-    public void testZeroContentLengthPost() throws IOException, InstantiationException, Exception {
+    public void testZeroContentLengthPost() throws Exception {
         HttpHandler httpHanlder = new HttpHandler() {
 
             @Override
@@ -260,6 +260,7 @@ public class BasicAjpTest extends AjpTestBase {
         try {
             s.getOutputStream().write("junkjunkjunk".getBytes());
             s.getOutputStream().flush();
+            //noinspection StatementWithEmptyBody
             while (s.getInputStream().read() != -1) {}
         } finally {
             s.close();
@@ -395,9 +396,9 @@ public class BasicAjpTest extends AjpTestBase {
 
         Buffer responseBuffer = send("localhost", PORT, request).get(10, TimeUnit.SECONDS);
 
-        // Successful response length is 37 bytes.  This includes the status
+        // Successful response length is 16 bytes.  This includes the status
         // line and a content-length
-        boolean isFailure = responseBuffer.remaining() != 37;
+        boolean isFailure = responseBuffer.remaining() != 16;
 
         if (isFailure) {
             byte[] response = new byte[responseBuffer.remaining()];
@@ -455,9 +456,9 @@ public class BasicAjpTest extends AjpTestBase {
                 Buffers.appendBuffers(mm, requestPart1, requestPart2))
                 .get(10, TimeUnit.SECONDS);
 
-        // Successful response length is 37 bytes.  This includes the status
+        // Successful response length is 16 bytes.  This includes the status
         // line and a content-length
-        boolean isFailure = responseBuffer.remaining() != 37;
+        boolean isFailure = responseBuffer.remaining() != 16;
 
         if (isFailure) {
             byte[] response = new byte[responseBuffer.remaining()];
@@ -480,7 +481,7 @@ public class BasicAjpTest extends AjpTestBase {
                 
                 if (isOk) {
                     try {
-                        assertEquals((Integer) 256, (Integer) request.getAttribute(SSLSupport.KEY_SIZE_KEY));
+                        assertEquals((Integer) 256, request.getAttribute(SSLSupport.KEY_SIZE_KEY));
                         assertNotNull(request.getAttribute(SSLSupport.SESSION_ID_KEY));
                         assertNotNull(request.getAttribute(SSLSupport.CIPHER_SUITE_KEY));
                         assertNotNull(request.getAttribute(SSLSupport.CERTIFICATE_KEY));
@@ -506,9 +507,9 @@ public class BasicAjpTest extends AjpTestBase {
         
         Buffer responseBuffer = send("localhost", PORT, request).get(10, TimeUnit.SECONDS);
 
-        // Successful response length is 37 bytes.  This includes the status
+        // Successful response length is 16 bytes.  This includes the status
         // line and a content-length
-        boolean isFailure = responseBuffer.remaining() != 37;
+        boolean isFailure = responseBuffer.remaining() != 16;
 
         if (isFailure) {
             byte[] response = new byte[responseBuffer.remaining()];
@@ -570,9 +571,9 @@ public class BasicAjpTest extends AjpTestBase {
         
         Buffer responseBuffer = send("localhost", PORT, request).get(60, TimeUnit.SECONDS);
 
-        // Successful response length is 37 bytes.  This includes the status
+        // Successful response length is 16 bytes.  This includes the status
         // line and a content-length
-        boolean isFailure = responseBuffer.remaining() != 37;
+        boolean isFailure = responseBuffer.remaining() != 16;
 
         if (isFailure) {
             byte[] response = new byte[responseBuffer.remaining()];
