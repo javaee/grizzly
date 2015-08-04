@@ -63,6 +63,10 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
  */
 public interface Buffer extends Comparable<Buffer>, WritableMessage {
 
+    /**
+     * @return {@code true} if this {@link Buffer} represents a composite
+     *  of individual {@link Buffer} instances.
+     */
     boolean isComposite();
 
     /**
