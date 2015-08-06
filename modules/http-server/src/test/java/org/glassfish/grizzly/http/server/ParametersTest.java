@@ -40,13 +40,16 @@
 
 package org.glassfish.grizzly.http.server;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.Socket;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpContent;
@@ -62,16 +65,15 @@ import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.DelayFilter;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.Random;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
 import static org.glassfish.grizzly.http.server.NetworkListener.DEFAULT_NETWORK_HOST;
+import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.utils.Futures;
 
 @SuppressWarnings("unchecked")
 public class ParametersTest {
@@ -86,7 +88,7 @@ public class ParametersTest {
         final HttpServer server = createServer();
         final String body = generatePostBody(1024 * 3);
         final String[][] paramParts = getParts(body);
-        final AtomicReference<Throwable> error = new AtomicReference<Throwable>(null);
+        final FutureImpl<Boolean> resultFuture = Futures.<Boolean>createSafeFuture();
         server.getServerConfiguration().addHttpHandler(
                 new HttpHandler() {
                     @Override
@@ -96,8 +98,9 @@ public class ParametersTest {
                             try {
                                 assertNotNull("value is null", value);
                                 assertEquals(paramParts[i][1], value);
+                                resultFuture.result(Boolean.TRUE);
                             } catch (Throwable t) {
-                                error.set(t);
+                                resultFuture.failure(t);
                             }
                         }
                     }
@@ -107,19 +110,11 @@ public class ParametersTest {
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance().build();
         try {
-            final CountDownLatch latch = new CountDownLatch(1);
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new DelayFilter(0, 500));
             clientFilterChainBuilder.add(new ChunkingFilter(256));
             clientFilterChainBuilder.add(new HttpClientFilter());
-            clientFilterChainBuilder.add(new BaseFilter() {
-                @Override
-                public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                    latch.countDown();
-                    return ctx.getStopAction();
-                }
-            });
             clientTransport.setFilterChain(clientFilterChainBuilder.build());
             clientTransport.start();
 
@@ -137,8 +132,7 @@ public class ParametersTest {
             HttpContent content = HttpContent.builder(request).content(bodyBuffer).last(true).build();
             Connection c = future.get(10, TimeUnit.SECONDS);
             c.write(content);
-            latch.await(10, TimeUnit.SECONDS);
-            assertNull("Null is expected, but was: " + error.get(), error.get());
+            resultFuture.get(10, TimeUnit.SECONDS);
         } finally {
             server.shutdownNow();
             clientTransport.shutdownNow();
@@ -154,7 +148,7 @@ public class ParametersTest {
         final HttpServer server = createServer();
         final String body = generatePostBody(1024 * 3);
         final String[][] paramParts = getParts(body);
-        final AtomicReference<Throwable> error = new AtomicReference<Throwable>(null);
+        final FutureImpl<Boolean> resultFuture = Futures.<Boolean>createSafeFuture();
         server.getServerConfiguration().addHttpHandler(
                 new HttpHandler() {
                     @Override
@@ -167,8 +161,9 @@ public class ParametersTest {
                                 assertEquals(request.getCharacterEncoding(), "UTF-8");
                                 assertNotNull("value is null", value);
                                 assertEquals(paramParts[i][1], value);
+                                resultFuture.result(Boolean.TRUE);
                             } catch (Throwable t) {
-                                error.set(t);
+                                resultFuture.failure(t);
                             }
                         }
                     }
@@ -178,17 +173,9 @@ public class ParametersTest {
         final TCPNIOTransport clientTransport =
                 TCPNIOTransportBuilder.newInstance().build();
         try {
-            final CountDownLatch latch = new CountDownLatch(1);
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new HttpClientFilter());
-            clientFilterChainBuilder.add(new BaseFilter() {
-                @Override
-                public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                    latch.countDown();
-                    return ctx.getStopAction();
-                }
-            });
             clientTransport.setFilterChain(clientFilterChainBuilder.build());
             clientTransport.start();
 
@@ -206,18 +193,66 @@ public class ParametersTest {
             HttpContent content = HttpContent.builder(request).content(bodyBuffer).last(true).build();
             Connection c = future.get(10, TimeUnit.SECONDS);
             c.write(content);
-            latch.await(10, TimeUnit.SECONDS);
-            assertNull("Null is expected, but was: " + error.get(), error.get());
+            resultFuture.get(10, TimeUnit.SECONDS);
         } finally {
             server.shutdownNow();
             clientTransport.shutdownNow();
         }
-
     }
     
+    /**
+     * Test customized query string encoding
+     * https://java.net/jira/browse/GRIZZLY-1794
+     */
+    @Test
+    public void testQueryStringCharsetEncoding() throws Exception {
+        final HttpServer server = createServer();
+        final FutureImpl<Boolean> resultFuture = Futures.<Boolean>createSafeFuture();
+        server.getServerConfiguration().setDefaultQueryEncoding(Charsets.UTF8_CHARSET);
+        server.getServerConfiguration().addHttpHandler(
+                new HttpHandler() {
+                    @Override
+                    public void service(Request request, Response response) throws Exception {
+                        try {
+                            assertEquals("msg=Hello\\World+With+SpecChars+§*)$!±@-_=;`:\\,~|", request.getQueryString());
+                            resultFuture.result(Boolean.TRUE);
+                        } catch (Throwable t) {
+                            resultFuture.failure(t);
+                        }
+                    }
+                }
+                , "/*");
 
+        Socket socket = null;
+        try {
+            server.start();
+            
+            // Low level approach with sockets is used, because common Java HTTP clients are using java.net.URI,
+            // which fails when unencoded curly bracket is part of the URI
+            socket = new Socket("localhost", PORT);
+            final PrintWriter pw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+
+            pw.println("GET /app/test?msg=Hello\\World+With+SpecChars+§*)$!±@-_=;`:\\,~| HTTP/1.0");
+            pw.println(); // http request should end with a blank line
+            pw.flush();
+
+            final BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            while (br.readLine() != null);
+            pw.close();
+            br.close();
+
+            resultFuture.get(10, TimeUnit.SECONDS);
+
+        } finally {
+            server.shutdownNow();
+            if (socket != null) {
+                socket.close();
+            }
+        }
+    }
+    
     // -------------------------------------------------------- Private Methods
-
 
     private static HttpServer createServer() {
         HttpServer server = new HttpServer();

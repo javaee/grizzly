@@ -1667,16 +1667,15 @@ public class Request {
 
 
     /**
-     * Return the query string associated with this request.
+     * @return the query string associated with this request.
      */
     public String getQueryString() {
-        String queryString = request.getQueryString();
-
-        if (queryString == null || queryString.isEmpty()) {
-            return null;
-        } else {
-            return queryString;
-        }
+        final String queryString = request.getQueryStringDC().toString(
+                parameters.getQueryStringEncoding());
+        
+        return queryString == null || queryString.isEmpty()
+                ? null
+                : queryString;
     }
 
     /**
