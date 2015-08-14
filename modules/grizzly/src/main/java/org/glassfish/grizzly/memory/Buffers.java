@@ -48,6 +48,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Formatter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Appender;
@@ -68,6 +69,26 @@ public class Buffers {
 
     private static final Appender<Buffer> APPENDER_DISPOSABLE = new BuffersAppender(true);
     private static final Appender<Buffer> APPENDER_NOT_DISPOSABLE = new BuffersAppender(false);
+
+    private static final String[] DUMP_STRINGS = {
+            "%10d   %02x                                                         %c\n",
+            "%10d   %02x %02x                                                      %c%c\n",
+            "%10d   %02x %02x  %02x                                                  %c%c%c\n",
+            "%10d   %02x %02x  %02x %02x                                               %c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x                                           %c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x                                        %c%c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x                                    %c%c%c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x                                 %c%c%c%c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x                           %c%c%c%c%c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x                        %c%c%c%c%c%c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x                    %c%c%c%c%c%c%c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x                 %c%c%c%c%c%c%c%c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x             %c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x %02x          %c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x %02x  %02x      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x %02x  %02x %02x   %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n"
+    };
+
 
 
     /**
@@ -102,6 +123,7 @@ public class Buffers {
     }
     
     public static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
+    @SuppressWarnings("unused")
     public static final ByteBuffer[] EMPTY_BYTE_BUFFER_ARRAY = new ByteBuffer[0];
 
     public static final Buffer EMPTY_BUFFER;
@@ -397,7 +419,7 @@ public class Buffers {
      * be returned as result.
      * If the first {@link Buffer} is {@link CompositeBuffer} then the second
      * {@link Buffer} will be appended to it via
-     * {@link CompositeBuffer#append(java.lang.Object)}, else if the second
+     * {@link CompositeBuffer#append(Buffer)}, else if the second
      * {@link Buffer} is {@link CompositeBuffer} then the first {@link Buffer}
      * will be prepended to it via
      * {@link CompositeBuffer#prepend(org.glassfish.grizzly.Buffer)}.
@@ -425,7 +447,7 @@ public class Buffers {
      * be returned as result.
      * If the first {@link Buffer} is {@link CompositeBuffer} then the second
      * {@link Buffer} will be appended to it via
-     * {@link CompositeBuffer#append(java.lang.Object)}, else if the second
+     * {@link CompositeBuffer#append(Buffer)}, else if the second
      * {@link Buffer} is {@link CompositeBuffer} then the first {@link Buffer}
      * will be prepended to it via
      * {@link CompositeBuffer#prepend(org.glassfish.grizzly.Buffer)}.
@@ -741,7 +763,84 @@ public class Buffers {
         
         return sb.toString();
     }
-    
+
+    /**
+     * Generates a hex dump of the provided {@link Buffer}.
+     * @param appendable the {@link Appendable} to write the hex dump to.
+     * @param buffer the {@link Buffer} to dump.
+     *
+     * @since 2.3.23
+     */
+    @SuppressWarnings("unused")
+    public static void dumpBuffer(final Appendable appendable, final Buffer buffer) {
+        final Formatter formatter = new Formatter(appendable);
+        if (buffer.isComposite()) {
+            final BufferArray bufferArray = buffer.toBufferArray();
+            final int size = bufferArray.size();
+            final Buffer[] buffers = bufferArray.getArray();
+            formatter.format("%s\n", buffer.toString());
+            for (int i = 0; i < size; i++) {
+                dumpBuffer0(formatter, buffers[i]);
+            }
+            formatter.format("End CompositeBuffer (%d)", System.identityHashCode(buffer));
+        } else {
+            dumpBuffer0(formatter, buffer);
+        }
+    }
+
+
+    private static void dumpBuffer0(final Formatter formatter, final Buffer buffer) {
+        formatter.format("%s\n", buffer.toString());
+        int line = 0;
+        for (int i = 0, len = buffer.remaining() / 16; i < len; i++, line += 16) {
+            byte b0  = buffer.get(line);
+            byte b1  = buffer.get(line + 1);
+            byte b2  = buffer.get(line + 2);
+            byte b3  = buffer.get(line + 3);
+            byte b4  = buffer.get(line + 4);
+            byte b5  = buffer.get(line + 5);
+            byte b6  = buffer.get(line + 6);
+            byte b7  = buffer.get(line + 7);
+            byte b8  = buffer.get(line + 8);
+            byte b9  = buffer.get(line + 9);
+            byte b10 = buffer.get(line + 10);
+            byte b11 = buffer.get(line + 11);
+            byte b12 = buffer.get(line + 12);
+            byte b13 = buffer.get(line + 13);
+            byte b14 = buffer.get(line + 14);
+            byte b15 = buffer.get(line + 15);
+
+            formatter.format(DUMP_STRINGS[15],
+                    line,
+                    b0, b1, b2, b3, b4, b5, b6, b7, b8,
+                    b9, b10, b11, b12, b13, b14, b15,
+                    getChar(b0), getChar(b1), getChar(b2), getChar(b3),
+                    getChar(b4), getChar(b5), getChar(b6), getChar(b7),
+                    getChar(b8), getChar(b9), getChar(b10), getChar(b11),
+                    getChar(b12), getChar(b13), getChar(b14), getChar(b15));
+        }
+        int remaining = buffer.remaining() % 16;
+        if (remaining > 0) {
+            final Object[] args = new Object[(remaining << 1) + 1];
+            args[0] = remaining + line;
+            for (int i = 0, aIdx = 1; i < remaining; i++, aIdx++) {
+                final int b = buffer.get(line + i);
+                args[aIdx] = b;
+                args[aIdx + remaining] = getChar(b);
+            }
+            formatter.format(DUMP_STRINGS[remaining - 1], args);
+        }
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private static char getChar(final int val) {
+        final char c = (char) val;
+        return ((Character.isWhitespace(c) || Character.isISOControl(c)) ? '.' : c);
+    }
+
     private static MemoryManager getDefaultMemoryManager() {
         return MemoryManager.DEFAULT_MEMORY_MANAGER;
     }
