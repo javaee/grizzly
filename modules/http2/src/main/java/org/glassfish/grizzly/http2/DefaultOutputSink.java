@@ -58,7 +58,6 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
-import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
 import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
 import org.glassfish.grizzly.memory.Buffers;
 
@@ -604,8 +603,10 @@ class DefaultOutputSink implements StreamOutputSink {
      * @return the amount of data that may be written.
      */
     private int checkOutputWindow(final long size) {
-        // take a snapshot of the current output window state
-        return Math.min(availStreamWindowSize.get(), (int) size);
+        // take a snapshot of the current output window state and check if we
+        // can fit "size" into window.
+        // Make sure we return positive value or zero, because availStreamWindowSize could be negative.
+        return Math.max(0, Math.min(availStreamWindowSize.get(), (int) size));
     }
 
     private Buffer splitOutputBufferIfNeeded(final Buffer buffer,
@@ -615,15 +616,6 @@ class DefaultOutputSink implements StreamOutputSink {
         }
 
         return buffer.split(buffer.position() + length);
-    }
-
-    @Override
-    public void writeWindowUpdate(final int currentUnackedBytes) {
-        http2Connection.getOutputSink().writeDownStream(
-                WindowUpdateFrame.builder()
-                        .streamId(stream.getId())
-                        .windowSizeIncrement(currentUnackedBytes)
-                        .build());
     }
 
     private void flushToConnectionOutputSink(

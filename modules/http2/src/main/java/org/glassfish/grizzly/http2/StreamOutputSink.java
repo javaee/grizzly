@@ -94,8 +94,6 @@ interface StreamOutputSink {
     public void writeDownStream(Source source, FilterChainContext ctx)
             throws IOException;
     
-    public void writeWindowUpdate(final int currentUnackedBytes);
-    
     /**
      * Flush {@link Http2Stream} output and notify {@link CompletionHandler} once
      * all output data has been flushed.

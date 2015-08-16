@@ -107,6 +107,9 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     final StreamInputBuffer inputBuffer;
     final StreamOutputSink outputSink;
     
+    // number of bytes reported to be read, but still unacked to the peer
+    final AtomicInteger unackedReadBytes  = new AtomicInteger();
+    
     // closeReasonRef, "null" value means the connection is open.
     final AtomicReference<CloseReason> closeReasonRef =
             new AtomicReference<CloseReason>();
@@ -554,7 +557,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
                 // if we can't add this buffer to the stream input buffer -
                 // we have to release the part of connection window allocated
                 // for the buffer
-                http2Connection.sendWindowUpdate(size);
+                http2Connection.ackConsumedData(size);
             }
         }
     }

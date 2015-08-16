@@ -234,12 +234,12 @@ public class SettingsFrame extends Http2Frame {
             final int id = settings[i].id;
             final int value = settings[i].value;
             
-            
+
             threeBytesToBase64Uri(
-                    id >>> 24, (id >> 16) & 0xFF, (id >> 8) & 0xFF, sb);
-            
+                    (id >> 8) & 0xFF, id & 0xFF, value >>> 24, sb);
+
             threeBytesToBase64Uri(
-                    id & 0xFF, (value >> 8) & 0xFF, value & 0xFF, sb);
+                    (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF, sb);
         }
         
         return sb.toString();

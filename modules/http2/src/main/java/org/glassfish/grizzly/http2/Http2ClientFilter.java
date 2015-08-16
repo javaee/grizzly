@@ -352,8 +352,8 @@ public class Http2ClientFilter extends Http2BaseFilter {
         
         // create a virtual stream for this request
         
-        final Http2Stream stream = http2Connection.openStream(
-                httpRequest, 1, 0, 0, true);
+        final Http2Stream stream = http2Connection.openUpgradeStream(
+                httpRequest, 0, true);
         
         final HttpContext oldHttpContext =
                 httpResponse.getProcessingState().getHttpContext();

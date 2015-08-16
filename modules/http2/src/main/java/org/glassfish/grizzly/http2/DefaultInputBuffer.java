@@ -85,8 +85,6 @@ class DefaultInputBuffer implements StreamInputBuffer {
     private final Object expectInputSwitchSync = new Object();
     private boolean expectInputSwitch;
     
-    private final AtomicInteger unackedReadBytes  = new AtomicInteger();
-    
     private long remainingContentLength = NULL_CONTENT_LENGTH;
     
     DefaultInputBuffer(final Http2Stream stream) {
@@ -218,7 +216,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
                             payload, data);
                     
                     // notify peer that data.remaining() has been read (update window)
-                    sendWindowUpdate(data);
+                    http2Connection.ackConsumedData(stream, bufSz(data));
                 } else if (payload == null) {
                     payload = data;
                 }
@@ -324,7 +322,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
         }
         
         // send window_update notification
-        sendWindowUpdate(buffer);
+        http2Connection.ackConsumedData(stream, bufSz(buffer));
 
         return buffer;
     }    
@@ -374,7 +372,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
             }
             
             if (szToRelease > 0) {
-                http2Connection.sendWindowUpdate(szToRelease);
+                http2Connection.ackConsumedData(szToRelease);
             }
             
             stream.onInputClosed();
@@ -412,35 +410,6 @@ class DefaultInputBuffer implements StreamInputBuffer {
         }
     }
 
-    /**
-     * Sends WINDOW_UPDATE message to the peer based on data, which has been processed.
-     */
-    private void sendWindowUpdate(final Buffer data) {
-        sendWindowUpdate(data != null ? data.remaining() : 0, false);
-    }
-    
-    /**
-     * Sends WINDOW_UPDATE message to the peer based on data, which has been processed.
-     * @param delta 
-     * @param isForce if <tt>true</tt> the WINDOW_UPDATE message will be sent regardless of the current unacked bytes count.
-     */
-    private void sendWindowUpdate(final int delta, final boolean isForce) {
-        
-        http2Connection.sendWindowUpdate(delta);
-        
-        final int currentUnackedBytes =
-                unackedReadBytes.addAndGet(delta);
-        final int windowSize = stream.getLocalWindowSize();
-        
-        // if not forced - send update window message only in case currentUnackedBytes > windowSize / 2
-        if (currentUnackedBytes > 0 &&
-                ((currentUnackedBytes > (windowSize / 2)) || isForce) &&
-                unackedReadBytes.compareAndSet(currentUnackedBytes, 0)) {
-            
-            stream.outputSink.writeWindowUpdate(currentUnackedBytes);
-        }
-    }
-    
     /**
      * Based on content-length header (which we may have or may not), double
      * check if the payload we've just got is last.
@@ -532,6 +501,10 @@ class DefaultInputBuffer implements StreamInputBuffer {
         return HttpBrokenContent.builder(stream.getInputHttpHeader())
                 .error(t)
                 .build();
+    }
+
+    private static int bufSz(final Buffer buffer) {
+        return buffer != null ? buffer.remaining() : 0;
     }
     
     /**

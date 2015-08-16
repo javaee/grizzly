@@ -74,7 +74,6 @@ public class UpgradeOutputSink implements StreamOutputSink {
 
     @Override
     public void onPeerWindowUpdate(int delta) throws Http2StreamException {
-        throw new UnsupportedOperationException("Not supported");
     }
 
     @Override
@@ -99,11 +98,6 @@ public class UpgradeOutputSink implements StreamOutputSink {
 
     @Override
     public void writeDownStream(Source source, FilterChainContext ctx) throws IOException {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
-    public void writeWindowUpdate(int currentUnackedBytes) {
         throw new UnsupportedOperationException("Not supported");
     }
 

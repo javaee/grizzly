@@ -61,8 +61,6 @@ import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.http2.frames.DataFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 
-import static org.glassfish.grizzly.http2.Constants.*;
-import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
 import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
 
 /**
@@ -94,10 +92,6 @@ final class Http2ConnectionOutputSink14 extends Http2ConnectionOutputSink {
     private final List<Http2Frame> tmpFramesList = new LinkedList<Http2Frame>();
     private final AtomicBoolean writerLock = new AtomicBoolean();
 
-    // number of bytes reported to be read, but still unacked to the peer
-    private final AtomicInteger unackedReadBytes  = new AtomicInteger();
-
-    
     public Http2ConnectionOutputSink14(final Http2Connection http2Connection) {
         super(http2Connection);
         availConnectionWindowSize = new AtomicInteger(
@@ -130,24 +124,6 @@ final class Http2ConnectionOutputSink14 extends Http2ConnectionOutputSink {
         }
         
         flushOutputQueue();
-    }
-    
-    void sendWindowUpdate(final int delta) {
-        final int currentUnackedBytes
-                = unackedReadBytes.addAndGet(delta);
-        final int windowSize = http2Connection.getLocalConnectionWindowSize();
-
-        // if not forced - send update window message only in case currentUnackedBytes > windowSize / 2
-        if (currentUnackedBytes > (windowSize / 3)
-                && unackedReadBytes.compareAndSet(currentUnackedBytes, 0)) {
-
-            writeDownStream(
-                    WindowUpdateFrame.builder()
-                    .streamId(0)
-                    .windowSizeIncrement(currentUnackedBytes)
-                    .build(),
-                    null);
-        }
     }
     
     @Override

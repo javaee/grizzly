@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -90,6 +91,7 @@ import static org.glassfish.grizzly.http2.frames.SettingsFrame.*;
 import static org.glassfish.grizzly.http2.Constants.*;
 import static org.glassfish.grizzly.http2.Http2BaseFilter.PRI_PAYLOAD;
 import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;
+import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
 
 
 
@@ -174,6 +176,8 @@ public abstract class Http2Connection {
     
     private boolean isFirstInFrame = true;
     
+    private final AtomicInteger unackedReadBytes  = new AtomicInteger();
+        
     public Http2Connection(final Connection<?> connection,
                        final boolean isServer,
                        final Http2BaseFilter handlerFilter) {
@@ -215,7 +219,6 @@ public abstract class Http2Connection {
 
     public abstract DraftVersion getVersion();
     protected abstract Http2ConnectionOutputSink newOutputSink();
-    protected abstract void sendWindowUpdate(final int delta);
     protected abstract int getSpecDefaultFramePayloadSize();
     protected abstract int getSpecMinFramePayloadSize();
     protected abstract int getSpecMaxFramePayloadSize();
@@ -381,7 +384,7 @@ public abstract class Http2Connection {
     
     void setPeerStreamWindowSize(final int peerStreamWindowSize) {
         synchronized (sessionLock) {
-            final int delta = this.peerStreamWindowSize - peerStreamWindowSize;
+            final int delta = peerStreamWindowSize - this.peerStreamWindowSize;
             
             this.peerStreamWindowSize = peerStreamWindowSize;
             
@@ -518,6 +521,14 @@ public abstract class Http2Connection {
                 .build();
     }
 
+    protected void sendWindowUpdate(final int streamId, final int delta) {
+        outputSink.writeDownStream(
+                WindowUpdateFrame.builder()
+                        .streamId(streamId)
+                        .windowSizeIncrement(delta)
+                        .build());
+    }
+    
     boolean sendPreface() {
         if (!isPrefaceSent) {
             synchronized (sessionLock) {
@@ -529,6 +540,14 @@ public abstract class Http2Connection {
                     }
 
                     isPrefaceSent = true;
+                    
+                    if (!isServer) {
+                        // If it's HTTP2 client, which uses HTTP/1.1 upgrade mechanism -
+                        // it can have unacked user data sent from the server.
+                        // So it's right time to ack this data and let the server send
+                        // more data if needed.
+                        ackConsumedData(getStream(0), 0);
+                    }
                     return true;
                 }
             }
@@ -1076,6 +1095,58 @@ public abstract class Http2Connection {
         }
         
         return builder;
+    }
+
+    /**
+     * Acknowledge that certain amount of data has been read.
+     * Depending on the total amount of un-acknowledge data the HTTP2 connection
+     * can decide to send a window_update message to the peer.
+     * 
+     * @param sz 
+     */
+    void ackConsumedData(final int sz) {
+        ackConsumedData(null, sz);
+    }
+    /**
+     * Acknowledge that certain amount of data has been read.
+     * Depending on the total amount of un-acknowledge data the HTTP2 connection
+     * can decide to send a window_update message to the peer.
+     * Unlike the {@link #ackConsumedData(int)}, this method also requests an
+     * HTTP2 stream to acknowledge consumed data to the peer.
+     * 
+     * @param stream
+     * @param sz 
+     */
+    void ackConsumedData(final Http2Stream stream, final int sz) {
+        final int currentUnackedBytes
+                = unackedReadBytes.addAndGet(sz);
+        
+        if (isPrefaceSent) {
+            // ACK HTTP2 connection flow control
+            final int windowSize = getLocalConnectionWindowSize();
+
+            // if not forced - send update window message only in case currentUnackedBytes > windowSize / 2
+            if (currentUnackedBytes > (windowSize / 3)
+                    && unackedReadBytes.compareAndSet(currentUnackedBytes, 0)) {
+
+                sendWindowUpdate(0, currentUnackedBytes);
+            }
+            
+            if (stream != null) {
+                // ACK HTTP2 stream flow control
+                final int streamUnackedBytes
+                        = stream.unackedReadBytes.addAndGet(sz);
+                final int streamWindowSize = stream.getLocalWindowSize();
+
+                // send update window message only in case currentUnackedBytes > windowSize / 2
+                if (streamUnackedBytes > 0
+                        && (streamUnackedBytes > (streamWindowSize / 2))
+                        && stream.unackedReadBytes.compareAndSet(streamUnackedBytes, 0)) {
+
+                    sendWindowUpdate(stream.getId(), streamUnackedBytes);
+                }
+            }
+        }
     }
 
     public final class StreamBuilder {

@@ -83,11 +83,6 @@ public final class Http2Connection14 extends Http2Connection {
     }
     
     @Override
-    protected void sendWindowUpdate(final int delta) {
-        ((Http2ConnectionOutputSink14) getOutputSink()).sendWindowUpdate(delta);
-    }
-
-    @Override
     public int getFrameHeaderSize() {
         return 9;
     }

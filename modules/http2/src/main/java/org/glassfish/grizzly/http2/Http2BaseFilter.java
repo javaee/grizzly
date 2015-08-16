@@ -1303,7 +1303,7 @@ public class Http2BaseFilter extends HttpBaseFilter {
 
             dataFrame.recycle();
 
-            http2Connection.sendWindowUpdate(dataSize);
+            http2Connection.ackConsumedData(dataSize);
 
             throw new Http2StreamException(dataFrame.getStreamId(), ErrorCode.STREAM_CLOSED);
         }
@@ -1313,7 +1313,7 @@ public class Http2BaseFilter extends HttpBaseFilter {
         if (error != null) {
             final int dataSize = data.remaining();
             dataFrame.recycle();
-            http2Connection.sendWindowUpdate(dataSize);
+            http2Connection.ackConsumedData(dataSize);
             
             throw error;
         }
