@@ -276,6 +276,10 @@ public class HeapBuffer implements Buffer {
     public Buffer split(final int splitPosition) {
         checkDispose();
         
+        if (splitPosition < 0 || splitPosition > cap) {
+            throw new IllegalArgumentException("Invalid splitPosition value, should be 0 <= splitPosition <= capacity");
+        }
+        
         final int oldPosition = pos;
         final int oldLimit = lim;
 

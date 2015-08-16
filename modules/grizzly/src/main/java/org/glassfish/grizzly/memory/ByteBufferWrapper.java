@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -229,9 +229,15 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public Buffer split(int splitPosition) {
+    public Buffer split(final int splitPosition) {
         checkDispose();
-        if (splitPosition == capacity()) {
+        final int cap = capacity();
+        
+        if (splitPosition < 0 || splitPosition > cap) {
+            throw new IllegalArgumentException("Invalid splitPosition value, should be 0 <= splitPosition <= capacity");
+        }
+        
+        if (splitPosition == cap) {
             return Buffers.EMPTY_BUFFER;
         }
         
