@@ -774,13 +774,20 @@ public class Buffers {
     @SuppressWarnings("unused")
     public static void dumpBuffer(final Appendable appendable, final Buffer buffer) {
         final Formatter formatter = new Formatter(appendable);
+        dumpBuffer0(formatter, appendable, buffer);
+    }
+
+    @SuppressWarnings("UnusedParameters")
+    private static void dumpBuffer0(final Formatter formatter,
+                                    final Appendable appendable,
+                                    final Buffer buffer) {
         if (buffer.isComposite()) {
             final BufferArray bufferArray = buffer.toBufferArray();
             final int size = bufferArray.size();
             final Buffer[] buffers = bufferArray.getArray();
             formatter.format("%s\n", buffer.toString());
             for (int i = 0; i < size; i++) {
-                dumpBuffer0(formatter, buffers[i]);
+                dumpBuffer0(formatter, appendable, buffers[i]);
             }
             formatter.format("End CompositeBuffer (%d)", System.identityHashCode(buffer));
         } else {

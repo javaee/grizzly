@@ -716,6 +716,11 @@ public class ByteBufferWrapper implements Buffer {
         return Buffers.toStringContent(visible, charset, position, limit);
     }
 
+    @Override
+    public void dumpHex(java.lang.Appendable appendable) {
+        Buffers.dumpBuffer(appendable, this);
+    }
+
     /**
      * {@inheritDoc}
      */

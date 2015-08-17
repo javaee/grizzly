@@ -1362,7 +1362,12 @@ public final class BuffersBuffer extends CompositeBuffer {
             throw new IllegalStateException("We took charset name from Charset, why it's not unsupported?", e);
         }
     }
-        
+
+    @Override
+    public void dumpHex(java.lang.Appendable appendable) {
+        Buffers.dumpBuffer(appendable, this);
+    }
+
     @Override
     public ByteBuffer toByteBuffer() {
         return toByteBuffer(position, limit);
