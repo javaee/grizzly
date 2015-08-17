@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,7 +65,7 @@ public class ByteBufferWrapper implements Buffer {
 
     // Dispose underlying Buffer flag
     protected boolean allowBufferDispose = false;
-    
+
     protected Exception disposeStackTrace;
 
     protected ByteBufferWrapper() {
@@ -230,7 +230,7 @@ public class ByteBufferWrapper implements Buffer {
         if (splitPosition == capacity()) {
             return Buffers.EMPTY_BUFFER;
         }
-        
+
         final int oldPosition = position();
         final int oldLimit = limit();
 
@@ -353,7 +353,7 @@ public class ByteBufferWrapper implements Buffer {
             src.position(oldPos);
             limit(oldLim);
         }
-        
+
         return this;
     }
 
@@ -361,11 +361,11 @@ public class ByteBufferWrapper implements Buffer {
     public Buffer get(final ByteBuffer dst) {
         checkDispose();
         final int length = dst.remaining();
-        
+
         if (visible.remaining() < length) {
             throw new BufferUnderflowException();
         }
-        
+
         final int srcPos = visible.position();
         final int oldSrcLim = visible.limit();
         try {
@@ -374,7 +374,7 @@ public class ByteBufferWrapper implements Buffer {
         } finally {
             visible.limit(oldSrcLim);
         }
-        
+
         return this;
     }
 
@@ -384,12 +384,12 @@ public class ByteBufferWrapper implements Buffer {
         if (visible.remaining() < length) {
             throw new BufferUnderflowException();
         }
-        
+
         final int srcPos = visible.position();
         final int oldSrcLim = visible.limit();
         final int oldDstPos = dst.position();
         final int oldDstLim = dst.limit();
-        
+
         Buffers.setPositionLimit(dst, position, position + length);
         try {
             visible.limit(srcPos + length);
@@ -450,7 +450,7 @@ public class ByteBufferWrapper implements Buffer {
         for (int i = 0; i < len; i++) {
             visible.put((byte) s.charAt(i));
         }
-        
+
         return this;
     }
 
@@ -629,7 +629,7 @@ public class ByteBufferWrapper implements Buffer {
         visible.putDouble(index, value);
         return this;
     }
-    
+
     @Override
     public int hashCode() {
         return visible.hashCode();
@@ -704,6 +704,11 @@ public class ByteBufferWrapper implements Buffer {
     public String toStringContent(Charset charset, int position, int limit) {
         checkDispose();
         return Buffers.toStringContent(visible, charset, position, limit);
+    }
+
+    @Override
+    public void dumpHex(java.lang.Appendable appendable) {
+        Buffers.dumpBuffer(appendable, this);
     }
 
     /**

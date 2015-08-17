@@ -1438,6 +1438,16 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
     String toStringContent(Charset charset, int position, int limit);
 
     /**
+     * Generate a hex dump of this {@link Buffer}'s content.
+     *
+     * @param appendable the {@link Appendable} to dump this {@link Buffer}'s
+     *                   content to.
+     * @since 2.3.23
+     */
+    @SuppressWarnings("unused")
+    void dumpHex(final java.lang.Appendable appendable);
+
+    /**
      * <p>
      * Converts this <code>Buffer</code> to a {@link ByteBuffer}.
      * If this <code>Buffer</code> is not composite - then returned

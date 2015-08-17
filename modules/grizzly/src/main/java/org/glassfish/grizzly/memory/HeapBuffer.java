@@ -48,6 +48,7 @@ import java.nio.InvalidMarkException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
+import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.Buffer;
 
 /**
@@ -857,6 +858,14 @@ public class HeapBuffer implements Buffer {
                 Buffers.setPositionLimit(byteBuffer, oldPosition, oldLimit);
     }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void dumpHex(java.lang.Appendable appendable) {
+        Buffers.dumpBuffer(appendable, this);
     }
 
     /**
