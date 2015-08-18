@@ -70,27 +70,6 @@ public class Buffers {
     private static final Appender<Buffer> APPENDER_DISPOSABLE = new BuffersAppender(true);
     private static final Appender<Buffer> APPENDER_NOT_DISPOSABLE = new BuffersAppender(false);
 
-    private static final String[] DUMP_STRINGS = {
-            "%10d   %02x                                                         %c\n",
-            "%10d   %02x %02x                                                      %c%c\n",
-            "%10d   %02x %02x  %02x                                                  %c%c%c\n",
-            "%10d   %02x %02x  %02x %02x                                               %c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x                                           %c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x                                        %c%c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x                                    %c%c%c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x                                 %c%c%c%c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x                           %c%c%c%c%c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x                        %c%c%c%c%c%c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x                    %c%c%c%c%c%c%c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x                 %c%c%c%c%c%c%c%c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x             %c%c%c%c%c%c%c%c%c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x %02x          %c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x %02x  %02x      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
-            "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x %02x  %02x %02x   %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n"
-    };
-
-
-
     /**
      * Get the {@link Appender} which knows how to append {@link Buffer}s.
      * Returned {@link Appender} uses the same {@link Buffer} appending rules as
@@ -817,7 +796,7 @@ public class Buffers {
             byte b14 = buffer.get(line + 14);
             byte b15 = buffer.get(line + 15);
 
-            formatter.format(DUMP_STRINGS[15],
+            formatter.format(DumpStrings.DUMP_STRINGS[15],
                     line,
                     b0, b1, b2, b3, b4, b5, b6, b7, b8,
                     b9, b10, b11, b12, b13, b14, b15,
@@ -835,7 +814,7 @@ public class Buffers {
                 args[aIdx] = b;
                 args[aIdx + remaining] = getChar(b);
             }
-            formatter.format(DUMP_STRINGS[remaining - 1], args);
+            formatter.format(DumpStrings.DUMP_STRINGS[remaining - 1], args);
         }
     }
 
@@ -851,4 +830,31 @@ public class Buffers {
     private static MemoryManager getDefaultMemoryManager() {
         return MemoryManager.DEFAULT_MEMORY_MANAGER;
     }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    private static final class DumpStrings {
+
+        private static final String[] DUMP_STRINGS = {
+                "%10d   %02x                                                         %c\n",
+                "%10d   %02x %02x                                                      %c%c\n",
+                "%10d   %02x %02x  %02x                                                  %c%c%c\n",
+                "%10d   %02x %02x  %02x %02x                                               %c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x                                           %c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x                                        %c%c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x  %02x                                    %c%c%c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x                                 %c%c%c%c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x                           %c%c%c%c%c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x                        %c%c%c%c%c%c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x                    %c%c%c%c%c%c%c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x                 %c%c%c%c%c%c%c%c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x             %c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x %02x          %c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x %02x  %02x      %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n",
+                "%10d   %02x %02x  %02x %02x  %02x %02x  %02x %02x    %02x %02x  %02x %02x  %02x %02x  %02x %02x   %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n"
+        };
+
+    } // END DumpStrings
 }
