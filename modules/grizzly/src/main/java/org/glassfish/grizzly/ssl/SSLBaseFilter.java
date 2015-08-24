@@ -405,7 +405,11 @@ public class SSLBaseFilter extends BaseFilter {
                     sslCtx.unwrap(input, output, MM_ALLOCATOR);
             
             if (isHandshaking(sslCtx.getSslEngine())) {
-                input = rehandshake(ctx, sslCtx);
+                // is it re-handshake or graceful ssl termination
+                input = result.getSslEngineResult().getStatus() != Status.CLOSED
+                        ? rehandshake(ctx, sslCtx)
+                        : closeGracefully(ctx, sslCtx);
+                
                 if (input == null) {
                     break;
                 }
@@ -785,6 +789,26 @@ public class SSLBaseFilter extends BaseFilter {
         }
     }
 
+    private Buffer closeGracefully(final FilterChainContext context,
+            final SSLConnectionContext sslCtx) throws SSLException {
+        try {
+            return doHandshakeSync(
+                    sslCtx, context, null, handshakeTimeoutMillis);
+        } catch (Throwable t) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Error during graceful ssl connection close", t);
+            }
+            
+            if (t instanceof SSLException) {
+                throw (SSLException) t;
+            }
+            
+            throw new SSLException("Error during re-handshaking", t);
+        } finally {
+            sslCtx.getConnection().closeSilently();
+        }
+    }
+    
     private Buffer rehandshake(final FilterChainContext context,
             final SSLConnectionContext sslCtx) throws SSLException {
         final Connection c = context.getConnection();
