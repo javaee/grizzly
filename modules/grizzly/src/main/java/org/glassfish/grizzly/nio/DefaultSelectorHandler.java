@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,8 +68,9 @@ public class DefaultSelectorHandler implements SelectorHandler {
     private static final Logger logger = Grizzly.logger(DefaultSelectorHandler.class);
 
     public static final boolean IS_WORKAROUND_SELECTOR_SPIN =
-            System.getProperty("os.name").equalsIgnoreCase("linux") &&
-                    JdkVersion.getJdkVersion().compareTo("1.7.0") < 0;
+            Boolean.getBoolean(DefaultSelectorHandler.class.getName() + ".force-selector-spin-detection") ||
+            (System.getProperty("os.name").equalsIgnoreCase("linux") &&
+                    JdkVersion.getJdkVersion().compareTo("1.7.0") < 0);
     
     protected final long selectTimeout;
 
