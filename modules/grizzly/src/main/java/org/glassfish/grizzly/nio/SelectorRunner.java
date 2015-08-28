@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -75,7 +75,7 @@ import org.glassfish.grizzly.utils.StateHolder;
  * @author Alexey Stashok
  */
 public final class SelectorRunner implements Runnable {
-    private final static Logger logger = Grizzly.logger(SelectorRunner.class);
+    private final static Logger LOGGER = Grizzly.logger(SelectorRunner.class);
     
     private final static String THREAD_MARKER = " SelectorRunner";
     
@@ -138,7 +138,7 @@ public final class SelectorRunner implements Runnable {
             try {
                 localSelector.wakeup();
             } catch (Exception e) {
-                logger.log(Level.FINE, "Error during selector wakeup", e);
+                LOGGER.log(Level.FINE, "Error during selector wakeup", e);
             }
         }
     }
@@ -196,7 +196,7 @@ public final class SelectorRunner implements Runnable {
 
     public synchronized void start() {
         if (!stateHolder.compareAndSet(State.STOPPED, State.STARTING)) {
-            logger.log(Level.WARNING,
+            LOGGER.log(Level.WARNING,
                     LogMessages.WARNING_GRIZZLY_SELECTOR_RUNNER_NOT_IN_STOPPED_STATE_EXCEPTION());
             return;
         }
@@ -369,7 +369,7 @@ public final class SelectorRunner implements Runnable {
                     "doSelect exception", e,
                     Level.SEVERE, Level.FINE);
         } catch (Throwable t) {
-            logger.log(Level.SEVERE,"doSelect exception", t);
+            LOGGER.log(Level.SEVERE,"doSelect exception", t);
             transport.notifyTransportError(t);
         }
 
@@ -475,7 +475,7 @@ public final class SelectorRunner implements Runnable {
             final Exception e, final Level runLogLevel,
             final Level stoppedLogLevel) {
         if (isRunning()) {
-            logger.log(runLogLevel, description, e);
+            LOGGER.log(runLogLevel, description, e);
 
             if (key != null) {
                 try {
@@ -489,14 +489,14 @@ public final class SelectorRunner implements Runnable {
                         channel.close();
                     }
                 } catch (IOException cancelException) {
-                    logger.log(Level.FINE, "IOException during cancelling key",
+                    LOGGER.log(Level.FINE, "IOException during cancelling key",
                             cancelException);
                 }
             }
 
             transport.notifyTransportError(e);
         } else {
-            logger.log(stoppedLogLevel, description, e);
+            LOGGER.log(stoppedLogLevel, description, e);
         }
     }
 
@@ -527,7 +527,7 @@ public final class SelectorRunner implements Runnable {
 
                     nioConnection.onSelectionKeyUpdated(newSelectionKey);
                 } catch (Exception e) {
-                    logger.log(Level.FINE, "Error switching channel to a new selector", e);
+                    LOGGER.log(Level.FINE, "Error switching channel to a new selector", e);
                 }
             }
         }
@@ -593,6 +593,10 @@ public final class SelectorRunner implements Runnable {
     }
 
     final void workaroundSelectorSpin() throws IOException {
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Workaround selector spin. selector={0}", getSelector());
+        }
+
         spinnedSelectorsHistory.put(getSelector(), System.currentTimeMillis());
         switchToNewSelector();
     }
