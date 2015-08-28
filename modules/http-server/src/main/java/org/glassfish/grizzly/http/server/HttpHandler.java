@@ -145,7 +145,7 @@ public abstract class HttpHandler {
     boolean doHandle(final Request request, final Response response) throws Exception {
         request.setRequestExecutorProvider(getRequestExecutorProvider());
         request.setSessionCookieName(getSessionCookieName());
-        request.setSessionManager(getSessionManager());
+        request.setSessionManager(getSessionManager(request));
         response.setErrorPageGenerator(getErrorPageGenerator(request));
 
         if (request.requiresAcknowledgement()) {
@@ -359,7 +359,7 @@ public abstract class HttpHandler {
      * 
      * @param request {@link Request}
      * 
-     * @return Returns the {@link ErrorPageGenerator}, that might be used
+     * @return the {@link ErrorPageGenerator}, that might be used
      * (if an error occurs) during {@link Request} processing
      */
     protected ErrorPageGenerator getErrorPageGenerator(final Request request) {
@@ -374,10 +374,12 @@ public abstract class HttpHandler {
     }
 
     /**
+     * @param request {@link Request}
+     * 
      * @return the {@link SessionManager} to be used. <tt>null</tt> value implies {@link DefaultSessionManager}
      */
-    protected SessionManager getSessionManager() {
-        return null;
+    protected SessionManager getSessionManager(final Request request) {
+        return request.getHttpFilter().getConfiguration().getSessionManager();
     }
     
     /**

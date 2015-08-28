@@ -544,8 +544,10 @@ public class ServletHandler extends HttpHandler {
      * @return Servlet-aware {@link SessionManager}
      */
     @Override
-    protected SessionManager getSessionManager() {
-        return this.sessionManager;
+    protected SessionManager getSessionManager(Request request) {
+        final SessionManager sm = request.getHttpFilter()
+                .getConfiguration().getSessionManager();
+        return sm != null ? sm : this.sessionManager;
     }
     
     /**
