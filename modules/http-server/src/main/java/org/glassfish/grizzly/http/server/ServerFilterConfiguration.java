@@ -89,6 +89,11 @@ public class ServerFilterConfiguration {
      * graceful shutdown, or <tt>false</tt> otherwise
      */
     private boolean isGracefulShutdownSupported = true;
+
+    /**
+     * The HTTP server {@link SessionManager}.
+     */
+    private SessionManager sessionManager;
     
     public ServerFilterConfiguration() {
         this("Grizzly", Grizzly.getDotedVersion());
@@ -117,6 +122,7 @@ public class ServerFilterConfiguration {
         this.isGracefulShutdownSupported = configuration.isGracefulShutdownSupported;
         this.maxPostSize = configuration.maxPostSize;
         this.sessionTimeoutSeconds = configuration.sessionTimeoutSeconds;
+        this.sessionManager = configuration.sessionManager;
     }
     
     /**
@@ -467,6 +473,23 @@ public class ServerFilterConfiguration {
         this.sessionTimeoutSeconds = sessionTimeoutSeconds;
     }
 
+    /**
+     * @return the HTTP server {@link SessionManager}
+     *
+     * @see		#setSessionManager
+     */
+    public SessionManager getSessionManager() {
+        return sessionManager;
+    }
+
+    /**
+     * Sets the HTTP server {@link SessionManager}.
+     *
+     * @param sessionManager	{@link SessionManager}
+     */    
+    public void setSessionManager(SessionManager sessionManager) {
+        this.sessionManager = sessionManager;
+    }
     
     // --------------------------------------------------------- Private Methods
 

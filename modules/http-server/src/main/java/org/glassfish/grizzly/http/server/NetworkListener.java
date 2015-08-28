@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -138,7 +138,12 @@ public class NetworkListener {
     /**
      * The default error page generator
      */
-    private ErrorPageGenerator defaultErrorPageGenerator;    
+    private ErrorPageGenerator defaultErrorPageGenerator;
+    
+    /**
+     * The HTTP server {@link SessionManager}.
+     */
+    private SessionManager sessionManager;
     
     {
         final TCPNIOTransportBuilder builder = TCPNIOTransportBuilder.newInstance();
@@ -770,6 +775,7 @@ public class NetworkListener {
      * <p> Gracefully shuts down the listener. </p>   Any exceptions
      * thrown during the shutdown process will be propagated to the returned
      * {@link GrizzlyFuture}.
+     * @return {@link GrizzlyFuture}
      */
     public synchronized GrizzlyFuture<NetworkListener> shutdown() {
         return shutdown(-1, TimeUnit.MILLISECONDS);
@@ -1021,7 +1027,7 @@ public class NetworkListener {
     }
 
     /**
-     * Returns the <tt>NetworkListener</tt> default {@link ErrorPageGenerator}.
+     * @return the <tt>NetworkListener</tt> default {@link ErrorPageGenerator}.
      */
     public ErrorPageGenerator getDefaultErrorPageGenerator() {
         return defaultErrorPageGenerator;
@@ -1035,6 +1041,24 @@ public class NetworkListener {
     public void setDefaultErrorPageGenerator(
             final ErrorPageGenerator defaultErrorPageGenerator) {
         this.defaultErrorPageGenerator = defaultErrorPageGenerator;
+    }
+
+    /**
+     * @return the HTTP server {@link SessionManager}
+     *
+     * @see		#setSessionManager
+     */
+    public SessionManager getSessionManager() {
+        return sessionManager;
+    }
+
+    /**
+     * Sets the HTTP server {@link SessionManager}.
+     *
+     * @param sessionManager	{@link SessionManager}
+     */    
+    public void setSessionManager(SessionManager sessionManager) {
+        this.sessionManager = sessionManager;
     }
     
     boolean isSendFileExplicitlyConfigured() {
