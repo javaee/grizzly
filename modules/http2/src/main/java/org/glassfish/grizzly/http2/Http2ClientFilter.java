@@ -70,20 +70,27 @@ import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.http2.frames.ErrorCode;
+import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
+import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
-import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
-import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
 import org.glassfish.grizzly.npn.AlpnClientNegotiator;
 import org.glassfish.grizzly.ssl.SSLFilter;
+
+import static org.glassfish.grizzly.http2.Constants.OUT_FIN_TERMINATION;
+import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
+import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
+
 /**
  *
  * @author oleksiys
  */
 public class Http2ClientFilter extends Http2BaseFilter {
     private final AlpnClientNegotiatorImpl defaultClientAlpnNegotiator;
-    private boolean isNeverForceUpgrade;
     
+    private boolean isNeverForceUpgrade;
+    private boolean sendPushRequestUpstream;
     private final HeaderValue defaultHttp2DraftUpgrade;
     private final HeaderValue connectionUpgradeHeaderValue;
     
@@ -114,7 +121,24 @@ public class Http2ClientFilter extends Http2BaseFilter {
     public void setNeverForceUpgrade(boolean neverForceUpgrade) {
         this.isNeverForceUpgrade = neverForceUpgrade;
     }
-    
+
+    /**
+     * @return <tt>true</tt> if the push request has to be sent upstream, so
+     *         a user have a chance to process it, or <tt>false</tt> otherwise
+     */
+    public boolean isSendPushRequestUpstream() {
+        return sendPushRequestUpstream;
+    }
+
+    /**
+     * @param sendPushRequestUpstream <tt>true</tt> if the push request has to
+     *         be sent upstream, so a user have a chance to process it,
+     *         or <tt>false</tt> otherwise
+     */
+    public void setSendPushRequestUpstream(boolean sendPushRequestUpstream) {
+        this.sendPushRequestUpstream = sendPushRequestUpstream;
+    }
+        
     @Override
     public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
@@ -419,6 +443,62 @@ public class Http2ClientFilter extends Http2BaseFilter {
         
         // pass the updated request downstream
         return true;
+    }
+
+    @Override
+    protected void processCompleteHeader(
+            final Http2Connection http2Connection,
+            final FilterChainContext context,
+            final HeaderBlockHead firstHeaderFrame) throws IOException {
+
+        if (firstHeaderFrame.getType() == PushPromiseFrame.TYPE) {
+            assert !http2Connection.isServer();
+
+            processInPushPromise(http2Connection, context,
+                    (PushPromiseFrame) firstHeaderFrame);
+        } else {
+            super.processCompleteHeader(
+                    http2Connection, context, firstHeaderFrame);
+        }
+    }
+    
+    
+    private void processInPushPromise(final Http2Connection http2Connection,
+            final FilterChainContext context,
+            final PushPromiseFrame pushPromiseFrame)
+            throws Http2StreamException, IOException {
+
+        final Http2Request request = Http2Request.create();
+        request.setConnection(context.getConnection());
+
+        final int refStreamId = pushPromiseFrame.getStreamId();
+        final Http2Stream refStream = http2Connection.getStream(refStreamId);
+        if (refStream == null) {
+            throw new Http2StreamException(refStreamId, ErrorCode.REFUSED_STREAM,
+                    "PushPromise is sent over unknown stream: " + refStreamId);
+        }
+
+        final Http2Stream stream = http2Connection.acceptStream(request,
+                pushPromiseFrame.getPromisedStreamId(), refStreamId, 0);
+        
+        if (stream == null) { // GOAWAY has been sent, so ignoring this request
+            request.recycle();
+            return;
+        }
+
+        DecoderUtils.decodeRequestHeaders(http2Connection, request);
+        onHttpHeadersParsed(request, context);
+
+        prepareIncomingRequest(stream, request);
+        
+        refStream.onHeaderBlockRcv(pushPromiseFrame);
+
+        stream.outputSink.terminate(OUT_FIN_TERMINATION);
+
+        // send the push request upstream only in case, when user explicitly wants it
+        if (sendPushRequestUpstream) {
+            sendUpstream(http2Connection, stream, request, false);
+        }
     }
     
     protected final SettingsFrame.SettingsFrameBuilder prepareSettings() {

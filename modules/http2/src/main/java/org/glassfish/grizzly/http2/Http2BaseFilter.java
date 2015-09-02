@@ -73,7 +73,6 @@ import org.glassfish.grizzly.http.TransferEncoding;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http2.compression.HeadersDecoder;
@@ -744,25 +743,26 @@ public class Http2BaseFilter extends HttpBaseFilter {
                 headersDecoder.finishHeader();
 
         try {
-            if (firstHeaderFrame.getType() == HeadersFrame.TYPE) {
-                if (http2Connection.isServer()) {
-                    // it's a request
-                    processInRequest(http2Connection, context,
-                            (HeadersFrame) firstHeaderFrame);
-                } else {
-                    // it's response
-                    processInResponse(http2Connection, context,
-                            (HeadersFrame) firstHeaderFrame);
-                }
-            } else {
-                assert firstHeaderFrame.getType() == PushPromiseFrame.TYPE;
-                assert !http2Connection.isServer();
-
-                processInPushPromise(http2Connection, context,
-                        (PushPromiseFrame) firstHeaderFrame);
-            }
+            processCompleteHeader(http2Connection, context, firstHeaderFrame);
         } finally {
             firstHeaderFrame.recycle();
+        }
+    }
+
+    protected void processCompleteHeader(
+            final Http2Connection http2Connection,
+            final FilterChainContext context,
+            final HeaderBlockHead firstHeaderFrame) throws IOException {
+        assert firstHeaderFrame.getType() == HeadersFrame.TYPE;
+        
+        if (http2Connection.isServer()) {
+            // it's a request
+            processInRequest(http2Connection, context,
+                    (HeadersFrame) firstHeaderFrame);
+        } else {
+            // it's response
+            processInResponse(http2Connection, context,
+                    (HeadersFrame) firstHeaderFrame);
         }
     }
 
@@ -836,41 +836,6 @@ public class Http2BaseFilter extends HttpBaseFilter {
         }
 
         sendUpstream(http2Connection, stream, response, !isEOS);
-    }
-
-    private void processInPushPromise(final Http2Connection http2Connection,
-            final FilterChainContext context,
-            final PushPromiseFrame pushPromiseFrame)
-            throws Http2StreamException, IOException {
-
-        final Http2Request request = Http2Request.create();
-        request.setConnection(context.getConnection());
-
-        final int refStreamId = pushPromiseFrame.getStreamId();
-        final Http2Stream refStream = http2Connection.getStream(refStreamId);
-        if (refStream == null) {
-            throw new Http2StreamException(refStreamId, ErrorCode.REFUSED_STREAM,
-                    "PushPromise is sent over unknown stream: " + refStreamId);
-        }
-
-        final Http2Stream stream = http2Connection.acceptStream(request,
-                pushPromiseFrame.getPromisedStreamId(), refStreamId, 0);
-        
-        if (stream == null) { // GOAWAY has been sent, so ignoring this request
-            request.recycle();
-            return;
-        }
-
-        DecoderUtils.decodeRequestHeaders(http2Connection, request);
-        onHttpHeadersParsed(request, context);
-
-        prepareIncomingRequest(stream, request);
-        
-        refStream.onHeaderBlockRcv(pushPromiseFrame);
-
-        stream.outputSink.terminate(OUT_FIN_TERMINATION);
-
-        sendUpstream(http2Connection, stream, request, false);
     }
     
     @Override
@@ -1080,7 +1045,7 @@ public class Http2BaseFilter extends HttpBaseFilter {
     protected void onPrefaceReceived(final Http2Connection http2Connection) {
     }
     
-    private void sendUpstream(final Http2Connection http2Connection,
+    void sendUpstream(final Http2Connection http2Connection,
             final Http2Stream stream, final HttpHeader httpHeader,
             final boolean isExpectContent) {
         
@@ -1115,7 +1080,7 @@ public class Http2BaseFilter extends HttpBaseFilter {
         }
     }
     
-    private void prepareIncomingRequest(final Http2Stream stream,
+    void prepareIncomingRequest(final Http2Stream stream,
             final Http2Request request) {
 
         final ProcessingState state = request.getProcessingState();

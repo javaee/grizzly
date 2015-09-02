@@ -371,6 +371,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
         final HttpContext httpContext = HttpContext.newInstance(stream,
                 stream, stream, httpRequest);
         httpRequest.getProcessingState().setHttpContext(httpContext);
+        // add read-only HTTP2Stream attribute
+        httpRequest.setAttribute(Http2Stream.HTTP2_STREAM_ATTRIBUTE, stream);
         httpContext.attach(ctx);
         
         return true;
