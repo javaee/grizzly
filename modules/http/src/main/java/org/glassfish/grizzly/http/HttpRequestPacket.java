@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,7 +49,9 @@ import org.glassfish.grizzly.http.util.RequestURIRef;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
@@ -65,6 +67,16 @@ import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
  * @author Alexey Stashok
  */
 public abstract class HttpRequestPacket extends HttpHeader {
+    /**
+     * Prefix for all service/read-only attributes, that once added could not
+     * be removed. The attributes with this prefix will not be listed in the
+     * {@link #getAttributeNames()} result.
+     * The prefix was introduced with the intention to avoid collisions with
+     * normal user attributes and fail fast when we compare read-only and
+     * normal user attributes.
+     */
+    public static final String READ_ONLY_ATTR_PREFIX = "@RoA.";
+    
     private static final AttributeBuilder ATTR_BUILDER =
             new DefaultAttributeBuilder();
 
@@ -267,6 +279,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * set.
      * This is the "virtual host", derived from the
      * Host: header.
+     * 
+     * @return the buffer holding the server name
      */
     protected DataChunk serverNameRaw() {
         return serverNameC;
@@ -278,6 +292,8 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * set.
      * This is the "virtual host", derived from the
      * Host: header.
+     * @return the buffer holding the server name, if
+     * any
      */
     public DataChunk serverName() {
         parseHostHeader();
@@ -507,14 +523,14 @@ public abstract class HttpRequestPacket extends HttpHeader {
     }
 
     /**
-     * Return the authentication type used for this Request.
+     * @return the authentication type used for this Request.
      */
      public DataChunk authType() {
          return authTypeC;
      }
 
     /**
-     * Return the name of the remote user that has been authenticated
+     * @return the name of the remote user that has been authenticated
      * for this Request.
      */
      public DataChunk remoteUser() {
@@ -538,7 +554,10 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * or <code>null</code> if no such binding exists.
      * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
      *
+     * @param <E> the {@link Note} type.
      * @param note {@link Note} value to be returned
+     * @return the {@link Note} value associated with this <tt>Request</tt>,
+     * or <code>null</code> if no such binding exists
      */
     public <E> E getNote(final Note<E> note) {
         return note.attribute.get(notesHolder);
@@ -562,7 +581,9 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * Remove the {@link Note} value associated with this request.
      * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
      *
+     * @param <E> the {@link Note} type.
      * @param note {@link Note} value to be removed
+     * @return the old value associated with the {@link Node}, that was removed
      */
     public <E> E removeNote(final Note<E> note) {
         return note.attribute.remove(notesHolder);
@@ -574,6 +595,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * replacing any existing binding for this name.
      * Use {@link #createNote(java.lang.String)} to create a new {@link Note}.
      *
+     * @param <E> the {@link Note} type.
      * @param note {@link Note} to which the object should be bound
      * @param value the {@link Note} value be bound to the specified {@link Note}.
      */
@@ -582,7 +604,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
     }
 
     /**
-     * Return the specified request attribute if it exists; otherwise, return
+     * @return the specified request attribute if it exists; otherwise, return
      * <code>null</code>.
      *
      * @param name Name of the request attribute to return
@@ -593,11 +615,18 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
 
     /**
-     * Return the names of all request attributes for this Request, or an
-     * empty {@link Set} if there are none.
+     * @return read-only {@link Set} of the names of all request attributes,
+     * or an empty {@link Set} if there are none.
      */
     public Set<String> getAttributeNames() {
-        return attributes.keySet();
+        final Set<String> attrNames = new HashSet<String>(attributes.size());
+        for (String name : attributes.keySet()) {
+            if (name == null || !name.startsWith(READ_ONLY_ATTR_PREFIX)) {
+                attrNames.add(name);
+            }
+        }
+        
+        return Collections.unmodifiableSet(attrNames);
     }
 
     /**
@@ -607,7 +636,13 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * @param value The associated value
      */
     public void setAttribute(final String name, final Object value) {
-        attributes.put(name, value);
+        final Object oldValue = attributes.put(name, value);
+        // make sure we don't overwrite read-only attribute
+        if (oldValue != null &&
+                name != null && name.startsWith(READ_ONLY_ATTR_PREFIX)) {
+            // restore the original value for read-only attribute
+            attributes.put(name, oldValue);
+        }
     }
 
     /**
@@ -616,7 +651,9 @@ public abstract class HttpRequestPacket extends HttpHeader {
      * @param name Name of the request attribute to remove
      */
     public void removeAttribute(final String name) {
-        attributes.remove(name);
+        if (name == null || !name.startsWith(READ_ONLY_ATTR_PREFIX)) {
+            attributes.remove(name);
+        }
     }
 
     /**
