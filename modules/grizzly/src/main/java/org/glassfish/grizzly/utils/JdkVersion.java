@@ -185,9 +185,4 @@ public class JdkVersion implements Comparable<JdkVersion> {
         return 0;
     }
 
-    public static void main(String[] args) {
-        JdkVersion jdkVersion = JdkVersion.parseVersion("1.6.0");
-        JdkVersion minimumVersion = JdkVersion.parseVersion("1.7.0");
-        System.out.println(minimumVersion.compareTo(jdkVersion));
-    }
 }

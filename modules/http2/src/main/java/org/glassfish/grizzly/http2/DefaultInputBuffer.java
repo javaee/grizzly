@@ -135,8 +135,10 @@ class DefaultInputBuffer implements StreamInputBuffer {
             
             return false;
         }
-        
-        System.out.println(stream.getId() + ": offer " + data + " isLast=" + isLast);
+
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.fine(stream.getId() + ": offer " + data + " isLast=" + isLast);
+        }
         final boolean isLastData = isLast | checkContentLength(data.remaining());
         
         // create InputElement and add it to the input queue

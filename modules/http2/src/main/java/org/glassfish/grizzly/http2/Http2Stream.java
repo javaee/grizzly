@@ -47,14 +47,10 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CloseListener;
-import org.glassfish.grizzly.CloseReason;
-import org.glassfish.grizzly.CloseType;
-import org.glassfish.grizzly.Closeable;
-import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.WriteHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -63,7 +59,6 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
-import org.glassfish.grizzly.OutputSink;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -83,6 +78,9 @@ import static org.glassfish.grizzly.http2.Constants.*;
  * @author Grizzly team
  */
 public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
+
+    private static final Logger LOGGER = Grizzly.logger(Http2Stream.class);
+
     public static final String HTTP2_STREAM_ATTRIBUTE =
             HttpRequestPacket.READ_ONLY_ATTR_PREFIX + Http2Stream.class.getName();
 
@@ -544,8 +542,10 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         final boolean cachedIsLastLocal = cachedIsLast;
         cachedInputBuffer = null;
         cachedIsLast = false;
-        
-        System.out.println(Thread.currentThread().getName() + " streamId=" + getId() + ": flushInputData cachedInputBufferLocal=" + (cachedInputBufferLocal != null ? cachedInputBufferLocal.toString() : null));
+
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.finest(Thread.currentThread().getName() + " streamId=" + getId() + ": flushInputData cachedInputBufferLocal=" + (cachedInputBufferLocal != null ? cachedInputBufferLocal.toString() : null));
+        }
         if (cachedInputBufferLocal != null) {
             if (cachedInputBufferLocal.isComposite()) {
                 ((CompositeBuffer) cachedInputBufferLocal).allowInternalBuffersDispose(true);

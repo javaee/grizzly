@@ -280,7 +280,9 @@ public class Http2BaseFilter extends HttpBaseFilter {
             final HttpRequestPacket httpRequest) {
         
         if (httpRequest.getUpgradeDC().isNull()) {
-            System.out.println("checkRequestHeadersOnUpgrade: failed no upgrade");
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.finest("checkRequestHeadersOnUpgrade: failed no upgrade");
+            }
             return false;
         }
         
@@ -289,7 +291,9 @@ public class Http2BaseFilter extends HttpBaseFilter {
                 httpRequest.getHeaders().getValue(Header.Connection);
         
         if (connectionHeaderDC == null) {
-            System.out.println("checkRequestHeadersOnUpgrade: failed no connection");
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.finest("checkRequestHeadersOnUpgrade: failed no connection");
+            }
             return false;
         }
         
@@ -311,14 +315,18 @@ public class Http2BaseFilter extends HttpBaseFilter {
         }
         
         if (!upgradeFound || !http2SettingsFound) {
-            System.out.println("checkRequestHeadersOnUpgrade: failed incorrect connection: " + connectionHeaderDC);
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.finest("checkRequestHeadersOnUpgrade: failed incorrect connection: " + connectionHeaderDC);
+            }
             return false;
         }
         
         // Check Http2-Settings header
         
         if (!httpRequest.getHeaders().contains(Header.HTTP2Settings)) {
-            System.out.println("checkRequestHeadersOnUpgrade: failed no settings");
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.finest("checkRequestHeadersOnUpgrade: failed no settings");
+            }
             return false;
         }
         

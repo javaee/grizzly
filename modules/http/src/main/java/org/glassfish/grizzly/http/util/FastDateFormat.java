@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -156,44 +156,44 @@ public class FastDateFormat extends DateFormat {
         return toAppendTo;
     }
     
-    public static void main(String[] args) {
-        String format = "yyyy-MM-dd HH:mm:ss.SSS";
-        if (args.length > 0)
-            format = args[0];
-        SimpleDateFormat sdf = new SimpleDateFormat(format);
-        FastDateFormat fdf = new FastDateFormat(sdf);
-        Date d = new Date();
-
-        d.setTime(1); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
-        d.setTime(20); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
-        d.setTime(500); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
-        d.setTime(543); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
-        d.setTime(999); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
-        d.setTime(1050); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
-        d.setTime(2543); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
-        d.setTime(12345); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
-        d.setTime(12340); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
-
-        final int reps = 100000;
-        {
-            long start = System.currentTimeMillis();
-            for (int i = 0; i < reps; i++) {
-                d.setTime(System.currentTimeMillis());
-                fdf.format(d);
-            }
-            long elap = System.currentTimeMillis() - start;
-            System.out.println("fast: " + elap + " elapsed");
-            System.out.println(fdf.format(d));
-        }
-        {
-            long start = System.currentTimeMillis();
-            for (int i = 0; i < reps; i++) {
-                d.setTime(System.currentTimeMillis());
-                sdf.format(d);
-            }
-            long elap = System.currentTimeMillis() - start;
-            System.out.println("slow: " + elap + " elapsed");
-            System.out.println(sdf.format(d));
-        }
-    }
+//    public static void main(String[] args) {
+//        String format = "yyyy-MM-dd HH:mm:ss.SSS";
+//        if (args.length > 0)
+//            format = args[0];
+//        SimpleDateFormat sdf = new SimpleDateFormat(format);
+//        FastDateFormat fdf = new FastDateFormat(sdf);
+//        Date d = new Date();
+//
+//        d.setTime(1); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+//        d.setTime(20); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+//        d.setTime(500); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+//        d.setTime(543); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+//        d.setTime(999); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+//        d.setTime(1050); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+//        d.setTime(2543); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+//        d.setTime(12345); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+//        d.setTime(12340); System.out.println(fdf.format(d) + '\t' + sdf.format(d));
+//
+//        final int reps = 100000;
+//        {
+//            long start = System.currentTimeMillis();
+//            for (int i = 0; i < reps; i++) {
+//                d.setTime(System.currentTimeMillis());
+//                fdf.format(d);
+//            }
+//            long elap = System.currentTimeMillis() - start;
+//            System.out.println("fast: " + elap + " elapsed");
+//            System.out.println(fdf.format(d));
+//        }
+//        {
+//            long start = System.currentTimeMillis();
+//            for (int i = 0; i < reps; i++) {
+//                d.setTime(System.currentTimeMillis());
+//                sdf.format(d);
+//            }
+//            long elap = System.currentTimeMillis() - start;
+//            System.out.println("slow: " + elap + " elapsed");
+//            System.out.println(sdf.format(d));
+//        }
+//    }
 }

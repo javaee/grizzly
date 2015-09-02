@@ -132,7 +132,9 @@ class DefaultOutputSink implements StreamOutputSink {
     private void assertReady() throws IOException {
         // if the last frame (fin flag == 1) has been queued already - throw an IOException
         if (isTerminated()) {
-            System.out.println("Terminated!!! id=" + stream.getId() + " description=" + terminationFlag.getDescription());
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Terminated!!! id=" + stream.getId() + " description=" + terminationFlag.getDescription());
+            }
             throw new IOException(terminationFlag.getDescription());
         } else if (isLastFrameQueued) {
             throw new IOException("Write beyond end of stream");

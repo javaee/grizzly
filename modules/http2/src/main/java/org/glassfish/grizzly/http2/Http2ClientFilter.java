@@ -205,13 +205,10 @@ public class Http2ClientFilter extends Http2BaseFilter {
             final HttpRequestPacket httpRequest = httpResponse.getRequest();
             
             if (!tryHttpUpgrade(ctx, http2State, httpRequest, httpResponse)) {
-                System.out.println("CLIENT: HTTP UPGRADE FAILED");
                 // upgrade didn't work out
                 http2State.setNeverHttp2();
                 return ctx.getInvokeAction();
             }
-            
-            System.out.println("CLIENT: HTTP UPGRADE PASSED");
         }
         
         assert http2State != null;
@@ -334,12 +331,10 @@ public class Http2ClientFilter extends Http2BaseFilter {
         }
 
         if (!checkRequestHeadersOnUpgrade(httpRequest)) {
-            System.out.println("CLIENT: CHECH REQ HEADERS FAILED");
             return false;
         }
         
         if (!checkResponseHeadersOnUpgrade(httpResponse)) {
-            System.out.println("CLIENT: CHECH RESP HEADERS FAILED");
             return false;
         }
         
