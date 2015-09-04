@@ -46,6 +46,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -278,7 +279,7 @@ public class BasicAjpTest extends AjpTestBase {
     }
     
     @Test
-    public void testShutdownHandler() throws Exception {
+    public void testShutdownHandlerNoSecret() throws Exception {
         final FutureImpl<Boolean> shutdownFuture = SafeFutureImpl.create();
         final ShutdownHandler shutDownHandler = new ShutdownHandler() {
 
@@ -325,6 +326,118 @@ public class BasicAjpTest extends AjpTestBase {
         assertTrue(b);
     }
 
+    @Test
+    public void testShutdownHandlerWithCorrectSecret() throws Exception {
+        final String secretKey = "bigSecret";
+        
+        final FutureImpl<Boolean> shutdownFuture = SafeFutureImpl.create();
+        final ShutdownHandler shutDownHandler = new ShutdownHandler() {
+
+            @Override
+            public void onShutdown(Connection initiator) {
+                shutdownFuture.result(true);
+            }
+        };
+
+        AjpAddOn myAjpAddon = new AjpAddOn() {
+
+            @Override
+            protected AjpHandlerFilter createAjpHandlerFilter() {
+                final AjpHandlerFilter filter = new AjpHandlerFilter();
+                filter.addShutdownHandler(shutDownHandler);
+                return filter;
+            }
+        };
+
+        myAjpAddon.configure(false, secretKey);
+        final NetworkListener listener = httpServer.getListener(LISTENER_NAME);
+
+        listener.deregisterAddOn(ajpAddon);
+        listener.registerAddOn(myAjpAddon);
+
+        startHttpServer(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+            }
+
+        }, "/");
+
+        final MemoryManager mm =
+                listener.getTransport().getMemoryManager();
+        final Buffer request = mm.allocate(512);
+        request.put((byte) 0x12);
+        request.put((byte) 0x34);
+        request.putShort((short) (1 + secretKey.getBytes().length + 3));
+        request.put(AjpConstants.JK_AJP13_SHUTDOWN);
+        putString(request, secretKey);
+        request.flip();
+
+        send("localhost", PORT, request);
+        final Boolean b = shutdownFuture.get(10, TimeUnit.SECONDS);
+        assertTrue(b);
+    }
+    
+    @Test
+    public void testShutdownHandlerWithIncorrectSecret() throws Exception {
+        final String secretKey = "bigSecret";
+        final String incorrectSecretKey = "incorrectSecret";
+        
+        final FutureImpl<Boolean> shutdownFuture = SafeFutureImpl.create();
+        final ShutdownHandler shutDownHandler = new ShutdownHandler() {
+
+            @Override
+            public void onShutdown(Connection initiator) {
+                shutdownFuture.result(true);
+            }
+        };
+
+        AjpAddOn myAjpAddon = new AjpAddOn() {
+
+            @Override
+            protected AjpHandlerFilter createAjpHandlerFilter() {
+                final AjpHandlerFilter filter = new AjpHandlerFilter();
+                filter.addShutdownHandler(shutDownHandler);
+                return filter;
+            }
+        };
+
+        myAjpAddon.configure(false, secretKey);
+        final NetworkListener listener = httpServer.getListener(LISTENER_NAME);
+
+        listener.deregisterAddOn(ajpAddon);
+        listener.registerAddOn(myAjpAddon);
+
+        startHttpServer(new HttpHandler() {
+
+            @Override
+            public void service(Request request, Response response) throws Exception {
+            }
+
+        }, "/");
+
+        final MemoryManager mm =
+                listener.getTransport().getMemoryManager();
+        final Buffer request = mm.allocate(512);
+        request.put((byte) 0x12);
+        request.put((byte) 0x34);
+        request.putShort((short) (1 + incorrectSecretKey.getBytes().length + 3));
+        request.put(AjpConstants.JK_AJP13_SHUTDOWN);
+        putString(request, incorrectSecretKey);
+        request.flip();
+
+        Future<Buffer> f = send("localhost", PORT, request);
+        try {
+           f.get(10000, TimeUnit.SECONDS);
+           fail("Supposed to fail");
+        } catch (ExecutionException e) {
+            Throwable t = e.getCause();
+            assertTrue(t instanceof IOException);
+        }
+
+        assertTrue(!shutdownFuture.isDone());
+    }
+    
     @Test
     public void testNullAttribute() throws Exception {
         final NetworkListener listener = httpServer.getListener(LISTENER_NAME);
@@ -567,6 +680,17 @@ public class BasicAjpTest extends AjpTestBase {
         return future;
     }
 
+    private void putString(Buffer b, String s) {
+        if (s == null) {
+            b.putShort((short) 0xFFFF);
+        } else {
+            final byte[] bytes = s.getBytes();
+            b.putShort((short) bytes.length);
+            b.put(bytes);
+            b.put((byte) 0);
+        }
+    }
+    
     private String toHexString(byte[] response) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < response.length; i++) {
@@ -598,6 +722,12 @@ public class BasicAjpTest extends AjpTestBase {
                 e.printStackTrace();
             }
 
+            return ctx.getStopAction();
+        }
+
+        @Override
+        public NextAction handleClose(FilterChainContext ctx) throws IOException {
+            future.failure(new IOException("connection is closed"));
             return ctx.getStopAction();
         }
     }   
