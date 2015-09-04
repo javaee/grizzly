@@ -467,7 +467,7 @@ public class AjpHandlerFilter extends BaseFilter {
         }
 
         if (secret != null &&
-                secret.equals(shutdownSecret)) {
+                !secret.equals(shutdownSecret)) {
             throw new IllegalStateException("Secret doesn't match, no shutdown");
         }
 
