@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,6 +43,7 @@ package com.sun.grizzly.http.ajp;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.ProcessorTaskFactory;
 import com.sun.grizzly.http.SelectorThread;
+import java.security.SecureRandom;
 import java.util.Properties;
 
 public class AjpProcessorTaskFactory implements ProcessorTaskFactory {
@@ -79,7 +80,7 @@ public class AjpProcessorTaskFactory implements ProcessorTaskFactory {
                 props.getProperty(USE_SECRET, "false"));
         
         if (useSecret && secret == null) {
-            secret = Double.toString(Math.random());
+            secret = Double.toString(new SecureRandom().nextDouble());
         }
         
         configuration.setSecret(secret);
