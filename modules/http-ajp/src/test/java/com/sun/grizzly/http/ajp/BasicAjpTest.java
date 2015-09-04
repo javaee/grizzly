@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -538,7 +538,7 @@ public class BasicAjpTest extends AbstractTest {
     }
 
     @Test
-    public void testShutdownHandler() throws Exception {
+    public void testShutdownHandlerNoSecret() throws Exception {
         final FutureImpl<Boolean> shutdownFuture = new FutureImpl();
         final ShutdownHandler shutDownHandler = new ShutdownHandler() {
 
@@ -551,14 +551,66 @@ public class BasicAjpTest extends AbstractTest {
         selectorThread.getAjpConfiguration().setShutdownEnabled(true);
         selectorThread.getAjpConfiguration().getShutdownHandlers().add(shutDownHandler);
         
-        final byte[] request = new byte[] {0x12, 0x34, 0, 1, AjpConstants.JK_AJP13_SHUTDOWN};
-        
-        send(request);
+        send(new AjpShutdownPacket(null).toByteArray());
 
         final Boolean b = shutdownFuture.get(10, TimeUnit.SECONDS);
         Assert.assertTrue(b);
     }
 
+    @Test
+    public void testShutdownHandlerWithCorrectSecret() throws Exception {
+        final String secretKey = "bigSecret";
+        
+        final FutureImpl<Boolean> shutdownFuture = new FutureImpl();
+        final ShutdownHandler shutDownHandler = new ShutdownHandler() {
+
+            public void onShutdown(Channel initiator) {
+                shutdownFuture.setResult(true);
+            }
+        };
+
+        configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
+        selectorThread.getAjpConfiguration().setShutdownEnabled(true);
+        selectorThread.getAjpConfiguration().setSecret(secretKey);
+        selectorThread.getAjpConfiguration().getShutdownHandlers().add(shutDownHandler);
+        
+        send(new AjpShutdownPacket(secretKey).toByteArray());
+
+        final Boolean b = shutdownFuture.get(10, TimeUnit.SECONDS);
+        Assert.assertTrue(b);
+    }
+    
+    @Test
+    public void testShutdownHandlerWithIncorrectSecret() throws Exception {
+        final String secretKey = "bigSecret";
+        final String incorrectSecretKey = "incorrectSecret";
+        
+        final FutureImpl<Boolean> shutdownFuture = new FutureImpl();
+        final ShutdownHandler shutDownHandler = new ShutdownHandler() {
+
+            public void onShutdown(Channel initiator) {
+                shutdownFuture.setResult(true);
+            }
+        };
+
+        configureHttpServer(new StaticResourcesAdapter("src/test/resources"));
+        selectorThread.getAjpConfiguration().setShutdownEnabled(true);
+        selectorThread.getAjpConfiguration().setSecret(secretKey);
+        selectorThread.getAjpConfiguration().getShutdownHandlers().add(shutDownHandler);
+        
+        send(new AjpShutdownPacket(incorrectSecretKey).toByteArray());
+
+        int c;
+        try {
+            c = socket.getInputStream().read();
+        } catch (IOException e) {
+            c = -1;
+        }
+        
+        Assert.assertEquals("The socket is expected to be closed", -1, c);
+        Assert.assertFalse(shutdownFuture.isDone());
+    }
+    
     @Test
     public void testNullAttribute() throws Exception {
         configureHttpServer(new Adapter() {
@@ -725,5 +777,5 @@ public class BasicAjpTest extends AbstractTest {
 
         Assert.assertEquals("FINE", ajpResponse.getResponseMessage());
         Assert.assertEquals(200, ajpResponse.getResponseCode());
-    }    
+    }
 }

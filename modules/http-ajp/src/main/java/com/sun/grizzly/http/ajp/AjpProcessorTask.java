@@ -118,9 +118,9 @@ public class AjpProcessorTask extends ProcessorTask {
     public void invokeAdapter() {
         final AjpHttpRequest ajpRequest = (AjpHttpRequest) request;
 
-        try {
-            switch (ajpRequest.getType()) {
-                case AjpConstants.JK_AJP13_FORWARD_REQUEST: {
+        switch (ajpRequest.getType()) {
+            case AjpConstants.JK_AJP13_FORWARD_REQUEST: {
+                try {
                     ajpRequest.setForwardRequestProcessing(true);
                     if (ajpRequest.isExpectContent()) {
                         // if expect content - parse following data chunk
@@ -128,39 +128,60 @@ public class AjpProcessorTask extends ProcessorTask {
                     }
 
                     super.invokeAdapter();
-                    break;
-                }
-                case AjpConstants.JK_AJP13_SHUTDOWN: {
-                    processShutdown();
-                    break;
-                }
-                case AjpConstants.JK_AJP13_CPING_REQUEST: {
-                    try {
-                        processCPing();
-                    } catch (IOException e) {
-                        if (LOGGER.isLoggable(Level.FINE)) {
-                            LOGGER.log(Level.FINE,
-                                    "Exception during sending CPONG reply on connection: "
-                                    + key.channel(), e);
-                        }
-
-                        error = true;
+                } catch (Throwable e) {
+                    if (LOGGER.isLoggable(Level.INFO)) {
+                        LOGGER.log(Level.INFO,
+                                "Exception during parsing data chunk on connection: "
+                                + key.channel(), e);
                     }
 
-                    break;
-                }
-                default:
                     error = true;
-                    LOGGER.log(Level.WARNING, "Invalid packet type: {0}", ajpRequest.getType());
+                }
+                
+                break;
             }
-        } catch (Throwable e) {
-            if (LOGGER.isLoggable(Level.INFO)) {
-                LOGGER.log(Level.INFO,
-                        "Exception during parsing data chunk on connection: "
-                        + key.channel(), e);
+            case AjpConstants.JK_AJP13_SHUTDOWN: {
+                try {
+                    processShutdown();
+                } catch (Throwable e) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE,
+                                "Exception during shutdown request processing on connection: "
+                                + key.channel(), e);
+                    }
+                    error = true;
+                } finally {
+                    // we don't want any response to be sent back
+                    response.setCommitted(true);
+                    ((AjpOutputBuffer) outputBuffer).setFinished(true);
+                }
+                break;
             }
+            case AjpConstants.JK_AJP13_CPING_REQUEST: {
+                try {
+                    processCPing();
+                } catch (Throwable e) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE,
+                                "Exception during sending CPONG reply on connection: "
+                                + key.channel(), e);
+                    }
 
-            error = true;
+                    error = true;
+                } finally {
+                    // we don't want any response to be sent back
+                    response.setCommitted(true);
+                    ((AjpOutputBuffer) outputBuffer).setFinished(true);
+                }
+
+                break;
+            }
+            default:
+                // we don't want any response to be sent back
+                response.setCommitted(true);
+                ((AjpOutputBuffer) outputBuffer).setFinished(true);
+                error = true;
+                LOGGER.log(Level.WARNING, "Invalid packet type: {0}", ajpRequest.getType());
         }
     }
 
