@@ -312,14 +312,8 @@ public class BasicAjpTest extends AjpTestBase {
 
         }, "/");
 
-        final MemoryManager mm =
-                listener.getTransport().getMemoryManager();
-        final Buffer request = mm.allocate(512);
-        request.put((byte) 0x12);
-        request.put((byte) 0x34);
-        request.putShort((short) 1);
-        request.put(AjpConstants.JK_AJP13_SHUTDOWN);
-        request.flip();
+        Buffer request = Buffers.wrap(listener.getTransport().getMemoryManager(),
+                new AjpShutdownPacket(null).toByteArray());
 
         send("localhost", PORT, request);
         final Boolean b = shutdownFuture.get(10, TimeUnit.SECONDS);
@@ -363,15 +357,8 @@ public class BasicAjpTest extends AjpTestBase {
 
         }, "/");
 
-        final MemoryManager mm =
-                listener.getTransport().getMemoryManager();
-        final Buffer request = mm.allocate(512);
-        request.put((byte) 0x12);
-        request.put((byte) 0x34);
-        request.putShort((short) (1 + secretKey.getBytes().length + 3));
-        request.put(AjpConstants.JK_AJP13_SHUTDOWN);
-        putString(request, secretKey);
-        request.flip();
+        Buffer request = Buffers.wrap(listener.getTransport().getMemoryManager(),
+                new AjpShutdownPacket(secretKey).toByteArray());
 
         send("localhost", PORT, request);
         final Boolean b = shutdownFuture.get(10, TimeUnit.SECONDS);
@@ -416,19 +403,12 @@ public class BasicAjpTest extends AjpTestBase {
 
         }, "/");
 
-        final MemoryManager mm =
-                listener.getTransport().getMemoryManager();
-        final Buffer request = mm.allocate(512);
-        request.put((byte) 0x12);
-        request.put((byte) 0x34);
-        request.putShort((short) (1 + incorrectSecretKey.getBytes().length + 3));
-        request.put(AjpConstants.JK_AJP13_SHUTDOWN);
-        putString(request, incorrectSecretKey);
-        request.flip();
+        Buffer request = Buffers.wrap(listener.getTransport().getMemoryManager(),
+                new AjpShutdownPacket(incorrectSecretKey).toByteArray());
 
         Future<Buffer> f = send("localhost", PORT, request);
         try {
-           f.get(10000, TimeUnit.SECONDS);
+           f.get(10, TimeUnit.SECONDS);
            fail("Supposed to fail");
         } catch (ExecutionException e) {
             Throwable t = e.getCause();
