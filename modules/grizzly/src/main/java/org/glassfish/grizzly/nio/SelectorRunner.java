@@ -158,7 +158,8 @@ public final class SelectorRunner implements Runnable {
     /**
      * Sets the {@link Selector}, associated with the runner.
      * The method should be called from the runner thread.
-     * @param selector
+     * @param selector the new {@link Selector} to be associated with this
+     *                 {@link SelectorRunner}.
      */
     void setSelector(final Selector selector) {
         this.selector = selector;
@@ -257,22 +258,22 @@ public final class SelectorRunner implements Runnable {
         }
 
         final Thread currentThread = Thread.currentThread();
-        if (!isResume) {
-            if (!stateHolder.compareAndSet(State.STARTING, State.STARTED)) {
-                return;
+        try {
+            if (!isResume) {
+                if (!stateHolder.compareAndSet(State.STARTING, State.STARTED)) {
+                    return;
+                }
+
+                addThreadNameMarker(currentThread);
             }
 
-            addThreadNameMarker(currentThread);
-        }
+            setRunnerThread(currentThread);
+            Threads.setService(true);
 
-        setRunnerThread(currentThread);
-        Threads.setService(true);
-        
-        final StateHolder<State> transportStateHolder = transport.getState();
+            final StateHolder<State> transportStateHolder = transport.getState();
 
-        boolean isSkipping = false;
+            boolean isSkipping = false;
         
-        try {
             while (!isSkipping && !isStop()) {
                 if (transportStateHolder.getState() != State.PAUSED) {
                     isSkipping = !doSelect();
