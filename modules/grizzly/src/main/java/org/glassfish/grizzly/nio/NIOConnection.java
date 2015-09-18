@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,6 +53,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
@@ -99,18 +100,23 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile Processor processor;
     protected volatile ProcessorSelector processorSelector;
     protected final AttributeHolder attributes;
-    protected final TaskQueue<AsyncReadQueueRecord> asyncReadQueue;
-    protected final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
+    
+    private volatile TaskQueue<AsyncReadQueueRecord> asyncReadQueue;
+    private final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
     
     // Semaphor responsible for connect/close notification
-    protected final AtomicReference<Object> connectCloseSemaphor =
-            new AtomicReference<Object>();
+    protected final AtomicReferenceFieldUpdater<NIOConnection, Object> connectCloseSemaphorUpdater =
+            AtomicReferenceFieldUpdater.newUpdater(NIOConnection.class,
+                    Object.class, "connectCloseSemaphor");
+    private volatile Object connectCloseSemaphor;
     
     // closeTypeFlag, "null" value means the connection is open.
     private final AtomicBoolean isCloseScheduled = new AtomicBoolean();
     
-    private final AtomicReference<CloseReason> closeReasonAtomic =
-            new AtomicReference<CloseReason>();
+    private final AtomicReferenceFieldUpdater<NIOConnection, CloseReason> closeReasonUpdater =
+            AtomicReferenceFieldUpdater.newUpdater(NIOConnection.class,
+                    CloseReason.class, "closeReason");
+    private volatile CloseReason closeReason;
     
     protected volatile boolean isBlocking;
     protected volatile boolean isStandalone;        
@@ -132,7 +138,6 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
-        asyncReadQueue = TaskQueue.createTaskQueue(null);
         asyncWriteQueue = TaskQueue.createTaskQueue(
                 new TaskQueue.MutableMaxQueueSize() {
 
@@ -346,6 +351,14 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
     
     public TaskQueue<AsyncReadQueueRecord> getAsyncReadQueue() {
+        if (asyncReadQueue == null) {
+            synchronized (this) {
+                if (asyncReadQueue == null) {
+                    asyncReadQueue = TaskQueue.createTaskQueue(null);
+                }
+            }
+        }
+        
         return asyncReadQueue;
     }
 
@@ -422,7 +435,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     @Override
     public boolean isOpen() {
-        return channel != null && channel.isOpen() && closeReasonAtomic.get() == null;
+        return channel != null && channel.isOpen() && closeReason == null;
     }
     
     @Override
@@ -439,9 +452,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public CloseReason getCloseReason() {
-        final CloseReason closeReason = closeReasonAtomic.get();
-        if (closeReason != null) {
-            return closeReason;
+        final CloseReason cr = closeReason;
+        if (cr != null) {
+            return cr;
         } else if (channel == null || !channel.isOpen()) {
             return CloseReason.LOCALLY_CLOSED_REASON;
         }
@@ -545,20 +558,20 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
     
     protected void terminate0(final CompletionHandler<Closeable> completionHandler,
-            final CloseReason closeReason) {
+            final CloseReason reason) {
         
         isCloseScheduled.set(true);
-        if (closeReasonAtomic.compareAndSet(null, closeReason)) {
+        if (closeReasonUpdater.compareAndSet(this, null, reason)) {
 
             if (LOGGER.isLoggable(Level.FINEST)) {
                 // replace close reason: clone the original value and add stacktrace
-                closeReasonAtomic.set(new CloseReason(closeReason.getType(),
+                this.closeReason = new CloseReason(reason.getType(),
                         new IOException("Connection is closed at",
-                                closeReason.getCause())));
+                                reason.getCause()));
             }
             
             preClose();
-            notifyCloseListeners(closeReason);
+            notifyCloseListeners(reason);
             notifyProbesClose(this);
             
             transport.getSelectorHandler().execute(
@@ -609,14 +622,14 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     @Override
     public void addCloseListener(final org.glassfish.grizzly.CloseListener closeListener) {
-        CloseReason reason = closeReasonAtomic.get();
+        CloseReason reason = closeReason;
         
         // check if connection is still open
         if (reason == null) {
             // add close listener
             closeListeners.add(closeListener);
             // check the connection state again
-            reason = closeReasonAtomic.get();
+            reason = closeReason;
             if (reason != null && closeListeners.remove(closeListener)) {
                 // if connection was closed during the method call - notify the listener
                 invokeCloseListener(closeListener, reason.getType());
@@ -831,7 +844,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     protected void preClose() {
         // Check if connection init event (like CONNECT or ACCEPT) has been sent
-        if (connectCloseSemaphor.getAndSet(NOTIFICATION_CLOSED_COMPLETE) ==
+        if (connectCloseSemaphorUpdater.getAndSet(this, NOTIFICATION_CLOSED_COMPLETE) ==
                 NOTIFICATION_INITIALIZED) {
             transport.fireIOEvent(IOEvent.CLOSED, this, null);
         }
@@ -877,7 +890,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 // don't register OP_READ for a connection scheduled to be closed
                 (isOpRead && isCloseScheduled.get()) ||
                 // don't register any OP for a closed connection
-                closeReasonAtomic.get() != null) {
+                closeReason != null) {
             return;
         }
         

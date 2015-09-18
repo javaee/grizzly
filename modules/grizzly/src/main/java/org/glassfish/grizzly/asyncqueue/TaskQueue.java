@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,13 +43,15 @@ package org.glassfish.grizzly.asyncqueue;
 import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.glassfish.grizzly.WriteHandler;
 
 /**
  * Class represents common implementation of asynchronous processing queue.
  *
+ * @param <E> {@link AsyncQueueRecord} type
+ * 
  * @author Alexey Stashok
  */
 public final class TaskQueue<E extends AsyncQueueRecord> {
@@ -60,12 +62,19 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
      */
     private final Queue<E> queue;
     
-    private final AtomicReference<E> currentElement;
-    private final AtomicInteger spaceInBytes = new AtomicInteger();
+    private static final AtomicReferenceFieldUpdater<TaskQueue, AsyncQueueRecord> currentElementUpdater =
+            AtomicReferenceFieldUpdater.newUpdater(TaskQueue.class, AsyncQueueRecord.class, "currentElement");
+    private volatile E currentElement;
+    
+    private static final AtomicIntegerFieldUpdater<TaskQueue> spaceInBytesUpdater =
+            AtomicIntegerFieldUpdater.newUpdater(TaskQueue.class, "spaceInBytes");
+    private volatile int spaceInBytes;
     
     private final MutableMaxQueueSize maxQueueSizeHolder;
     
-    private final AtomicInteger writeHandlersCounter = new AtomicInteger();
+    private static final AtomicIntegerFieldUpdater<TaskQueue> writeHandlersCounterUpdater =
+            AtomicIntegerFieldUpdater.newUpdater(TaskQueue.class, "writeHandlersCounter");
+    private volatile int writeHandlersCounter;
     protected final Queue<WriteHandler> writeHandlersQueue =
             new ConcurrentLinkedQueue<WriteHandler>();
     // ------------------------------------------------------------ Constructors
@@ -73,7 +82,6 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
 
     protected TaskQueue(final MutableMaxQueueSize maxQueueSizeHolder) {
         this.maxQueueSizeHolder = maxQueueSizeHolder;
-        currentElement = new AtomicReference<E>();
         queue = new ConcurrentLinkedQueue<E>();
     }
 
@@ -91,7 +99,7 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
      * @return the number of queued bytes.
      */
     public int size() {
-        return spaceInBytes.get();
+        return spaceInBytes;
     }
 
     /**
@@ -102,8 +110,9 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
      *
      * @return the current processing task
      */
+    @SuppressWarnings("unchecked")
     public E poll() {
-        E current = currentElement.getAndSet(null);
+        E current = (E) currentElementUpdater.getAndSet(this, null);
         return current != null ? current : queue.poll();
     }
 
@@ -118,16 +127,16 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
      * @return the current processing task
      */
     public E peek() {
-        E current = currentElement.get();
+        E current = currentElement;
         if (current == null) {
             current = queue.poll();
             if (current != null) {
-                currentElement.set(current);
+                currentElement = current;
             }
         }
         
         if (current != null &&
-                isClosed && currentElement.compareAndSet(current, null)) {
+                isClosed && currentElementUpdater.compareAndSet(this, current, null)) {
             current.notifyFailure(new IOException("Connection closed"));
             return null;
         }
@@ -138,10 +147,11 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
     /**
      * Reserves memory space in the queue.
      *
+     * @param amount
      * @return the new memory (in bytes) consumed by the queue.
      */
     public int reserveSpace(final int amount) {
-        return spaceInBytes.addAndGet(amount);
+        return spaceInBytesUpdater.addAndGet(this, amount);
     }
 
     /**
@@ -150,7 +160,7 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
      * @return the new memory (in bytes) consumed by the queue.
      */
     public int releaseSpace(final int amount) {
-        return spaceInBytes.addAndGet(-amount);
+        return spaceInBytesUpdater.addAndGet(this, -amount);
     }
 
     /**
@@ -171,7 +181,7 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
      * @return the number of queued bytes.
      */
     public int spaceInBytes() {
-        return spaceInBytes.get();
+        return spaceInBytes;
     }
 
     /**
@@ -234,7 +244,7 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
 
     public void doNotify() {
         if (maxQueueSizeHolder == null ||
-                writeHandlersCounter.get() == 0) {
+                writeHandlersCounter == 0) {
             return;
         }
         
@@ -259,16 +269,18 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
      * @param task current element.
      */
     public void setCurrentElement(final E task) {
-        currentElement.set(task);
+        currentElement = task;
         
-        if (task != null && isClosed && currentElement.compareAndSet(task, null)) {
+        if (task != null && isClosed &&
+                currentElementUpdater.compareAndSet(this, task, null)) {
             task.notifyFailure(new IOException("Connection closed"));
         }
     }
 
     public boolean compareAndSetCurrentElement(final E expected, final E newValue) {
-        if (currentElement.compareAndSet(expected, newValue)) {
-            if (newValue != null && isClosed && currentElement.compareAndSet(newValue, null)) {
+        if (currentElementUpdater.compareAndSet(this, expected, newValue)) {
+            if (newValue != null && isClosed &&
+                    currentElementUpdater.compareAndSet(this, newValue, null)) {
                 newValue.notifyFailure(new IOException("Connection closed"));
                 return false;
             }
@@ -301,7 +313,7 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
     }
     
     public boolean isEmpty() {        
-        return spaceInBytes.get() == 0;
+        return spaceInBytes == 0;
     }
 
     public void onClose() {
@@ -333,13 +345,13 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
     }
     
     private void offerWriteHandler(final WriteHandler writeHandler) {
-        writeHandlersCounter.incrementAndGet();
+        writeHandlersCounterUpdater.incrementAndGet(this);
         writeHandlersQueue.offer(writeHandler);
     }
     
     private boolean removeWriteHandler(final WriteHandler writeHandler) {
         if (writeHandlersQueue.remove(writeHandler)) {
-            writeHandlersCounter.decrementAndGet();
+            writeHandlersCounterUpdater.decrementAndGet(this);
             return true;
         }
         
@@ -349,7 +361,7 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
     private WriteHandler pollWriteHandler() {
         final WriteHandler record = writeHandlersQueue.poll();
         if (record != null) {
-            writeHandlersCounter.decrementAndGet();
+            writeHandlersCounterUpdater.decrementAndGet(this);
             return record;
         }
         

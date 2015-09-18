@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -197,6 +197,8 @@ public class UDPNIOConnection extends NIOConnection {
      * @param group The multicast address to join
      * @param networkInterface The network interface on which to join the group
      * @param source The source address
+     * 
+     * @throws java.io.IOException
      */
     public void join(final InetAddress group,
             final NetworkInterface networkInterface, final InetAddress source)
@@ -454,7 +456,8 @@ public class UDPNIOConnection extends NIOConnection {
     }
 
     protected boolean notifyReady() {
-        return connectCloseSemaphor.compareAndSet(null, NOTIFICATION_INITIALIZED);
+        return connectCloseSemaphorUpdater.compareAndSet(this,
+                null, NOTIFICATION_INITIALIZED);
     }
 
     /**
