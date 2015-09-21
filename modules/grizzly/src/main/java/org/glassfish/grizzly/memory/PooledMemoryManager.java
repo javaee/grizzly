@@ -65,7 +65,7 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
  *     <li>The buffer size growth factor, that defines 2^x multiplier, used to calculate buffer size for next allocated pool</li>
  *     <li>The number of pool slices that every pool will stripe allocation requests across</li>
  *     <li>The percentage of the heap that this manager will use when populating the pools</li>
- *     <li>The percentage of buffers to be preallocated during MemoryManager initialization</li>
+ *     <li>The percentage of buffers to be pre-allocated during MemoryManager initialization</li>
  *     <li>The flag indicating whether direct or heap based {@link Buffer}s will be allocated</li>
  * </ul>
  *
@@ -76,7 +76,7 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
  *     <li>Growth factor: 2 ({@link #DEFAULT_GROWTH_FACTOR}), which means the first buffer pool will contains buffer of size 4 KiB, the seconds one buffer of size 16KiB, the third one buffer of size 64KiB</li>
  *     <li>Number of pool slices: Based on the return value of <code>Runtime.getRuntime().availableProcessors()</code></li>
  *     <li>Percentage of heap: 10% ({@link #DEFAULT_HEAP_USAGE_PERCENTAGE})</li>
- *     <li>Percentage of buffers to be preallocated: 100% ({@link #DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE})</li>
+ *     <li>Percentage of buffers to be pre-allocated: 100% ({@link #DEFAULT_PREALLOCATED_BUFFERS_PERCENTAGE})</li>
  *     <li>Heap based {@link Buffer}s will be allocated</li>
  * </ul>
  *
@@ -99,7 +99,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             Boolean.getBoolean(PooledMemoryManager.class + ".force-byte-buffer-based-buffers");
 
     private static final long BACK_OFF_DELAY = Long.getLong(
-            PooledMemoryManager.class + ".back-off-delay", 0l);
+            PooledMemoryManager.class + ".back-off-delay", 0L);
     /**
      * Basic monitoring support.  Concrete implementations of this class need
      * only to implement the {@link #createJmxManagementObject()}  method
@@ -133,7 +133,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
      *     <li>2 growth factor, which means 1st pool will contain buffers of size 4KiB, the 2nd - 16KiB, the 3rd - 64KiB</li>
      *     <li>Number of pool slices based on <code>Runtime.getRuntime().availableProcessors()</code></li>
      *     <li>The initial allocation will use 10% of the heap</li>
-     *     <li>The percentage of buffers to be preallocated during MemoryManager initialization</li>
+     *     <li>The percentage of buffers to be pre-allocated during MemoryManager initialization</li>
      * </ul>
      */
     public PooledMemoryManager() {
@@ -170,7 +170,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
      * @param growthFactor the buffer size growth factor, that defines 2^x multiplier, used to calculate buffer size for next allocated pool
      * @param numberOfPoolSlices the number of pool slices that every pool will stripe allocation requests across
      * @param percentOfHeap percentage of the heap that will be used when populating the pools
-     * @param percentPreallocated percentage of buffers to be preallocated during MemoryManager initialization
+     * @param percentPreallocated percentage of buffers to be pre-allocated during MemoryManager initialization
      * @param isDirect flag, indicating whether direct or heap based {@link Buffer}s will be allocated
      */
     public PooledMemoryManager(
@@ -870,7 +870,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
          */
         @SuppressWarnings("UnusedDeclaration")
         static final class PaddedAtomicInteger extends AtomicInteger {
-            private long p0, p1, p2, p3, p4, p5, p6, p7 = 7l;
+            private long p0, p1, p2, p3, p4, p5, p6, p7 = 7L;
 
 
             PaddedAtomicInteger(int initialValue) {
@@ -888,7 +888,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         @SuppressWarnings("UnusedDeclaration")
         static final class PaddedAtomicReferenceArray<E>
                 extends AtomicReferenceArray<E> {
-            private long p0, p1, p2, p3, p4, p5, p6, p7 = 7l;
+            private long p0, p1, p2, p3, p4, p5, p6, p7 = 7L;
 
             PaddedAtomicReferenceArray(int length) {
                 super(length);
