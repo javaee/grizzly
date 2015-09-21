@@ -236,7 +236,7 @@ public class SSLBaseFilter extends BaseFilter {
     
     protected SSLTransportFilterWrapper createOptimizedTransportFilter(
             final TransportFilter childFilter) {
-        return new SSLTransportFilterWrapper(childFilter);
+        return new SSLTransportFilterWrapper(childFilter, this);
     }
 
 
@@ -1034,7 +1034,7 @@ public class SSLBaseFilter extends BaseFilter {
 
     } // END CertificateEvent
 
-    private class InternalProcessingHandler extends EventLifeCycleListener.Adapter {
+    private static class InternalProcessingHandler extends EventLifeCycleListener.Adapter {
         private final FilterChainContext parentContext;
 
         private InternalProcessingHandler(final FilterChainContext parentContext) {
@@ -1054,11 +1054,14 @@ public class SSLBaseFilter extends BaseFilter {
         void onFailure(Connection connection, Throwable t);
     }
     
-    protected class SSLTransportFilterWrapper extends TransportFilter {
+    protected static class SSLTransportFilterWrapper extends TransportFilter {
         protected final TransportFilter wrappedFilter;
+        protected final SSLBaseFilter sslBaseFilter;
 
-        public SSLTransportFilterWrapper(final TransportFilter transportFilter) {
+        public SSLTransportFilterWrapper(final TransportFilter transportFilter,
+                                         final SSLBaseFilter sslBaseFilter) {
             this.wrappedFilter = transportFilter;
+            this.sslBaseFilter = sslBaseFilter;
         }
         
         @Override
@@ -1075,13 +1078,13 @@ public class SSLBaseFilter extends BaseFilter {
         public NextAction handleRead(final FilterChainContext ctx) throws Exception {
             final Connection connection = ctx.getConnection();
             final SSLConnectionContext sslCtx =
-                    obtainSslConnectionContext(connection);
+                    sslBaseFilter.obtainSslConnectionContext(connection);
             
             if (sslCtx.getSslEngine() == null) {
-                final SSLEngine sslEngine = serverSSLEngineFactory.createSSLEngine(null, -1);
+                final SSLEngine sslEngine = sslBaseFilter.serverSSLEngineFactory.createSSLEngine(null, -1);
                 sslEngine.beginHandshake();
                 sslCtx.configure(sslEngine);
-                notifyHandshakeStart(connection);
+                sslBaseFilter.notifyHandshakeStart(connection);
             }
             
             ctx.setMessage(allowDispose(allocateInputBuffer(sslCtx)));
