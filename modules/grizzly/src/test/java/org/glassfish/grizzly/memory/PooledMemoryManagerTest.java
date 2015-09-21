@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -319,7 +319,6 @@ public class PooledMemoryManagerTest {
         Buffer b = mm.allocate(6000);
         assertEquals(6000, b.remaining());
         assertTrue(b.allowBufferDispose());
-        assertTrue((b.capacity() % DEFAULT_BASE_BUFFER_SIZE) == 0);
 
          // validate that pool returned a buffer.
         assertEquals(0, probe.bufferAllocated.get());
