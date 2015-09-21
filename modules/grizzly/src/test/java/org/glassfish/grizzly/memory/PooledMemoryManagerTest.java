@@ -319,7 +319,6 @@ public class PooledMemoryManagerTest {
         Buffer b = mm.allocate(6000);
         assertEquals(6000, b.remaining());
         assertTrue(b.allowBufferDispose());
-        assertTrue((b.capacity() % DEFAULT_BASE_BUFFER_SIZE) == 0);
 
          // validate that pool returned a buffer.
         assertEquals(0, probe.bufferAllocated.get());

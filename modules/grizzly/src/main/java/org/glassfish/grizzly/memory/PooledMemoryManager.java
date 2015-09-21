@@ -439,7 +439,8 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
         for (int i = 0; i < pools.length; i++) {
             final Pool pool = pools[i];
             if (pool.bufferSize >= size) {
-                cb.append(pool.allocate());
+                final Buffer b = pool.allocate();
+                cb.append(b.limit(size));
                 break;
             }
         }
