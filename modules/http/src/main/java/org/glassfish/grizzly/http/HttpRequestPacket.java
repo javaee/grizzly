@@ -478,6 +478,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      *
      * @param port the source port of the client
      */
+    @SuppressWarnings("unused")
     public void setRemotePort(int port) {
         this.remotePort = port;
     }
@@ -509,6 +510,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
     /**
      * @return the host name of the server servicing this request.
      */
+    @SuppressWarnings("unused")
     public String getLocalHost() {
         return localHost;
     }
@@ -583,7 +585,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      *
      * @param <E> the {@link Note} type.
      * @param note {@link Note} value to be removed
-     * @return the old value associated with the {@link Node}, that was removed
+     * @return the old value associated with the {@link Note}, that was removed
      */
     public <E> E removeNote(final Note<E> note) {
         return note.attribute.remove(notesHolder);
