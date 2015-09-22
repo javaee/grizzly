@@ -47,9 +47,11 @@ import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.ssl.SSLBaseFilter;
 import org.glassfish.grizzly.ssl.SSLConnectionContext;
 import org.glassfish.grizzly.ssl.SSLEngineFactory;
 import org.glassfish.grizzly.ssl.SSLFilter;
@@ -164,7 +166,7 @@ public class SNIFilter extends SSLFilter {
             final TransportFilter childFilter) {
         // return SNI aware TransportFilterWrapper, because original one
         // can create default SSLEngine instance, which is not needed
-        return new SNIAwareTransportFilterWrapper(childFilter);
+        return new SNIAwareTransportFilterWrapper(childFilter, this);
     }
 
     @Override
@@ -368,12 +370,12 @@ public class SNIFilter extends SSLFilter {
                 ((major << 8) | minor & 0xff) >= MIN_TLS_VERSION;
     }
     
-    private final class SNIAwareTransportFilterWrapper
+    private static final class SNIAwareTransportFilterWrapper
             extends SSLTransportFilterWrapper {
 
         public SNIAwareTransportFilterWrapper(
-                final TransportFilter transportFilter) {
-            super(transportFilter);
+                final TransportFilter transportFilter, final SSLBaseFilter sslBaseFilter) {
+            super(transportFilter, sslBaseFilter);
         }
 
         @Override
