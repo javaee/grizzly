@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -104,6 +104,9 @@ public class ReadResult<K, L> implements Result, Cacheable {
      */
     private int readSize;
 
+    protected ReadResult() {
+    }
+
     protected ReadResult(Connection connection) {
         this(connection, null, null, 0);
     }
@@ -187,7 +190,23 @@ public class ReadResult<K, L> implements Result, Cacheable {
         this.readSize = readSize;
     }
 
-    private void reset() {
+    /**
+     * One method to set all the WriteResult properties.
+     * 
+     * @param connection
+     * @param message
+     * @param srcAddress
+     * @param readSize 
+     */
+    protected void set(final Connection connection, final K message,
+            final L srcAddress, final int readSize) {
+        this.connection = connection;
+        this.message = message;
+        this.srcAddress = srcAddress;
+        this.readSize = readSize;
+    }    
+    
+    protected void reset() {
         connection = null;
         message = null;
         srcAddress = null;

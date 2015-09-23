@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,6 +52,8 @@ import org.glassfish.grizzly.utils.DebugPoint;
 /**
  * {@link AsyncQueue} element unit
  * 
+ * @param <R> the result type
+ * 
  * @author Alexey Stashok
  */
 public abstract class AsyncQueueRecord<R> implements Cacheable {
@@ -59,27 +61,25 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     
     protected Connection connection;
     protected Object message;
-    protected R currentResult;
     protected CompletionHandler completionHandler;
 
     protected boolean isRecycled = false;
     protected DebugPoint recycleTrack;
     
+    protected AsyncQueueRecord() {
+    }
+    
     public AsyncQueueRecord(final Connection connection,
-            final Object message, final R currentResult,
-            final CompletionHandler completionHandler) {
-
-        set(connection, message, currentResult, completionHandler);
+            final Object message, final CompletionHandler completionHandler) {
+        set(connection, message, completionHandler);
     }
 
     protected final void set(final Connection connection,
-            final Object message, final R currentResult,
-            final CompletionHandler completionHandler) {
+            final Object message, final CompletionHandler completionHandler) {
 
         checkRecycled();
         this.connection = connection;
         this.message = message;
-        this.currentResult = currentResult;
         this.completionHandler = completionHandler;
     }
 
@@ -98,10 +98,12 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
         this.message = message;
     }
 
-    public final R getCurrentResult() {
-        checkRecycled();
-        return currentResult;
-    }
+    /**
+     * Returns the current record result object.
+     * 
+     * @return the current record result object
+     */
+    public abstract R getCurrentResult();
 
     public void notifyFailure(final Throwable e) {
         if (completionHandler != null) {
@@ -118,7 +120,7 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     @SuppressWarnings("unchecked")
     public final void notifyIncomplete() {
         if (completionHandler != null) {
-            completionHandler.updated(currentResult);
+            completionHandler.updated(getCurrentResult());
         }
     }
     

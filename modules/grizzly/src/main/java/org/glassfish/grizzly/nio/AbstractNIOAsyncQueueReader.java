@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -102,14 +102,9 @@ public abstract class AbstractNIOAsyncQueueReader
         final TaskQueue<AsyncReadQueueRecord> connectionQueue =
                 ((NIOConnection) connection).getAsyncReadQueue();
 
-
-        final ReadResult<Buffer, SocketAddress> currentResult =
-                ReadResult.create(connection,
-                        buffer, null, 0);
-
         // create and initialize the read queue record
         final AsyncReadQueueRecord queueRecord = AsyncReadQueueRecord.create(
-                connection, buffer, currentResult,
+                connection, buffer,
                 completionHandler, interceptor);
 
         final boolean isCurrent = (connectionQueue.reserveSpace(1) == 1);
@@ -117,6 +112,8 @@ public abstract class AbstractNIOAsyncQueueReader
         try {
 
             if (isCurrent) { // If AsyncQueue is empty - try to read Buffer here
+                final ReadResult<Buffer, SocketAddress> currentResult =
+                        queueRecord.getCurrentResult();
                 doRead(connection, queueRecord);
 
                 final int interceptInstructions = intercept(

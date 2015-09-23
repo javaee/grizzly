@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,49 +38,71 @@
  * holder.
  */
 
-package org.glassfish.grizzly.nio.transport;
+package org.glassfish.grizzly.asyncqueue;
 
-import java.io.IOException;
-import java.net.SocketAddress;
-import org.glassfish.grizzly.*;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
-import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
-import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueReader;
-import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.nio.NIOTransport;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.utils.Holder;
 
 /**
- * The UDP transport {@link AsyncQueueReader} implementation, based on
- * the Java NIO
+ * Write result associated with a {@link AsyncWriteQueueRecord}.
  *
+ * @param <K>
+ * @param <L>
+ * 
  * @author Alexey Stashok
  */
-public final class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
-    public UDPNIOAsyncQueueReader(NIOTransport transport) {
-        super(transport);
-    }
+public final class RecordWriteResult<K, L> extends WriteResult<K, L> {
+    private long lastWrittenBytes;
+    private long bytesToReleaseAfterLastWrite;
+    
+    /**
+     *  Settable destination address
+     */
+    private final SettableHolder<L> dstAddressHolder = new SettableHolder<L>();
 
     @Override
-    protected int read0(Connection connection, Buffer buffer,
-            ReadResult<Buffer, SocketAddress> currentResult) throws IOException {
-        return ((UDPNIOTransport) transport).read((UDPNIOConnection) connection,
-                buffer, currentResult);
+    protected void set(final Connection connection, final K message,
+            final L dstAddress, final long writtenSize) {
+        super.set(connection, message, dstAddress, writtenSize);
+    }
+    
+    public long lastWrittenBytes() {
+        return lastWrittenBytes;
     }
 
-    protected void addRecord(Connection connection,
-            Buffer buffer,
-            CompletionHandler completionHandler,
-            Interceptor<ReadResult> interceptor) {
+    public long bytesToReleaseAfterLastWrite() {
+        return bytesToReleaseAfterLastWrite;
+    }
+
+    public RecordWriteResult<K, L> lastWriteResult(
+            final long lastWrittenBytes,
+            final long bytesToReleaseAfterLastWrite) {
+        this.lastWrittenBytes = lastWrittenBytes;
+        this.bytesToReleaseAfterLastWrite = bytesToReleaseAfterLastWrite;
         
-        final AsyncReadQueueRecord record = AsyncReadQueueRecord.create(
-                connection, buffer,
-                completionHandler, interceptor);
-        ((UDPNIOConnection) connection).getAsyncReadQueue().offer(record);
+        return this;
     }
-
+    
     @Override
-    protected void onReadyToRead(Connection connection) throws IOException {
-        final NIOConnection nioConnection = (NIOConnection) connection;
-        nioConnection.enableIOEvent(IOEvent.READ);
+    public void recycle() {
+        lastWrittenBytes = 0;
+        bytesToReleaseAfterLastWrite = 0;
+        dstAddressHolder.obj = null;
+        
+        reset();
+    }
+    
+    private static class SettableHolder<L> extends Holder<L> {
+        private L obj;
+                
+        public SettableHolder<L> set(final L obj) {
+            this.obj = obj;
+            return this;
+        }
+        @Override
+        public L get() {
+            return obj;
+        }
     }
 }

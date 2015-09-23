@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,9 +47,12 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
+import org.glassfish.grizzly.asyncqueue.RecordWriteResult;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.asyncqueue.WritableMessage;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -66,6 +69,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport.DirectByteBufferRecor
  * @author Alexey Stashok
  */
 public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
+    private final static Logger LOGGER = Grizzly.logger(TCPNIOAsyncQueueWriter.class);
 
     public TCPNIOAsyncQueueWriter(final NIOTransport transport) {
         super(transport);
@@ -73,19 +77,35 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
     @Override
     @SuppressWarnings("unchecked")
-    protected long write0(final NIOConnection connection,
+    protected RecordWriteResult write0(final NIOConnection connection,
             final AsyncWriteQueueRecord queueRecord) throws IOException {
 
         if (queueRecord instanceof CompositeQueueRecord) {
             return writeComposite0(connection, (CompositeQueueRecord) queueRecord);
         }
         
-        final WriteResult<WritableMessage, SocketAddress> currentResult =
-                queueRecord.getCurrentResult();
-        final WritableMessage message = queueRecord.getMessage();
+        final RecordWriteResult writeResult = queueRecord.getCurrentResult();
+        
+        if (queueRecord.remaining() == 0) {
+            return writeResult.lastWriteResult(0,
+                    queueRecord.isUncountable()
+                            ? AsyncWriteQueueRecord.UNCOUNTABLE_RECORD_SPACE_VALUE
+                            : 0);
+            
+        }
+        
+        final long written = write0(connection,
+                queueRecord.getWritableMessage(), writeResult);
+        
+        return writeResult.lastWriteResult(written, written);        
+    }
 
+    @SuppressWarnings("unchecked")
+    protected long write0(final NIOConnection connection,
+            final WritableMessage message,
+            final WriteResult<WritableMessage, SocketAddress> currentResult)
+            throws IOException {
         final long written;
-
         if (message instanceof Buffer) {
             final Buffer buffer = (Buffer) message;
             final int oldPos = buffer.position();
@@ -135,7 +155,7 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         return written;
     }
 
-    private int writeComposite0(final NIOConnection connection,
+    private RecordWriteResult writeComposite0(final NIOConnection connection,
             final CompositeQueueRecord queueRecord) throws IOException {
         
         final int bufferSize = Math.min(queueRecord.size,
@@ -188,7 +208,9 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             
             final AsyncWriteQueueRecord record = it.next();
             
-            if (record.isEmptyRecord()) continue;
+            if (record.isUncountable()) {
+                continue;
+            }
             
             final Buffer message = record.getMessage();
             final int oldPos = message.position();
@@ -212,7 +234,9 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         dstByteBuffer.position(0);
     }
 
-    private int update(final CompositeQueueRecord queueRecord, int written) {
+    private RecordWriteResult update(final CompositeQueueRecord queueRecord,
+            final int written) {
+        int extraBytesToRelease = 0;
         int remainder = written;
         queueRecord.size -= written;
         
@@ -225,10 +249,10 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             
             assert record != null;
             
-            if (record.isEmptyRecord()) {
+            if (record.isUncountable()) {
                 queue.removeFirst();
                 record.notifyCompleteAndRecycle();
-                written += EMPTY_RECORD_SPACE_VALUE;
+                extraBytesToRelease += AsyncWriteQueueRecord.UNCOUNTABLE_RECORD_SPACE_VALUE;
                 continue;
             }
 
@@ -252,17 +276,19 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                         firstResult.getWrittenSize() + remainder);
                 
                 ((TCPNIOConnection) connection).onWrite(firstMessage, remainder);
-                return written;
+                return queueRecord.getCurrentResult().lastWriteResult(written,
+                        written + extraBytesToRelease);
             }
         }
 
-        while ((record = queue.peekFirst()) != null && record.isEmptyRecord()) {
+        while ((record = queue.peekFirst()) != null && record.isUncountable()) {
             queue.removeFirst();
             record.notifyCompleteAndRecycle();
-            written += EMPTY_RECORD_SPACE_VALUE;
+            extraBytesToRelease += AsyncWriteQueueRecord.UNCOUNTABLE_RECORD_SPACE_VALUE;
         }
 
-        return written;
+        return queueRecord.getCurrentResult().lastWriteResult(written,
+                written + extraBytesToRelease);
     }
     
     @Override
@@ -374,17 +400,22 @@ public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         }
 
         public CompositeQueueRecord(final Connection connection) {
-            super(connection, null, null, null,
-                    null, null, false);
+            super(connection, null, null, null, null, false);
         }
 
         public void append(final AsyncWriteQueueRecord queueRecord) {
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                LOGGER.log(Level.FINEST,
+                        "CompositeQueueRecord.append. connection={0}, this={1}, comp-size={2}, elem-count={3}, queueRecord={4}, newrec-size={5}, isEmpty={6}",
+                        new Object[] {connection, this, size, queue.size(), queueRecord, queueRecord.remaining(), queueRecord.isUncountable()});
+            }
+            
             size += queueRecord.remaining();
             queue.add(queueRecord);
         }
 
         @Override
-        public boolean isEmptyRecord() {
+        public boolean isUncountable() {
             return false;
         }
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -48,69 +48,69 @@ import org.glassfish.grizzly.utils.DebugPoint;
  * 
  * @author Alexey Stashok
  */
-public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
+public class AsyncWriteQueueRecord extends AsyncQueueRecord<RecordWriteResult> {
+    public final static int UNCOUNTABLE_RECORD_SPACE_VALUE = 1;
+    
     private static final ThreadCache.CachedTypeIndex<AsyncWriteQueueRecord> CACHE_IDX =
             ThreadCache.obtainIndex(AsyncWriteQueueRecord.class, 2);
 
     public static AsyncWriteQueueRecord create(
             final Connection connection,
             final WritableMessage message,
-            final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final PushBackHandler pushbackHandler,
-            final boolean isEmptyRecord) {
+            final boolean isUncountable) {
 
         final AsyncWriteQueueRecord asyncWriteQueueRecord =
                 ThreadCache.takeFromCache(CACHE_IDX);
         
         if (asyncWriteQueueRecord != null) {
             asyncWriteQueueRecord.isRecycled = false;
-            asyncWriteQueueRecord.set(connection, message, currentResult,
-                    completionHandler, dstAddress, pushbackHandler, isEmptyRecord);
+            asyncWriteQueueRecord.set(connection, message,
+                    completionHandler, dstAddress, pushbackHandler, isUncountable);
             
             return asyncWriteQueueRecord;
         }
 
         return new AsyncWriteQueueRecord(connection, message,
-                currentResult, completionHandler, dstAddress, pushbackHandler,
-                isEmptyRecord);
+                completionHandler, dstAddress, pushbackHandler,
+                isUncountable);
     }
     
     private long initialMessageSize;
     private int momentumQueueSize = -1;
-    private boolean isEmptyRecord;
+    private boolean isUncountable;
     private Object dstAddress;
     private PushBackHandler pushBackHandler;
 
+    private final RecordWriteResult writeResult = new RecordWriteResult();
+    
     protected AsyncWriteQueueRecord(final Connection connection,
             final WritableMessage message,
-            final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final PushBackHandler pushBackHandler,
-            final boolean isEmptyRecord) {
+            final boolean isUncountable) {
 
-        super(connection, message, currentResult, completionHandler);
-        this.dstAddress = dstAddress;
-        this.isEmptyRecord = isEmptyRecord;
-        this.momentumQueueSize = -1;
-        this.initialMessageSize = message != null ? message.remaining() : 0;
-        this.pushBackHandler = pushBackHandler;
+        set(connection, message, completionHandler, dstAddress,
+                pushBackHandler, isUncountable);
     }
 
     protected void set(final Connection connection, final WritableMessage message,
-            final WriteResult currentResult,
             final CompletionHandler completionHandler,
             final Object dstAddress,
             final PushBackHandler pushBackHandler,
-            final boolean isEmptyRecord) {
-        super.set(connection, message, currentResult, completionHandler);
+            final boolean isUncountable) {
+        super.set(connection, message, completionHandler);
+        
         this.dstAddress = dstAddress;
-        this.isEmptyRecord = isEmptyRecord;
+        this.isUncountable = isUncountable;
         this.momentumQueueSize = -1;
         this.initialMessageSize = message != null ? message.remaining() : 0;
         this.pushBackHandler = pushBackHandler;
+        
+        writeResult.set(connection, message, dstAddress, 0);
     }
 
     public final Object getDstAddress() {
@@ -122,12 +122,23 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         return (WritableMessage) message;
     }
 
-    public boolean isEmptyRecord() {
-        return isEmptyRecord;
+    /**
+     * @return <tt>true</tt> if record reserves in async write queue space, that
+     * is not related to message size {@link #remaining()}, but is constant
+     * {@link AsyncWriteQueueRecord#UNCOUNTABLE_RECORD_SPACE_VALUE}.
+     */
+    public boolean isUncountable() {
+        return isUncountable;
     }
 
-    public void setEmptyRecord(final boolean isEmptyRecord) {
-        this.isEmptyRecord = isEmptyRecord;
+    public void setUncountable(final boolean isUncountable) {
+        this.isUncountable = isUncountable;
+    }
+
+    public long getBytesToReserve() {
+        return isUncountable
+                ? UNCOUNTABLE_RECORD_SPACE_VALUE
+                : message != null ? remaining() : 0;
     }
 
     public long getInitialMessageSize() {
@@ -138,6 +149,11 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         return getWritableMessage().remaining();
     }
 
+    @Override
+    public RecordWriteResult getCurrentResult() {
+        return writeResult;
+    }
+    
     public int getMomentumQueueSize() {
         return momentumQueueSize;
     }
@@ -161,19 +177,16 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     @SuppressWarnings("unchecked")
     public void notifyCompleteAndRecycle() {
 
-        final WriteResult currentResultLocal = currentResult;
         final CompletionHandler<WriteResult> completionHandlerLocal =
                 completionHandler;
 
         final WritableMessage messageLocal = getWritableMessage();
 
-        recycle();
-
         if (completionHandlerLocal != null) {
-            completionHandlerLocal.completed(currentResultLocal);
-        } else {
-            currentResultLocal.recycle();
+            completionHandlerLocal.completed(writeResult);
         }
+
+        recycle();
 
         // try to dispose originalBuffer (if allowed)
         messageLocal.release();
@@ -185,7 +198,8 @@ public class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
 
     protected final void reset() {
-        set(null, null, null, null, null, null, false);
+        set(null, null, null, null, null, false);
+        writeResult.recycle(); // reset the write result
     }
 
     @Override
