@@ -49,10 +49,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -117,6 +117,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             AtomicReferenceFieldUpdater.newUpdater(NIOConnection.class,
                     CloseReason.class, "closeReason");
     private volatile CloseReason closeReason;
+    private volatile GrizzlyFuture<CloseReason> closeFuture;
     
     protected volatile boolean isBlocking;
     protected volatile boolean isStandalone;        
@@ -512,6 +513,36 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public void closeWithReason(final IOException reason) {
         closeGracefully0(null, new CloseReason(
                 org.glassfish.grizzly.CloseType.LOCALLY, reason));
+    }
+
+    @Override
+    public GrizzlyFuture<CloseReason> closeFuture() {
+        if (closeFuture == null) {
+            synchronized (this) {
+                if (closeFuture == null) {
+                    final CloseReason cr = closeReason;
+                    if (cr == null) {
+                        final FutureImpl<CloseReason> f
+                                = Futures.createSafeFuture();
+                        addCloseListener(new org.glassfish.grizzly.CloseListener() {
+
+                            @Override
+                            public void onClosed(Closeable closeable, ICloseType type)
+                                    throws IOException {
+                                final CloseReason cr = closeReason;
+                                assert cr != null;
+                                f.result(cr);
+                            }
+                        });
+                        closeFuture = f;
+                    } else {
+                        closeFuture = Futures.createReadyFuture(cr);
+                    }
+                }
+            }
+        }
+        
+        return closeFuture;
     }
     
     @SuppressWarnings("unchecked")
@@ -954,7 +985,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         this.selectionKey = newSelectionKey;
     }
 
-    private void invokeCloseListener(org.glassfish.grizzly.CloseListener closeListener, org.glassfish.grizzly.CloseType closeType) {
+    private void invokeCloseListener(
+            final org.glassfish.grizzly.CloseListener closeListener,
+            final org.glassfish.grizzly.CloseType closeType) {
         try {
             if (closeListener instanceof CloseListener) {
                 CloseType closeLocal;
