@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,8 +45,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -242,8 +242,8 @@ public class IdleTimeoutFilter extends BaseFilter {
     protected void queueAction(final FilterChainContext ctx) {
         final Connection connection = ctx.getConnection();
         final IdleRecord idleRecord = IDLE_ATTR.get(connection);
-        if (idleRecord.counter.getAndIncrement() == 0) {
-            idleRecord.timeoutMillis.set(FOREVER);
+        if (IdleRecord.counterUpdater.getAndIncrement(idleRecord) == 0) {
+            idleRecord.timeoutMillis = FOREVER;
         }
 
         ctx.addCompletionListener(contextCompletionListener);
@@ -279,8 +279,8 @@ public class IdleTimeoutFilter extends BaseFilter {
             final Connection connection = ctx.getConnection();
             final IdleRecord idleRecord = IDLE_ATTR.get(connection);
             // Small trick to not synchronize this block and queueAction();
-            idleRecord.timeoutMillis.set(FOREVER_SPECIAL);
-            if (idleRecord.counter.decrementAndGet() == 0) {
+            idleRecord.timeoutMillis = FOREVER_SPECIAL;
+            if (IdleRecord.counterUpdater.decrementAndGet(idleRecord) == 0) {
                 final long timeoutToSet;
                 
                 // non-volatile isClosed should work ok,
@@ -297,7 +297,8 @@ public class IdleTimeoutFilter extends BaseFilter {
                             System.currentTimeMillis() + timeout;
                 }
 
-                idleRecord.timeoutMillis.compareAndSet(FOREVER_SPECIAL, timeoutToSet);
+                IdleRecord.timeoutMillisUpdater.compareAndSet(
+                        idleRecord, FOREVER_SPECIAL, timeoutToSet);
             }
         }
     } // END ContextCompletionListener
@@ -335,13 +336,13 @@ public class IdleTimeoutFilter extends BaseFilter {
 
         @Override
         public long getTimeoutMillis(final Connection connection) {
-            return IDLE_ATTR.get(connection).timeoutMillis.get();
+            return IDLE_ATTR.get(connection).timeoutMillis;
         }
 
         @Override
         public void setTimeoutMillis(final Connection connection,
                 final long timeoutMillis) {
-            IDLE_ATTR.get(connection).timeoutMillis.set(timeoutMillis);
+            IDLE_ATTR.get(connection).timeoutMillis = timeoutMillis;
         }
 
     } // END Resolver
@@ -350,13 +351,15 @@ public class IdleTimeoutFilter extends BaseFilter {
         private boolean isClosed;
         private volatile boolean isInitialSet;
         private long initialTimeoutMillis;
-        private final AtomicLong timeoutMillis;
-        private final AtomicInteger counter;
-
-        private IdleRecord() {
-            counter = new AtomicInteger();
-            timeoutMillis = new AtomicLong();
-        }
+        
+        private static final AtomicLongFieldUpdater<IdleRecord> timeoutMillisUpdater =
+                AtomicLongFieldUpdater.newUpdater(IdleRecord.class, "timeoutMillis");
+        private volatile long timeoutMillis;
+        
+        
+        private static final AtomicIntegerFieldUpdater<IdleRecord> counterUpdater =
+                AtomicIntegerFieldUpdater.newUpdater(IdleRecord.class, "counter");
+        private volatile int counter;
 
         private long getInitialTimeoutMillis(final long defaultTimeoutMillis) {
             return isInitialSet ? initialTimeoutMillis : defaultTimeoutMillis;
@@ -369,7 +372,7 @@ public class IdleTimeoutFilter extends BaseFilter {
 
         private void close() {
             isClosed = true;
-            timeoutMillis.set(0);
+            timeoutMillis = 0;
         }
 
     } // END IdleRecord
