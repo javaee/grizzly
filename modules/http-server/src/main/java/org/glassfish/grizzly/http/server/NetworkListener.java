@@ -425,6 +425,15 @@ public class NetworkListener {
     }
 
     /**
+     * @return Grizzly server {@link Connection}, that is responsible for
+     *      accepting incoming client connections
+     * @since 2.3.24
+     */
+    public Connection getServerConnection() {
+        return serverConnection;
+    }
+    
+    /**
      * Return the array of the registered {@link AddOn}s.
      * Please note, possible array modifications wont affect the
      * {@link NetworkListener}'s addons list.
