@@ -48,6 +48,7 @@ package org.glassfish.grizzly.http2;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
@@ -55,6 +56,7 @@ import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainContext.TransportContext;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
@@ -70,6 +72,7 @@ import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import static org.glassfish.grizzly.http2.Constants.IN_FIN_TERMINATION;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
@@ -79,6 +82,7 @@ import org.glassfish.grizzly.npn.AlpnClientNegotiator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 
 import static org.glassfish.grizzly.http2.Constants.OUT_FIN_TERMINATION;
+import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
 
@@ -299,6 +303,82 @@ public class Http2ClientFilter extends Http2BaseFilter {
     }
     
     /**
+     *
+     * @param ctx
+     * @param http2Connection
+     * @param httpHeader
+     * @param entireHttpPacket
+     * @throws IOException
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    protected void processOutgoingHttpHeader(final FilterChainContext ctx,
+            final Http2Connection http2Connection,
+            final HttpHeader httpHeader,
+            final HttpPacket entireHttpPacket) throws IOException {
+
+        if (!http2Connection.isHttp2OutputEnabled()) {
+            // HTTP2 output is not enabled yet
+            return;
+        }
+        
+        final HttpRequestPacket request = (HttpRequestPacket) httpHeader;
+        
+        if (!request.isCommitted()) {
+            prepareOutgoingRequest(request);
+        }
+
+        final Http2Stream stream = Http2Stream.getStreamFor(request);
+        
+        if (stream == null) {
+            processOutgoingRequestForNewStream(ctx, http2Connection, request,
+                    entireHttpPacket);
+        } else {
+            final TransportContext transportContext = ctx.getTransportContext();
+
+            stream.getOutputSink().writeDownStream(entireHttpPacket,
+                                       ctx,
+                                       transportContext.getCompletionHandler(),
+                                       transportContext.getMessageCloner());
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void processOutgoingRequestForNewStream(final FilterChainContext ctx,
+            final Http2Connection http2Connection,
+            final HttpRequestPacket request,
+            final HttpPacket entireHttpPacket) throws IOException {
+
+        
+        final ReentrantLock newStreamLock = http2Connection.getNewClientStreamLock();
+        newStreamLock.lock();
+        
+        try {
+            final Http2Stream stream = http2Connection.openStream(
+                    request,
+                    http2Connection.getNextLocalStreamId(),
+                    0, 0, Http2StreamState.IDLE);
+
+            if (stream == null) {
+                throw new IOException("Http2Connection is closed");
+            }
+            
+            // Make sure request contains the association with the HTTP2 stream
+            request.setAttribute(Http2Stream.HTTP2_STREAM_ATTRIBUTE, stream);
+            
+            final TransportContext transportContext = ctx.getTransportContext();
+
+            stream.getOutputSink().writeDownStream(entireHttpPacket,
+                                       ctx,
+                                       transportContext.getCompletionHandler(),
+                                       transportContext.getMessageCloner());
+
+        } finally {
+            newStreamLock.unlock();
+        }
+    }
+    
+    /**
      * Creates client-side {@link Http2Connection} with preconfigured
      * initial-windows-size and max-concurrent-streams.
      * 
@@ -320,6 +400,18 @@ public class Http2ClientFilter extends Http2BaseFilter {
         return defaultClientAlpnNegotiator;
     }    
 
+    /**
+     * The method is called once a client receives an HTTP response to its initial
+     * propose to establish HTTP/2.0 connection.
+     * 
+     * @param ctx
+     * @param http2State
+     * @param httpRequest
+     * @param httpResponse
+     * @return
+     * @throws Http2StreamException
+     * @throws IOException 
+     */
     private boolean tryHttpUpgrade(final FilterChainContext ctx,
             final Http2State http2State,
             final HttpRequestPacket httpRequest,
@@ -330,10 +422,12 @@ public class Http2ClientFilter extends Http2BaseFilter {
             return false;
         }
 
+        // chech the initial request, if it was correct HTTP/2.0 Upgrade request
         if (!checkRequestHeadersOnUpgrade(httpRequest)) {
             return false;
         }
         
+        // check the server's response, if it accepts HTTP/2.0 upgrade
         if (!checkResponseHeadersOnUpgrade(httpResponse)) {
             return false;
         }
@@ -370,9 +464,9 @@ public class Http2ClientFilter extends Http2BaseFilter {
         httpResponse.getProcessingState().setKeepAlive(true);
         
         // create a virtual stream for this request
-        
+
         final Http2Stream stream = http2Connection.openUpgradeStream(
-                httpRequest, 0, true);
+                httpRequest, 0);
         
         final HttpContext oldHttpContext =
                 httpResponse.getProcessingState().getHttpContext();
@@ -399,6 +493,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
         dummyResponsePacket.getProcessingState().setHttpContext(oldHttpContext);
         dummyResponsePacket.setIgnoreContentModifiers(true);
         
+        // change the HttpClientFilter's HttpResponsePacket associated with the Connection
         ctx.notifyDownstream(
                 HttpEvents.createChangePacketInProgressEvent(dummyResponsePacket));
                 
@@ -446,17 +541,53 @@ public class Http2ClientFilter extends Http2BaseFilter {
             final FilterChainContext context,
             final HeaderBlockHead firstHeaderFrame) throws IOException {
 
-        if (firstHeaderFrame.getType() == PushPromiseFrame.TYPE) {
-            assert !http2Connection.isServer();
-
-            processInPushPromise(http2Connection, context,
-                    (PushPromiseFrame) firstHeaderFrame);
-        } else {
-            super.processCompleteHeader(
-                    http2Connection, context, firstHeaderFrame);
+        switch (firstHeaderFrame.getType()) {
+            case PushPromiseFrame.TYPE:
+                processInPushPromise(http2Connection, context,
+                        (PushPromiseFrame) firstHeaderFrame);
+                break;
+            default:
+                processInResponse(http2Connection, context,
+                    (HeadersFrame) firstHeaderFrame);
         }
     }
     
+    private void processInResponse(final Http2Connection http2Connection,
+            final FilterChainContext context,
+            final HeadersFrame headersFrame)
+            throws Http2ConnectionException, IOException {
+
+        final Http2Stream stream = http2Connection.getStream(
+                headersFrame.getStreamId());
+        if (stream == null) { // Stream doesn't exist
+            return;
+        }
+        
+        final HttpRequestPacket request = stream.getRequest();
+        
+        HttpResponsePacket response = request.getResponse();
+        if (response == null) {
+            response = Http2Response.create();
+        }
+        
+        final boolean isEOS = headersFrame.isEndStream();
+        if (isEOS) {
+            response.setExpectContent(false);
+            stream.inputBuffer.terminate(IN_FIN_TERMINATION);
+        }
+        
+        DecoderUtils.decodeResponseHeaders(http2Connection, response);
+        onHttpHeadersParsed(response, context);        
+
+        stream.onRcvHeaders(isEOS);
+        bind(request, response);
+
+        if (isEOS) {
+            onHttpPacketParsed(response, context);
+        }
+
+        sendUpstream(http2Connection, stream, response, !isEOS);
+    }
     
     private void processInPushPromise(final Http2Connection http2Connection,
             final FilterChainContext context,
@@ -474,7 +605,8 @@ public class Http2ClientFilter extends Http2BaseFilter {
         }
 
         final Http2Stream stream = http2Connection.acceptStream(request,
-                pushPromiseFrame.getPromisedStreamId(), refStreamId, 0);
+                pushPromiseFrame.getPromisedStreamId(), refStreamId, 0,
+                Http2StreamState.RESERVED_REMOTE);
         
         if (stream == null) { // GOAWAY has been sent, so ignoring this request
             request.recycle();
@@ -486,8 +618,6 @@ public class Http2ClientFilter extends Http2BaseFilter {
 
         prepareIncomingRequest(stream, request);
         
-        refStream.onHeaderBlockRcv(pushPromiseFrame);
-
         stream.outputSink.terminate(OUT_FIN_TERMINATION);
 
         // send the push request upstream only in case, when user explicitly wants it

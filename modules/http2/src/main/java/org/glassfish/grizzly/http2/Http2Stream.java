@@ -45,8 +45,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -66,9 +66,6 @@ import org.glassfish.grizzly.memory.CompositeBuffer.DisposeOrder;
 import org.glassfish.grizzly.utils.Futures;
 
 import org.glassfish.grizzly.http2.frames.ErrorCode;
-import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
-import org.glassfish.grizzly.http2.frames.HeadersFrame;
-import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
 
 import static org.glassfish.grizzly.http2.Constants.*;
 
@@ -93,6 +90,10 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     private static final Attribute<Http2Stream> HTTP_RQST_HTTP2_STREAM_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("http2.request.stream");
     
+    private static final AtomicReferenceFieldUpdater<Http2Stream, Http2StreamState> stateUpdater =
+            AtomicReferenceFieldUpdater.newUpdater(Http2Stream.class, Http2StreamState.class, "state");
+    private volatile Http2StreamState state;
+    
     private final HttpRequestPacket request;
     private final int streamId;
     private final int refStreamId;
@@ -107,14 +108,22 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     final StreamOutputSink outputSink;
     
     // number of bytes reported to be read, but still unacked to the peer
-    final AtomicInteger unackedReadBytes  = new AtomicInteger();
+    static final AtomicIntegerFieldUpdater<Http2Stream> unackedReadBytesUpdater =
+            AtomicIntegerFieldUpdater.newUpdater(Http2Stream.class, "unackedReadBytes");
+    private volatile int unackedReadBytes;
     
     // closeReasonRef, "null" value means the connection is open.
-    final AtomicReference<CloseReason> closeReasonRef =
-            new AtomicReference<CloseReason>();
+    private static final AtomicReferenceFieldUpdater<Http2Stream, CloseReason> closeReasonUpdater =
+            AtomicReferenceFieldUpdater.newUpdater(Http2Stream.class, CloseReason.class, "closeReason");
+    private volatile CloseReason closeReason;
+    private volatile GrizzlyFuture<CloseReason> closeFuture;
+    
     private final Queue<CloseListener> closeListeners =
-            new ConcurrentLinkedQueue<CloseListener>();
-    private final AtomicInteger completeFinalizationCounter = new AtomicInteger();
+            new ConcurrentLinkedQueue<CloseListener>();    
+    
+    private static final AtomicIntegerFieldUpdater<Http2Stream> completeFinalizationCounterUpdater =
+            AtomicIntegerFieldUpdater.newUpdater(Http2Stream.class, "completeFinalizationCounter");
+    private volatile int completeFinalizationCounter;
     
     // flag, which is indicating if Http2Stream processing has been marked as complete by external code
     volatile boolean isProcessingComplete;
@@ -123,7 +132,6 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     private int inboundHeaderFramesCounter;
     
     private Map<String, PushResource> associatedResourcesToPush;
-//    private Set<Http2Stream> associatedStreams;
         
     public static Http2Stream getStreamFor(final HttpHeader httpHeader) {
         final HttpRequestPacket request;
@@ -144,15 +152,26 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         return null;
     }
 
+    /**
+     * Create HTTP2 stream.
+     * 
+     * @param http2Connection
+     * @param request
+     * @param streamId
+     * @param refStreamId
+     * @param priority
+     * @param initState 
+     */
     protected Http2Stream(final Http2Connection http2Connection,
             final HttpRequestPacket request,
             final int streamId, final int refStreamId,
-            final int priority) {
+            final int priority, final Http2StreamState initState) {
         this.http2Connection = http2Connection;
         this.request = request;
         this.streamId = streamId;
         this.refStreamId = refStreamId;
         this.priority = priority;
+        this.state = initState;
         
         inputBuffer = new DefaultInputBuffer(this);
         outputSink = new DefaultOutputSink(this);
@@ -166,15 +185,17 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      * @param http2Connection
      * @param request
      * @param priority 
+     * @param initState 
      */
     protected Http2Stream(final Http2Connection http2Connection,
             final HttpRequestPacket request,
-            final int priority) {
+            final int priority, final Http2StreamState initState) {
         this.http2Connection = http2Connection;
         this.request = request;
         this.streamId = UPGRADE_STREAM_ID;
         this.refStreamId = 0;
         this.priority = priority;
+        this.state = initState;
         
         inputBuffer = http2Connection.isServer()
                 ? new UpgradeInputBuffer()
@@ -191,6 +212,15 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         return http2Connection;
     }
 
+    public Http2StreamState getState() {
+        return state;
+    }
+
+    private boolean compareAndSetState(final Http2StreamState expectedState,
+            final Http2StreamState newState) {
+        return stateUpdater.compareAndSet(this, expectedState, newState);
+    }
+    
     public int getPeerWindowSize() {
         return http2Connection.getPeerStreamWindowSize();
     }
@@ -255,16 +285,16 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
 
     @Override
     public boolean isOpen() {
-        return completeFinalizationCounter.get() < 2;
+        return completeFinalizationCounter < 2;
     }
 
     @Override
     public void assertOpen() throws IOException {
         if (!isOpen()) {
-            final CloseReason closeReason = closeReasonRef.get();
-            assert closeReason != null;
+            final CloseReason cr = this.closeReason;
+            assert cr != null;
             
-            throw new IOException("closed", closeReason.getCause());
+            throw new IOException("closed", cr.getCause());
         }
     }
     
@@ -350,11 +380,11 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
             final IOException cause,
             final boolean isCloseOutputGracefully) {
         
-        if (closeReasonRef.get() != null) {
+        if (closeReason != null) {
             return;
         }
         
-        if (closeReasonRef.compareAndSet(null,
+        if (closeReasonUpdater.compareAndSet(this, null,
                 new CloseReason(closeType, cause))) {
             
             final Termination termination = closeType == CloseType.LOCALLY ?
@@ -399,7 +429,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      * Notify the Http2Stream that peer sent RST_FRAME.
      */
     void resetRemotely() {
-        if (closeReasonRef.compareAndSet(null,
+        if (closeReasonUpdater.compareAndSet(this, null,
                 new CloseReason(CloseType.REMOTELY, null))) {
             // initiat graceful shutdown for input, so user is able to read
             // the bufferred data
@@ -414,7 +444,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     
     void onProcessingComplete() {
         isProcessingComplete = true;
-        if (closeReasonRef.compareAndSet(null,
+        if (closeReasonUpdater.compareAndSet(this, null,
                 new CloseReason(CloseType.LOCALLY, null))) {
             
             final Termination termination = 
@@ -429,67 +459,107 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     
     @Override
     @SuppressWarnings("unchecked")
-    public void addCloseListener(CloseListener closeListener) {
-        CloseReason closeReason = closeReasonRef.get();
+    public void addCloseListener(final CloseListener closeListener) {
+        CloseReason cr = closeReason;
         
         // check if connection is still open
-        if (closeReason == null) {
+        if (cr == null) {
             // add close listener
             closeListeners.add(closeListener);
             // check the connection state again
-            closeReason = closeReasonRef.get();
-            if (closeReason != null && closeListeners.remove(closeListener)) {
+            cr = closeReason;
+            if (cr != null && closeListeners.remove(closeListener)) {
                 // if connection was closed during the method call - notify the listener
                 try {
-                    closeListener.onClosed(this, closeReason.getType());
+                    closeListener.onClosed(this, cr.getType());
                 } catch (IOException ignored) {
                 }
             }
         } else { // if connection is closed - notify the listener
             try {
-                closeListener.onClosed(this, closeReason.getType());
+                closeListener.onClosed(this, cr.getType());
             } catch (IOException ignored) {
             }
         }
     }
 
     @Override
-    public boolean removeCloseListener(CloseListener closeListener) {
+    public boolean removeCloseListener(final CloseListener closeListener) {
         return closeListeners.remove(closeListener);
     }
 
+    @Override
+    public GrizzlyFuture<CloseReason> closeFuture() {
+        if (closeFuture == null) {
+            synchronized (this) {
+                if (closeFuture == null) {
+                    final CloseReason cr = closeReason;
+
+                    if (cr == null) {
+                        final FutureImpl<CloseReason> f
+                                = Futures.createSafeFuture();
+                        addCloseListener(new org.glassfish.grizzly.CloseListener() {
+
+                            @Override
+                            public void onClosed(Closeable closeable, ICloseType type)
+                                    throws IOException {
+                                final CloseReason cr = closeReason;
+                                assert cr != null;
+                                f.result(cr);
+                            }
+                        });
+
+                        closeFuture = f;
+                    } else {
+                        closeFuture = Futures.createReadyFuture(cr);
+                    }
+                }
+            }
+        }
+        
+        return closeFuture;
+    }
+    
     void onInputClosed() {
-        if (completeFinalizationCounter.incrementAndGet() == 2) {
+        if (completeFinalizationCounterUpdater.incrementAndGet(this) == 2) {
             closeStream();
         }
     }
 
     void onOutputClosed() {
-        if (completeFinalizationCounter.incrementAndGet() == 2) {
+        if (completeFinalizationCounterUpdater.incrementAndGet(this) == 2) {
             closeStream();
         }
     }
     
     /**
-     * The method is called when an inbound header block is decoded for the stream.
+     * The method is called when an inbound headers are decoded for the stream,
+     * which means all the header frames arrived and we're ready to parse the headers.
      * 
-     * @param headerBlockHead
+     * @param isEOS
      * @throws Http2StreamException 
      */
-    void onHeaderBlockRcv(final HeaderBlockHead headerBlockHead)
-            throws Http2StreamException {
-        if (headerBlockHead.getType() == PushPromiseFrame.TYPE) {
-            // ignore push promise
-            return;
-        }
-        
+    void onRcvHeaders(final boolean isEOS) throws Http2StreamException {
+
         inboundHeaderFramesCounter++;
         
         switch (inboundHeaderFramesCounter) {
-            case 1:
-                break;  // normal
+            case 1: // first header block to process
+                
+                // change the state
+                final Http2StreamState s = state;
+                if (s == Http2StreamState.IDLE) {
+                    compareAndSetState(Http2StreamState.IDLE,
+                            isEOS ? Http2StreamState.HALF_CLOSED_REMOTE
+                                  : Http2StreamState.OPEN);
+                } else if (s == Http2StreamState.RESERVED_REMOTE) {
+                    compareAndSetState(Http2StreamState.RESERVED_REMOTE,
+                            Http2StreamState.HALF_CLOSED_LOCAL);
+                }
+                
+                break;
             case 2: {   // might be a trailing headers, which is ok
-                if (((HeadersFrame) headerBlockHead).isEndStream()) {
+                if (isEOS) {
                     break;  // trailing headers
                 }
                 
@@ -500,6 +570,25 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
                 throw new Http2StreamException(getId(),
                         ErrorCode.PROTOCOL_ERROR, "Unexpected headers frame");
             }
+        }
+    }
+    
+    /**
+     * The method is called when an outbound headers are about to be sent to the peer.
+     * 
+     * @param isEOS
+     * @throws Http2StreamException 
+     */
+    void onSndHeaders(final boolean isEOS) throws Http2StreamException {
+        // change the state
+        final Http2StreamState s = state;
+        if (s == Http2StreamState.IDLE) {
+            compareAndSetState(Http2StreamState.IDLE,
+                    isEOS ? Http2StreamState.HALF_CLOSED_LOCAL
+                          : Http2StreamState.OPEN);
+        } else if (s == Http2StreamState.RESERVED_LOCAL) {
+            compareAndSetState(Http2StreamState.RESERVED_LOCAL,
+                    Http2StreamState.HALF_CLOSED_REMOTE);
         }
     }
     
@@ -544,7 +633,11 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         cachedIsLast = false;
 
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.finest(Thread.currentThread().getName() + " streamId=" + getId() + ": flushInputData cachedInputBufferLocal=" + (cachedInputBufferLocal != null ? cachedInputBufferLocal.toString() : null));
+            LOGGER.log(Level.FINEST, "{0} streamId={1}: flushInputData cachedInputBufferLocal={2}",
+                    new Object[]{Thread.currentThread().getName(), getId(),
+                        cachedInputBufferLocal != null
+                                ? cachedInputBufferLocal.toString()
+                                : null});
         }
         if (cachedInputBufferLocal != null) {
             if (cachedInputBufferLocal.isComposite()) {
@@ -587,52 +680,17 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         return associatedResourcesToPush;
     }
     
-//    /**
-//     * Add associated stream, so it might be closed when this stream is closed.
-//     */
-//    final void addAssociatedStream(final Http2Stream spdyStream)
-//            throws Http2StreamException {
-//        if (associatedStreams == null) {
-//            associatedStreams = Collections.newSetFromMap(
-//                    DataStructures.<Http2Stream, Boolean>getConcurrentMap(8));
-//        }
-//        
-//        associatedStreams.add(spdyStream);
-//        
-//        if (!isOpen() && associatedStreams.remove(spdyStream)) {
-//            throw new Http2StreamException(spdyStream.getStreamId(),
-//                    ErrorCode.REFUSED_STREAM, "The parent stream is closed");
-//        }
-//    }
-//
-//    /**
-//     * Reset associated streams, when peer resets the parent stream.
-//     */
-//    final void rstAssociatedStreams() {
-//        if (associatedStreams != null) {
-//            for (Iterator<Http2Stream> it = associatedStreams.iterator(); it.hasNext(); ) {
-//                final Http2Stream associatedStream = it.next();
-//                it.remove();
-//                
-//                try {
-//                    associatedStream.resetRemotely();
-//                } catch (Exception ignored) {
-//                }
-//            }
-//        }
-//    }
-    
     /**
      * Notify all close listeners
      */
     @SuppressWarnings("unchecked")
     private void notifyCloseListeners() {
-        final CloseReason closeReason = closeReasonRef.get();
+        final CloseReason cr = closeReason;
         
         CloseListener closeListener;
         while ((closeListener = closeListeners.poll()) != null) {
             try {
-                closeListener.onClosed(this, closeReason.getType());
+                closeListener.onClosed(this, cr.getType());
             } catch (IOException ignored) {
             }
         }

@@ -249,16 +249,16 @@ public abstract class Http2Connection {
     
     protected Http2Stream newStream(final HttpRequestPacket request,
             final int streamId, final int refStreamId,
-            final int priority) {
+            final int priority, final Http2StreamState initialState) {
         
         return new Http2Stream(this, request, streamId, refStreamId,
-                priority);
+                priority, initialState);
     }
-    
+
     protected Http2Stream newUpgradeStream(final HttpRequestPacket request,
-            final int priority) {
+            final int priority, final Http2StreamState initialState) {
         
-        return new Http2Stream(this, request, priority);
+        return new Http2Stream(this, request, priority, initialState);
     }
 
     protected void checkFrameSequenceSemantics(final Http2Frame frame)
@@ -416,7 +416,7 @@ public abstract class Http2Connection {
     }
     
     /**
-     * Returns the maximum number of concurrent streams allowed for this session by our side.
+     * @return the maximum number of concurrent streams allowed for this session by our side.
      */
     public int getLocalMaxConcurrentStreams() {
         return localMaxConcurrentStreams;
@@ -424,13 +424,14 @@ public abstract class Http2Connection {
 
     /**
      * Sets the default maximum number of concurrent streams allowed for this session by our side.
+     * @param localMaxConcurrentStreams
      */
     public void setLocalMaxConcurrentStreams(int localMaxConcurrentStreams) {
         this.localMaxConcurrentStreams = localMaxConcurrentStreams;
     }
 
     /**
-     * Returns the maximum number of concurrent streams allowed for this session by peer.
+     * @return the maximum number of concurrent streams allowed for this session by peer.
      */
     public int getPeerMaxConcurrentStreams() {
         return peerMaxConcurrentStreams;
@@ -811,12 +812,11 @@ public abstract class Http2Connection {
 
     Http2Stream acceptStream(final HttpRequestPacket request,
             final int streamId, final int refStreamId, 
-            final int priority)
+            final int priority, final Http2StreamState initState)
             throws Http2ConnectionException {
         
         final Http2Stream stream = newStream(request,
-                streamId, refStreamId,
-                priority);
+                streamId, refStreamId, priority, initState);
         
         synchronized(sessionLock) {
             if (isClosed()) {
@@ -845,19 +845,19 @@ public abstract class Http2Connection {
      * @param streamId
      * @param refStreamId
      * @param priority
-     * @param fin
+     * @param initState
      * @return 
      * @throws org.glassfish.grizzly.http2.Http2StreamException 
      */
     public Http2Stream openStream(final HttpRequestPacket request,
             final int streamId, final int refStreamId, 
-            final int priority, final boolean fin)
+            final int priority,
+            final Http2StreamState initState)
             throws Http2StreamException {
         
-        request.setExpectContent(!fin);
         final Http2Stream stream = newStream(request,
                 streamId, refStreamId,
-                priority);
+                priority, initState);
         
         synchronized(sessionLock) {
             if (isClosed()) {
@@ -875,8 +875,6 @@ public abstract class Http2Connection {
                     throw new Http2StreamException(streamId, ErrorCode.REFUSED_STREAM,
                             "The parent stream does not exist");
                 }
-                
-//                mainStream.addAssociatedStream(stream);
             }
             
             streamsMap.put(streamId, stream);
@@ -887,22 +885,53 @@ public abstract class Http2Connection {
     }
 
     /**
-     * Method is not thread-safe, it is expected that it will be called
-     * within {@link #getNewClientStreamLock()} lock scope.
-     * The caller code is responsible for obtaining and releasing the mentioned
-     * {@link #getNewClientStreamLock()} lock.
+     * The method is called to create an {@link Http2Stream} initiated via
+     * HTTP/1.1 Upgrade mechanism.
+     * 
      * @param request
      * @param priority
      * @param fin
      * @return 
      * @throws org.glassfish.grizzly.http2.Http2StreamException 
      */
-    public Http2Stream openUpgradeStream(final HttpRequestPacket request,
+    public Http2Stream acceptUpgradeStream(final HttpRequestPacket request,
             final int priority, final boolean fin)
             throws Http2StreamException {
         
         request.setExpectContent(!fin);
-        final Http2Stream stream = newUpgradeStream(request, priority);
+        final Http2Stream stream = newUpgradeStream(request, priority,
+                Http2StreamState.IDLE);
+        stream.onRcvHeaders(fin);
+        
+        synchronized (sessionLock) {
+            if (isClosed()) {
+                throw new Http2StreamException(Http2Stream.UPGRADE_STREAM_ID,
+                        ErrorCode.REFUSED_STREAM, "Session is closed");
+            }
+            
+            streamsMap.put(Http2Stream.UPGRADE_STREAM_ID, stream);
+            lastLocalStreamId = Http2Stream.UPGRADE_STREAM_ID;
+        }
+        
+        return stream;
+    }
+
+    /**
+     * The method is called on the client side, when the server confirms
+     * HTTP/1.1 -> HTTP/2.0 upgrade with '101' response.
+     * 
+     * @param request
+     * @param priority
+     * @return 
+     * @throws org.glassfish.grizzly.http2.Http2StreamException 
+     */
+    public Http2Stream openUpgradeStream(final HttpRequestPacket request,
+            final int priority)
+            throws Http2StreamException {
+        
+        // we already sent headers - so the initial state is OPEN
+        final Http2Stream stream = newUpgradeStream(request, priority,
+                Http2StreamState.OPEN);
         
         synchronized(sessionLock) {
             if (isClosed()) {
@@ -1135,13 +1164,13 @@ public abstract class Http2Connection {
             if (stream != null) {
                 // ACK HTTP2 stream flow control
                 final int streamUnackedBytes
-                        = stream.unackedReadBytes.addAndGet(sz);
+                        = Http2Stream.unackedReadBytesUpdater.addAndGet(stream, sz);
                 final int streamWindowSize = stream.getLocalWindowSize();
 
                 // send update window message only in case currentUnackedBytes > windowSize / 2
                 if (streamUnackedBytes > 0
                         && (streamUnackedBytes > (streamWindowSize / 2))
-                        && stream.unackedReadBytes.compareAndSet(streamUnackedBytes, 0)) {
+                        && Http2Stream.unackedReadBytesUpdater.compareAndSet(stream, streamUnackedBytes, 0)) {
 
                     sendWindowUpdate(stream.getId(), streamUnackedBytes);
                 }
@@ -1175,6 +1204,7 @@ public abstract class Http2Connection {
          * Set the request URI.
          *
          * @param uri the request URI.
+         * @return the current <code>Builder</code>
          */
         public PushStreamBuilder uri(final String uri) {
             this.uri = uri;
@@ -1233,16 +1263,18 @@ public abstract class Http2Connection {
          * Build the <tt>HttpRequestPacket</tt> message.
          *
          * @return <tt>HttpRequestPacket</tt>
+         * @throws org.glassfish.grizzly.http2.Http2StreamException
          */
         @SuppressWarnings("unchecked")
         public final Http2Stream open() throws Http2StreamException {
-            final Http2Request request = build();
+            final HttpRequestPacket request = build();
             newClientStreamLock.lock();
             try {
                 final Http2Stream stream = openStream(
                         request,
                         getNextLocalStreamId(),
-                        associatedToStreamId, priority, isFin);
+                        associatedToStreamId, priority,
+                        Http2StreamState.IDLE);
                 
                 
                 connection.write(request.getResponse());
@@ -1254,7 +1286,7 @@ public abstract class Http2Connection {
         }
 
         @Override
-        public Http2Request build() {
+        public HttpRequestPacket build() {
             Http2Request request = (Http2Request) super.build();
             if (uri != null) {
                 request.setRequestURI(uri);
@@ -1262,6 +1294,9 @@ public abstract class Http2Connection {
             if (query != null) {
                 request.setQueryString(query);
             }
+            
+            request.setExpectContent(!isFin);
+            
             return request;
         }
 
@@ -1287,6 +1322,7 @@ public abstract class Http2Connection {
         /**
          * Set the HTTP request method.
          * @param method the HTTP request method..
+         * @return the current <code>Builder</code>
          */
         public RegularStreamBuilder method(final Method method) {
             this.method = method;
@@ -1297,6 +1333,7 @@ public abstract class Http2Connection {
         /**
          * Set the HTTP request method.
          * @param methodString the HTTP request method. Format is "GET|POST...".
+         * @return the current <code>Builder</code>
          */
         public RegularStreamBuilder method(final String methodString) {
             this.methodString = methodString;
@@ -1308,6 +1345,7 @@ public abstract class Http2Connection {
          * Set the request URI.
          *
          * @param uri the request URI.
+         * @return the current <code>Builder</code>
          */
         public RegularStreamBuilder uri(final String uri) {
             this.uri = uri;
@@ -1318,7 +1356,6 @@ public abstract class Http2Connection {
          * Set the <code>query</code> portion of the request URI.
          *
          * @param query the query String
-         *
          * @return the current <code>Builder</code>
          */
         public RegularStreamBuilder query(final String query) {
@@ -1330,8 +1367,7 @@ public abstract class Http2Connection {
          * Set the value of the Host header.
          *
          * @param host the value of the Host header.
-         *
-         * @return this;
+         * @return the current <code>Builder</code>
          */
         public RegularStreamBuilder host(final String host) {
             this.host = host;
@@ -1342,7 +1378,6 @@ public abstract class Http2Connection {
          * Set the <code>priority</code> parameter of a {@link Http2Stream}.
          *
          * @param priority the priority
-         *
          * @return the current <code>Builder</code>
          */
         public RegularStreamBuilder priority(final int priority) {
@@ -1366,16 +1401,17 @@ public abstract class Http2Connection {
          * Build the <tt>HttpRequestPacket</tt> message.
          *
          * @return <tt>HttpRequestPacket</tt>
+         * @throws org.glassfish.grizzly.http2.Http2StreamException
          */
         @SuppressWarnings("unchecked")
         public final Http2Stream open() throws Http2StreamException {
-            Http2Request request = build();
+            HttpRequestPacket request = build();
             newClientStreamLock.lock();
             try {
                 final Http2Stream stream = openStream(
                         request,
                         getNextLocalStreamId(),
-                        0, priority, isFin);
+                        0, priority, Http2StreamState.IDLE);
                 
                 
                 connection.write(request);
@@ -1387,7 +1423,7 @@ public abstract class Http2Connection {
         }
 
         @Override
-        public Http2Request build() {
+        public HttpRequestPacket build() {
             Http2Request request = (Http2Request) super.build();
             if (method != null) {
                 request.setMethod(method);
@@ -1404,6 +1440,9 @@ public abstract class Http2Connection {
             if (host != null) {
                 request.addHeader(Header.Host, host);
             }
+            
+            request.setExpectContent(!isFin);
+            
             return request;
         }
 

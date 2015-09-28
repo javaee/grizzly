@@ -44,8 +44,8 @@ import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -67,16 +67,22 @@ class DefaultInputBuffer implements StreamInputBuffer {
     
     private static final long NULL_CONTENT_LENGTH = Long.MIN_VALUE;
     
-    private final AtomicInteger inputQueueSize = new AtomicInteger();
+    private static final AtomicIntegerFieldUpdater<DefaultInputBuffer> inputQueueSizeUpdater =
+            AtomicIntegerFieldUpdater.newUpdater(DefaultInputBuffer.class, "inputQueueSize");            
+    private volatile int inputQueueSize;
+    
     private final BlockingQueue<InputElement> inputQueue =
             DataStructures.getLTQInstance(InputElement.class);
     
     // true, if the input is closed
-    private final AtomicBoolean isInputClosed = new AtomicBoolean();
+    private final AtomicBoolean inputClosed = new AtomicBoolean();
+    
     // the termination flag. When is not null contains the reason why input was terminated.
     // when the flag is not null - poll0() will return -1.
-    private final AtomicReference<Http2Stream.Termination> closeFlag =
-            new AtomicReference<Http2Stream.Termination>();
+    private static final AtomicReferenceFieldUpdater<DefaultInputBuffer, Http2Stream.Termination> closeFlagUpdater =
+            AtomicReferenceFieldUpdater.newUpdater(DefaultInputBuffer.class, Http2Stream.Termination.class, "closeFlag");
+    private volatile Http2Stream.Termination closeFlag;
+    
     private final Object terminateSync = new Object();
     
     private final Http2Stream stream;
@@ -108,7 +114,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
         if (isClosed()) {
             http2Connection.sendMessageUpstream(stream, 
                     buildBrokenHttpContent(
-                        new EOFException(closeFlag.get().getDescription())));
+                        new EOFException(closeFlag.getDescription())));
             
             return;
         }
@@ -129,7 +135,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
      */
     @Override
     public boolean offer(final Buffer data, final boolean isLast) {
-        if (isInputClosed.get()) {
+        if (inputClosed.get()) {
             // if input is closed - just ignore the message
             data.tryDispose();
             
@@ -137,7 +143,8 @@ class DefaultInputBuffer implements StreamInputBuffer {
         }
 
         if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.fine(stream.getId() + ": offer " + data + " isLast=" + isLast);
+            LOGGER.log(Level.FINE, "{0}: offer {1} isLast={2}",
+                    new Object[]{stream.getId(), data, isLast});
         }
         final boolean isLastData = isLast | checkContentLength(data.remaining());
         
@@ -148,7 +155,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
         
         if (isLastData) {
             // mark the input buffer as closed
-            isInputClosed.set(true);
+            inputClosed.set(true);
         }
         
         // if the stream had been terminated by this time but the element wasn't
@@ -167,7 +174,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
     private void offer0(final InputElement inputElement) {
         if (switchOffExpectInput()) {
             // if "expect more input" switch is on - pass current input queue content upstream
-            passPayloadUpstream(inputElement, inputQueueSize.get());
+            passPayloadUpstream(inputElement, inputQueueSize);
         } else {
             // if "expect more input" switch is off - enqueue the element
             if (!inputQueue.offer(inputElement)) {
@@ -175,7 +182,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
                 throw new IllegalStateException("New element can't be added");
             }
 
-            inputQueueSize.incrementAndGet();
+            inputQueueSizeUpdater.incrementAndGet(this);
 
             final int readyBuffersCount;
 
@@ -198,7 +205,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
         
         try {
             if (readyBuffersCount == -1) {
-                readyBuffersCount = inputQueueSize.get();
+                readyBuffersCount = inputQueueSize;
             }
             
             Buffer payload = null;
@@ -267,7 +274,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
             InputElement inputElement;
 
             // get the current input queue size
-            final int inputQueueSizeNow = inputQueueSize.getAndSet(0);
+            final int inputQueueSizeNow = inputQueueSizeUpdater.getAndSet(this, 0);
 
             if (inputQueueSizeNow <= 0) {
                 // if there is no element available - block
@@ -288,7 +295,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
                     // So, once we read a Buffer - we have to properly restore the counter value.
                     // Normally it had to be inputQueueSize.decremenetAndGet(); , but we have to
                     // take into account fact described above.
-                    inputQueueSize.addAndGet(inputQueueSizeNow - 1);
+                    inputQueueSizeUpdater.addAndGet(this, inputQueueSizeNow - 1);
 
                     checkEOF(inputElement);
                     buffer = inputElement.toBuffer();
@@ -336,7 +343,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
      */
     @Override
     public void close(final Http2Stream.Termination termination) {
-        if (isInputClosed.compareAndSet(false, true)) {
+        if (inputClosed.compareAndSet(false, true)) {
             offer0(new InputElement(termination, true, true));
         }
     }
@@ -348,9 +355,9 @@ class DefaultInputBuffer implements StreamInputBuffer {
      */
     @Override
     public void terminate(final Http2Stream.Termination termination) {
-        final boolean isSet = closeFlag.compareAndSet(null, termination);
+        final boolean isSet = closeFlagUpdater.compareAndSet(this, null, termination);
         
-        if (isInputClosed.compareAndSet(false, true)) {
+        if (inputClosed.compareAndSet(false, true)) {
             offer0(new InputElement(termination, true, true));
         }
         
@@ -386,7 +393,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
      */
     @Override
     public boolean isClosed() {
-        return closeFlag.get() != null;
+        return closeFlag != null;
     }
     
     /**
@@ -401,7 +408,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
                                       ? IN_FIN_TERMINATION
                                       : (Http2Stream.Termination) inputElement.content;
             
-            if (closeFlag.compareAndSet(null, termination)) {
+            if (closeFlagUpdater.compareAndSet(this, null, termination)) {
 
                 // Let termination run some logic if needed.
                 termination.doTask();
@@ -454,7 +461,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
     private int switchOffExpectInputIfQueueNotEmpty() {
         synchronized (expectInputSwitchSync) {
             final int queueSize;
-            if (expectInputSwitch && (queueSize = inputQueueSize.get()) > 0) {
+            if (expectInputSwitch && (queueSize = inputQueueSize) > 0) {
                 expectInputSwitch = false;
                 return queueSize;
             }
@@ -475,7 +482,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
      * return {@link HttpBrokenContent}.
      */
     private HttpContent buildHttpContent(final Buffer payload) {
-        final Http2Stream.Termination localTermination = closeFlag.get();
+        final Http2Stream.Termination localTermination = closeFlag;
         final boolean isFin = localTermination == IN_FIN_TERMINATION;
         
         final HttpContent httpContent;

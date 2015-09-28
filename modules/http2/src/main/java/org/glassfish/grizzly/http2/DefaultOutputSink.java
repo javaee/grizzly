@@ -62,6 +62,7 @@ import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
 import org.glassfish.grizzly.memory.Buffers;
 
 import static org.glassfish.grizzly.http2.Constants.OUT_FIN_TERMINATION;
+import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 /**
  * Default implementation of an output sink, which is associated
  * with specific {@link Http2Stream}.
@@ -133,7 +134,8 @@ class DefaultOutputSink implements StreamOutputSink {
         // if the last frame (fin flag == 1) has been queued already - throw an IOException
         if (isTerminated()) {
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.fine("Terminated!!! id=" + stream.getId() + " description=" + terminationFlag.getDescription());
+                LOGGER.log(Level.FINE, "Terminated!!! id={0} description={1}",
+                        new Object[]{stream.getId(), terminationFlag.getDescription()});
             }
             throw new IOException(terminationFlag.getDescription());
         } else if (isLastFrameQueued) {
@@ -227,46 +229,6 @@ class DefaultOutputSink implements StreamOutputSink {
             }
         }
     }
-    
-    public void writeDownStream(final HttpPacket httpPacket) throws IOException {
-        assertReady();
-        
-        // Write the message starting at upstream FilterChain, because it has
-        // to pass Http2HandlerFilter
-        http2Connection.getHttp2StreamChain().write(http2Connection.getConnection(), null,
-                httpPacket, null);
-    }
-    
-    /**
-     * Send an {@link HttpPacket} to the {@link Http2Stream}.
-     * 
-     * @param httpPacket {@link HttpPacket} to send
-     * @throws IOException 
-     */
-    @Override
-    public synchronized void writeDownStream(final HttpPacket httpPacket,
-                                             final FilterChainContext ctx)
-    throws IOException {
-        writeDownStream(httpPacket, ctx, null);
-    }
-    
-    /**
-     * Send an {@link HttpPacket} to the {@link Http2Stream}.
-     * 
-     * The writeDownStream(...) methods have to be synchronized with shutdown().
-     * 
-     * @param httpPacket {@link HttpPacket} to send
-     * @param completionHandler the {@link CompletionHandler},
-     *          which will be notified about write progress.
-     * @throws IOException 
-     */
-    @Override
-    public synchronized void writeDownStream(final HttpPacket httpPacket,
-                                             final FilterChainContext ctx,
-                                             final CompletionHandler<WriteResult> completionHandler)
-    throws IOException {
-        writeDownStream(httpPacket, ctx, completionHandler, null);
-    }
 
     /**
      * Send an {@link HttpPacket} to the {@link Http2Stream}.
@@ -314,7 +276,8 @@ class DefaultOutputSink implements StreamOutputSink {
                 
                 headerFrames = http2Connection.encodeHttpHeaderAsHeaderFrames(
                         ctx, httpHeader, stream.getId(), isNoPayload, null);
-
+                stream.onSndHeaders(isNoPayload);
+                
                 httpHeader.setCommitted(true);
 
                 if (isNoPayload || httpContent == null) {
@@ -499,7 +462,8 @@ class DefaultOutputSink implements StreamOutputSink {
 
             headerFrames = http2Connection.encodeHttpHeaderAsHeaderFrames(
                     ctx, httpHeader, stream.getId(), isNoPayload, null);
-
+            stream.onSndHeaders(isNoPayload);
+            
             httpHeader.setCommitted(true);
 
             if (isNoPayload) {

@@ -77,21 +77,6 @@ public class UpgradeOutputSink implements StreamOutputSink {
     }
 
     @Override
-    public void writeDownStream(HttpPacket httpPacket) throws IOException {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
-    public void writeDownStream(HttpPacket httpPacket, FilterChainContext ctx) throws IOException {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
-    public void writeDownStream(HttpPacket httpPacket, FilterChainContext ctx, CompletionHandler<WriteResult> completionHandler) throws IOException {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
     public <E> void writeDownStream(HttpPacket httpPacket, FilterChainContext ctx, CompletionHandler<WriteResult> completionHandler, MessageCloner<Buffer> messageCloner) throws IOException {
         throw new UnsupportedOperationException("Not supported");
     }

@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http2;
 
-import java.util.ArrayList;
 import java.util.List;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;

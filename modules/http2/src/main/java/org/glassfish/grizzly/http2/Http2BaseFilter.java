@@ -41,12 +41,9 @@
 package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -71,7 +68,6 @@ import org.glassfish.grizzly.http.ProcessingState;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.TransferEncoding;
 import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
@@ -89,9 +85,7 @@ import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
 import org.glassfish.grizzly.threadpool.Threads;
 import org.glassfish.grizzly.utils.Charsets;
-import org.glassfish.grizzly.utils.Pair;
 
-import static org.glassfish.grizzly.http2.Constants.*;
 import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.PriorityFrame;
@@ -107,12 +101,9 @@ import org.glassfish.grizzly.http2.frames.PriorityFrame;
  * 
  * @author Grizzly team
  */
-public class Http2BaseFilter extends HttpBaseFilter {
+public abstract class Http2BaseFilter extends HttpBaseFilter {
     private final static Logger LOGGER = Grizzly.logger(Http2BaseFilter.class);
     
-    private static final TransferEncoding FIXED_LENGTH_ENCODING =
-            new FixedLengthTransferEncoding();
-
     static final String HTTP2_CLEAR_TCP_UPGRADE_SIGNATURE = "h2c";
     static final DraftVersion[] ALL_HTTP2_DRAFTS =
             {DraftVersion.DRAFT_14};
@@ -120,6 +111,9 @@ public class Http2BaseFilter extends HttpBaseFilter {
     static final byte[] PRI_MSG = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".getBytes(Charsets.ASCII_CHARSET);
     static final byte[] PRI_PAYLOAD = "SM\r\n\r\n".getBytes(Charsets.ASCII_CHARSET);
     
+    protected static final TransferEncoding FIXED_LENGTH_ENCODING =
+            new FixedLengthTransferEncoding();
+
     final Http2FrameCodec frameCodec = new Http2FrameCodec();
     
     private final DraftVersion[] supportedHttp2Drafts;
@@ -190,7 +184,7 @@ public class Http2BaseFilter extends HttpBaseFilter {
     }
 
     /**
-     * Returns the default maximum number of concurrent streams allowed for one session.
+     * @return the default maximum number of concurrent streams allowed for one session.
      * Negative value means "unlimited".
      */
     public int getMaxConcurrentStreams() {
@@ -316,7 +310,7 @@ public class Http2BaseFilter extends HttpBaseFilter {
         
         if (!upgradeFound || !http2SettingsFound) {
             if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.finest("checkRequestHeadersOnUpgrade: failed incorrect connection: " + connectionHeaderDC);
+                LOGGER.log(Level.FINEST, "checkRequestHeadersOnUpgrade: failed incorrect connection: {0}", connectionHeaderDC);
             }
             return false;
         }
@@ -542,6 +536,7 @@ public class Http2BaseFilter extends HttpBaseFilter {
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx        the {@link FilterChainContext} processing this request
      * @param t          the cause of the error
+     * @throws java.io.IOException
      *
      * @since 2.3.3
      */
@@ -560,6 +555,7 @@ public class Http2BaseFilter extends HttpBaseFilter {
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx        the {@link FilterChainContext} processing this request
      * @param t          the cause of the error
+     * @throws java.io.IOException
      *
      * @since 2.3.3
      */
@@ -757,95 +753,19 @@ public class Http2BaseFilter extends HttpBaseFilter {
         }
     }
 
-    protected void processCompleteHeader(
+    /**
+     * The method is called once complete HTTP header block arrives on {@link Http2Connection}.
+     * 
+     * @param http2Connection
+     * @param context
+     * @param firstHeaderFrame
+     * @throws IOException 
+     */
+    protected abstract void processCompleteHeader(
             final Http2Connection http2Connection,
             final FilterChainContext context,
-            final HeaderBlockHead firstHeaderFrame) throws IOException {
-        assert firstHeaderFrame.getType() == HeadersFrame.TYPE;
-        
-        if (http2Connection.isServer()) {
-            // it's a request
-            processInRequest(http2Connection, context,
-                    (HeadersFrame) firstHeaderFrame);
-        } else {
-            // it's response
-            processInResponse(http2Connection, context,
-                    (HeadersFrame) firstHeaderFrame);
-        }
-    }
+            final HeaderBlockHead firstHeaderFrame) throws IOException;
 
-    private void processInRequest(final Http2Connection http2Connection,
-            final FilterChainContext context, final HeadersFrame headersFrame)
-            throws IOException {
-
-        final Http2Request request = Http2Request.create();
-        request.setConnection(context.getConnection());
-
-        final Http2Stream stream;
-
-        stream = http2Connection.acceptStream(request,
-                headersFrame.getStreamId(), 0, 0);
-        if (stream == null) { // GOAWAY has been sent, so ignoring this request
-            request.recycle();
-            return;
-        }
-
-        DecoderUtils.decodeRequestHeaders(http2Connection, request);
-        onHttpHeadersParsed(request, context);        
-
-        prepareIncomingRequest(stream, request);
-        stream.onHeaderBlockRcv(headersFrame);
-        
-        // stream HEADERS frame will be transformed to HTTP request packet
-        if (headersFrame.isEndStream()) {
-            request.setExpectContent(false);
-        }
-
-        final boolean isExpectContent = request.isExpectContent();
-        if (!isExpectContent) {
-            stream.inputBuffer.terminate(IN_FIN_TERMINATION);
-        }
-
-        sendUpstream(http2Connection, stream, request, isExpectContent);
-    }
-
-    private void processInResponse(final Http2Connection http2Connection,
-            final FilterChainContext context,
-            final HeadersFrame headersFrame)
-            throws Http2ConnectionException, IOException {
-
-        final Http2Stream stream = http2Connection.getStream(
-                headersFrame.getStreamId());
-        if (stream == null) { // Stream doesn't exist
-            return;
-        }
-        
-        final HttpRequestPacket request = stream.getRequest();
-        
-        HttpResponsePacket response = request.getResponse();
-        if (response == null) {
-            response = Http2Response.create();
-        }
-        
-        final boolean isEOS = headersFrame.isEndStream();
-        if (isEOS) {
-            response.setExpectContent(false);
-            stream.inputBuffer.terminate(IN_FIN_TERMINATION);
-        }
-        
-        DecoderUtils.decodeResponseHeaders(http2Connection, response);
-        onHttpHeadersParsed(response, context);        
-
-        stream.onHeaderBlockRcv(headersFrame);
-        bind(request, response);
-
-        if (isEOS) {
-            onHttpPacketParsed(response, context);
-        }
-
-        sendUpstream(http2Connection, stream, response, !isEOS);
-    }
-    
     @Override
     @SuppressWarnings("unchecked")
     public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
@@ -866,16 +786,7 @@ public class Http2BaseFilter extends HttpBaseFilter {
             final HttpPacket httpPacket = ctx.getMessage();
             final HttpHeader httpHeader = httpPacket.getHttpHeader();
 
-            if (httpHeader.isRequest()) {
-                // client side, sending HTTP request
-                processOutgoingRequest(ctx, http2Connection,
-                        (HttpRequestPacket) httpHeader, httpPacket);
-            } else {
-                // server side, sending back the HTTP response
-                processOutgoingResponse(ctx, http2Connection,
-                        (HttpResponsePacket) httpHeader, httpPacket);
-            }
-
+            processOutgoingHttpHeader(ctx, http2Connection, httpHeader, httpPacket);
         } else {
             final TransportContext transportContext = ctx.getTransportContext();
             http2Connection.getOutputSink().writeDownStream(message,
@@ -886,92 +797,23 @@ public class Http2BaseFilter extends HttpBaseFilter {
         return ctx.getStopAction();
     }
 
-    @SuppressWarnings("unchecked")
-    private void processOutgoingRequest(final FilterChainContext ctx,
+    protected abstract void processOutgoingHttpHeader(final FilterChainContext ctx,
             final Http2Connection http2Connection,
-            final HttpRequestPacket request,
-            final HttpPacket entireHttpPacket) throws IOException {
-
-        if (!http2Connection.isHttp2OutputEnabled()) {
-            // HTTP2 output is not enabled yet
-            return;
-        }
-        
-        if (!request.isCommitted()) {
-            prepareOutgoingRequest(request);
-        }
-
-        final Http2Stream stream = Http2Stream.getStreamFor(request);
-        
-        if (stream == null) {
-            processOutgoingRequestForNewStream(ctx, http2Connection, request,
-                    entireHttpPacket);
-        } else {
-            final TransportContext transportContext = ctx.getTransportContext();
-
-            stream.getOutputSink().writeDownStream(entireHttpPacket,
-                                       ctx,
-                                       transportContext.getCompletionHandler(),
-                                       transportContext.getMessageCloner());
-        }
-    }
+            final HttpHeader httpHeader,
+            final HttpPacket entireHttpPacket) throws IOException;
     
-    @SuppressWarnings("unchecked")
-    private void processOutgoingRequestForNewStream(final FilterChainContext ctx,
-            final Http2Connection http2Connection,
-            final HttpRequestPacket request,
-            final HttpPacket entireHttpPacket) throws IOException {
 
-        
-        final ReentrantLock newStreamLock = http2Connection.getNewClientStreamLock();
-        newStreamLock.lock();
-        
-        try {
-            final Http2Stream stream = http2Connection.openStream(
-                    request,
-                    http2Connection.getNextLocalStreamId(),
-                    0, 0, !request.isExpectContent());
-
-            if (stream == null) {
-                throw new IOException("Http2Connection is closed");
-            }
-            
-            // Make sure request contains the association with the HTTP2 stream
-            request.setAttribute(Http2Stream.HTTP2_STREAM_ATTRIBUTE, stream);
-            
-            final TransportContext transportContext = ctx.getTransportContext();
-
-            stream.getOutputSink().writeDownStream(entireHttpPacket,
-                                       ctx,
-                                       transportContext.getCompletionHandler(),
-                                       transportContext.getMessageCloner());
-
-        } finally {
-            newStreamLock.unlock();
+    protected void prepareOutgoingRequest(final HttpRequestPacket request) {
+        String contentType = request.getContentType();
+        if (contentType != null) {
+            request.getHeaders().setValue(Header.ContentType).setString(contentType);
         }
-    }
-    
-    @SuppressWarnings("unchecked")
-    private void processOutgoingResponse(final FilterChainContext ctx,
-            final Http2Connection http2Connection,
-            final HttpResponsePacket response,
-            final HttpPacket entireHttpPacket) throws IOException {
-
-        final Http2Stream stream = Http2Stream.getStreamFor(response);
-        assert stream != null;
-
-        if (!response.isCommitted()) {
-            prepareOutgoingResponse(response);
-            pushAssociatedResoureses(ctx, stream);
+        
+        if (request.getContentLength() != -1) {
+            // FixedLengthTransferEncoding will set proper Content-Length header
+            FIXED_LENGTH_ENCODING.prepareSerialize(null, request, null);
         }
-
-        final TransportContext transportContext = ctx.getTransportContext();
-
-        stream.getOutputSink().writeDownStream(entireHttpPacket,
-                                   ctx,
-                                   transportContext.getCompletionHandler(),
-                                   transportContext.getMessageCloner());
-    }
+    }    
     
     @Override
     @SuppressWarnings("unchecked")
@@ -1126,37 +968,6 @@ public class Http2BaseFilter extends HttpBaseFilter {
 
     }
     
-    private void prepareOutgoingRequest(final HttpRequestPacket request) {
-        String contentType = request.getContentType();
-        if (contentType != null) {
-            request.getHeaders().setValue(Header.ContentType).setString(contentType);
-        }
-        
-        if (request.getContentLength() != -1) {
-            // FixedLengthTransferEncoding will set proper Content-Length header
-            FIXED_LENGTH_ENCODING.prepareSerialize(null, request, null);
-        }
-    }
-    
-    private void prepareOutgoingResponse(final HttpResponsePacket response) {
-        response.setProtocol(Protocol.HTTP_2_0);
-
-        String contentType = response.getContentType();
-        if (contentType != null) {
-            response.getHeaders().setValue(Header.ContentType).setString(contentType);
-        }
-
-        if (response.getContentLength() != -1) {
-            // FixedLengthTransferEncoding will set proper Content-Length header
-            FIXED_LENGTH_ENCODING.prepareSerialize(null, response, null);
-        }
-        
-        if (!response.containsHeader(Header.Date)) {
-            response.getHeaders().addValue(Header.Date)
-                    .setBytes(FastHttpDateFormat.getCurrentDateBytes());
-        }
-    }    
-
     void sendRstStream(final FilterChainContext ctx,
             final Http2Connection http2Connection,
             final int streamId, final ErrorCode errorCode) {
@@ -1292,151 +1103,5 @@ public class Http2BaseFilter extends HttpBaseFilter {
         }
         
         stream.offerInputData(data, dataFrame.isFlagSet(DataFrame.END_STREAM));
-    }
-
-    private void pushAssociatedResoureses(final FilterChainContext ctx,
-            final Http2Stream stream) throws IOException {
-        final Map<String, PushResource> pushResourceMap =
-                stream.getAssociatedResourcesToPush();
-        
-        if (pushResourceMap != null) {           
-            final int streamId = stream.getId();
-            final HttpRequestPacket streamReq = stream.getRequest();
-            final String referer = composeRefererOf(stream.getRequest());
-            
-            final List<Pair<Http2Stream, Source>> pushStreams =
-                    new ArrayList<Pair<Http2Stream, Source>>(pushResourceMap.size());
-            
-            final Http2Connection http2Connection = stream.getHttp2Connection();
-            
-            boolean isNewClientStreamLocked = true;
-            boolean isDeflaterLocked = true;
-            http2Connection.getNewClientStreamLock().lock();
-            
-            try {
-                for (Map.Entry<String, PushResource> entry : pushResourceMap.entrySet()) {
-                    final PushResource pushResource = entry.getValue();
-                    final Source source = pushResource.getSource();
-                    
-                    final Http2Request request = Http2Request.create();
-                    final HttpResponsePacket response = request.getResponse();
-                    
-                    request.setRequestURI(entry.getKey());
-                    request.setProtocol(Protocol.HTTP_2_0);
-                    request.setMethod(Method.GET);
-                    
-                    final MimeHeaders reqHeaders = request.getHeaders();
-                    
-                    DataChunk valueDC = reqHeaders.setValue(Header.Host);
-                    if (valueDC.isNull()) {
-                        valueDC.setString(streamReq.getHeader(Header.Host));
-                    }
-                    
-                    final String userAgent = streamReq.getHeader(Header.UserAgent);
-                    if (userAgent != null) {
-                        valueDC = reqHeaders.setValue(Header.UserAgent);
-                        if (valueDC.isNull()) {
-                            valueDC.setString(userAgent);
-                        }
-                    }
-                    
-                    valueDC = reqHeaders.setValue(Header.Referer);
-                    if (valueDC.isNull()) {
-                        valueDC.setString(referer);
-                    }
-                    
-                    for (String cookie : streamReq.getHeaders().values(Header.Cookie)) {
-                        request.addHeader(Header.Cookie, cookie);
-                    }
-                    
-                    request.setSecure(streamReq.isSecure());
-                    
-                    response.setStatus(pushResource.getStatusCode());
-                    response.setProtocol(Protocol.HTTP_2_0);
-                    response.setContentType(pushResource.getContentType());
-                    
-                    if (source != null) {
-                        response.setContentLengthLong(source.remaining());
-                    }
-                    
-                    // Add extra headers if any
-                    final Map<String, String> extraHeaders = pushResource.getHeaders();
-                    if (extraHeaders != null) {
-                        for (Map.Entry<String, String> headerEntry : extraHeaders.entrySet()) {
-                            response.addHeader(headerEntry.getKey(), headerEntry.getValue());
-                        }
-                    }
-                    
-                    prepareOutgoingRequest(request);
-                    prepareOutgoingResponse(response);
-                    
-                    try {
-                        final Http2Stream pushStream = http2Connection.openStream(
-                                request,
-                                http2Connection.getNextLocalStreamId(), streamId,
-                                pushResource.getPriority(),
-                                false);
-                        pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
-                        
-                        pushStreams.add(
-                                new Pair<Http2Stream, Source>(pushStream, source));
-                    } catch (Exception e) {
-                        LOGGER.log(Level.FINE,
-                                "Can not push: " + entry.getKey(), e);
-                    }
-                }
-                
-                // Push streams are created - now we're ready to to serialize
-                // push promises.
-                // Lock deflater, unlock newClientStreamLock.
-                // This order guarantees that nobody can create a new stream
-                // and serialize its headers asynchronously before we finish
-                // the push promises serialization.
-                http2Connection.getDeflaterLock().lock();
-                http2Connection.getNewClientStreamLock().unlock();
-                isDeflaterLocked = true;
-                isNewClientStreamLocked = false;
-
-                List<Http2Frame> pushPromiseFrames = null;
-                
-                for (Pair<Http2Stream, Source> pair : pushStreams) {
-                    final Http2Stream pushStream = pair.getFirst();
-                    pushPromiseFrames =
-                            http2Connection.encodeHttpRequestAsPushPromiseFrames(
-                                    ctx, pushStream.getRequest(), streamId,
-                                    pushStream.getId(), pushPromiseFrames);
-                }
-                
-                http2Connection.getOutputSink().writeDownStream(
-                        pushPromiseFrames);
-                
-                // release the deflater lock
-                http2Connection.getDeflaterLock().unlock();
-                isDeflaterLocked = false;
-                
-                // now we're ready to initiate payload push
-                for (Pair<Http2Stream, Source> pair : pushStreams) {
-                    final Http2Stream pushStream = pair.getFirst();
-                    pushStream.getOutputSink().writeDownStream(
-                            pair.getSecond(), ctx);
-                }
-            } finally {
-                if (isDeflaterLocked) {
-                    http2Connection.getDeflaterLock().unlock();
-                }
-                
-                if (isNewClientStreamLocked) {
-                    http2Connection.getNewClientStreamLock().unlock();
-                }
-            }
-        }
-    }
-
-    private String composeRefererOf(final HttpRequestPacket request) {
-        return new StringBuilder().append(request.isSecure() ? "https" : "http")
-                .append("://")
-                .append(request.getHeader(Header.Host))
-                .append(request.getRequestURI())
-                .toString();
     }
 }

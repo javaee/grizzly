@@ -67,25 +67,6 @@ interface StreamOutputSink {
      */
     public void onPeerWindowUpdate(int delta) throws Http2StreamException;
 
-    public void writeDownStream(HttpPacket httpPacket) throws IOException;
-    public void writeDownStream(HttpPacket httpPacket,FilterChainContext ctx)
-            throws IOException;
-    
-    /**
-     * Send an {@link HttpPacket} to the {@link Http2Stream}.
-     * 
-     * The writeDownStream(...) methods have to be synchronized with shutdown().
-     * 
-     * @param httpPacket {@link HttpPacket} to send
-     * @param completionHandler the {@link CompletionHandler},
-     *          which will be notified about write progress.
-     * @throws IOException 
-     */
-    public void writeDownStream(HttpPacket httpPacket,
-                                FilterChainContext ctx,
-                                CompletionHandler<WriteResult> completionHandler)
-            throws IOException;
-    
     public <E> void writeDownStream(HttpPacket httpPacket,
                                     FilterChainContext ctx,
                                     CompletionHandler<WriteResult> completionHandler,
