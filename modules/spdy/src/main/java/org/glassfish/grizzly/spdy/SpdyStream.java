@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,6 +56,7 @@ import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.ICloseType;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
@@ -110,6 +111,8 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
             new AtomicReference<CloseReason>();
     private final Queue<CloseListener> closeListeners =
             new ConcurrentLinkedQueue<CloseListener>();
+    private volatile GrizzlyFuture<CloseReason> closeFuture;
+    
     private final AtomicInteger completeFinalizationCounter = new AtomicInteger();
     
     // flag, which is indicating if SpdyStream processing has been marked as complete by external code
@@ -441,6 +444,38 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         return closeListeners.remove(closeListener);
     }
 
+    @Override
+    public GrizzlyFuture<CloseReason> closeFuture() {
+        if (closeFuture == null) {
+            synchronized (this) {
+                if (closeFuture == null) {
+                    final CloseReason cr = closeReasonRef.get();
+
+                    if (cr == null) {
+                        final FutureImpl<CloseReason> f
+                                = Futures.createSafeFuture();
+                        addCloseListener(new org.glassfish.grizzly.CloseListener() {
+
+                            @Override
+                            public void onClosed(Closeable closeable, ICloseType type)
+                                    throws IOException {
+                                final CloseReason cr = closeReasonRef.get();
+                                assert cr != null;
+                                f.result(cr);
+                            }
+                        });
+
+                        closeFuture = f;
+                    } else {
+                        closeFuture = Futures.createReadyFuture(cr);
+                    }
+                }
+            }
+        }
+        
+        return closeFuture;
+    }
+    
     void onInputClosed() {
         if (completeFinalizationCounter.incrementAndGet() == 2) {
             closeStream();
