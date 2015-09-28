@@ -157,6 +157,7 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
     /**
      * Releases memory space in the queue.
      *
+     * @param amount
      * @return the new memory (in bytes) consumed by the queue.
      */
     public int releaseSpace(final int amount) {
@@ -167,6 +168,7 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
      * Releases memory space in the queue and notifies registered
      * {@link QueueMonitor}s about the update.
      *
+     * @param amount
      * @return the new memory (in bytes) consumed by the queue.
      */
     public int releaseSpaceAndNotify(final int amount) {
