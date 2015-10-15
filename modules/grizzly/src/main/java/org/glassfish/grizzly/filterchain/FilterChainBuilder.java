@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.filterchain;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -53,7 +54,7 @@ public abstract class FilterChainBuilder {
     protected final List<Filter> patternFilterChain;
     
     private FilterChainBuilder() {
-        patternFilterChain = new DefaultFilterChain();
+        patternFilterChain = new ArrayList<Filter>();
     }
 
     public static FilterChainBuilder stateless() {
