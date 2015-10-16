@@ -92,6 +92,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         RST_REASON = new CloseReason(CloseType.REMOTELY, e);
     }
 
+    @SuppressWarnings("unused")
     private enum CompletionUnit {
         Input, Output, Complete
     }
@@ -119,6 +120,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
             new AtomicReference<CloseReason>();
     private final Queue<CloseListener> closeListeners =
             new ConcurrentLinkedQueue<CloseListener>();
+    private volatile GrizzlyFuture<CloseReason> closeFuture;
     private final AtomicInteger completeFinalizationCounter = new AtomicInteger();
     
     // flag, which is indicating if SpdyStream processing has been marked as complete by external code
@@ -191,6 +193,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         return spdyRequest;
     }
     
+    @SuppressWarnings("unused")
     public HttpResponsePacket getSpdyResponse() {
         return spdyRequest.getResponse();
     }
@@ -205,6 +208,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         return associatedResourcesToPush.put(url, pushResource);
     }
 
+    @SuppressWarnings("unused")
     public PushResource removePushResource(final String url) {
         
         if (associatedResourcesToPush == null) {
@@ -222,10 +226,12 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         return associatedToStreamId;
     }
 
+    @SuppressWarnings("unused")
     public int getPriority() {
         return priority;
     }
 
+    @SuppressWarnings("unused")
     public int getSlot() {
         return slot;
     }
@@ -423,6 +429,37 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         return closeListeners.remove(closeListener);
     }
 
+    @Override
+    public GrizzlyFuture<CloseReason> closeFuture() {
+        if (closeFuture == null) {
+            synchronized (this) {
+                if (closeFuture == null) {
+                    final CloseReason closeReason = closeReasonFlag.get();
+                    if (closeReason == null) {
+                        final FutureImpl<CloseReason> f
+                                = Futures.createSafeFuture();
+                        addCloseListener(new CloseListener() {
+
+                            @Override
+                            public void onClosed(final Closeable closable,
+                                                 final CloseReason reason)
+                                    throws IOException {
+                                assert reason != null;
+                                f.result(reason);
+                            }
+
+                        });
+                        closeFuture = f;
+                    } else {
+                        closeFuture = Futures.createReadyFuture(closeReason);
+                    }
+                }
+            }
+        }
+
+        return closeFuture;
+    }
+
     void onInputClosed() {
         if (completeFinalizationCounter.incrementAndGet() == 2) {
             closeStream();
@@ -487,7 +524,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         if (cachedInputBufferLocal != null) {
             if (cachedInputBufferLocal.isComposite()) {
                 ((CompositeBuffer) cachedInputBufferLocal).allowInternalBuffersDispose(true);
-                ((CompositeBuffer) cachedInputBufferLocal).allowBufferDispose(true);
+                cachedInputBufferLocal.allowBufferDispose(true);
                 ((CompositeBuffer) cachedInputBufferLocal).disposeOrder(DisposeOrder.LAST_TO_FIRST);
             }
             
@@ -577,7 +614,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
     }
     
     protected enum TerminationType {
-        FIN, RST, LOCAL_CLOSE, PEER_CLOSE, FORCED
+        FIN, RST, LOCAL_CLOSE, PEER_CLOSE, @SuppressWarnings("unused")FORCED
     }
     
     protected static class Termination {

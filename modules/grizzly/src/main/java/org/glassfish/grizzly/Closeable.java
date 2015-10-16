@@ -60,7 +60,7 @@ public interface Closeable {
      * @return <tt>true</tt>, if <tt>Closeable</tt> is open and ready, or <tt>false</tt>
      * otherwise.
      */
-    public boolean isOpen();
+     boolean isOpen();
     
     /**
      * Checks if this <tt>Closeable</tt> is open and ready to be used.
@@ -79,7 +79,7 @@ public interface Closeable {
      * method has no effect.
      * Use this method, when no completion notification is needed.
      */
-    public void terminateSilently();
+     void terminateSilently();
 
     /**
      * Closes this stream and releases any system resources associated with it.
@@ -89,7 +89,7 @@ public interface Closeable {
      * @return {@link java.util.concurrent.Future}, which could be checked in case, if close operation
      *         will be run asynchronously
      */
-    public GrizzlyFuture<Closeable> terminate();
+     GrizzlyFuture<Closeable> terminate();
     
     /**
      * Closes the <tt>Closeable</tt> and provides the reason description.
@@ -110,7 +110,7 @@ public interface Closeable {
      * method has no effect.
      * Use this method, when no completion notification is needed.
      */
-    public void closeSilently();
+     void closeSilently();
 
     /**
      * Gracefully (if supported by the implementation) closes this stream and
@@ -121,7 +121,7 @@ public interface Closeable {
      * @return {@link GrizzlyFuture}, which could be checked in case, if close operation
      *         will be run asynchronously
      */
-    public GrizzlyFuture<Closeable> close();
+     GrizzlyFuture<Closeable> close();
     
     /**
      * Gracefully closes the <tt>Closeable</tt> and provides the reason description.

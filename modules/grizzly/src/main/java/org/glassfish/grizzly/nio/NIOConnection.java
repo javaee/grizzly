@@ -127,7 +127,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     // closeReasonAtomic, "null" value means the connection is open.
     protected final AtomicReference<CloseReason> closeReasonAtomic =
             new AtomicReference<CloseReason>();
-    
+
+    private volatile GrizzlyFuture<CloseReason> closeFuture;
+
     protected volatile boolean isBlocking;
     protected short zeroByteReadCount;
     private final Queue<CloseListener> closeListeners =
@@ -148,7 +150,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public void configureBlocking(boolean isBlocking) {
+    public void configureBlocking(final boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
 
@@ -225,7 +227,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * 
      * @since 2.2
      */
-    public void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize) {
+    public void setMaxAsyncWriteQueueSize(final int maxAsyncWriteQueueSize) {
         this.maxAsyncWriteQueueSize = maxAsyncWriteQueueSize;
     }
 
@@ -244,7 +246,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public long getBlockingReadTimeout(TimeUnit timeUnit) {
+    public long getBlockingReadTimeout(final TimeUnit timeUnit) {
         if (readTimeoutMillis <= 0) {
             return readTimeoutMillis;
         }
@@ -253,7 +255,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public void setBlockingReadTimeout(long timeout, TimeUnit timeUnit) {
+    public void setBlockingReadTimeout(final long timeout, final TimeUnit timeUnit) {
         if (timeout < 0) {
             readTimeoutMillis = -1;
         } else {
@@ -262,7 +264,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public long getBlockingWriteTimeout(TimeUnit timeUnit) {
+    public long getBlockingWriteTimeout(final TimeUnit timeUnit) {
         if (writeTimeoutMillis <= 0) {
             return writeTimeoutMillis;
         }
@@ -271,7 +273,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     }
 
     @Override
-    public void setBlockingWriteTimeout(long timeout, TimeUnit timeUnit) {
+    public void setBlockingWriteTimeout(final long timeout, final TimeUnit timeUnit) {
         if (timeout < 0) {
             writeTimeoutMillis = -1;
         } else {
@@ -283,7 +285,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         return selectorRunner;
     }
 
-    protected void setSelectorRunner(SelectorRunner selectorRunner) {
+    protected void setSelectorRunner(final SelectorRunner selectorRunner) {
         this.selectorRunner = selectorRunner;
     }
 
@@ -521,7 +523,39 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public void closeWithReason(final CloseReason closeReason) {
         closeGracefully0(null, closeReason);
     }
-    
+
+    @Override
+    public GrizzlyFuture<CloseReason> closeFuture() {
+        if (closeFuture == null) {
+            synchronized (this) {
+                if (closeFuture == null) {
+                    final CloseReason closeReason = closeReasonAtomic.get();
+                    if (closeReason == null) {
+                        final FutureImpl<CloseReason> f
+                                = Futures.createSafeFuture();
+                        addCloseListener(new CloseListener() {
+
+                            @Override
+                            public void onClosed(final Closeable closable,
+                                                 final CloseReason reason)
+                            throws IOException {
+                                assert reason != null;
+                                f.result(reason);
+                            }
+
+                        });
+                        closeFuture = f;
+                    } else {
+                        closeFuture = Futures.createReadyFuture(closeReason);
+                    }
+                }
+            }
+        }
+
+        return closeFuture;
+    }
+
+
     @SuppressWarnings("unchecked")
     protected void closeGracefully0(
             final CompletionHandler<Closeable> completionHandler,
@@ -622,7 +656,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Do the actual connection close.
      */
     protected void doClose() throws IOException {
-        ((NIOTransport) transport).closeConnection(this);
+        transport.closeConnection(this);
     }
     
     /**
@@ -666,7 +700,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      *
      * @param error {@link Throwable}.
      */
-    public void notifyConnectionError(Throwable error) {
+    @SuppressWarnings("unused")
+    public void notifyConnectionError(final Throwable error) {
         notifyProbesError(this, error);
     }
 
@@ -683,7 +718,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      *
      * @param connection the <tt>Connection</tt> event occurred on.
      */
-    protected static void notifyProbesBind(NIOConnection connection) {
+    protected static void notifyProbesBind(final NIOConnection connection) {
         final ConnectionProbe[] probes = connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
             for (ConnectionProbe probe : probes) {
@@ -714,7 +749,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      *
      * @param connection the <tt>Connection</tt> event occurred on.
      */
-    protected static void notifyProbesConnect(NIOConnection connection) {
+    protected static void notifyProbesConnect(final NIOConnection connection) {
         final ConnectionProbe[] probes =
             connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -727,7 +762,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     /**
      * Notify registered {@link ConnectionProbe}s about the read event.
      */
-    protected static void notifyProbesRead(NIOConnection connection,
+    protected static void notifyProbesRead(final NIOConnection connection,
         Buffer data, int size) {
         final ConnectionProbe[] probes =
             connection.monitoringConfig.getProbesUnsafe();
@@ -741,7 +776,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     /**
      * Notify registered {@link ConnectionProbe}s about the write event.
      */
-    protected static void notifyProbesWrite(NIOConnection connection,
+    protected static void notifyProbesWrite(final NIOConnection connection,
         Buffer data, long size) {
         final ConnectionProbe[] probes =
             connection.monitoringConfig.getProbesUnsafe();
@@ -758,8 +793,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * @param connection the <tt>Connection</tt> event occurred on.
      * @param ioEvent the {@link IOEvent}.
      */
-    protected static void notifyIOEventReady(NIOConnection connection,
-        IOEvent ioEvent) {
+    @SuppressWarnings("unused")
+    protected static void notifyIOEventReady(final NIOConnection connection,
+                                             final IOEvent ioEvent) {
         final ConnectionProbe[] probes =
             connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -774,7 +810,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      *
      * @param connection the <tt>Connection</tt> event occurred on.
      */
-    protected static void notifyProbesClose(NIOConnection connection) {
+    protected static void notifyProbesClose(final NIOConnection connection) {
         final ConnectionProbe[] probes =
             connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
@@ -789,8 +825,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      *
      * @param connection the <tt>Connection</tt> event occurred on.
      */
-    protected static void notifyProbesError(NIOConnection connection,
-        Throwable error) {
+    protected static void notifyProbesError(final NIOConnection connection,
+        final Throwable error) {
         final ConnectionProbe[] probes =
             connection.monitoringConfig.getProbesUnsafe();
         if (probes != null) {
