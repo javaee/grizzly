@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,8 +68,8 @@ public interface Writer<L> {
      * @return {@link Future}, using which it's possible to check the
      *         result
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection<L> connection,
-            WritableMessage message) throws IOException;
+    GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection<L> connection,
+                                                         WritableMessage message) throws IOException;
 
     /**
      * Method writes the {@link WritableMessage}.
@@ -80,9 +80,9 @@ public interface Writer<L> {
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      */
-    public void write(Connection<L> connection,
-            WritableMessage message,
-            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
+    void write(Connection<L> connection,
+               WritableMessage message,
+               CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
 
     /**
      * Method writes the {@link WritableMessage} to the specific address.
@@ -95,8 +95,8 @@ public interface Writer<L> {
      * @return {@link Future}, using which it's possible to check the
      *         result
      */
-    public GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection<L> connection,
-            L dstAddress, WritableMessage message);
+    GrizzlyFuture<WriteResult<WritableMessage, L>> write(Connection<L> connection,
+                                                         L dstAddress, WritableMessage message);
 
     /**
      * Method writes the {@link WritableMessage} to the specific address.
@@ -109,9 +109,9 @@ public interface Writer<L> {
      * @param completionHandler {@link org.glassfish.grizzly.CompletionHandler},
      *        which will get notified, when write will be completed
      */
-    public void write(Connection<L> connection,
-            L dstAddress, WritableMessage message,
-            CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
+    void write(Connection<L> connection,
+               L dstAddress, WritableMessage message,
+               CompletionHandler<WriteResult<WritableMessage, L>> completionHandler);
     
     /**
      * Method writes the {@link WritableMessage} to the specific address.
@@ -127,7 +127,7 @@ public interface Writer<L> {
      *        if message was accepted by transport write queue or refused
      * @deprecated push back logic is deprecated
      */
-    public void write(
+    void write(
             Connection<L> connection,
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
@@ -147,7 +147,7 @@ public interface Writer<L> {
      *          clone the message in case it can't be completely written in the
      *          current thread.
      */
-    public void write(
+    void write(
             Connection<L> connection,
             L dstAddress, WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,
@@ -188,7 +188,7 @@ public interface Writer<L> {
     /**
      * Write reentrants counter
      */
-    public static final class Reentrant {
+    final class Reentrant {
         private static final ThreadLocal<Reentrant> REENTRANTS_COUNTER =
                 new ThreadLocal<Reentrant>() {
 

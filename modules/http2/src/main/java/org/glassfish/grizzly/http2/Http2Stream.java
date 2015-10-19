@@ -119,7 +119,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     private volatile GrizzlyFuture<CloseReason> closeFuture;
     
     private final Queue<CloseListener> closeListeners =
-            new ConcurrentLinkedQueue<CloseListener>();    
+            new ConcurrentLinkedQueue<>();
     
     private static final AtomicIntegerFieldUpdater<Http2Stream> completeFinalizationCounterUpdater =
             AtomicIntegerFieldUpdater.newUpdater(Http2Stream.class, "completeFinalizationCounter");
@@ -248,7 +248,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
             final PushResource pushResource) {
         
         if (associatedResourcesToPush == null) {
-            associatedResourcesToPush = new HashMap<String, PushResource>();
+            associatedResourcesToPush = new HashMap<>();
         }
         
         return associatedResourcesToPush.put(url, pushResource);
@@ -642,7 +642,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         if (cachedInputBufferLocal != null) {
             if (cachedInputBufferLocal.isComposite()) {
                 ((CompositeBuffer) cachedInputBufferLocal).allowInternalBuffersDispose(true);
-                ((CompositeBuffer) cachedInputBufferLocal).allowBufferDispose(true);
+                cachedInputBufferLocal.allowBufferDispose(true);
                 ((CompositeBuffer) cachedInputBufferLocal).disposeOrder(DisposeOrder.LAST_TO_FIRST);
             }
             

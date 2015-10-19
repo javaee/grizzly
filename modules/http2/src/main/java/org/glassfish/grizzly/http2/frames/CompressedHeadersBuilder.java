@@ -63,7 +63,7 @@ import org.glassfish.grizzly.http2.compression.HeadersEncoder;
  */
 public final class CompressedHeadersBuilder {
     
-    private final Map<String, String> headers = new HashMap<String, String>();
+    private final Map<String, String> headers = new HashMap<>();
 
     private CompressedHeadersBuilder() {
     }

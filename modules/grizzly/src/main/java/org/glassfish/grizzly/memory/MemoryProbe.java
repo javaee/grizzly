@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,21 +51,21 @@ public interface MemoryProbe {
      * 
      * @param size buffer size
      */
-    public void onBufferAllocateEvent(int size);
+    void onBufferAllocateEvent(int size);
 
     /**
      * Called by {@link MemoryManager}, when buffer gets allocated from some pool
      *
      * @param size buffer size
      */
-    public void onBufferAllocateFromPoolEvent(int size);
+    void onBufferAllocateFromPoolEvent(int size);
 
     /**
      * Called by {@link MemoryManager}, when buffer gets released into a buffer pool
      *
      * @param size buffer size
      */
-    public void onBufferReleaseToPoolEvent(int size);
+    void onBufferReleaseToPoolEvent(int size);
 
 
     // ---------------------------------------------------------- Nested Classes
@@ -77,7 +77,7 @@ public interface MemoryProbe {
      * @since 2.1.9
      */
     @SuppressWarnings("UnusedDeclaration")
-    public static class Adapter implements MemoryProbe {
+    class Adapter implements MemoryProbe {
 
 
         // -------------------------------------------- Methods from MemoryProbe

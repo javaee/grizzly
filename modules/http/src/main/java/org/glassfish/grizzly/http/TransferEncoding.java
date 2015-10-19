@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,7 +61,7 @@ public interface TransferEncoding {
      * @return <tt>true</tt> if this encoding should be used to parse the
      * content of the passed {@link HttpHeader}, or <tt>false</tt> otherwise.
      */
-    public boolean wantDecode(HttpHeader httpPacket);
+    boolean wantDecode(HttpHeader httpPacket);
 
     /**
      * Return <tt>true</tt> if this encoding should be used to serialize the
@@ -71,7 +71,7 @@ public interface TransferEncoding {
      * @return <tt>true</tt> if this encoding should be used to serialize the
      * content of the passed {@link HttpHeader}, or <tt>false</tt> otherwise.
      */
-    public boolean wantEncode(HttpHeader httpPacket);
+    boolean wantEncode(HttpHeader httpPacket);
 
     /**
      * This method will be called by {@link HttpCodecFilter} to let
@@ -83,9 +83,9 @@ public interface TransferEncoding {
      * @param httpHeader HTTP packet headers.
      * @param content ready HTTP content (might be null).
      */
-    public void prepareSerialize(FilterChainContext ctx,
-                                 HttpHeader httpHeader,
-                                 HttpContent content);
+    void prepareSerialize(FilterChainContext ctx,
+                          HttpHeader httpHeader,
+                          HttpContent content);
 
     /**
      * Parse HTTP packet payload, represented by {@link Buffer} using specific
@@ -96,8 +96,8 @@ public interface TransferEncoding {
      * @param buffer {@link Buffer} HTTP message payload.
      * @return {@link ParsingResult}
      */
-    public ParsingResult parsePacket(FilterChainContext ctx,
-            HttpHeader httpPacket, Buffer buffer);
+    ParsingResult parsePacket(FilterChainContext ctx,
+                              HttpHeader httpPacket, Buffer buffer);
 
     /**
      * Serialize HTTP packet payload, represented by {@link HttpContent}
@@ -108,6 +108,6 @@ public interface TransferEncoding {
      *
      * @return serialized {@link Buffer}
      */
-    public Buffer serializePacket(FilterChainContext ctx,
-            HttpContent httpContent);
+    Buffer serializePacket(FilterChainContext ctx,
+                           HttpContent httpContent);
 }

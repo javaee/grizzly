@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,15 +49,15 @@ import org.glassfish.grizzly.attributes.AttributeStorage;
  * @author Alexey Stashok
  */
 public interface WorkerThread extends Runnable, AttributeStorage {
-    public static final long UNLIMITED_TRANSACTION_TIMEOUT = -1;
+    long UNLIMITED_TRANSACTION_TIMEOUT = -1;
     
-    public void start();
-    public void stop();
-    public void destroy();
+    void start();
+    void stop();
+    void destroy();
     
-    public String getName();
-    public Thread getThread();
+    String getName();
+    Thread getThread();
 
-    public long getTransactionTimeout(TimeUnit timeunit);
-    public void setTransactionTimeout(long timeout, TimeUnit timeunit);
+    long getTransactionTimeout(TimeUnit timeunit);
+    void setTransactionTimeout(long timeout, TimeUnit timeunit);
 }

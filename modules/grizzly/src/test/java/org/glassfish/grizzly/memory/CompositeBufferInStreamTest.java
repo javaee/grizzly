@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -77,9 +77,9 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
         final Buffer portion2 = Buffers.wrap(transport.getMemoryManager(), " ");
         final Buffer portion3 = Buffers.wrap(transport.getMemoryManager(), "world!");
 
-        final FutureImpl<Integer> lock1 = SafeFutureImpl.<Integer>create();
-        final FutureImpl<Integer> lock2 = SafeFutureImpl.<Integer>create();
-        final FutureImpl<Integer> lock3 = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> lock1 = SafeFutureImpl.create();
+        final FutureImpl<Integer> lock2 = SafeFutureImpl.create();
+        final FutureImpl<Integer> lock3 = SafeFutureImpl.create();
 
         final Pair<Buffer, FutureImpl<Integer>>[] portions = new Pair[] {
             new Pair<Buffer, FutureImpl<Integer>>(portion1, lock1),

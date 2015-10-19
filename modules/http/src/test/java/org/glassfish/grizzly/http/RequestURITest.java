@@ -101,16 +101,16 @@ public class RequestURITest extends TestCase {
         decodedDC = rur.getDecodedRequestURIBC(true, Charsets.UTF8_CHARSET);
         assertEquals(DataChunk.Type.Chars, decodedDC.getType());
         // there should be our decoded word
-        assertTrue(decodedDC.toString().indexOf(rus) >= 0);
+        assertTrue(decodedDC.toString().contains(rus));
 
         // One more time the same
         decodedDC = rur.getDecodedRequestURIBC(true, Charsets.UTF8_CHARSET);
         assertEquals(DataChunk.Type.Chars, decodedDC.getType());
         // there should be our decoded word
-        assertTrue(decodedDC.toString().indexOf(rus) >= 0);
+        assertTrue(decodedDC.toString().contains(rus));
 
         // there shouldn't be our decoded word
-        assertTrue(rur.getURI().indexOf(rus) < 0);
+        assertTrue(!rur.getURI().contains(rus));
 
         // Original should be the same
         assertEquals(url, rur.getOriginalRequestURIBC().toString());

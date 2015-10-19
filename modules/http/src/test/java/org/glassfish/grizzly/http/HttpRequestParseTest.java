@@ -197,7 +197,7 @@ public class HttpRequestParseTest extends TestCase {
     public void testChunkedTransferEncodingCaseInsensitive() {
         HttpPacket packet = doTestDecoder(
                 "POST /index.html HTTP/1.1\nHost: localhost\nTransfer-Encoding: CHUNked\r\n\r\n", 4096);
-        assertTrue(((HttpRequestPacket) packet.getHttpHeader()).isChunked());
+        assertTrue(packet.getHttpHeader().isChunked());
     }
     
     @SuppressWarnings({"unchecked"})
@@ -249,7 +249,7 @@ public class HttpRequestParseTest extends TestCase {
                 .add(new ChunkingFilter(2))
                 .add(new HttpServerFilter())
                 .add(new HTTPRequestCheckFilter(parseResult,
-                method, requestURI, protocol, headers));
+                        method, requestURI, protocol, headers));
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setProcessor(filterChainBuilder.build());
@@ -302,7 +302,7 @@ public class HttpRequestParseTest extends TestCase {
         }
     }
 
-    public class HTTPRequestCheckFilter extends BaseFilter {
+    public static class HTTPRequestCheckFilter extends BaseFilter {
         private final FutureImpl<Boolean> parseResult;
         private final String method;
         private final String requestURI;
@@ -324,7 +324,7 @@ public class HttpRequestParseTest extends TestCase {
         @Override
         public NextAction handleRead(FilterChainContext ctx)
                 throws IOException {
-            HttpContent httpContent = (HttpContent) ctx.getMessage();
+            HttpContent httpContent = ctx.getMessage();
             HttpRequestPacket httpRequest = (HttpRequestPacket) httpContent.getHttpHeader();
             
             try {

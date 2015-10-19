@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,7 +54,7 @@ public interface FileCacheProbe {
      * @param fileCache {@link FileCache}, the event belongs to.
      * @param entry {@link FileCacheEntry} been added.
      */
-    public void onEntryAddedEvent(FileCache fileCache, FileCacheEntry entry);
+    void onEntryAddedEvent(FileCache fileCache, FileCacheEntry entry);
 
     /**
      * Method will be called, when file cache entry gets removed.
@@ -62,7 +62,7 @@ public interface FileCacheProbe {
      * @param fileCache {@link FileCache}, the event belongs to.
      * @param entry {@link FileCacheEntry} been removed.
      */
-    public void onEntryRemovedEvent(FileCache fileCache, FileCacheEntry entry);
+    void onEntryRemovedEvent(FileCache fileCache, FileCacheEntry entry);
 
     /**
      * Method will be called, when file cache entry gets hit.
@@ -70,7 +70,7 @@ public interface FileCacheProbe {
      * @param fileCache {@link FileCache}, the event belongs to.
      * @param entry {@link FileCacheEntry} been hitted.
      */
-    public void onEntryHitEvent(FileCache fileCache, FileCacheEntry entry);
+    void onEntryHitEvent(FileCache fileCache, FileCacheEntry entry);
 
     /**
      * Method will be called, when file cache entry is missed for some resource.
@@ -79,7 +79,7 @@ public interface FileCacheProbe {
      * @param host the requested HTTP "Host" header.
      * @param requestURI the requested HTTP URL.
      */
-    public void onEntryMissedEvent(FileCache fileCache, String host, String requestURI);
+    void onEntryMissedEvent(FileCache fileCache, String host, String requestURI);
 
     /**
      * Method will be called, when error occurs on the {@link FileCache}.
@@ -87,7 +87,7 @@ public interface FileCacheProbe {
      * @param fileCache {@link FileCache}, the event belongs to.
      * @param error error
      */
-    public void onErrorEvent(FileCache fileCache, Throwable error);
+    void onErrorEvent(FileCache fileCache, Throwable error);
 
 
     // ---------------------------------------------------------- Nested Classes
@@ -99,7 +99,7 @@ public interface FileCacheProbe {
      * @since 2.1.9
      */
     @SuppressWarnings("UnusedDeclaration")
-    public static class Adapter implements FileCacheProbe {
+    class Adapter implements FileCacheProbe {
 
 
         // ----------------------------------------- Methods from FileCacheProbe

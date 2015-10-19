@@ -72,7 +72,7 @@ public class DefaultSessionManager implements SessionManager {
      * of here
      */
     private final ConcurrentMap<String, Session> sessions
-            = DataStructures.<String, Session>getConcurrentMap();
+            = DataStructures.getConcurrentMap();
 
     private final Random rnd = new Random();
 
@@ -164,6 +164,6 @@ public class DefaultSessionManager implements SessionManager {
      * Returns pseudorandom positive long value.
      */
     private long generateRandomLong() {
-        return (rnd.nextLong() & 0x7FFFFFFFFFFFFFFFl);
+        return (rnd.nextLong() & 0x7FFFFFFFFFFFFFFFL);
     }
 }

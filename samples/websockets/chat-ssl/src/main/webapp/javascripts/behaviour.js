@@ -78,7 +78,7 @@ var Behaviour = {
 			}
 		}
 	}
-}
+};
 
 Behaviour.start();
 
@@ -118,7 +118,7 @@ document.getElementsBySelector = function(selector) {
   var tokens = selector.split(' ');
   var currentContext = new Array(document);
   for (var i = 0; i < tokens.length; i++) {
-    token = tokens[i].replace(/^\s+/,'').replace(/\s+$/,'');;
+    token = tokens[i].replace(/^\s+/, '').replace(/\s+$/, '');
     if (token.indexOf('#') > -1) {
       // Token is an ID selector
       var bits = token.split('#');
@@ -241,7 +241,7 @@ document.getElementsBySelector = function(selector) {
     currentContext = found;
   }
   return currentContext;
-}
+};
 
 /* That revolting regular expression explained 
 /^(\w+)\[(\w+)([=~\|\^\$\*]?)=?"?([^\]"]*)"?\]$/

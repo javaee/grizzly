@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -276,7 +276,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * 
      * @since 2.2
      */
-    public int getMaxAsyncWriteQueueSize();
+    int getMaxAsyncWriteQueueSize();
 
     /**
      * Set the max size (in bytes) of asynchronous write queue associated
@@ -287,7 +287,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * 
      * @since 2.2
      */
-    public void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize);
+    void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize);
     
     /**
      * Returns the current value for the blocking read timeout converted to the
@@ -339,11 +339,11 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      */
     void setWriteTimeout(long timeout, TimeUnit timeUnit);
 
-    public void simulateIOEvent(final IOEvent ioEvent) throws IOException;
+    void simulateIOEvent(final IOEvent ioEvent) throws IOException;
 
-    public void enableIOEvent(final IOEvent ioEvent) throws IOException;
+    void enableIOEvent(final IOEvent ioEvent) throws IOException;
 
-    public void disableIOEvent(final IOEvent ioEvent) throws IOException;
+    void disableIOEvent(final IOEvent ioEvent) throws IOException;
     
     /**
      * @return the <tt>Connection</tt> monitoring configuration {@link MonitoringConfig}.
@@ -356,7 +356,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * completion or failure.
      */
     @Override
-    public void terminateSilently();
+    void terminateSilently();
 
     /**
      * Close the {@link Connection}
@@ -365,7 +365,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      *         will be run asynchronously
      */
     @Override
-    public GrizzlyFuture<Closeable> terminate();
+    GrizzlyFuture<Closeable> terminate();
     
     /**
      * Closes the <tt>Connection</tt> and provides the reason description.
@@ -475,7 +475,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * @see GenericCloseListener
      */
     @Deprecated
-    public static interface CloseListener extends org.glassfish.grizzly.CloseListener<Connection, CloseType> {
+    interface CloseListener extends org.glassfish.grizzly.CloseListener<Connection, CloseType> {
 
         @Override
         void onClosed(Connection connection, CloseType type) throws IOException;
@@ -488,7 +488,7 @@ public interface Connection<L> extends Readable<L>, Writeable<L>,
      * @deprecated use {@link org.glassfish.grizzly.CloseType}
      */
     @Deprecated
-    public enum CloseType implements ICloseType {
+    enum CloseType implements ICloseType {
         LOCALLY, REMOTELY
     }
 

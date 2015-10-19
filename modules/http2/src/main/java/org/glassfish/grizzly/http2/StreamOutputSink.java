@@ -55,8 +55,8 @@ import org.glassfish.grizzly.http.HttpPacket;
  * @author Alexey Stashok
  */
 interface StreamOutputSink {
-    public boolean canWrite();
-    public void notifyWritePossible(WriteHandler writeHandler);
+    boolean canWrite();
+    void notifyWritePossible(WriteHandler writeHandler);
 
     /**
      * The method is called by HTTP2 Filter once WINDOW_UPDATE message comes
@@ -65,14 +65,14 @@ interface StreamOutputSink {
      * @param delta the delta.
      * @throws org.glassfish.grizzly.http2.Http2StreamException
      */
-    public void onPeerWindowUpdate(int delta) throws Http2StreamException;
+    void onPeerWindowUpdate(int delta) throws Http2StreamException;
 
-    public <E> void writeDownStream(HttpPacket httpPacket,
-                                    FilterChainContext ctx,
-                                    CompletionHandler<WriteResult> completionHandler,
-                                    MessageCloner<Buffer> messageCloner)throws IOException;
+    <E> void writeDownStream(HttpPacket httpPacket,
+                             FilterChainContext ctx,
+                             CompletionHandler<WriteResult> completionHandler,
+                             MessageCloner<Buffer> messageCloner)throws IOException;
 
-    public void writeDownStream(Source source, FilterChainContext ctx)
+    void writeDownStream(Source source, FilterChainContext ctx)
             throws IOException;
     
     /**
@@ -81,24 +81,24 @@ interface StreamOutputSink {
      * 
      * @param completionHandler {@link CompletionHandler} to be notified
      */
-    public void flush(CompletionHandler<Http2Stream> completionHandler);
+    void flush(CompletionHandler<Http2Stream> completionHandler);
     
     /**
      * @return the number of writes (not bytes), that haven't reached network layer
      */
-    public int getUnflushedWritesCount();
+    int getUnflushedWritesCount();
     
     /**
      * Closes the output sink by adding last DataFrame with the FIN flag to a queue.
      * If the output sink is already closed - method does nothing.
      */
-    public void close();
+    void close();
 
     /**
      * Unlike {@link #close()} this method forces the output sink termination
      * by setting termination flag and canceling all the pending writes.
      */
-    public void terminate(Http2Stream.Termination terminationFlag);
+    void terminate(Http2Stream.Termination terminationFlag);
     
-    public boolean isClosed();
+    boolean isClosed();
 }

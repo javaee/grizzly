@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ public interface ConnectionProbe {
      *
      * @param connection {@link Connection}, the event belongs to.
      */
-    public void onBindEvent(Connection connection);
+    void onBindEvent(Connection connection);
 
     /**
      * Method will be called, when server side connection gets accepted.
@@ -63,14 +63,14 @@ public interface ConnectionProbe {
      * @param serverConnection server {@link Connection}, the event belongs to.
      * @param clientConnection new client {@link Connection}.
      */
-    public void onAcceptEvent(Connection serverConnection, Connection clientConnection);
+    void onAcceptEvent(Connection serverConnection, Connection clientConnection);
 
     /**
      * Method will be called, when client side connection gets connected (opened).
      *
      * @param connection {@link Connection}, the event belongs to.
      */
-    public void onConnectEvent(Connection connection);
+    void onConnectEvent(Connection connection);
 
     /**
      * Method will be called, when the {@link Connection} has read data.
@@ -79,7 +79,7 @@ public interface ConnectionProbe {
      * @param data {@link Buffer}, where the data gets read.
      * @param size the data size.
      */
-    public void onReadEvent(Connection connection, Buffer data, int size);
+    void onReadEvent(Connection connection, Buffer data, int size);
 
     /**
      * Method will be called, when the {@link Connection} has written data.
@@ -88,7 +88,7 @@ public interface ConnectionProbe {
      * @param data {@link Buffer}, where the data gets writen.
      * @param size the data size.
      */
-    public void onWriteEvent(Connection connection, Buffer data, long size);
+    void onWriteEvent(Connection connection, Buffer data, long size);
     
     /**
      * Method will be called, when error occurs on the {@link Connection}.
@@ -96,14 +96,14 @@ public interface ConnectionProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param error error
      */
-    public void onErrorEvent(Connection connection, Throwable error);
+    void onErrorEvent(Connection connection, Throwable error);
 
     /**
      * Method will be called, when {@link Connection} gets closed.
      *
      * @param connection {@link Connection}, the event belongs to.
      */
-    public void onCloseEvent(Connection connection);
+    void onCloseEvent(Connection connection);
 
     /**
      * Method will be called, when {@link IOEvent} for the specific
@@ -112,7 +112,7 @@ public interface ConnectionProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param ioEvent {@link IOEvent}.
      */
-    public void onIOEventReadyEvent(Connection connection, IOEvent ioEvent);
+    void onIOEventReadyEvent(Connection connection, IOEvent ioEvent);
 
     /**
      * Method will be called, when {@link IOEvent} for the specific
@@ -121,7 +121,7 @@ public interface ConnectionProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param ioEvent {@link IOEvent}.
      */
-    public void onIOEventEnableEvent(Connection connection, IOEvent ioEvent);
+    void onIOEventEnableEvent(Connection connection, IOEvent ioEvent);
 
     /**
      * Method will be called, when {@link IOEvent} for the specific
@@ -130,7 +130,7 @@ public interface ConnectionProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param ioEvent {@link IOEvent}.
      */
-    public void onIOEventDisableEvent(Connection connection, IOEvent ioEvent);
+    void onIOEventDisableEvent(Connection connection, IOEvent ioEvent);
 
 
     // ---------------------------------------------------------- Nested Classes
@@ -142,7 +142,7 @@ public interface ConnectionProbe {
      * @since 2.1.9
      */
     @SuppressWarnings("UnusedDeclaration")
-    public static class Adapter implements ConnectionProbe {
+    class Adapter implements ConnectionProbe {
 
 
         // ---------------------------------------- Methods from ConnectionProbe

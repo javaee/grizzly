@@ -67,7 +67,7 @@ public class ClientAuthFilter extends BaseFilter {
 
     // Map of authenticated connections
     private final ConcurrentMap<Connection, ConnectionAuthInfo> authenticatedConnections =
-            DataStructures.<Connection, ConnectionAuthInfo>getConcurrentMap();
+            DataStructures.getConcurrentMap();
 
     /**
      * The method is called once we have received {@link MultiLinePacket}.
@@ -88,7 +88,7 @@ public class ClientAuthFilter extends BaseFilter {
         // Get the connection
         final Connection connection = ctx.getConnection();
         // Get the processing packet
-        final MultiLinePacket packet = (MultiLinePacket) ctx.getMessage();
+        final MultiLinePacket packet = ctx.getMessage();
 
         final String command = packet.getLines().get(0);
 
@@ -97,6 +97,7 @@ public class ClientAuthFilter extends BaseFilter {
             // if yes - retrieve the id, assigned by server
             final String id = getId(packet.getLines().get(1));
 
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized(connection) {
                 // store id in the map
                 ConnectionAuthInfo info = authenticatedConnections.get(connection);
@@ -153,7 +154,7 @@ public class ClientAuthFilter extends BaseFilter {
         // Get the connection
         final Connection connection = ctx.getConnection();
         // Get the sending packet
-        final MultiLinePacket packet = (MultiLinePacket) ctx.getMessage();
+        final MultiLinePacket packet = ctx.getMessage();
 
         // Get the connection authentication information
         ConnectionAuthInfo authInfo =
@@ -177,6 +178,7 @@ public class ClientAuthFilter extends BaseFilter {
         if (authInfo.pendingMessages != null) {
             // it might be a sign, that authentication has been completed on another thread
             // synchronize and check one more time
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized (connection) {
                 if (authInfo.pendingMessages != null) {
                     if (authInfo.id == null) {

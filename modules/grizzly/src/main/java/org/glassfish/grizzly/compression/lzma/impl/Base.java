@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,11 +50,11 @@ public class Base {
     public static final int kNumRepDistances = 4;
     public static final int kNumStates = 12;
 
-    public static final int stateInit() {
+    public static int stateInit() {
         return 0;
     }
 
-    public static final int stateUpdateChar(int index) {
+    public static int stateUpdateChar(int index) {
         if (index < 4) {
             return 0;
         }
@@ -64,19 +64,19 @@ public class Base {
         return index - 6;
     }
 
-    public static final int stateUpdateMatch(int index) {
+    public static int stateUpdateMatch(int index) {
         return (index < 7 ? 7 : 10);
     }
 
-    public static final int stateUpdateRep(int index) {
+    public static int stateUpdateRep(int index) {
         return (index < 7 ? 8 : 11);
     }
 
-    public static final int stateUpdateShortRep(int index) {
+    public static int stateUpdateShortRep(int index) {
         return (index < 7 ? 9 : 11);
     }
 
-    public static final boolean stateIsCharState(int index) {
+    public static boolean stateIsCharState(int index) {
         return index < 7;
     }
     public static final int kNumPosSlotBits = 6;
@@ -87,12 +87,12 @@ public class Base {
     public static final int kNumLenToPosStates = 1 << kNumLenToPosStatesBits;
     public static final int kMatchMinLen = 2;
 
-    public static final int getLenToPosState(int len) {
+    public static int getLenToPosState(int len) {
         len -= kMatchMinLen;
         if (len < kNumLenToPosStates) {
             return len;
         }
-        return (int) (kNumLenToPosStates - 1);
+        return kNumLenToPosStates - 1;
     }
     public static final int kNumAlignBits = 4;
     public static final int kAlignTableSize = 1 << kNumAlignBits;

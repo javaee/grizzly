@@ -12,7 +12,7 @@ var Prototype = {
 
   emptyFunction: function() {},
   K: function(x) {return x}
-}
+};
 
 var Class = {
   create: function() {
@@ -20,7 +20,7 @@ var Class = {
       this.initialize.apply(this, arguments);
     }
   }
-}
+};
 
 var Abstract = new Object();
 
@@ -29,7 +29,7 @@ Object.extend = function(destination, source) {
     destination[property] = source[property];
   }
   return destination;
-}
+};
 
 Object.inspect = function(object) {
   try {
@@ -40,21 +40,21 @@ Object.inspect = function(object) {
     if (e instanceof RangeError) return '...';
     throw e;
   }
-}
+};
 
 Function.prototype.bind = function() {
   var __method = this, args = $A(arguments), object = args.shift();
   return function() {
     return __method.apply(object, args.concat($A(arguments)));
   }
-}
+};
 
 Function.prototype.bindAsEventListener = function(object) {
   var __method = this;
   return function(event) {
     return __method.call(object, event || window.event);
   }
-}
+};
 
 Object.extend(Number.prototype, {
   toColorPart: function() {
@@ -87,7 +87,7 @@ var Try = {
 
     return returnValue;
   }
-}
+};
 
 /*--------------------------------------------------------------------------*/
 
@@ -115,7 +115,7 @@ PeriodicalExecuter.prototype = {
       }
     }
   }
-}
+};
 
 /*--------------------------------------------------------------------------*/
 
@@ -276,7 +276,7 @@ var Enumerable = {
       var stringValue = value.toString();
       if (stringValue.match(pattern))
         results.push((iterator || Prototype.K)(value, index));
-    })
+    });
     return results;
   },
 
@@ -379,7 +379,7 @@ var Enumerable = {
   inspect: function() {
     return '#<Enumerable:' + this.toArray().inspect() + '>';
   }
-}
+};
 
 Object.extend(Enumerable, {
   map:     Enumerable.collect,
@@ -398,7 +398,7 @@ var $A = Array.from = function(iterable) {
       results.push(iterable[i]);
     return results;
   }
-}
+};
 
 Object.extend(Array.prototype, Enumerable);
 
@@ -504,7 +504,7 @@ var Hash = {
       return pair.map(Object.inspect).join(': ');
     }).join(', ') + '}>';
   }
-}
+};
 
 function $H(object) {
   var hash = Object.extend({}, object || {});
@@ -540,7 +540,7 @@ Object.extend(ObjectRange.prototype, {
 
 var $R = function(start, end, exclusive) {
   return new ObjectRange(start, end, exclusive);
-}
+};
 
 var Ajax = {
   getTransport: function() {
@@ -552,7 +552,7 @@ var Ajax = {
   },
 
   activeRequestCount: 0
-}
+};
 
 Ajax.Responders = {
   responders: [],
@@ -600,7 +600,7 @@ Ajax.Base.prototype = {
       method:       'post',
       asynchronous: true,
       parameters:   ''
-    }
+    };
     Object.extend(this.options, options || {});
   },
 
@@ -613,7 +613,7 @@ Ajax.Base.prototype = {
   responseIsFailure: function() {
     return !this.responseIsSuccess();
   }
-}
+};
 
 Ajax.Request = Class.create();
 Ajax.Request.Events =
@@ -748,7 +748,7 @@ Object.extend(Object.extend(Ajax.Updater.prototype, Ajax.Request.prototype), {
       success: container.success ? $(container.success) : $(container),
       failure: container.failure ? $(container.failure) :
         (container.success ? null : $(container))
-    }
+    };
 
     this.transport = Ajax.getTransport();
     this.setOptions(options);
@@ -834,7 +834,7 @@ document.getElementsByClassName = function(className, parentElement) {
       elements.push(child);
     return elements;
   });
-}
+};
 
 /*--------------------------------------------------------------------------*/
 
@@ -1018,7 +1018,7 @@ Toggle.display = Element.toggle;
 
 Abstract.Insertion = function(adjacency) {
   this.adjacency = adjacency;
-}
+};
 
 Abstract.Insertion.prototype = {
   initialize: function(element, content) {
@@ -1049,7 +1049,7 @@ Abstract.Insertion.prototype = {
     div.innerHTML = '<table><tbody>' + this.content + '</tbody></table>';
     return $A(div.childNodes[0].childNodes[0].childNodes);
   }
-}
+};
 
 var Insertion = new Object();
 
@@ -1141,7 +1141,7 @@ Element.ClassNames.prototype = {
   toString: function() {
     return this.toArray().join(' ');
   }
-}
+};
 
 Object.extend(Element.ClassNames.prototype, Enumerable);
 var Field = {
@@ -1170,7 +1170,7 @@ var Field = {
     if (element.select)
       element.select();
   }
-}
+};
 
 /*--------------------------------------------------------------------------*/
 
@@ -1250,7 +1250,7 @@ var Form = {
   reset: function(form) {
     $(form).reset();
   }
-}
+};
 
 Form.Element = {
   serialize: function(element) {
@@ -1279,7 +1279,7 @@ Form.Element = {
     if (parameter)
       return parameter[1];
   }
-}
+};
 
 Form.Element.Serializers = {
   input: function(element) {
@@ -1334,7 +1334,7 @@ Form.Element.Serializers = {
     }
     return [element.name, value];
   }
-}
+};
 
 /*--------------------------------------------------------------------------*/
 
@@ -1342,7 +1342,7 @@ var $F = Form.Element.getValue;
 
 /*--------------------------------------------------------------------------*/
 
-Abstract.TimedObserver = function() {}
+Abstract.TimedObserver = function() {};
 Abstract.TimedObserver.prototype = {
   initialize: function(element, frequency, callback) {
     this.frequency = frequency;
@@ -1364,7 +1364,7 @@ Abstract.TimedObserver.prototype = {
       this.lastValue = value;
     }
   }
-}
+};
 
 Form.Element.Observer = Class.create();
 Form.Element.Observer.prototype = Object.extend(new Abstract.TimedObserver(), {
@@ -1382,7 +1382,7 @@ Form.Observer.prototype = Object.extend(new Abstract.TimedObserver(), {
 
 /*--------------------------------------------------------------------------*/
 
-Abstract.EventObserver = function() {}
+Abstract.EventObserver = function() {};
 Abstract.EventObserver.prototype = {
   initialize: function(element, callback) {
     this.element  = $(element);
@@ -1426,7 +1426,7 @@ Abstract.EventObserver.prototype = {
       }
     }
   }
-}
+};
 
 Form.Element.EventObserver = Class.create();
 Form.Element.EventObserver.prototype = Object.extend(new Abstract.EventObserver(), {
@@ -1692,7 +1692,7 @@ var Position = {
       setHeight:  true,
       offsetTop:  0,
       offsetLeft: 0
-    }, arguments[2] || {})
+    }, arguments[2] || {});
 
     // find page position of source
     source = $(source);
@@ -1739,10 +1739,10 @@ var Position = {
     element._originalHeight = element.style.height;
 
     element.style.position = 'absolute';
-    element.style.top    = top + 'px';;
-    element.style.left   = left + 'px';;
-    element.style.width  = width + 'px';;
-    element.style.height = height + 'px';;
+    element.style.top = top + 'px';
+    element.style.left = left + 'px';
+    element.style.width = width + 'px';
+    element.style.height = height + 'px';
   },
 
   relativize: function(element) {
@@ -1759,7 +1759,7 @@ var Position = {
     element.style.height = element._originalHeight;
     element.style.width  = element._originalWidth;
   }
-}
+};
 
 // Safari returns margins on body which is incorrect if the child is absolutely
 // positioned.  For performance reasons, redefine Position.cumulativeOffset for

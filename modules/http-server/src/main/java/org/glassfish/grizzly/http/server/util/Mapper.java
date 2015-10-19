@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -349,6 +349,7 @@ public class Mapper {
         Host host = newHosts[pos];
         if (host.name.equalsIgnoreCase(hostName)) {
             int slashCount = slashCount(path);
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized (host) {
                 Context[] contexts = host.contextList.contexts;
                 // Update nesting
@@ -394,6 +395,7 @@ public class Mapper {
         }
         Host host = newHosts[pos];
         if (host.name.equalsIgnoreCase(hostName)) {
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized (host) {
                 Context[] contexts = host.contextList.contexts;
                 if( contexts.length == 0 ){
@@ -537,6 +539,7 @@ public class Mapper {
     protected void addWrapper(Context context, String path, Object wrapper, boolean jspWildCard, String servletName,
         boolean isEmptyPathSpecial) {
 
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (context) {
 
             Wrapper newWrapper = new Wrapper();
@@ -646,6 +649,7 @@ public class Mapper {
     }
 
     protected void removeWrapper(Context context, String path) {
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (context) {
             if (path.endsWith("/*")) {
                 // Wildcard wrapper

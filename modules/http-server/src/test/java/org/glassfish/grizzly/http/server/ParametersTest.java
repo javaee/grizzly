@@ -66,7 +66,6 @@ import org.glassfish.grizzly.utils.DelayFilter;
 import org.junit.Test;
 
 import java.util.Random;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static junit.framework.Assert.assertEquals;
@@ -89,7 +88,7 @@ public class ParametersTest {
         final HttpServer server = createServer();
         final String body = generatePostBody(1024 * 3);
         final String[][] paramParts = getParts(body);
-        final FutureImpl<Boolean> resultFuture = Futures.<Boolean>createSafeFuture();
+        final FutureImpl<Boolean> resultFuture = Futures.createSafeFuture();
         server.getServerConfiguration().addHttpHandler(
                 new HttpHandler() {
                     @Override
@@ -149,7 +148,7 @@ public class ParametersTest {
         final HttpServer server = createServer();
         final String body = generatePostBody(1024 * 3);
         final String[][] paramParts = getParts(body);
-        final FutureImpl<Boolean> resultFuture = Futures.<Boolean>createSafeFuture();
+        final FutureImpl<Boolean> resultFuture = Futures.createSafeFuture();
         server.getServerConfiguration().addHttpHandler(
                 new HttpHandler() {
                     @Override
@@ -208,7 +207,7 @@ public class ParametersTest {
     @Test
     public void testQueryStringCharsetEncoding() throws Exception {
         final HttpServer server = createServer();
-        final FutureImpl<Boolean> resultFuture = Futures.<Boolean>createSafeFuture();
+        final FutureImpl<Boolean> resultFuture = Futures.createSafeFuture();
         server.getServerConfiguration().setDefaultQueryEncoding(Charsets.UTF8_CHARSET);
         server.getServerConfiguration().addHttpHandler(
                 new HttpHandler() {

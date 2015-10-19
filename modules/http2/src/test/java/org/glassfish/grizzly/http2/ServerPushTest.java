@@ -164,7 +164,7 @@ public class ServerPushTest extends AbstractHttp2Test {
         final String extraHeaderValue = "Extra-Value";
         
         final BlockingQueue<HttpContent> resultQueue =
-                new LinkedTransferQueue<HttpContent>();
+                new LinkedTransferQueue<>();
         
         final FilterChainBuilder filterChainBuilder =
                 createClientFilterChainAsBuilder(isSecure);
@@ -314,7 +314,7 @@ public class ServerPushTest extends AbstractHttp2Test {
     private static class ClientAggregatorFilter extends BaseFilter {
         private final BlockingQueue<HttpContent> resultQueue;
         private final Map<Http2Stream, HttpContent> remaindersMap =
-                new HashMap<Http2Stream, HttpContent>();
+                new HashMap<>();
 
         public ClientAggregatorFilter(BlockingQueue<HttpContent> resultQueue) {
             this.resultQueue = resultQueue;

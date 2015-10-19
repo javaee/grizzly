@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,5 +61,5 @@ public interface FilterChainEnabledTransport {
      * specifics; knows how to read/write from/to {@link org.glassfish.grizzly.Transport}
      * specific {@link org.glassfish.grizzly.Connection}s.
      */
-    public Filter getTransportFilter();
+    Filter getTransportFilter();
 }

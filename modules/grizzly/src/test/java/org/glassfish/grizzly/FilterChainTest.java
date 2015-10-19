@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -232,7 +232,7 @@ public class FilterChainTest extends TestCase {
                 .build();
 
         final FutureImpl<FilterChainContext> resultFuture =
-                Futures.<FilterChainContext>createSafeFuture();
+                Futures.createSafeFuture();
         
         chain.fireEventUpstream(connection, INC_EVENT,
                 Futures.toCompletionHandler(resultFuture));
@@ -254,7 +254,7 @@ public class FilterChainTest extends TestCase {
                 .build();
 
         final FutureImpl<FilterChainContext> resultFuture =
-                Futures.<FilterChainContext>createSafeFuture();
+                Futures.createSafeFuture();
         
         chain.fireEventDownstream(connection, DEC_EVENT,
                 Futures.toCompletionHandler(resultFuture));
@@ -321,7 +321,7 @@ public class FilterChainTest extends TestCase {
             }
 
             final FutureImpl<WriteResult> future =
-                    Futures.<WriteResult>createSafeFuture();
+                    Futures.createSafeFuture();
             
             clientChain.flush(connection, Futures.toCompletionHandler(future));
             future.get(10, TimeUnit.SECONDS);
@@ -386,8 +386,8 @@ public class FilterChainTest extends TestCase {
         final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         final MemoryManager mm = transport.getMemoryManager();
         
-        FutureImpl<Boolean> part1Future = Futures.<Boolean>createSafeFuture();
-        FutureImpl<Boolean> part2Future = Futures.<Boolean>createSafeFuture();
+        FutureImpl<Boolean> part1Future = Futures.createSafeFuture();
+        FutureImpl<Boolean> part2Future = Futures.createSafeFuture();
         
         final Buffer msg1 = Buffers.wrap(mm, "part1");
         final Buffer msg2 = Buffers.wrap(mm, "part2");
@@ -453,13 +453,13 @@ public class FilterChainTest extends TestCase {
                         
                         Integer counter = invocationCounterAttr.get(connection);
                         if (counter == null) {
-                            invocationCounterAttr.set(connection, Integer.valueOf(1));
+                            invocationCounterAttr.set(connection, 1);
                             assertNotNull(message);
                             ctx.setMessage(null);
                             
                             return ctx.getInvokeAction(message);
                         } else if (counter == 1) {
-                            invocationCounterAttr.set(connection, Integer.valueOf(2));
+                            invocationCounterAttr.set(connection, 2);
                             assertNotNull(message);
                             
                             return ctx.getInvokeAction();

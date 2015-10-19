@@ -60,12 +60,12 @@ public class HeadersFrame extends HeaderBlockHead {
     public static final byte PRIORITIZED = 0x20;
 
     static final Map<Integer, String> FLAG_NAMES_MAP =
-            new HashMap<Integer, String>(8);
+            new HashMap<>(8);
     
     static {
         FLAG_NAMES_MAP.putAll(HeaderBlockHead.FLAG_NAMES_MAP);
-        FLAG_NAMES_MAP.put(Integer.valueOf(END_STREAM), "END_STREAM");
-        FLAG_NAMES_MAP.put(Integer.valueOf(PRIORITIZED), "PRIORITIZED");
+        FLAG_NAMES_MAP.put((int) END_STREAM, "END_STREAM");
+        FLAG_NAMES_MAP.put((int) PRIORITIZED, "PRIORITIZED");
     }
     
     private int streamDependency;

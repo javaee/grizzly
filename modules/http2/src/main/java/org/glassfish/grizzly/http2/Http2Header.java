@@ -45,5 +45,5 @@ package org.glassfish.grizzly.http2;
  * @author oleksiys
  */
 interface Http2Header extends Http2Packet {
-    public void setExpectContent(boolean isExpectContent);
+    void setExpectContent(boolean isExpectContent);
 }

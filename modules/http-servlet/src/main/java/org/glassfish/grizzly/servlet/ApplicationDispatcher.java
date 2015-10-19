@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,6 +55,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
@@ -623,7 +624,7 @@ final class ApplicationDispatcher implements RequestDispatcher {
             throws IOException, ServletException {
         //START OF 6364900 original invoke has been renamed to doInvoke
         boolean crossContext = false;
-        if (crossContextFlag != null && crossContextFlag.booleanValue()) {
+        if (crossContextFlag != null && crossContextFlag) {
             crossContext = true;
         }        
         
@@ -780,7 +781,7 @@ final class ApplicationDispatcher implements RequestDispatcher {
         }
         
         // Instantiate a new wrapper at this point and insert it in the chain
-        ServletRequest wrapperLocal = null;
+        ServletRequest wrapperLocal;
         
         // Compute a crossContext flag
         HttpServletRequest hcurrent = (HttpServletRequest) current;
@@ -798,7 +799,7 @@ final class ApplicationDispatcher implements RequestDispatcher {
             crossContext = !(wrapper.getContextPath().equals(contextPath));
         }
         //START OF 6364900
-        crossContextFlag = Boolean.valueOf(crossContext);
+        crossContextFlag = crossContext;
         //END OF 6364900
         wrapperLocal = new DispatchedHttpServletRequest(hcurrent,
                 wrapper.getServletCtx(), crossContext,

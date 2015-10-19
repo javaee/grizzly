@@ -110,7 +110,7 @@ public class WindowUpdateFrame extends Http2Frame {
 
     @Override
     protected Map<Integer, String> getFlagNamesMap() {
-        return Collections.<Integer, String>emptyMap();
+        return Collections.emptyMap();
     }    
     // -------------------------------------------------- Methods from Cacheable
 

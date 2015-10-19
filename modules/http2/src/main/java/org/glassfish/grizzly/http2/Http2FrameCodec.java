@@ -282,7 +282,7 @@ public class Http2FrameCodec {
     final static class ParsingResult {
         private Buffer remainder;
         private boolean isReady;
-        private final List<Http2Frame> frameList = new ArrayList<Http2Frame>(4);
+        private final List<Http2Frame> frameList = new ArrayList<>(4);
         
         private ParsingResult() {
         }

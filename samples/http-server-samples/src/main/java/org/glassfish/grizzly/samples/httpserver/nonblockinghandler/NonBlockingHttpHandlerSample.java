@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -271,7 +271,7 @@ public class NonBlockingHttpHandlerSample {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
 
-                HttpContent c = (HttpContent) ctx.getMessage();
+                HttpContent c = ctx.getMessage();
                 Buffer b = c.getContent();
                 if (b.hasRemaining()) {
                     sb.append(b.toStringContent());

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,7 +66,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
     @SuppressWarnings("unchecked")
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        final K message = (K) ctx.getMessage();
+        final K message = ctx.getMessage();
 
         final TransformationResult<K, L> result =
                 decoder.transform(connection, message);
@@ -98,7 +98,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
     @SuppressWarnings("unchecked")
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        final L message = (L) ctx.getMessage();
+        final L message = ctx.getMessage();
 
         final TransformationResult<L, K> result = encoder.transform(connection, message);
 

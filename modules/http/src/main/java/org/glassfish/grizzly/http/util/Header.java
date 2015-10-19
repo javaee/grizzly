@@ -128,7 +128,7 @@ public enum Header {
     // ------------------------------------------------------------ Constructors
 
 
-    private Header(final String headerName) {
+    Header(final String headerName) {
         this.headerName = headerName;
         headerNameBytes = headerName.getBytes(Charsets.ASCII_CHARSET);
         

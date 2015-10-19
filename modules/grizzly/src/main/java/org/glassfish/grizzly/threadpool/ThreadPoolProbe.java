@@ -58,7 +58,7 @@ public interface ThreadPoolProbe {
      *
      * @param threadPool the {@link AbstractThreadPool} being monitored
      */
-    public void onThreadPoolStartEvent(AbstractThreadPool threadPool);
+    void onThreadPoolStartEvent(AbstractThreadPool threadPool);
 
     /**
      * <p>
@@ -68,7 +68,7 @@ public interface ThreadPoolProbe {
      *
      * @param threadPool the {@link AbstractThreadPool} being monitored
      */
-    public void onThreadPoolStopEvent(AbstractThreadPool threadPool);
+    void onThreadPoolStopEvent(AbstractThreadPool threadPool);
 
     /**
      * <p>
@@ -79,7 +79,7 @@ public interface ThreadPoolProbe {
      * @param threadPool the {@link AbstractThreadPool} being monitored
      * @param thread the thread that has been allocated
      */
-    public void onThreadAllocateEvent(AbstractThreadPool threadPool, Thread thread);
+    void onThreadAllocateEvent(AbstractThreadPool threadPool, Thread thread);
 
     /**
      * <p>
@@ -91,7 +91,7 @@ public interface ThreadPoolProbe {
      * @param thread the thread that is no longer being managed by the
      *  {@link AbstractThreadPool}
      */
-    public void onThreadReleaseEvent(AbstractThreadPool threadPool, Thread thread);
+    void onThreadReleaseEvent(AbstractThreadPool threadPool, Thread thread);
 
     /**
      * <p>
@@ -104,7 +104,7 @@ public interface ThreadPoolProbe {
      * @param maxNumberOfThreads the maximum number of threads allowed in the
      *  {@link AbstractThreadPool}
      */
-    public void onMaxNumberOfThreadsEvent(AbstractThreadPool threadPool, int maxNumberOfThreads);
+    void onMaxNumberOfThreadsEvent(AbstractThreadPool threadPool, int maxNumberOfThreads);
 
     /**
      * <p>
@@ -114,7 +114,7 @@ public interface ThreadPoolProbe {
      * @param threadPool the {@link AbstractThreadPool} being monitored
      * @param task a unit of work to be processed
      */
-    public void onTaskQueueEvent(AbstractThreadPool threadPool, Runnable task);
+    void onTaskQueueEvent(AbstractThreadPool threadPool, Runnable task);
 
     /**
      * <p>
@@ -125,7 +125,7 @@ public interface ThreadPoolProbe {
      * @param threadPool the {@link AbstractThreadPool} being monitored
      * @param task a unit of work that is about to be processed.
      */
-    public void onTaskDequeueEvent(AbstractThreadPool threadPool, Runnable task);
+    void onTaskDequeueEvent(AbstractThreadPool threadPool, Runnable task);
 
     /**
      * <p>
@@ -138,7 +138,7 @@ public interface ThreadPoolProbe {
      * @param threadPool the {@link AbstractThreadPool} being monitored
      * @param task a unit of work that has been canceled
      */
-    public void onTaskCancelEvent(AbstractThreadPool threadPool, Runnable task);
+    void onTaskCancelEvent(AbstractThreadPool threadPool, Runnable task);
 
     /**
      * <p>
@@ -148,7 +148,7 @@ public interface ThreadPoolProbe {
      * @param threadPool the {@link AbstractThreadPool} being monitored
      * @param task the unit of work that has completed processing
      */
-    public void onTaskCompleteEvent(AbstractThreadPool threadPool, Runnable task);
+    void onTaskCompleteEvent(AbstractThreadPool threadPool, Runnable task);
 
     /**
      * <p>
@@ -158,7 +158,7 @@ public interface ThreadPoolProbe {
      *
      * @param threadPool the {@link AbstractThreadPool} being monitored
      */
-    public void onTaskQueueOverflowEvent(AbstractThreadPool threadPool);
+    void onTaskQueueOverflowEvent(AbstractThreadPool threadPool);
     
     
     // ---------------------------------------------------------- Nested Classes
@@ -171,7 +171,7 @@ public interface ThreadPoolProbe {
      * @since 2.1.9
      */
     @SuppressWarnings("UnusedDeclaration")
-    public class Adapter implements ThreadPoolProbe {
+    class Adapter implements ThreadPoolProbe {
 
 
         // ---------------------------------------- Methods from ThreadPoolProbe

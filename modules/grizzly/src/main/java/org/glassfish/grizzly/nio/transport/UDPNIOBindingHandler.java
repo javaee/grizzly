@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,7 +42,6 @@ package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.AbstractBindingHandler;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.utils.Exceptions;
 
 import java.io.IOException;
@@ -50,7 +49,6 @@ import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.util.concurrent.locks.Lock;
-import java.util.logging.Level;
 
 /**
  * This class may be used to apply a custom {@link org.glassfish.grizzly.Processor} and/or {@link org.glassfish.grizzly.ProcessorSelector}

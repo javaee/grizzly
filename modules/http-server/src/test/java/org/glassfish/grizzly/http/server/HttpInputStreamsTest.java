@@ -1434,7 +1434,7 @@ public class HttpInputStreamsTest extends TestCase {
         public NextAction handleRead(FilterChainContext ctx)
               throws IOException {
 
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpContent httpContent = ctx.getMessage();
 
             LOGGER.log(Level.FINE, "Got HTTP response chunk");
 
@@ -1458,7 +1458,7 @@ public class HttpInputStreamsTest extends TestCase {
         }
     }
     
-    private static interface RequestBuilder {
+    private interface RequestBuilder {
         HttpPacket build();
     }
 }

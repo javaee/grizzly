@@ -41,15 +41,6 @@ package org.glassfish.grizzly.samples.connectionpool;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.Charsets;
-import org.glassfish.grizzly.utils.EchoFilter;
-import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * The simple echo server implementation,

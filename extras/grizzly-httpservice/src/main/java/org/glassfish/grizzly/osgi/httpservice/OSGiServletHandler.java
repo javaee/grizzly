@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,32 +40,18 @@
 
 package org.glassfish.grizzly.osgi.httpservice;
 
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.osgi.httpservice.util.Logger;
 import org.glassfish.grizzly.servlet.FilterChainFactory;
-import org.glassfish.grizzly.servlet.FilterChainInvoker;
 import org.glassfish.grizzly.servlet.ServletConfigImpl;
 import org.glassfish.grizzly.servlet.WebappContext;
 import org.osgi.service.http.HttpContext;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletRequestEvent;
-import javax.servlet.ServletRequestListener;
-import javax.servlet.ServletResponse;
-import java.io.IOException;
 import java.lang.String;
-import java.util.EventListener;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.logging.Level;
 
 import org.glassfish.grizzly.servlet.ServletHandler;
 

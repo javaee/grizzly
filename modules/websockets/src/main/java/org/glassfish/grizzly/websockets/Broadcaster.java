@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.websockets;
 
 /**
@@ -52,8 +53,8 @@ public interface Broadcaster {
      * @param recipients the recipients of the provided <tt>text</tt> content.
      * @param text       textual content.
      */
-    public void broadcast(final Iterable<? extends WebSocket> recipients,
-            final String text);
+    void broadcast(final Iterable<? extends WebSocket> recipients,
+                   final String text);
 
     /**
      * Broadcasts the provided <tt>binary</tt> content to the specified recipients.
@@ -61,8 +62,8 @@ public interface Broadcaster {
      * @param recipients the recipients of the provided <tt>binary</tt> content.
      * @param binary     binary content.
      */
-    public void broadcast(final Iterable<? extends WebSocket> recipients,
-            final byte[] binary);
+    void broadcast(final Iterable<? extends WebSocket> recipients,
+                   final byte[] binary);
 
     /**
      * Broadcasts the provided fragmented <tt>text</tt> content to the specified recipients.
@@ -71,8 +72,8 @@ public interface Broadcaster {
      * @param text       fragmented textual content.
      * @param last       <tt>true</tt> if this is the last fragment, otherwise <tt>false</tt>.
      */
-    public void broadcastFragment(final Iterable<? extends WebSocket> recipients,
-            final String text, final boolean last);
+    void broadcastFragment(final Iterable<? extends WebSocket> recipients,
+                           final String text, final boolean last);
 
     /**
      * Broadcasts the provided fragmented <tt>binary</tt> content to the specified recipients.
@@ -81,6 +82,6 @@ public interface Broadcaster {
      * @param binary     fragmented binary content.
      * @param last       <tt>true</tt> if this is the last fragment, otherwise <tt>false</tt>.
      */
-    public void broadcastFragment(final Iterable<? extends WebSocket> recipients,
-            final byte[] binary, final boolean last);
+    void broadcastFragment(final Iterable<? extends WebSocket> recipients,
+                           final byte[] binary, final boolean last);
 }

@@ -97,7 +97,7 @@ class Http2State {
         http2State.remove(connection);
     }
     
-    private final AtomicReference<Status> status = new AtomicReference<Status>();
+    private final AtomicReference<Status> status = new AtomicReference<>();
     private final FrameParsingState frameParsingState = new FrameParsingState();
     
     private Http2Connection http2Connection;

@@ -223,11 +223,8 @@ public final class Attribute<T> {
      */
     public boolean isSet(final AttributeStorage storage) {
         final AttributeHolder holder = storage.getAttributes();
-        if (holder != null) {
-            return isSet(holder);
-        }
+        return holder != null && isSet(holder);
 
-        return false;
     }
     
     /**

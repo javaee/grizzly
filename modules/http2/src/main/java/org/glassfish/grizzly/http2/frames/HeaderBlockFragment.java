@@ -49,10 +49,10 @@ public abstract class HeaderBlockFragment extends Http2Frame {
     public static final byte END_HEADERS = 0x4;
     
     static final Map<Integer, String> FLAG_NAMES_MAP =
-            new HashMap<Integer, String>(2);
+            new HashMap<>(2);
     
     static {
-        FLAG_NAMES_MAP.put(Integer.valueOf(END_HEADERS), "END_HEADERS");
+        FLAG_NAMES_MAP.put((int) END_HEADERS, "END_HEADERS");
     }
     
     protected Buffer compressedHeaders;

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,38 +44,37 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
 import java.io.IOException;
-import java.util.concurrent.Future;
 
 /**
  *
  * @author oleksiys
  */
 public interface Output {
-    public void write(byte data) throws IOException;
+    void write(byte data) throws IOException;
 
-    public void write(Buffer buffer) throws IOException;
+    void write(Buffer buffer) throws IOException;
 
-    public boolean isBuffered();
+    boolean isBuffered();
 
-    public void ensureBufferCapacity(int size) throws IOException;
+    void ensureBufferCapacity(int size) throws IOException;
     
     /**
      * Return the <tt>Input</tt>'s {@link Buffer}.
      *
      * @return the <tt>Input</tt>'s {@link Buffer}.
      */
-    public Buffer getBuffer();
+    Buffer getBuffer();
 
     /**
      * Make sure that all data that has been written is
      * flushed from the stream to its destination.
      */
-    public GrizzlyFuture<Integer> flush(
+    GrizzlyFuture<Integer> flush(
             CompletionHandler<Integer> completionHandler) throws IOException;
 
     /**
      * Close the {@link StreamWriter} and make sure all data was flushed.
      */
-    public GrizzlyFuture<Integer> close(
+    GrizzlyFuture<Integer> close(
             CompletionHandler<Integer> completionHandler) throws IOException;
 }

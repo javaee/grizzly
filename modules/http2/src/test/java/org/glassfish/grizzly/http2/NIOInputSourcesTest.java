@@ -507,7 +507,7 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
     public void testDisconnect() throws Throwable {
 
         final AtomicInteger bytesRead = new AtomicInteger();
-        final FutureImpl<Integer> resultFuture = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> resultFuture = SafeFutureImpl.create();
         final CountDownLatch chunkReceivedLatch = new CountDownLatch(1);
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         clientTransport.setProcessor(createClientFilterChain(isSecure));
@@ -732,7 +732,7 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
 
     // ---------------------------------------------------------- Nested Classes
 
-    private static interface WriteStrategy {
+    private interface WriteStrategy {
 
         void doWrite(FilterChainContext ctx) throws IOException;
 
@@ -1174,7 +1174,7 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
             if (request.isHeader()) {
                 header = ((HttpHeader) request);
             } else {
-                header = ((HttpContent) request).getHttpHeader();
+                header = request.getHttpHeader();
             }
 
             if (header.isChunked()) {
@@ -1193,7 +1193,7 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
                 throws IOException {
             try {
                 // Cast message to a HttpContent
-                final HttpContent httpContent = (HttpContent) ctx.getMessage();
+                final HttpContent httpContent = ctx.getMessage();
 
                 logger.log(Level.FINE, "Got HTTP response chunk");
 

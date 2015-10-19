@@ -1245,8 +1245,8 @@ public class OutputBuffer {
         }
     }
     
-    public static interface LifeCycleListener {
-        public void onCommit() throws IOException;
+    public interface LifeCycleListener {
+        void onCommit() throws IOException;
     }
     
     private static class InternalWriteHandler implements WriteHandler {

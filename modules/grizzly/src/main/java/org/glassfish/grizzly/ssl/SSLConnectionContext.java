@@ -415,8 +415,8 @@ public final class SSLConnectionContext {
     }
     
     interface Allocator {
-        public Buffer grow(final SSLConnectionContext sslCtx,
-                final Buffer oldBuffer, final int newSize);
+        Buffer grow(final SSLConnectionContext sslCtx,
+                    final Buffer oldBuffer, final int newSize);
     }
     
     final static class SslResult {

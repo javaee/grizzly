@@ -59,11 +59,11 @@ public class DataFrame extends Http2Frame {
     public static final byte PADDED = 0x8;
 
     static final Map<Integer, String> FLAG_NAMES_MAP =
-            new HashMap<Integer, String>(4);
+            new HashMap<>(4);
     
     static {
-        FLAG_NAMES_MAP.put(Integer.valueOf(END_STREAM), "END_STREAM");
-        FLAG_NAMES_MAP.put(Integer.valueOf(PADDED), "PADDED");
+        FLAG_NAMES_MAP.put((int) END_STREAM, "END_STREAM");
+        FLAG_NAMES_MAP.put((int) PADDED, "PADDED");
     }
 
     private Buffer data;

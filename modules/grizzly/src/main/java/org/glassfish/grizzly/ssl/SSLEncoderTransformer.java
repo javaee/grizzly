@@ -102,6 +102,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
             return HANDSHAKE_NOT_EXECUTED_RESULT;
         }
 
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized(state) {   // synchronize parallel writers here
             return wrapAll(sslEngine, originalMessage);
         }

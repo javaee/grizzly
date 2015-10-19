@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ public interface IOEventLifeCycleListener {
      * @param context
      * @throws IOException
      */
-    public void onContextSuspend(Context context) throws IOException;
+    void onContextSuspend(Context context) throws IOException;
 
     /**
      * {@link IOEvent} processing resumed.
@@ -63,7 +63,7 @@ public interface IOEventLifeCycleListener {
      * @param context
      * @throws IOException
      */
-    public void onContextResume(Context context) throws IOException;
+    void onContextResume(Context context) throws IOException;
 
     /**
      * Processing switched to the manual IOEvent control.
@@ -73,7 +73,7 @@ public interface IOEventLifeCycleListener {
      * 
      * @param context
      */
-    public void onContextManualIOEventControl(final Context context) throws IOException;
+    void onContextManualIOEventControl(final Context context) throws IOException;
 
     /**
      * Reregister {@link IOEvent} interest.
@@ -81,7 +81,7 @@ public interface IOEventLifeCycleListener {
      * @param context
      * @throws IOException
      */
-    public void onReregister(Context context) throws IOException;
+    void onReregister(Context context) throws IOException;
 
     /**
      * {@link IOEvent} processing completed.
@@ -89,7 +89,7 @@ public interface IOEventLifeCycleListener {
      * @param context 
      * @throws IOException
      */
-    public void onComplete(Context context, Object data) throws IOException;
+    void onComplete(Context context, Object data) throws IOException;
 
     /**
      * Detaching {@link IOEvent} processing out of this {@link Context}.
@@ -97,7 +97,7 @@ public interface IOEventLifeCycleListener {
      * @param context
      * @throws IOException
      */
-    public void onLeave(Context context) throws IOException;
+    void onLeave(Context context) throws IOException;
 
     /**
      * Terminate {@link IOEvent} processing in this thread, but it's going to
@@ -108,7 +108,7 @@ public interface IOEventLifeCycleListener {
      * 
      * @deprecated will never be invoked
      */
-    public void onTerminate(Context context) throws IOException;
+    void onTerminate(Context context) throws IOException;
 
     /**
      * Re-run {@link IOEvent} processing.
@@ -117,26 +117,26 @@ public interface IOEventLifeCycleListener {
      * @param newContext new context, which will replace original {@link Context}
      * @throws IOException
      */
-    public void onRerun(Context context, Context newContext) throws IOException;
+    void onRerun(Context context, Context newContext) throws IOException;
 
     /**
      * Error occurred during {@link IOEvent} processing.
      *
      * @param context
      */
-    public void onError(Context context, Object description) throws IOException;
+    void onError(Context context, Object description) throws IOException;
 
     /**
      * {@link IOEvent} wasn't processed.
      *
      * @param context
      */
-    public void onNotRun(Context context) throws IOException;
+    void onNotRun(Context context) throws IOException;
 
     /**
      * Empty {@link IOEventLifeCycleListener} implementation.
      */
-    public class Adapter implements IOEventLifeCycleListener {
+    class Adapter implements IOEventLifeCycleListener {
 
         /**
          * {@inheritDoc}

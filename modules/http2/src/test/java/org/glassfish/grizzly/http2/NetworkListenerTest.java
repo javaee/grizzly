@@ -80,7 +80,7 @@ public class NetworkListenerTest extends AbstractHttp2Test {
         final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
         
         final BlockingQueue<HttpContent> clientInQueue =
-                new LinkedBlockingQueue<HttpContent>();
+                new LinkedBlockingQueue<>();
         
         final FilterChain filterChain =
                 createClientFilterChainAsBuilder(false,
@@ -142,7 +142,7 @@ public class NetworkListenerTest extends AbstractHttp2Test {
                     assertNotNull("Chunk can't be null", chunk);
                     
                     response = response.append(chunk);
-                };
+                }
 
                 final String content = response.getContent().toStringContent(
                         Charsets.UTF8_CHARSET);

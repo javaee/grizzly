@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,12 +37,12 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.servlet.extras;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
@@ -138,7 +138,7 @@ public class MultipartUploadFilterTest extends TestCase {
             conn.get(10, TimeUnit.SECONDS);
             Future<HttpPacket> future = client.get(createMultipartPacket(fileContent));
             HttpPacket packet = future.get(10, TimeUnit.SECONDS);
-            HttpResponsePacket response = (HttpResponsePacket) ((HttpContent) packet).getHttpHeader();
+            HttpResponsePacket response = (HttpResponsePacket) packet.getHttpHeader();
             Assert.assertEquals(200, response.getStatus());
             File f = uploadedFile.get();
             Assert.assertNotNull(f);
@@ -193,7 +193,7 @@ public class MultipartUploadFilterTest extends TestCase {
             conn.get(10, TimeUnit.SECONDS);
             Future<HttpPacket> future = client.get(createMultipartPacket(fileContent));
             HttpPacket packet = future.get(10, TimeUnit.SECONDS);
-            HttpResponsePacket response = (HttpResponsePacket) ((HttpContent) packet).getHttpHeader();
+            HttpResponsePacket response = (HttpResponsePacket) packet.getHttpHeader();
             Assert.assertEquals(200, response.getStatus());
             File f = uploadedFile.get();
             Assert.assertNotNull(f);
@@ -272,7 +272,7 @@ public class MultipartUploadFilterTest extends TestCase {
                     .build();
 
             final FutureImpl<Connection> future =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             
             connector.connect(new InetSocketAddress(host, port),
                     Futures.toCompletionHandler(future, 
@@ -286,8 +286,9 @@ public class MultipartUploadFilterTest extends TestCase {
             return future;
         }
 
+        @SuppressWarnings("unchecked")
         public Future<HttpPacket> get(HttpPacket request) throws IOException {
-            final FutureImpl<HttpPacket> localFuture = SafeFutureImpl.<HttpPacket>create();
+            final FutureImpl<HttpPacket> localFuture = SafeFutureImpl.create();
             asyncFuture = localFuture;
             connection.write(request, new EmptyCompletionHandler() {
 
@@ -317,7 +318,7 @@ public class MultipartUploadFilterTest extends TestCase {
         private class HttpResponseFilter extends BaseFilter {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 if (message.isLast()) {
                     final FutureImpl<HttpPacket> localFuture = asyncFuture;
                     asyncFuture = null;

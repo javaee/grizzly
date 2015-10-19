@@ -152,6 +152,7 @@ public class SSLFilter extends SSLBaseFilter {
             throw new IllegalStateException("TLS operations not supported with SendFile messages");
         }
 
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (connection) {
             final SSLConnectionContext sslCtx =
                     obtainSslConnectionContext(connection);
@@ -257,6 +258,7 @@ public class SSLFilter extends SSLBaseFilter {
                 new SSLHandshakeContext(connection, completionHandler));
         connection.addCloseListener(closeListener);
 
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized(connection) {
             final Buffer buffer = doHandshakeStep(sslCtx, context, null);
             assert (buffer == null);

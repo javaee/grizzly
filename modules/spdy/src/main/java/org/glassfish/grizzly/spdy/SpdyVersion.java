@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -72,7 +72,7 @@ public enum SpdyVersion {
     private final String toString;
     private final SessionFactory factory;
     
-    private SpdyVersion(final SessionFactory factory, final String toString) {
+    SpdyVersion(final SessionFactory factory, final String toString) {
         this.factory = factory;
         this.toString = toString;
     }
@@ -100,8 +100,8 @@ public enum SpdyVersion {
     
     private interface SessionFactory {
 
-        public SpdySession create(final Connection<?> connection,
-                final boolean isServer,
-                final SpdyHandlerFilter handlerFilter);
+        SpdySession create(final Connection<?> connection,
+                           final boolean isServer,
+                           final SpdyHandlerFilter handlerFilter);
     }
 }

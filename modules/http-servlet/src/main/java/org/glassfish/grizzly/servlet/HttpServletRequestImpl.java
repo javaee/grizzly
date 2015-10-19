@@ -761,7 +761,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
         // Add the path info, if there is any
         String pathInfo = getPathInfo();
-        String requestPath = null;
+        String requestPath;
 
         if( pathInfo == null ) {
             requestPath = servletPath;
@@ -770,7 +770,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         }
 
         int pos = requestPath.lastIndexOf( '/' );
-        String relative = null;
+        String relative;
         if( pos >= 0 ) {
             relative = requestPath.substring( 0, pos + 1 ) + path;
         } else {
@@ -1624,7 +1624,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     @Override
     public <T extends HttpUpgradeHandler> T upgrade(Class<T> handlerClass) throws IOException {
         upgrade = true;
-        T handler = null;
+        T handler;
         try {
             handler = contextImpl.createHttpUpgradeHandlerInstance(handlerClass);
         } catch(Exception ex) {

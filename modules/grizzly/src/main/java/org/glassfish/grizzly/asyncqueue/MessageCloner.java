@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,5 +68,5 @@ public interface MessageCloner<E> {
      * @return original {@link org.glassfish.grizzly.Buffer} or its clone to be added to asynchronous
      * queue.
      */
-    public E clone(Connection connection, E originalMessage);
+    E clone(Connection connection, E originalMessage);
 }

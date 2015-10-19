@@ -512,7 +512,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
             final String referer = composeRefererOf(stream.getRequest());
             
             final List<Pair<Http2Stream, Source>> pushStreams =
-                    new ArrayList<Pair<Http2Stream, Source>>(pushResourceMap.size());
+                    new ArrayList<>(pushResourceMap.size());
             
             final Http2Connection http2Connection = stream.getHttp2Connection();
             
@@ -586,7 +586,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
                                 Http2StreamState.RESERVED_LOCAL);
                         pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
                         
-                        pushStreams.add(new Pair<Http2Stream, Source>(
+                        pushStreams.add(new Pair<>(
                                 pushStream, source));
                     } catch (Exception e) {
                         LOGGER.log(Level.FINE,

@@ -136,7 +136,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -290,7 +290,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -410,7 +410,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -568,7 +568,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -809,7 +809,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
 
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 if (b.hasRemaining()) {
                     sb.append(b.toStringContent());
@@ -891,7 +891,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
     @Test
     public void testWritePossibleReentrants() throws Exception {
 
-        final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.<HttpHeader>create();
+        final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.create();
         final FilterChainBuilder filterChainBuilder =
                 createClientFilterChainAsBuilder(isSecure);
         filterChainBuilder.add(new BaseFilter() {
@@ -921,7 +921,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                 final HttpPacket message = ctx.getMessage();
                 final HttpHeader header = message.isHeader() ?
                         (HttpHeader) message :
-                        ((HttpContent) message).getHttpHeader();
+                        message.getHttpHeader();
                 
                 parseResult.result(header);
                 
@@ -1029,7 +1029,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         final int notificationsNum = 5;
         final int size = 8192;
                 
-        final FutureImpl<Integer> parseResult = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder =
                 createClientFilterChainAsBuilder(isSecure);
         filterChainBuilder.add(new BaseFilter() {
@@ -1057,7 +1057,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 

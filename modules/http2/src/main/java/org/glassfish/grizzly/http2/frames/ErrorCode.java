@@ -75,7 +75,7 @@ public enum ErrorCode {
                 : INTERNAL_ERROR;
     }
     
-    private ErrorCode(final int code) {
+    ErrorCode(final int code) {
         this.code = code;
     }
     

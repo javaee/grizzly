@@ -111,7 +111,7 @@ public class WebServerFilter extends BaseFilter {
             throws IOException {
 
         // Get the incoming message as HttpContent
-        final HttpContent httpContent = (HttpContent) ctx.getMessage();
+        final HttpContent httpContent = ctx.getMessage();
         // Get HTTP request message header
         final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
 

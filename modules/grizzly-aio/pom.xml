@@ -49,7 +49,6 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-aio-framework</artifactId>
     <packaging>bundle</packaging>
     <version>2.1.2-SNAPSHOT</version>

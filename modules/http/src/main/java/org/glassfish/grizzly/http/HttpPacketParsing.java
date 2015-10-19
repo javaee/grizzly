@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,13 +47,13 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
  * @author oleksiys
  */
 public interface HttpPacketParsing {
-    public boolean isHeaderParsed();
+    boolean isHeaderParsed();
 
-    public void setHeaderParsed(boolean isHeaderParsed);
+    void setHeaderParsed(boolean isHeaderParsed);
 
-    public HttpCodecFilter.HeaderParsingState getHeaderParsingState();
+    HttpCodecFilter.HeaderParsingState getHeaderParsingState();
 
-    public HttpCodecFilter.ContentParsingState getContentParsingState();
+    HttpCodecFilter.ContentParsingState getContentParsingState();
 
-    public MimeHeaders getHeaders();
+    MimeHeaders getHeaders();
 }

@@ -80,7 +80,7 @@ public class Indexed implements BinaryRepresentation {
         private static final Indexed INSTANCE = new Indexed();
     }
 
-    public static final Indexed getInstance() {
+    public static Indexed getInstance() {
         return InstanceHolder.INSTANCE;
     }
     

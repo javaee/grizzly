@@ -45,7 +45,6 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.samples.echo.EchoFilter;
-import org.glassfish.grizzly.utils.StringFilter;
 
 import java.io.IOException;
 import java.nio.charset.Charset;

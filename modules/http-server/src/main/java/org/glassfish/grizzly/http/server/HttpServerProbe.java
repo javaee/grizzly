@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,8 +57,8 @@ public interface HttpServerProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param request received {@link Request}.
      */
-    public void onRequestReceiveEvent(HttpServerFilter filter,
-            Connection connection, Request request);
+    void onRequestReceiveEvent(HttpServerFilter filter,
+                               Connection connection, Request request);
 
     /**
      * Method will be called, when {@link Request} processing will be completed.
@@ -67,8 +67,8 @@ public interface HttpServerProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param response sent {@link Response}.
      */
-    public void onRequestCompleteEvent(HttpServerFilter filter,
-            Connection connection, Response response);
+    void onRequestCompleteEvent(HttpServerFilter filter,
+                                Connection connection, Response response);
 
     /**
      * Method will be called, when {@link Request} processing is suspended.
@@ -77,8 +77,8 @@ public interface HttpServerProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param request {@link Request}.
      */
-    public void onRequestSuspendEvent(HttpServerFilter filter,
-            Connection connection, Request request);
+    void onRequestSuspendEvent(HttpServerFilter filter,
+                               Connection connection, Request request);
 
     /**
      * Method will be called, when {@link Request} processing is resumed.
@@ -87,8 +87,8 @@ public interface HttpServerProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param request {@link Request}.
      */
-    public void onRequestResumeEvent(HttpServerFilter filter,
-            Connection connection, Request request);
+    void onRequestResumeEvent(HttpServerFilter filter,
+                              Connection connection, Request request);
 
     /**
      * Method will be called, when {@link Request} processing is timeout
@@ -98,8 +98,8 @@ public interface HttpServerProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param request {@link Request}.
      */
-    public void onRequestTimeoutEvent(HttpServerFilter filter,
-            Connection connection, Request request);
+    void onRequestTimeoutEvent(HttpServerFilter filter,
+                               Connection connection, Request request);
 
     /**
      * Method will be called, when {@link Request} processing is cancelled
@@ -109,8 +109,8 @@ public interface HttpServerProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param request {@link Request}.
      */
-    public void onRequestCancelEvent(HttpServerFilter filter,
-            Connection connection, Request request);
+    void onRequestCancelEvent(HttpServerFilter filter,
+                              Connection connection, Request request);
 
     /**
      * Method will be called, before invoking
@@ -121,8 +121,8 @@ public interface HttpServerProbe {
      * @param request received {@link Request}.
      * @param httpHandler {@link HttpHandler} to be invoked.
      */
-    public void onBeforeServiceEvent(HttpServerFilter filter,
-            Connection connection, Request request, HttpHandler httpHandler);
+    void onBeforeServiceEvent(HttpServerFilter filter,
+                              Connection connection, Request request, HttpHandler httpHandler);
     
     // ---------------------------------------------------------- Nested Classes
 
@@ -134,7 +134,7 @@ public interface HttpServerProbe {
      * @since 2.1.9
      */
     @SuppressWarnings("UnusedDeclaration")
-    public static class Adapter implements HttpServerProbe {
+    class Adapter implements HttpServerProbe {
 
 
         // ---------------------------------------- Methods from HttpServerProbe

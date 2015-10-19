@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -457,7 +457,7 @@ public class FilterChainContext implements AttributeStorage {
      * @param address address, associated with the current {@link org.glassfish.grizzly.IOEvent} processing.
      */
     public void setAddress(final Object address) {
-        addressHolder = Holder.<Object>staticHolder(address);
+        addressHolder = Holder.staticHolder(address);
     }
 
     protected final Runnable getRunnable() {
@@ -877,7 +877,7 @@ public class FilterChainContext implements AttributeStorage {
         newContext.operation = Operation.WRITE;
         newContext.transportFilterContext.configureBlocking(blocking);
         newContext.message = message;
-        newContext.addressHolder = address == null ? addressHolder : Holder.<Object>staticHolder(address);
+        newContext.addressHolder = address == null ? addressHolder : Holder.staticHolder(address);
         newContext.closeable = closeable;
         newContext.transportFilterContext.completionHandler = completionHandler;
         newContext.transportFilterContext.pushBackHandler = pushBackHandler;
@@ -1174,7 +1174,7 @@ public class FilterChainContext implements AttributeStorage {
          * 
          * @param context
          */
-        public void onComplete(FilterChainContext context);
+        void onComplete(FilterChainContext context);
     }
     /**
      * The interface, which represents a listener, which will be notified,
@@ -1190,7 +1190,7 @@ public class FilterChainContext implements AttributeStorage {
          * @param srcContext source Context
          * @param copiedContext copied Context
          */
-        public void onCopy(FilterChainContext srcContext,
-                FilterChainContext copiedContext);
+        void onCopy(FilterChainContext srcContext,
+                    FilterChainContext copiedContext);
     }    
 }

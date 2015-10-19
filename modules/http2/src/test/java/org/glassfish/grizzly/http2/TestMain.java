@@ -45,9 +45,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
-import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
@@ -59,7 +57,6 @@ import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
-import org.junit.Test;
 
 /**
  *
@@ -198,7 +195,7 @@ public class TestMain {
 //                                response.resume();
 //                            }
 //                        });
-                        int len = 0;
+                        int len;
                         int total = 0;
                         try {
                             while ((len = in.read(b)) > 0) {

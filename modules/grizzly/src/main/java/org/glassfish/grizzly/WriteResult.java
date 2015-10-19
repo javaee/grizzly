@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -238,7 +238,7 @@ public class WriteResult<K, L> implements Result, Cacheable {
      * @return 
      */
     protected Holder<L> createAddrHolder(final L dstAddress) {
-        return Holder.<L>staticHolder(dstAddress);
+        return Holder.staticHolder(dstAddress);
     }
     
     protected void reset() {
@@ -257,7 +257,7 @@ public class WriteResult<K, L> implements Result, Cacheable {
 
     @Override
     public Object copy() {
-        return WriteResult.<K, L>create(getConnection(), getMessage(),
+        return WriteResult.create(getConnection(), getMessage(),
                 getDstAddress(), getWrittenSize());
     }
 }

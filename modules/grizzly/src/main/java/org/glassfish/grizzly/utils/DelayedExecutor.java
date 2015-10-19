@@ -179,7 +179,7 @@ public class DelayedExecutor {
 
     public class DelayQueue<E> {
         final ConcurrentMap<E, DelayQueue> queue =
-                DataStructures.<E, DelayQueue>getConcurrentMap();
+                DataStructures.getConcurrentMap();
 
         final Worker<E> worker;
         final Resolver<E> resolver;
@@ -215,14 +215,14 @@ public class DelayedExecutor {
          *          from the delay queue, or <tt>false</tt> if the element
          *          should be re-registered on the delay queue again
          */
-        public boolean doWork(E element);
+        boolean doWork(E element);
     }
 
     public interface Resolver<E> {
-        public boolean removeTimeout(E element);
+        boolean removeTimeout(E element);
         
-        public long getTimeoutMillis(E element);
+        long getTimeoutMillis(E element);
         
-        public void setTimeoutMillis(E element, long timeoutMillis);
+        void setTimeoutMillis(E element, long timeoutMillis);
     }
 }

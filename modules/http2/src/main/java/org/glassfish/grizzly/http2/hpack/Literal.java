@@ -96,7 +96,7 @@ public class Literal implements BinaryRepresentation {
         private static final Literal INSTANCE = new Literal();
     }
 
-    public static final Literal getInstance() {
+    public static Literal getInstance() {
         return InstanceHolder.INSTANCE;
     }
     

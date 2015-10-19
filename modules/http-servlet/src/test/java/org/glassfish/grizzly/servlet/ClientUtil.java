@@ -143,7 +143,7 @@ public class ClientUtil {
                 throws IOException {
 
             // Cast message to a HttpContent
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpContent httpContent = ctx.getMessage();
 
             logger.log(Level.FINE, "Got HTTP response chunk");
 

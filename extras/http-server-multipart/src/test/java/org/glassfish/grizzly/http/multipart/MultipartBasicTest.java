@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -344,7 +344,7 @@ public class MultipartBasicTest {
         mpCheckInfo.addContentTypeAttribute("type", "Text/x-Okie");
         
         PartCheckInfo p1 = new PartCheckInfo("Text/x-Okie; charset=iso-8859-1;" +
-                            "declaration=\"<950118.AEB0@XIson.com>\"");
+                "declaration=\"<950118.AEB0@XIson.com>\"");
         p1.addHeader("Content-ID", "<950118.AEBH@XIson.com>");
         p1.addHeader("Content-Description", "Document");
         
@@ -461,7 +461,7 @@ public class MultipartBasicTest {
                     .build();
 
             final FutureImpl<Connection> future =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             
             connector.connect(new InetSocketAddress(host, port),
                     Futures.toCompletionHandler(future, 
@@ -476,7 +476,7 @@ public class MultipartBasicTest {
         }
 
         public Future<HttpPacket> get(HttpPacket request) throws IOException {
-            final FutureImpl<HttpPacket> localFuture = SafeFutureImpl.<HttpPacket>create();
+            final FutureImpl<HttpPacket> localFuture = SafeFutureImpl.create();
             asyncFuture = localFuture;
             connection.write(request, new EmptyCompletionHandler() {
 
@@ -506,7 +506,7 @@ public class MultipartBasicTest {
         private class HttpResponseFilter extends BaseFilter {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 if (message.isLast()) {
                     final FutureImpl<HttpPacket> localFuture = asyncFuture;
                     asyncFuture = null;
@@ -529,7 +529,7 @@ public class MultipartBasicTest {
         return httpServer;
     }
     
-    class MultipartCheckInfo {
+    static class MultipartCheckInfo {
         final String boundary;
         final String contentType;
         final Map<String, String> contentTypeAttributes = new HashMap<String, String>();
@@ -575,7 +575,7 @@ public class MultipartBasicTest {
         }
     }
     
-    class PartCheckInfo {
+    static class PartCheckInfo {
         final String contentType;
         final Map<String, String> headers = new HashMap<String, String>();
 

@@ -89,7 +89,7 @@ final class Http2ConnectionOutputSink14 extends Http2ConnectionOutputSink {
     });
  
     private final AtomicInteger availConnectionWindowSize;
-    private final List<Http2Frame> tmpFramesList = new LinkedList<Http2Frame>();
+    private final List<Http2Frame> tmpFramesList = new LinkedList<>();
     private final AtomicBoolean writerLock = new AtomicBoolean();
 
     public Http2ConnectionOutputSink14(final Http2Connection http2Connection) {

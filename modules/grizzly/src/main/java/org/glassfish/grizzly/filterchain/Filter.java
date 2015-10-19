@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -79,7 +79,7 @@ public interface Filter {
      *
      * @param filterChain the {@link FilterChain} this <tt>Filter</tt> was added to.
      */
-    public void onAdded(FilterChain filterChain);
+    void onAdded(FilterChain filterChain);
     
     /**
      * Method is called, when the <tt>Filter</tt> has been removed from the
@@ -87,7 +87,7 @@ public interface Filter {
      *
      * @param filterChain the {@link FilterChain} this <tt>Filter</tt> was removed from.
      */
-    public void onRemoved(FilterChain filterChain);
+    void onRemoved(FilterChain filterChain);
 
     /**
      * Method is called, when the {@link FilterChain} this <tt>Filter</tt> is part of,
@@ -95,7 +95,7 @@ public interface Filter {
      *
      * @param filterChain the {@link FilterChain}.
      */
-    public void onFilterChainChanged(FilterChain filterChain);
+    void onFilterChainChanged(FilterChain filterChain);
     
     /**
      * Execute a unit of processing work to be performed, when channel will
@@ -109,7 +109,7 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleRead(FilterChainContext ctx) throws IOException;
+    NextAction handleRead(FilterChainContext ctx) throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when some data should
@@ -123,7 +123,7 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException;
+    NextAction handleWrite(FilterChainContext ctx) throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when channel gets
@@ -137,7 +137,7 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleConnect(FilterChainContext ctx) throws IOException;
+    NextAction handleConnect(FilterChainContext ctx) throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when server channel
@@ -151,7 +151,7 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleAccept(FilterChainContext ctx) throws IOException;
+    NextAction handleAccept(FilterChainContext ctx) throws IOException;
 
     /**
      * Handle custom event associated with the {@link Connection}.
@@ -165,8 +165,8 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleEvent(FilterChainContext ctx,
-            FilterChainEvent event) throws IOException;
+    NextAction handleEvent(FilterChainContext ctx,
+                           FilterChainEvent event) throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when connection
@@ -180,7 +180,7 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleClose(FilterChainContext ctx) throws IOException;
+    NextAction handleClose(FilterChainContext ctx) throws IOException;
 
     
     /**
@@ -189,5 +189,5 @@ public interface Filter {
      * @param ctx event processing {@link FilterChainContext}
      * @param error error, which occurred during <tt>FilterChain</tt> execution
      */
-    public void exceptionOccurred(FilterChainContext ctx, Throwable error);
+    void exceptionOccurred(FilterChainContext ctx, Throwable error);
 }

@@ -142,7 +142,7 @@ public final class Http2Connection14 extends Http2Connection {
         final int type =  i1 & 0xff;
         
         final int flags = buffer.get() & 0xff;
-        final int streamId = (int) (buffer.getInt() & 0x7fffffff);
+        final int streamId = buffer.getInt() & 0x7fffffff;
         
         switch (type) {
             case DataFrame.TYPE:

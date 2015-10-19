@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,7 +47,7 @@ package org.glassfish.grizzly;
  * @author Alexey Stashok
  */
 public interface Codec<K, L> {
-    public Transformer<K, L> getDecoder();
+    Transformer<K, L> getDecoder();
 
-    public Transformer<L, K> getEncoder();
+    Transformer<L, K> getEncoder();
 }

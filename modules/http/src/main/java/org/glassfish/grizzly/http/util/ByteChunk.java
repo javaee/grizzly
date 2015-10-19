@@ -64,7 +64,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
-import org.glassfish.grizzly.utils.Charsets;
 
 /*
  * In a server it is very important to be able to operate on
@@ -97,22 +96,22 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
     private static final long serialVersionUID = -1L;
 
     // Input interface, used when the buffer is emptied.
-    public static interface ByteInputChannel {
+    public interface ByteInputChannel {
         /**
          * Read new bytes ( usually the internal conversion buffer ).
          * The implementation is allowed to ignore the parameters,
          * and mutate the chunk if it wishes to implement its own buffering.
          */
-        public int realReadBytes(byte cbuf[], int off, int len)
+        int realReadBytes(byte cbuf[], int off, int len)
             throws IOException;
     }
     // Output interface, used when the buffer is filled.
-    public static interface ByteOutputChannel {
+    public interface ByteOutputChannel {
         /**
          * Send the bytes ( usually the internal conversion buffer ).
          * Expect 8k output if the buffer is full.
          */
-        public void realWriteBytes(byte cbuf[], int off, int len)
+        void realWriteBytes(byte cbuf[], int off, int len)
             throws IOException;
     }
 

@@ -62,7 +62,7 @@ import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
 import org.glassfish.grizzly.memory.Buffers;
 
 import static org.glassfish.grizzly.http2.Constants.OUT_FIN_TERMINATION;
-import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
+
 /**
  * Default implementation of an output sink, which is associated
  * with specific {@link Http2Stream}.
@@ -323,7 +323,7 @@ class DefaultOutputSink implements StreamOutputSink {
                 assert headerFrames == null;
 
                 if (messageCloner != null) {
-                    data = (Buffer) messageCloner.clone(
+                    data = messageCloner.clone(
                             http2Connection.getConnection(), data);
                     isDataCloned = true;
                 }
@@ -356,7 +356,7 @@ class DefaultOutputSink implements StreamOutputSink {
             // if there is a chunk to store
             if (fitWindowLen < remaining) {
                 if (!isDataCloned && messageCloner != null) {
-                    data = (Buffer) messageCloner.clone(
+                    data = messageCloner.clone(
                             http2Connection.getConnection(), data);
                     isDataCloned = true;
                 }
@@ -544,7 +544,7 @@ class DefaultOutputSink implements StreamOutputSink {
                     if (flushHandlersQueue == null) {
                         // create a flush handlers queue
                         flushHandlersQueue =
-                                new BundleQueue<CompletionHandler<Http2Stream>>();
+                                new BundleQueue<>();
                     }
                     
                     // add the handler to the queue

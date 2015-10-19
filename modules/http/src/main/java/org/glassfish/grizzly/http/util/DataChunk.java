@@ -53,7 +53,7 @@ import org.glassfish.grizzly.Buffer;
  */
 public class DataChunk implements Chunk {
 
-    public static enum Type {None, Bytes, Buffer, Chars, String}
+    public enum Type {None, Bytes, Buffer, Chars, String}
     
     public static DataChunk newInstance() {
         return newInstance(new ByteChunk(), new BufferChunk(), new CharChunk(), null);

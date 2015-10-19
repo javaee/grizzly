@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,12 +58,12 @@ public class TCPNIOTransport extends NIOTransport {
 
     @ManagedAttribute(id="server-socket-so-timeout")
     public int getServerSocketSoTimeout() {
-        return ((org.glassfish.grizzly.nio.transport.TCPNIOTransport) transport).getServerSocketSoTimeout();
+        return transport.getServerSocketSoTimeout();
     }
 
     @ManagedAttribute(id="client-socket-so-timeout")
     public int getClientSocketSoTimeout() {
-        return ((org.glassfish.grizzly.nio.transport.TCPNIOTransport) transport).getClientSocketSoTimeout();
+        return transport.getClientSocketSoTimeout();
     }
 
     @ManagedAttribute(id="socket-tcp-no-delay")
@@ -73,7 +73,7 @@ public class TCPNIOTransport extends NIOTransport {
 
     @ManagedAttribute(id="socket-reuse-address")
     public boolean getReuseAddress() {
-        return ((org.glassfish.grizzly.nio.transport.TCPNIOTransport) transport).isReuseAddress();
+        return transport.isReuseAddress();
     }
 
     @ManagedAttribute(id="socket-linger")
@@ -88,6 +88,6 @@ public class TCPNIOTransport extends NIOTransport {
 
     @ManagedAttribute(id="client-connect-timeout-millis")
     public int getConnectTimeout() {
-        return ((org.glassfish.grizzly.nio.transport.TCPNIOTransport) transport).getConnectionTimeout();
+        return transport.getConnectionTimeout();
     }
 }

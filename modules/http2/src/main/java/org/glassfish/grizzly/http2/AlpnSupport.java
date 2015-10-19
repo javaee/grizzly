@@ -69,7 +69,7 @@ public class AlpnSupport {
     private final static Logger LOGGER = Grizzly.logger(AlpnSupport.class);
 
     private final static Map<SSLEngine, Connection> SSL_TO_CONNECTION_MAP =
-            new WeakHashMap<SSLEngine, Connection>();
+            new WeakHashMap<>();
     
     private static final AlpnSupport INSTANCE;
     
@@ -112,11 +112,11 @@ public class AlpnSupport {
     }
 
     private final Map<Object, AlpnServerNegotiator> serverSideNegotiators =
-            new WeakHashMap<Object, AlpnServerNegotiator>();
+            new WeakHashMap<>();
     private final ReadWriteLock serverSideLock = new ReentrantReadWriteLock();
     
     private final Map<Object, AlpnClientNegotiator> clientSideNegotiators =
-            new WeakHashMap<Object, AlpnClientNegotiator>();
+            new WeakHashMap<>();
     private final ReadWriteLock clientSideLock = new ReentrantReadWriteLock();
 
     private final SSLFilter.HandshakeListener handshakeListener = 

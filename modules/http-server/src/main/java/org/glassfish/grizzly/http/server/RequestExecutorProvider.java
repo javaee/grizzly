@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.http.server;
 
 import java.util.concurrent.Executor;
@@ -67,7 +68,7 @@ public interface RequestExecutorProvider {
      * The {@link RequestExecutorProvider} implementation, which always returns
      * <tt>null</tt> to force the user code to be executed on the current {@link Thread}.
      */
-    public static class SameThreadProvider implements RequestExecutorProvider {
+    class SameThreadProvider implements RequestExecutorProvider {
 
         @Override
         public Executor getExecutor(final Request request) {
@@ -83,7 +84,7 @@ public interface RequestExecutorProvider {
      * or, if the current {@link Thread} is not a service {@link Thread} - <tt>null</tt>
      * will be return to force the user code to be executed on the current {@link Thread}.
      */
-    public static class WorkerThreadProvider implements RequestExecutorProvider {
+    class WorkerThreadProvider implements RequestExecutorProvider {
 
         @Override
         public Executor getExecutor(final Request request) {

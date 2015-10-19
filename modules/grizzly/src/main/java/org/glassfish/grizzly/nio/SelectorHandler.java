@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ public interface SelectorHandler {
     /**
      * The default {@link SelectorHandler} used by all created builder instances.
      */
-    public static SelectorHandler DEFAULT_SELECTOR_HANDLER = new DefaultSelectorHandler();
+    SelectorHandler DEFAULT_SELECTOR_HANDLER = new DefaultSelectorHandler();
 
     long getSelectTimeout();
 
@@ -148,7 +148,7 @@ public interface SelectorHandler {
 
     boolean onSelectorClosed(SelectorRunner selectorRunner);
     
-    public static interface Task {
-        public boolean run() throws Exception;
+    interface Task {
+        boolean run() throws Exception;
     }        
 }

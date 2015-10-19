@@ -60,7 +60,7 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      * WebSockets registered with this application.
      */
     private final ConcurrentMap<WebSocket, Boolean> sockets =
-            DataStructures.<WebSocket, Boolean>getConcurrentMap();
+            DataStructures.getConcurrentMap();
 
     private final List<Extension> supportedExtensions = new ArrayList<Extension>(2);
     private final List<String> supportedProtocols = new ArrayList<String>(2);

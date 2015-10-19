@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.filterchain;
 
 import org.glassfish.grizzly.IOEvent;
@@ -48,24 +49,24 @@ import java.io.IOException;
  */
 public interface FilterExecutor {
 
-    public NextAction execute(Filter filter, FilterChainContext context)
+    NextAction execute(Filter filter, FilterChainContext context)
             throws IOException;
 
-    public int defaultStartIdx(FilterChainContext context);
+    int defaultStartIdx(FilterChainContext context);
 
-    public int defaultEndIdx(FilterChainContext context);
+    int defaultEndIdx(FilterChainContext context);
 
-    public int getNextFilter(FilterChainContext context);
+    int getNextFilter(FilterChainContext context);
 
-    public int getPreviousFilter(FilterChainContext context);
+    int getPreviousFilter(FilterChainContext context);
 
-    public void initIndexes(FilterChainContext context);
+    void initIndexes(FilterChainContext context);
 
-    public boolean hasNextFilter(FilterChainContext context, int idx);
+    boolean hasNextFilter(FilterChainContext context, int idx);
 
-    public boolean hasPreviousFilter(FilterChainContext context, int idx);
+    boolean hasPreviousFilter(FilterChainContext context, int idx);
 
-    public boolean isUpstream();
+    boolean isUpstream();
 
-    public boolean isDownstream();
+    boolean isDownstream();
 }

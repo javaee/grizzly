@@ -2642,7 +2642,7 @@ public class Request {
         }
     }
     
-    protected static interface PathResolver {
-        public String resolve(Request request);
+    protected interface PathResolver {
+        String resolve(Request request);
     }
 }

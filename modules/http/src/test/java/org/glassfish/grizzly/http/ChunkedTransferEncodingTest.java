@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -373,7 +373,7 @@ public class ChunkedTransferEncodingTest {
                 sb.toString(), Charsets.ASCII_CHARSET));
     }
     
-    public class HTTPRequestCheckFilter extends BaseFilter {
+    public static class HTTPRequestCheckFilter extends BaseFilter {
         private final Queue<Future<Boolean>> resultQueue;
         private volatile Buffer content;
         private volatile Map<String, Pair<String, String>> trailerHeaders;

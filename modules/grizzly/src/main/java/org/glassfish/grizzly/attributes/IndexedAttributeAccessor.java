@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,7 +56,7 @@ public interface IndexedAttributeAccessor {
      * @param index the attribute index
      * @return the value of the attribute by index
      */
-    public Object getAttribute(int index);
+    Object getAttribute(int index);
 
     /** 
      * Internal method for dynamic attribute support.
@@ -68,7 +68,7 @@ public interface IndexedAttributeAccessor {
      * @return the value of the attribute by index
      * @since 2.3.18
      */
-    public Object getAttribute(int index, NullaryFunction initializer);
+    Object getAttribute(int index, NullaryFunction initializer);
     
     /** 
      * Internal method for dynamic attribute support.
@@ -76,7 +76,7 @@ public interface IndexedAttributeAccessor {
      * @param index the attribute index
      * @param value the value
      */
-    public void setAttribute(int index, Object value);
+    void setAttribute(int index, Object value);
     
     /** 
      * Internal method for dynamic attribute support.
@@ -86,6 +86,6 @@ public interface IndexedAttributeAccessor {
      * @return the previous value associated with the attribute
      * @since 2.3.18
      */
-    public Object removeAttribute(int index);
+    Object removeAttribute(int index);
     
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,7 +65,7 @@ public class ServerAuthFilter extends BaseFilter {
 
     // Authenticated clients connection map
     private Map<Connection, String> authenticatedConnections =
-            DataStructures.<Connection, String>getConcurrentMap();
+            DataStructures.getConcurrentMap();
 
     // Random, to generate client ids.
     private final Random random = new Random();
@@ -92,7 +92,7 @@ public class ServerAuthFilter extends BaseFilter {
         // Get the connection
         final Connection connection = ctx.getConnection();
         // Get the incoming packet
-        final MultiLinePacket packet = (MultiLinePacket) ctx.getMessage();
+        final MultiLinePacket packet = ctx.getMessage();
 
         // get the command string
         final String command = packet.getLines().get(0);
@@ -144,7 +144,7 @@ public class ServerAuthFilter extends BaseFilter {
         // Get the connection
         final Connection connection = ctx.getConnection();
         // Get the sending packet
-        final MultiLinePacket packet = (MultiLinePacket) ctx.getMessage();
+        final MultiLinePacket packet = ctx.getMessage();
 
         // Get the message command
         final String command = packet.getLines().get(0);

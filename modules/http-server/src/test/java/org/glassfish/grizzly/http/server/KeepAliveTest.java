@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -541,7 +541,7 @@ public class KeepAliveTest extends TestCase {
                     .build();
 
             final FutureImpl<Connection> future =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             connector.connect(new InetSocketAddress(host, port),
                     Futures.toCompletionHandler(future,
                     new EmptyCompletionHandler<Connection>() {
@@ -556,7 +556,7 @@ public class KeepAliveTest extends TestCase {
         }
 
         public Future<Buffer> get(HttpRequestPacket request) throws IOException {
-            final FutureImpl<Buffer> localFuture = SafeFutureImpl.<Buffer>create();
+            final FutureImpl<Buffer> localFuture = SafeFutureImpl.create();
             asyncFuture = localFuture;
             connection.write(request, new EmptyCompletionHandler() {
 
@@ -586,7 +586,7 @@ public class KeepAliveTest extends TestCase {
         private class HttpResponseFilter extends BaseFilter {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 if (message.isLast()) {
                     final FutureImpl<Buffer> localFuture = asyncFuture;
                     asyncFuture = null;

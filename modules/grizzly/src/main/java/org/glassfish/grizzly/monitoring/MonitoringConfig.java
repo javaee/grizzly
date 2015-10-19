@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,14 +51,14 @@ public interface MonitoringConfig<E> {
      *
      * @param probes the monitoring probes.
      */
-    public void addProbes(E... probes);
+    void addProbes(E... probes);
 
     /**
      * Remove the monitoring probes.
      *
      * @param probes the monitoring probes.
      */
-    public boolean removeProbes(E... probes);
+    boolean removeProbes(E... probes);
 
     /**
      * Get the the monitoring probes, which are registered on the objet.
@@ -68,19 +68,19 @@ public interface MonitoringConfig<E> {
      *
      * @return the the monitoring probes, which are registered on the object.
      */
-    public E[] getProbes();
+    E[] getProbes();
 
-    public boolean hasProbes();
+    boolean hasProbes();
     
     /**
      * Removes all the monitoring probes, which are registered on the object.
      */
-    public void clearProbes();
+    void clearProbes();
     
     /**
      * Create the JMX {@link Object}, which represents this object.
      * 
      * @return the JMX {@link Object}, which represents this object.
      */
-    public Object createManagementObject();    
+    Object createManagementObject();
 }

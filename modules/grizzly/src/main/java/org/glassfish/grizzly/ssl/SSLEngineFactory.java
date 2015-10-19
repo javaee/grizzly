@@ -64,5 +64,5 @@ public interface SSLEngineFactory {
      * @return {@link SSLEngine}.
      */
 
-    public SSLEngine createSSLEngine(String peerHost, int peerPort);
+    SSLEngine createSSLEngine(String peerHost, int peerPort);
 }

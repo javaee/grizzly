@@ -69,9 +69,9 @@ public enum DraftVersion {
     
     private final SessionFactory factory;
     
-    private DraftVersion(final SessionFactory factory, final String version,
-            final int defaultMaxConcurrentStreams,
-            final int defaultStreamWindowSize) {
+    DraftVersion(final SessionFactory factory, final String version,
+                 final int defaultMaxConcurrentStreams,
+                 final int defaultStreamWindowSize) {
         this.factory = factory;
         this.version = version;
         this.defaultMaxConcurrentStreams = defaultMaxConcurrentStreams;
@@ -128,8 +128,8 @@ public enum DraftVersion {
     
     private interface SessionFactory {
 
-        public Http2Connection create(final Connection<?> connection,
-                final boolean isServer,
-                final Http2BaseFilter handlerFilter);
+        Http2Connection create(final Connection<?> connection,
+                               final boolean isServer,
+                               final Http2BaseFilter handlerFilter);
     }
 }

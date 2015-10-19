@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.http.server;
 
 import java.util.concurrent.TimeUnit;
@@ -54,14 +55,14 @@ public interface SuspendContext {
      *
      * @return the suspended {@link Response} {@link CompletionHandler}.
      */
-    public CompletionHandler<Response> getCompletionHandler();
+    CompletionHandler<Response> getCompletionHandler();
 
     /**
      * Get the suspended {@link Response} {@link TimeoutHandler}.
      *
      * @return the suspended {@link Response} {@link TimeoutHandler}.
      */
-    public TimeoutHandler getTimeoutHandler();
+    TimeoutHandler getTimeoutHandler();
 
     /**
      * Get the suspended {@link Response} timeout. If returned value less or equal
@@ -70,7 +71,7 @@ public interface SuspendContext {
      * @return the suspended {@link Response} timeout. If returned value less or equal
      * to zero - timeout is not set.
      */
-    public long getTimeout(TimeUnit timeunit);
+    long getTimeout(TimeUnit timeunit);
 
     /**
      * Set the suspended {@link Response} timeout. If timeout value less or equal
@@ -79,7 +80,7 @@ public interface SuspendContext {
      * @param timeout the suspended {@link Response} timeout.
      * @param timeunit timeout units.
      */
-    public void setTimeout(long timeout, TimeUnit timeunit);
+    void setTimeout(long timeout, TimeUnit timeunit);
 
     /**
      * Returns <tt>true</tt>, if the {@link Response} is suspended, or
@@ -88,5 +89,5 @@ public interface SuspendContext {
      * @return <tt>true</tt>, if the {@link Response} is suspended, or
      * <tt>false</tt> otherwise.
      */
-    public boolean isSuspended();
+    boolean isSuspended();
 }

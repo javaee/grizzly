@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
@@ -143,7 +144,7 @@ public class CometContext<E> {
      */
     public CometContext(CometEngine engine, String contextTopic) {
         topic = contextTopic;
-        attributes = DataStructures.<Object, Object>getConcurrentMap();
+        attributes = DataStructures.getConcurrentMap();
         handlers = new CopyOnWriteArrayList<CometHandler>();
         eventInterrupt = new CometEvent<CometContext>(CometEvent.Type.INTERRUPT, this);
         eventInitialize = new CometEvent<CometContext>(CometEvent.Type.INITIALIZE, this);

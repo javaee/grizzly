@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,10 +46,10 @@ package org.glassfish.grizzly;
  * @author Alexey Stashok
  */
 public interface Interceptor<R> {
-    public static final int DEFAULT = 0;
-    public static final int COMPLETED = 1;
-    public static final int INCOMPLETED = 2;
-    public static final int RESET = 4;
+    int DEFAULT = 0;
+    int COMPLETED = 1;
+    int INCOMPLETED = 2;
+    int RESET = 4;
     
     /**
      * Callback method is called by {@link Readable}, so it is possible to
@@ -63,5 +63,5 @@ public interface Interceptor<R> {
      * @return the implementation specific code to instruct {@link Readable}
      * how it should continue reading operation.
      */
-    public int intercept(int event, Object context, R result);
+    int intercept(int event, Object context, R result);
 }

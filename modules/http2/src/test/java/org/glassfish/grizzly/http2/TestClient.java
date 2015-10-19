@@ -43,13 +43,12 @@ package org.glassfish.grizzly.http2;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
+
 import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.Closeable;
 
@@ -70,7 +69,6 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -80,7 +78,6 @@ import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.utils.Futures;
-import org.junit.Test;
 
 /**
  *
@@ -113,7 +110,7 @@ public class TestClient {
         final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
         
         final BlockingQueue<Future<HttpPacket>> httpResponseQueue =
-                new LinkedTransferQueue<Future<HttpPacket>>();
+                new LinkedTransferQueue<>();
         
         FilterChain filterChain = FilterChainBuilder.stateless()
                 .add(new TransportFilter())

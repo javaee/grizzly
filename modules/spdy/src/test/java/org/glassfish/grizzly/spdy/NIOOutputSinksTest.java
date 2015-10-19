@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -138,7 +138,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -289,7 +289,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -406,7 +406,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -561,7 +561,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -796,7 +796,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
 
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 if (b.hasRemaining()) {
                     sb.append(b.toStringContent());
@@ -878,7 +878,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
     @Test
     public void testWritePossibleReentrants() throws Exception {
 
-        final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.<HttpHeader>create();
+        final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.create();
         final FilterChainBuilder filterChainBuilder =
                 createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new BaseFilter() {
@@ -905,7 +905,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
                 final HttpPacket message = ctx.getMessage();
                 final HttpHeader header = message.isHeader() ?
                         (HttpHeader) message :
-                        ((HttpContent) message).getHttpHeader();
+                        message.getHttpHeader();
                 
                 parseResult.result(header);
                 
@@ -1013,7 +1013,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
         final int notificationsNum = 5;
         final int size = 8192;
                 
-        final FutureImpl<Integer> parseResult = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder =
                 createClientFilterChainAsBuilder(spdyVersion, spdyMode, isSecure);
         filterChainBuilder.add(new BaseFilter() {
@@ -1038,7 +1038,7 @@ public class NIOOutputSinksTest extends AbstractSpdyTest {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 

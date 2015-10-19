@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -128,16 +128,16 @@ public interface HttpServiceExtension extends HttpService {
      *
      * @throws ServletException if an error occurs during {@link Filter} initialization.
      */
-    public void registerFilter(final Filter filter,
-                               final String urlPattern,
-                               final Dictionary initParams,
-                               final HttpContext context) throws ServletException;
+    void registerFilter(final Filter filter,
+                        final String urlPattern,
+                        final Dictionary initParams,
+                        final HttpContext context) throws ServletException;
 
     /**
      * Removes the specified {@link Filter} from the service.
      *
      * @param filter the {@link Filter} to remove.
      */
-    public void unregisterFilter(final Filter filter);
+    void unregisterFilter(final Filter filter);
 
 }

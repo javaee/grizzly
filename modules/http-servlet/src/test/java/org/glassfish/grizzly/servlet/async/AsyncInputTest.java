@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.servlet.async;
 
 import java.io.BufferedReader;
@@ -92,7 +93,7 @@ public class AsyncInputTest extends HttpServerAbstractTest {
                     ReadListener readListener = new ReadListenerImpl(asyncCtx, buffer);
                     input.setReadListener(readListener);
                     
-                    int len = -1;
+                    int len;
                     while (input.isReady() && ((len = input.read(buffer)) != -1)) {
                         output.write(buffer, 0, len);
                     }
@@ -175,7 +176,7 @@ public class AsyncInputTest extends HttpServerAbstractTest {
         
         final FilterRegistration reg = ctx.addFilter(name, filter);
         reg.addMappingForUrlPatterns(
-                EnumSet.<DispatcherType>of(DispatcherType.REQUEST),
+                EnumSet.of(DispatcherType.REQUEST),
                 alias);
 
         return reg;
@@ -197,7 +198,7 @@ public class AsyncInputTest extends HttpServerAbstractTest {
                 ServletOutputStream output = asyncCtx.getResponse().getOutputStream();
 
                 output.print("onDataAvailable-");
-                int len = -1;
+                int len;
                 while (input.isReady() && ((len = input.read(buffer)) != -1)) {
                     output.write(buffer, 0, len);
                 }

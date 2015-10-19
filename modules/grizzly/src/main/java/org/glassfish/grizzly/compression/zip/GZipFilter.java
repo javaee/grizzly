@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -105,7 +105,7 @@ public class GZipFilter extends BaseFilter {
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        final Buffer input = (Buffer) ctx.getMessage();
+        final Buffer input = ctx.getMessage();
         final TransformationResult<Buffer, Buffer> result =
                 decoder.transform(connection, input);
 
@@ -154,7 +154,7 @@ public class GZipFilter extends BaseFilter {
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        final Buffer input = (Buffer) ctx.getMessage();
+        final Buffer input = ctx.getMessage();
         final TransformationResult<Buffer, Buffer> result =
                 encoder.transform(connection, input);
 

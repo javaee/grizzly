@@ -64,7 +64,7 @@ public interface GrizzlyFuture<R> extends Future<R>, Cacheable {
      * @param completionHandler {@link CompletionHandler}
      * @since 2.3.4
      */
-    public void addCompletionHandler(CompletionHandler<R> completionHandler);
+    void addCompletionHandler(CompletionHandler<R> completionHandler);
     
     /**
      * Mark <tt>GrizzlyFuture</tt> as recyclable, so once result will come -
@@ -79,7 +79,7 @@ public interface GrizzlyFuture<R> extends Future<R>, Cacheable {
      * 
      * @deprecated
      */
-    public void markForRecycle(boolean recycleResult);
+    void markForRecycle(boolean recycleResult);
 
     /**
      * Recycle <tt>GrizzlyFuture</tt> now.
@@ -91,5 +91,5 @@ public interface GrizzlyFuture<R> extends Future<R>, Cacheable {
      * if it support recyclable mechanism, will be also recycled together
      * with this <tt>GrizzlyFuture</tt> object.
      */
-    public void recycle(boolean recycleResult);
+    void recycle(boolean recycleResult);
 }

@@ -50,5 +50,5 @@ package org.glassfish.grizzly.http2.compression;
  * @author oleksiys
  */
 public interface HeaderListener {
-    public void onDecodedHeader(String name, String value);
+    void onDecodedHeader(String name, String value);
 }

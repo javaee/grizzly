@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,11 +58,11 @@ public class UDPNIOTransport extends NIOTransport {
 
     @ManagedAttribute(id="socket-reuse-address")
     public boolean getReuseAddress() {
-        return ((org.glassfish.grizzly.nio.transport.UDPNIOTransport) transport).isReuseAddress();
+        return transport.isReuseAddress();
     }
 
     @ManagedAttribute(id="client-connect-timeout-millis")
     public int getConnectTimeout() {
-        return ((org.glassfish.grizzly.nio.transport.UDPNIOTransport) transport).getConnectionTimeout();
+        return transport.getConnectionTimeout();
     }
 }

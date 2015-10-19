@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -172,7 +172,7 @@ public class MaxPostSizeTest {
             }
         }, "/test");
 
-        final FutureImpl<HttpContent> responseFuture = Futures.<HttpContent>createSafeFuture();
+        final FutureImpl<HttpContent> responseFuture = Futures.createSafeFuture();
         final Connection c = createConnection(responseFuture, "localhost", PORT);
         
         final HttpRequestPacket request = HttpRequestPacket.builder()
@@ -240,7 +240,7 @@ public class MaxPostSizeTest {
                         final byte[] buffer = new byte[message.length];
                         final int bytesRead = inputStream.read(buffer);
                         assert bytesRead == message.length;
-                        receivedChunksQueue.add(Futures.<byte[]>createReadyFuture(buffer));
+                        receivedChunksQueue.add(Futures.createReadyFuture(buffer));
                         
                         inputStream.notifyAvailable(this, message.length);
                     }
@@ -264,7 +264,7 @@ public class MaxPostSizeTest {
             }
         }, "/test");
 
-        final FutureImpl<HttpContent> responseFuture = Futures.<HttpContent>createSafeFuture();
+        final FutureImpl<HttpContent> responseFuture = Futures.createSafeFuture();
         final Connection c = createConnection(responseFuture, "localhost", PORT);
         
         final HttpRequestPacket request = HttpRequestPacket.builder()
@@ -353,7 +353,7 @@ public class MaxPostSizeTest {
 
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
-            final HttpContent content = (HttpContent) ctx.getMessage();
+            final HttpContent content = ctx.getMessage();
             try {
                 if (!content.isLast()) {
                     return ctx.getStopAction(content);

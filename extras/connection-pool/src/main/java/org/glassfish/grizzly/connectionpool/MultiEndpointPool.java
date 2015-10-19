@@ -104,12 +104,12 @@ public class MultiEndpointPool<E> {
      * Maps endpoint -to- SingleEndpointPool
      */
     protected final Map<Endpoint<E>, SingleEndpointPool<E>> endpointToPoolMap =
-            DataStructures.<Endpoint<E>, SingleEndpointPool<E>>getConcurrentMap();
+            DataStructures.getConcurrentMap();
     /**
      * Maps Connection -to- ConnectionInfo
      */
     private final Map<Connection, ConnectionInfo<E>> connectionToSubPoolMap =
-            DataStructures.<Connection, ConnectionInfo<E>>getConcurrentMap();
+            DataStructures.getConcurrentMap();
 
     /**
      * Sync for endpointToPoolMap updates
@@ -919,7 +919,7 @@ public class MultiEndpointPool<E> {
      * @param <E> the address type, for example for TCP transport it's {@link SocketAddress}
      */
     public interface EndpointPoolCustomizer<E> {
-        public void customize(Endpoint<E> endpoint, EndpointPoolBuilder<E> builder);
+        void customize(Endpoint<E> endpoint, EndpointPoolBuilder<E> builder);
     }
     
     /**

@@ -343,7 +343,7 @@ public class BasicServletTest extends HttpServerAbstractTest {
     public void testIsCommitted() throws Exception {
         System.out.println("testIsCommitted");
         try {
-            final FutureImpl<Boolean> resultFuture = Futures.<Boolean>createSafeFuture();
+            final FutureImpl<Boolean> resultFuture = Futures.createSafeFuture();
             
             newHttpServer(PORT);
             final WebappContext ctx = new WebappContext("example", "/example");

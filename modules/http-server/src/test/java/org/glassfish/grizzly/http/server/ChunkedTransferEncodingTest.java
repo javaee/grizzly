@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.http.util.HttpStatus;
@@ -323,7 +324,7 @@ public class ChunkedTransferEncodingTest {
         return packetList;
     }
     
-    public class HTTPResponseFilter extends BaseFilter {
+    public static class HTTPResponseFilter extends BaseFilter {
         private final BlockingQueue<HttpContent> queue;
 
         public HTTPResponseFilter(

@@ -96,7 +96,7 @@ public class LiteralWithIndexing implements BinaryRepresentation {
         private static final LiteralWithIndexing INSTANCE = new LiteralWithIndexing();
     }
 
-    public static final LiteralWithIndexing getInstance() {
+    public static LiteralWithIndexing getInstance() {
         return InstanceHolder.INSTANCE;
     }
     

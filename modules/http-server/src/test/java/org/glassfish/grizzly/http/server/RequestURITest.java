@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -270,7 +270,7 @@ public class RequestURITest extends TestCase {
                 throws IOException {
 
             // Cast message to a HttpContent
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpContent httpContent = ctx.getMessage();
 
             logger.log(Level.FINE, "Got HTTP response chunk");
 
@@ -308,7 +308,7 @@ public class RequestURITest extends TestCase {
 
     } // END ClientFilter
 
-    public class RequestURIHttpHandler extends HttpHandler {
+    public static class RequestURIHttpHandler extends HttpHandler {
 
         @Override
         public void service(Request request, Response response) throws Exception {
@@ -318,7 +318,7 @@ public class RequestURITest extends TestCase {
 
     }
 
-    public class DecodedURLIndexOfHttpHandler extends HttpHandler {
+    public static class DecodedURLIndexOfHttpHandler extends HttpHandler {
         private final String match;
 
         public DecodedURLIndexOfHttpHandler(String match) {

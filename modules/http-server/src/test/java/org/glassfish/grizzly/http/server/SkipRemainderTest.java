@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -307,7 +307,7 @@ public class SkipRemainderTest {
                     os.write("OK".getBytes());
                     os.flush();
                     
-                    requestRcvQueue.add(Futures.<Boolean>createReadyFuture(Boolean.TRUE));
+                    requestRcvQueue.add(Futures.createReadyFuture(Boolean.TRUE));
                 } catch (Exception e) {
                     requestRcvQueue.add(Futures.<Boolean>createReadyFuture(e));
                 }
@@ -387,7 +387,7 @@ public class SkipRemainderTest {
                     os.write("OK".getBytes());
                     os.flush();
                     
-                    requestRcvQueue.add(Futures.<Boolean>createReadyFuture(Boolean.TRUE));
+                    requestRcvQueue.add(Futures.createReadyFuture(Boolean.TRUE));
                 } catch (Exception e) {
                     requestRcvQueue.add(Futures.<Boolean>createReadyFuture(e));
                 }
@@ -551,7 +551,7 @@ public class SkipRemainderTest {
 
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
-            final HttpContent content = (HttpContent) ctx.getMessage();
+            final HttpContent content = ctx.getMessage();
             if (!content.isLast()) {
                 return ctx.getStopAction(content);
             }

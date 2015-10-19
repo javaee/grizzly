@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.http.server;
 
 import java.io.File;
@@ -127,7 +128,7 @@ public class StaticHttpHandlerTest {
         final int fileSize = 16 * 1024 * 1024;
         File control = generateTempFile(fileSize);
         
-        final FutureImpl<File> result = Futures.<File>createSafeFuture();
+        final FutureImpl<File> result = Futures.createSafeFuture();
 
         TCPNIOTransport client = createClient(result, new ResponseValidator() {
             @Override
@@ -166,7 +167,7 @@ public class StaticHttpHandlerTest {
         final int fileSize = 16 * 1024 * 1024;
         File control = generateTempFile(fileSize);
         
-        final FutureImpl<File> result = Futures.<File>createSafeFuture();
+        final FutureImpl<File> result = Futures.createSafeFuture();
 
         TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
             @Override
@@ -354,7 +355,7 @@ public class StaticHttpHandlerTest {
     // ---------------------------------------------------------- Nested Classes
     
     
-    private static interface ResponseValidator {
+    private interface ResponseValidator {
         
         void validate(HttpResponsePacket response);
         

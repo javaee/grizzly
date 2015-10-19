@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.servlet.httpupgrade;
 
 import java.io.IOException;
@@ -197,7 +198,7 @@ public class HttpUpgradeTest extends TestCase {
                 ReadListenerImpl readListener = new ReadListenerImpl(delimiter, input, output);
                 input.setReadListener(readListener);
 
-                int b = -1;
+                int b;
                 while (input.isReady() && ((b = input.read()) != -1)) {
                     System.out.print((char) b);
                     output.write(b);
@@ -238,7 +239,7 @@ public class HttpUpgradeTest extends TestCase {
                 try {
                     StringBuilder sb = new StringBuilder();
                     System.out.println("--> onDataAvailable");
-                    int len = -1;
+                    int len;
                     byte b[] = new byte[1024];
                     while (input.isReady()
                             && (len = input.read(b)) != -1) {

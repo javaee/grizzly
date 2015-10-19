@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,14 +59,14 @@ public interface AsyncQueueWriter<L>
      * Constant set via {@link #setMaxPendingBytesPerConnection(int)} means
      * the async write queue size is unlimited.
      */
-    public static final int UNLIMITED_SIZE = -1;
+    int UNLIMITED_SIZE = -1;
     
     /**
      * Constant set via {@link #setMaxPendingBytesPerConnection(int)} means
      * the async write queue size will be configured automatically per
      * {@link NIOConnection} depending on connections write buffer size.
      */
-    public static final int AUTO_SIZE = -2;
+    int AUTO_SIZE = -2;
 
     /**
      * Method writes the {@link Buffer} to the specific address.
@@ -86,7 +86,7 @@ public interface AsyncQueueWriter<L>
      * 
      * @deprecated push back logic is deprecated
      */
-    public void write(
+    void write(
             Connection<L> connection, L dstAddress,
             WritableMessage message,
             CompletionHandler<WriteResult<WritableMessage, L>> completionHandler,

@@ -52,22 +52,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.ConnectorHandler;
-import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.connectionpool.EndpointKey;
-import org.glassfish.grizzly.connectionpool.MultiEndpointPool;
-import org.glassfish.grizzly.filterchain.FilterChain;
-import org.glassfish.grizzly.filterchain.FilterChainBuilder;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.Charsets;
-import org.glassfish.grizzly.utils.DataStructures;
-import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  * The sample to demonstrate how Grizzly client-side connection pool could be

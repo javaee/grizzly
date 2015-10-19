@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.spdy;
 
 import java.util.Arrays;
@@ -94,7 +95,7 @@ public class Constants {
             new Termination(TerminationType.LOCAL_CLOSE, "SpdyFrame sent by peer is too big");
     
     static final Set<Integer> CTRL_FRAMES_WITH_STREAM_ID =
-            Collections.<Integer>unmodifiableSet(
+            Collections.unmodifiableSet(
                 new HashSet<Integer>(
                     Arrays.asList(SynStreamFrame.TYPE, SynReplyFrame.TYPE,
                         RstStreamFrame.TYPE, HeadersFrame.TYPE,

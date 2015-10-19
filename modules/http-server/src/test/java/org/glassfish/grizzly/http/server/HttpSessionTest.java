@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -185,7 +185,7 @@ public class HttpSessionTest extends TestCase {
 
         String sessionId = props.get("session-id");
         assertNotNull(sessionId);
-        assertTrue(cookieSessionId.indexOf(sessionId) >= 0);
+        assertTrue(cookieSessionId.contains(sessionId));
     }
     
     public void testCreateSessionWithInvalidId() throws Exception {
@@ -217,7 +217,7 @@ public class HttpSessionTest extends TestCase {
 
         String sessionId = props.get("session-id");
         assertNotNull(sessionId);
-        assertTrue(cookieSessionId.indexOf(sessionId) >= 0);
+        assertTrue(cookieSessionId.contains(sessionId));
         assertFalse("123456".equals(sessionId));
     }
     
@@ -254,7 +254,7 @@ public class HttpSessionTest extends TestCase {
             assertEquals("1", values1[0]);
                         
             final HttpPacket request2 = createRequest("/test",
-                    Collections.<String, String>singletonMap(Header.Cookie.toString(),
+                    Collections.singletonMap(Header.Cookie.toString(),
                     Globals.SESSION_COOKIE_NAME + "=" + cookies1[0].getValue()));
             
             final HttpContent response2 = sendRequest(request2, 10);
@@ -476,7 +476,7 @@ public class HttpSessionTest extends TestCase {
                 throws IOException {
 
             // Cast message to a HttpContent
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpContent httpContent = ctx.getMessage();
 
             logger.log(Level.FINE, "Got HTTP response chunk");
 
@@ -514,7 +514,7 @@ public class HttpSessionTest extends TestCase {
 
     } // END ClientFilter
 
-    public class HttpSessionHandler extends HttpHandler {
+    public static class HttpSessionHandler extends HttpHandler {
 
         @Override
         public void service(Request request, Response response) throws Exception {
@@ -531,7 +531,7 @@ public class HttpSessionTest extends TestCase {
 
     }
 
-    public class HttpCreaeteSessionHandler extends HttpHandler {
+    public static class HttpCreaeteSessionHandler extends HttpHandler {
 
         @Override
         public void service(Request request, Response response) throws Exception {
@@ -544,7 +544,7 @@ public class HttpSessionTest extends TestCase {
         }
     }
     
-    public class HttpEncodeURLHandler extends HttpHandler {
+    public static class HttpEncodeURLHandler extends HttpHandler {
 
         @Override
         public void service(Request request, Response response) throws Exception {

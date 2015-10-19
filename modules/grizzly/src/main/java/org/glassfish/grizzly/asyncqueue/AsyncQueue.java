@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,10 +50,10 @@ import org.glassfish.grizzly.ProcessorResult;
  * @author Alexey Stashok
  */
 public interface AsyncQueue {
-    static final String EXPECTING_MORE_OPTION =
+    String EXPECTING_MORE_OPTION =
             AsyncQueue.class.getName() + ".expectingMore";
     
-    public enum AsyncResult {
+    enum AsyncResult {
         COMPLETE(ProcessorResult.createLeave()),
         INCOMPLETE(ProcessorResult.createComplete()),
         EXPECTING_MORE(ProcessorResult.createComplete(EXPECTING_MORE_OPTION)),
@@ -61,7 +61,7 @@ public interface AsyncQueue {
 
         private final ProcessorResult result;
         
-        private AsyncResult(final ProcessorResult result) {
+        AsyncResult(final ProcessorResult result) {
             this.result = result;
         }
 
@@ -79,7 +79,7 @@ public interface AsyncQueue {
      * @return <tt>true</tt>, if there is ready data,
      *         or <tt>false</tt> otherwise.
      */
-    public abstract boolean isReady(Connection connection);
+    boolean isReady(Connection connection);
     
     /**
      * Callback method, which is called async. to process ready
@@ -89,7 +89,7 @@ public interface AsyncQueue {
      * @param context {@link Context}
      * @return {@link AsyncResult}, depending on async queue status.
      */
-    public abstract AsyncResult processAsync(Context context);
+    AsyncResult processAsync(Context context);
     
     /**
      * Callback method, which is called, when {@link Connection} has been closed,
@@ -97,10 +97,10 @@ public interface AsyncQueue {
      * 
      * @param connection {@link Connection}
      */
-    public abstract void onClose(Connection connection);
+    void onClose(Connection connection);
     
     /**
      * Close <tt>AsyncQueueProcessor</tt> and release associated resources
      */
-    public abstract void close();
+    void close();
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -198,7 +198,7 @@ public class Encoder {
         }
     }
 
-    class LenEncoder {
+    static class LenEncoder {
 
         short[] _choice = new short[2];
         BitTreeEncoder[] _lowCoder = new BitTreeEncoder[Base.kNumPosStatesEncodingMax];
@@ -244,7 +244,7 @@ public class Encoder {
             int a1 = RangeEncoder.getPrice1(_choice[0]);
             int b0 = a1 + RangeEncoder.getPrice0(_choice[1]);
             int b1 = a1 + RangeEncoder.getPrice1(_choice[1]);
-            int i = 0;
+            int i;
             for (i = 0; i < Base.kNumLowLenSymbols; i++) {
                 if (i >= numSymbols) {
                     return;
@@ -261,10 +261,11 @@ public class Encoder {
                 prices[st + i] = b1 + _highCoder.getPrice(i - Base.kNumLowLenSymbols - Base.kNumMidLenSymbols);
             }
         }
-    };
+    }
+
     public static final int kNumLenSpecSymbols = Base.kNumLowLenSymbols + Base.kNumMidLenSymbols;
 
-    class LenPriceTableEncoder extends LenEncoder {
+    static class LenPriceTableEncoder extends LenEncoder {
 
         int[] _prices = new int[Base.kNumLenSymbols << Base.kNumPosStatesBitsEncodingMax];
         int _tableSize;
@@ -320,14 +321,14 @@ public class Encoder {
 
         public void makeAsShortRep() {
             BackPrev = 0;
-            ;
             Prev1IsChar = false;
         }
 
         public boolean isShortRep() {
             return (BackPrev == 0);
         }
-    };
+    }
+
     Optimal[] _optimum = new Optimal[kNumOpts];
     BinTree _matchFinder = null;
     RangeEncoder _rangeEncoder = new RangeEncoder();
@@ -445,7 +446,7 @@ public class Encoder {
         if (_numDistancePairs > 0) {
             lenRes = _matchDistances[_numDistancePairs - 2];
             if (lenRes == _numFastBytes) {
-                lenRes += _matchFinder.getMatchLen((int) lenRes - 1, _matchDistances[_numDistancePairs - 1],
+                lenRes += _matchFinder.getMatchLen(lenRes - 1, _matchDistances[_numDistancePairs - 1],
                         Base.kMatchMaxLen - lenRes);
             }
         }
@@ -1058,10 +1059,10 @@ public class Encoder {
             int complexState = (_state << Base.kNumPosStatesBitsMax) + posState;
             if (len == 1 && pos == -1) {
                 _rangeEncoder.encode(_isMatch, complexState, 0);
-                byte curByte = _matchFinder.getIndexByte((int) (0 - _additionalOffset));
+                byte curByte = _matchFinder.getIndexByte(0 - _additionalOffset);
                 LiteralEncoder.Encoder2 subCoder = _literalEncoder.getSubCoder((int) nowPos64, _previousByte);
                 if (!Base.stateIsCharState(_state)) {
-                    byte matchByte = _matchFinder.getIndexByte((int) (0 - _repDistances[0] - 1 - _additionalOffset));
+                    byte matchByte = _matchFinder.getIndexByte(0 - _repDistances[0] - 1 - _additionalOffset);
                     subCoder.encodeMatched(_rangeEncoder, matchByte, curByte);
                 } else {
                     subCoder.encode(_rangeEncoder, curByte);
@@ -1111,7 +1112,7 @@ public class Encoder {
                     _posSlotEncoder[lenToPosState].encode(_rangeEncoder, posSlot);
 
                     if (posSlot >= Base.kStartPosModelIndex) {
-                        int footerBits = (int) ((posSlot >> 1) - 1);
+                        int footerBits = (posSlot >> 1) - 1;
                         int baseVal = ((2 | (posSlot & 1)) << footerBits);
                         int posReduced = pos - baseVal;
 
@@ -1237,7 +1238,7 @@ public class Encoder {
     void fillDistancesPrices() {
         for (int i = Base.kStartPosModelIndex; i < Base.kNumFullDistances; i++) {
             int posSlot = getPosSlot(i);
-            int footerBits = (int) ((posSlot >> 1) - 1);
+            int footerBits = (posSlot >> 1) - 1;
             int baseVal = ((2 | (posSlot & 1)) << footerBits);
             tempPrices[i] = BitTreeEncoder.reverseGetPrice(_posEncoders,
                     baseVal - posSlot - 1, footerBits, i - baseVal);

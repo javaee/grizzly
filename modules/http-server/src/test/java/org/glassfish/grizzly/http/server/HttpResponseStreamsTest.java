@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -1059,7 +1059,7 @@ public class HttpResponseStreamsTest extends TestCase {
 
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         ServerConfiguration sconfig = server.getServerConfiguration();
-        sconfig.addHttpHandler(new TestHttpHandler(strategy), new String[] { "/*" });
+        sconfig.addHttpHandler(new TestHttpHandler(strategy), "/*");
 
         final FutureImpl<String> parseResult = SafeFutureImpl.create();
         TCPNIOTransport ctransport = TCPNIOTransportBuilder.newInstance().build();
@@ -1175,7 +1175,7 @@ public class HttpResponseStreamsTest extends TestCase {
               throws IOException {
             try {
                 // Cast message to a HttpContent
-                final HttpContent httpContent = (HttpContent) ctx.getMessage();
+                final HttpContent httpContent = ctx.getMessage();
 
                 logger.log(Level.FINE, "Got HTTP response chunk");
 

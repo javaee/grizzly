@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,7 +60,7 @@ public interface ConnectorHandler<E> {
      * @return {@link Future} of connect operation, which could be used to get
      * resulting {@link Connection}
      */
-    public Future<Connection> connect(E remoteAddress);
+    Future<Connection> connect(E remoteAddress);
 
     /**
      * Creates, initializes and establishes {@link Connection} to the specific
@@ -69,8 +69,8 @@ public interface ConnectorHandler<E> {
      * @param remoteAddress remote address to connect to
      * @param completionHandler {@link CompletionHandler}
      */
-    public void connect(E remoteAddress,
-            CompletionHandler<Connection> completionHandler);
+    void connect(E remoteAddress,
+                 CompletionHandler<Connection> completionHandler);
 
     /**
      * Creates, initializes {@link Connection}, binds it to the specific local
@@ -81,7 +81,7 @@ public interface ConnectorHandler<E> {
      * @return {@link Future} of connect operation, which could be used to get
      * resulting {@link Connection}
      */
-    public Future<Connection> connect(E remoteAddress, E localAddress);
+    Future<Connection> connect(E remoteAddress, E localAddress);
 
     /**
      * Creates, initializes {@link Connection}, binds it to the specific local
@@ -91,7 +91,7 @@ public interface ConnectorHandler<E> {
      * @param localAddress local address to bind a {@link Connection} to
      * @param completionHandler {@link CompletionHandler}
      */
-    public void connect(E remoteAddress,
-            E localAddress,
-            CompletionHandler<Connection> completionHandler);
+    void connect(E remoteAddress,
+                 E localAddress,
+                 CompletionHandler<Connection> completionHandler);
 }

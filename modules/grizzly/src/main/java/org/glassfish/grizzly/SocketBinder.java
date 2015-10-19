@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,7 +59,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(int port) throws IOException;
+    Connection bind(int port) throws IOException;
 
     /**
      * Binds Transport to the specific host and port.
@@ -70,7 +70,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(String host, int port) throws IOException;
+    Connection bind(String host, int port) throws IOException;
 
     /**
      * Binds Transport to the specific host and port.
@@ -81,7 +81,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(String host, int port, int backlog) throws IOException;
+    Connection bind(String host, int port, int backlog) throws IOException;
 
     /**
      * Binds Transport to the specific host, and port within a {@link PortRange}.
@@ -93,7 +93,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(String host, PortRange portRange, int backlog) throws IOException;
+    Connection bind(String host, PortRange portRange, int backlog) throws IOException;
 
     /**
      * Binds Transport to the specific SocketAddress.
@@ -103,7 +103,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(SocketAddress socketAddress) throws IOException;
+    Connection bind(SocketAddress socketAddress) throws IOException;
 
     /**
      * Binds Transport to the specific SocketAddress.
@@ -114,7 +114,7 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public Connection bind(SocketAddress socketAddress, int backlog) throws IOException;
+    Connection bind(SocketAddress socketAddress, int backlog) throws IOException;
 
     /**
      * Binds the Transport to the channel inherited from the entity that
@@ -124,7 +124,7 @@ public interface SocketBinder {
      * 
      * @throws IOException 
      */
-    public Connection bindToInherited() throws IOException;
+    Connection bindToInherited() throws IOException;
     
     /**
      * Unbinds bound {@link Transport} connection.
@@ -132,13 +132,13 @@ public interface SocketBinder {
      *
      * @throws java.io.IOException
      */
-    public void unbind(Connection connection);
+    void unbind(Connection connection);
 
     /**
      * Unbinds all bound {@link Transport} connections.
      *
      * @throws java.io.IOException
      */
-    public void unbindAll();
+    void unbindAll();
 
 }

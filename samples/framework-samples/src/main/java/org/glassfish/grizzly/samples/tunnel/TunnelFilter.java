@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -86,6 +86,7 @@ public class TunnelFilter extends BaseFilter {
     /**
      * This method will be called, once {@link Connection} has some available data
      */
+    @SuppressWarnings("unchecked")
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
             throws IOException {

@@ -47,7 +47,7 @@ import java.util.LinkedList;
  * Each bundle in the queue may be empty or have some elements.
  */
 final class BundleQueue<E> {
-    private final LinkedList<Record<E>> internalQueue = new LinkedList<Record<E>>();
+    private final LinkedList<Record<E>> internalQueue = new LinkedList<>();
     private int lastElementAbsoluteDistance;
 
     /**
@@ -63,7 +63,7 @@ final class BundleQueue<E> {
         if (lastElementAbsoluteDistance > bundle) {
             throw new IllegalStateException("New element must have greater" + " absolute distance than the last element in the queue");
         }
-        internalQueue.addLast(new Record<E>(element, bundle - lastElementAbsoluteDistance));
+        internalQueue.addLast(new Record<>(element, bundle - lastElementAbsoluteDistance));
         lastElementAbsoluteDistance = bundle;
     }
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -647,7 +647,7 @@ class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
      * to incorporate impact of the highest bits that would otherwise
      * never be used in index calculations because of table bounds.
      */
-    static final int spread(int h) {
+    static int spread(int h) {
         return (h ^ (h >>> 16)) & HASH_BITS;
     }
 
@@ -655,7 +655,7 @@ class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
      * Returns a power of two table size for the given desired capacity.
      * See Hackers Delight, sec 3.2
      */
-    private static final int tableSizeFor(int c) {
+    private static int tableSizeFor(int c) {
         int n = c - 1;
         n |= n >>> 1;
         n |= n >>> 2;
@@ -717,16 +717,16 @@ class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
      */
 
     @SuppressWarnings("unchecked")
-    static final <K,V> Node<K,V> tabAt(Node<K,V>[] tab, int i) {
+    static <K,V> Node<K,V> tabAt(Node<K,V>[] tab, int i) {
         return (Node<K,V>)U.getObjectVolatile(tab, ((long)i << ASHIFT) + ABASE);
     }
 
-    static final <K,V> boolean casTabAt(Node<K,V>[] tab, int i,
-                                        Node<K,V> c, Node<K,V> v) {
+    static <K,V> boolean casTabAt(Node<K,V>[] tab, int i,
+                                  Node<K,V> c, Node<K,V> v) {
         return U.compareAndSwapObject(tab, ((long)i << ASHIFT) + ABASE, c, v);
     }
 
-    static final <K,V> void setTabAt(Node<K,V>[] tab, int i, Node<K,V> v) {
+    static <K,V> void setTabAt(Node<K,V>[] tab, int i, Node<K,V> v) {
         U.putObjectVolatile(tab, ((long)i << ASHIFT) + ABASE, v);
     }
 
@@ -995,6 +995,7 @@ class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
                 tab = helpTransfer(tab, f);
             else {
                 V oldVal = null;
+                //noinspection SynchronizationOnLocalVariableOrMethodParameter
                 synchronized (f) {
                     if (tabAt(tab, i) == f) {
                         if (fh >= 0) {
@@ -1085,6 +1086,7 @@ class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
             else {
                 V oldVal = null;
                 boolean validated = false;
+                //noinspection SynchronizationOnLocalVariableOrMethodParameter
                 synchronized (f) {
                     if (tabAt(tab, i) == f) {
                         if (fh >= 0) {
@@ -1161,6 +1163,7 @@ class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
                 i = 0; // restart
             }
             else {
+                //noinspection SynchronizationOnLocalVariableOrMethodParameter
                 synchronized (f) {
                     if (tabAt(tab, i) == f) {
                         Node<K,V> p = (fh >= 0 ? f :
@@ -1919,6 +1922,7 @@ class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
             else if ((fh = f.hash) == MOVED)
                 advance = true; // already processed
             else {
+                //noinspection SynchronizationOnLocalVariableOrMethodParameter
                 synchronized (f) {
                     if (tabAt(tab, i) == f) {
                         Node<K,V> ln, hn;
@@ -2008,6 +2012,7 @@ class ConcurrentHashMapV8<K,V> extends AbstractMap<K,V>
                     transfer(tab, null);
             }
             else if ((b = tabAt(tab, index)) != null && b.hash >= 0) {
+                //noinspection SynchronizationOnLocalVariableOrMethodParameter
                 synchronized (b) {
                     if (tabAt(tab, index) == b) {
                         TreeNode<K,V> hd = null, tl = null;

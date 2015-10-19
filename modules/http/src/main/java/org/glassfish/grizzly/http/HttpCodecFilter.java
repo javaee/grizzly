@@ -1398,7 +1398,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         
         if (HttpPacket.isHttp(message)) {
             // Get HttpPacket
-            final HttpPacket input = (HttpPacket) ctx.getMessage();
+            final HttpPacket input = ctx.getMessage();
             // Get Connection
             final Connection connection = ctx.getConnection();
 

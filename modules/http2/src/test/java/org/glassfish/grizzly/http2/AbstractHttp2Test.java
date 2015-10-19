@@ -78,7 +78,7 @@ public abstract class AbstractHttp2Test {
     private volatile static SSLEngineConfigurator serverSSLEngineConfigurator;    
 
     public static Collection<Object[]> isSecure() {
-        final Collection<Object[]> modes = new LinkedList<Object[]>();
+        final Collection<Object[]> modes = new LinkedList<>();
         
         modes.add(new Object[] {Boolean.FALSE});
         

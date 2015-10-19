@@ -42,9 +42,8 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
+
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
@@ -58,8 +57,7 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import static org.glassfish.grizzly.http.util.Constants.*;
 import static org.glassfish.grizzly.http.util.DataChunk.Type.Buffer;
 import static org.glassfish.grizzly.http.util.DataChunk.Type.Bytes;
-import org.glassfish.grizzly.http.util.FastHttpDateFormat;
-import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
+
 import org.glassfish.grizzly.http2.compression.HeadersEncoder;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.ssl.SSLUtils;
@@ -264,7 +262,7 @@ class EncoderUtils {
                         final DataChunk value = headers.getValue(j);
                         if (!value.isNull()) {
                             if (tmpList == null) {
-                                tmpList = new ArrayList<DataChunk>(2);
+                                tmpList = new ArrayList<>(2);
                                 if (!value1.isNull()) {
                                     tmpList.add(value1);
                                     valueSize += value1.getLength();

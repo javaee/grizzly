@@ -56,10 +56,10 @@ public class PingFrame extends Http2Frame {
     public static final byte ACK_FLAG = 0x1;
 
     static final Map<Integer, String> FLAG_NAMES_MAP =
-            new HashMap<Integer, String>(2);
+            new HashMap<>(2);
     
     static {
-        FLAG_NAMES_MAP.put(Integer.valueOf(ACK_FLAG), "ACK");
+        FLAG_NAMES_MAP.put((int) ACK_FLAG, "ACK");
     }
     
     private long opaqueData;

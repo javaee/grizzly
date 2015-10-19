@@ -541,7 +541,7 @@ public class SpdyStream implements AttributeStorage, OutputSink, Closeable {
         if (cachedInputBufferLocal != null) {
             if (cachedInputBufferLocal.isComposite()) {
                 ((CompositeBuffer) cachedInputBufferLocal).allowInternalBuffersDispose(true);
-                ((CompositeBuffer) cachedInputBufferLocal).allowBufferDispose(true);
+                cachedInputBufferLocal.allowBufferDispose(true);
                 ((CompositeBuffer) cachedInputBufferLocal).disposeOrder(DisposeOrder.LAST_TO_FIRST);
             }
             

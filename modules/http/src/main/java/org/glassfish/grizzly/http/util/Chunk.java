@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,21 +52,21 @@ package org.glassfish.grizzly.http.util;
  * @see DataChunk
  */
 public interface Chunk {
-    public int getStart();
+    int getStart();
 
-    public void setStart(int start);
+    void setStart(int start);
 
-    public int getEnd();
+    int getEnd();
 
-    public void setEnd(int end);
+    void setEnd(int end);
 
-    public int getLength();
+    int getLength();
 
-    public String toString(int start, int end);
+    String toString(int start, int end);
 
-    public int indexOf(char c, int start);
+    int indexOf(char c, int start);
 
-    public int indexOf(String s, int start);
+    int indexOf(String s, int start);
 
-    public void delete(int start, int end);
+    void delete(int start, int end);
 }

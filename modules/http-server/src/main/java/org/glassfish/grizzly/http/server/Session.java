@@ -54,7 +54,7 @@ public class Session {
      * Cache attribute (thread safe)
      */
     private final ConcurrentMap<String,Object> attributes =
-            DataStructures.<String, Object>getConcurrentMap();
+            DataStructures.getConcurrentMap();
 
     /**
      * A session identifier

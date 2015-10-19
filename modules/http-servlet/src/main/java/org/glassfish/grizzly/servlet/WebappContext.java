@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,6 +55,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.glassfish.grizzly.servlet;
 
 import org.glassfish.grizzly.Grizzly;
@@ -187,7 +188,7 @@ public class WebappContext implements ServletContext {
 
     /* Servlet context attributes */
     private final ConcurrentMap<String,Object> attributes =
-            DataStructures.<String, Object>getConcurrentMap(16, 0.75f, 64);
+            DataStructures.getConcurrentMap(16, 0.75f, 64);
 
     /* Server name; used in the Server entity header */
     private volatile String serverInfo = "Grizzly " + Grizzly.getDotedVersion();

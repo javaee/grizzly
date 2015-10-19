@@ -48,7 +48,6 @@ import java.nio.InvalidMarkException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 
-import org.glassfish.grizzly.Appendable;
 import org.glassfish.grizzly.Buffer;
 
 /**

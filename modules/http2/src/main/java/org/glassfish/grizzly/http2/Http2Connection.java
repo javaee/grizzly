@@ -122,17 +122,17 @@ public abstract class Http2Connection {
     private volatile FilterChain http2ConnectionChain;
     
     private final Map<Integer, Http2Stream> streamsMap =
-            DataStructures.<Integer, Http2Stream>getConcurrentMap();
+            DataStructures.getConcurrentMap();
     
     // (Optimization) We may read several DataFrames belonging to the same
     // SpdyStream, so in order to not process every DataFrame separately -
     // we buffer them and only then passing for processing.
-    final List<Http2Stream> streamsToFlushInput = new ArrayList<Http2Stream>();
+    final List<Http2Stream> streamsToFlushInput = new ArrayList<>();
     
     // The List object used to store header frames. Could be used by
     // Http2Connection streams, when they write headers
     protected final List<Http2Frame> tmpHeaderFramesList =
-            new ArrayList<Http2Frame>(2);
+            new ArrayList<>(2);
     
     private final Object sessionLock = new Object();
     
@@ -205,7 +205,7 @@ public abstract class Http2Connection {
             lastPeerStreamId = 0;
         }
         
-        addressHolder = Holder.<Object>lazyHolder(new NullaryFunction<Object>() {
+        addressHolder = Holder.lazyHolder(new NullaryFunction<Object>() {
             @Override
             public Object evaluate() {
                 return connection.getPeerAddress();

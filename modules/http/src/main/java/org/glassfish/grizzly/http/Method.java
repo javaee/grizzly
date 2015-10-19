@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,8 +49,8 @@ import org.glassfish.grizzly.http.util.DataChunk;
  * @author Alexey Stashok
  */
 public final class Method {
-    public enum PayloadExpectation {ALLOWED, NOT_ALLOWED, UNDEFINED};
-    
+    public enum PayloadExpectation {ALLOWED, NOT_ALLOWED, UNDEFINED}
+
     public static final Method OPTIONS =
             new Method("OPTIONS", PayloadExpectation.ALLOWED);
     public static final Method GET =

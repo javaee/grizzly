@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,16 +55,16 @@ import java.util.concurrent.Future;
  * @author Alexey Stashok
  */
 public interface Reader<L> {
-    public static final int READ_EVENT = 1;
-    public static final int COMPLETE_EVENT = 2;
-    public static final int INCOMPLETE_EVENT = 3;
+    int READ_EVENT = 1;
+    int COMPLETE_EVENT = 2;
+    int INCOMPLETE_EVENT = 3;
     /**
      * Method reads data.
      *
      * @param connection the {@link Connection} to read from
      * @return {@link Future}, using which it's possible to check the result
      */
-    public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection<L> connection);
+    GrizzlyFuture<ReadResult<Buffer, L>> read(Connection<L> connection);
 
     /**
      * Method reads data to the <tt>buffer</tt>.
@@ -73,8 +73,8 @@ public interface Reader<L> {
      * @param buffer the buffer, where data will be read
      * @return {@link Future}, using which it's possible to check the result
      */
-    public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection<L> connection,
-            Buffer buffer);
+    GrizzlyFuture<ReadResult<Buffer, L>> read(Connection<L> connection,
+                                              Buffer buffer);
 
     /**
      * Method reads data to the <tt>buffer</tt>.
@@ -84,9 +84,9 @@ public interface Reader<L> {
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when read will be completed
      */
-    public void read(Connection<L> connection,
-            Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, L>> completionHandler);
+    void read(Connection<L> connection,
+              Buffer buffer,
+              CompletionHandler<ReadResult<Buffer, L>> completionHandler);
 
 
     /**
@@ -102,8 +102,8 @@ public interface Reader<L> {
      *        The <tt>interceptor</tt> can decide, whether asynchronous read is
      *        completed or not, or provide other processing instructions.
      */
-    public void read(Connection<L> connection,
-            Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, L>> completionHandler,
-            Interceptor<ReadResult> interceptor);
+    void read(Connection<L> connection,
+              Buffer buffer,
+              CompletionHandler<ReadResult<Buffer, L>> completionHandler,
+              Interceptor<ReadResult> interceptor);
 }

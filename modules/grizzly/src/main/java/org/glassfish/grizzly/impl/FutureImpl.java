@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,19 +56,19 @@ public interface FutureImpl<R> extends GrizzlyFuture<R> {
      * 
      * @return current result value without any blocking.
      */
-    public abstract R getResult();
+    R getResult();
 
     /**
      * Set the result value and notify about operation completion.
      * 
      * @param result the result value
      */
-    public abstract void result(R result);
+    void result(R result);
 
     /**
      * Notify about the failure, occurred during asynchronous operation execution.
      * 
      * @param failure
      */
-    public abstract void failure(Throwable failure);
+    void failure(Throwable failure);
 }

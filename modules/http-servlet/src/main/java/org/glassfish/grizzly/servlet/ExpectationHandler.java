@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
@@ -64,21 +65,21 @@ public interface ExpectationHandler {
      * 
      * @throws Exception 
      */
-    public void onExpectAcknowledgement(final HttpServletRequest request,
-            final HttpServletResponse response, final AckAction action)
+    void onExpectAcknowledgement(final HttpServletRequest request,
+                                 final HttpServletResponse response, final AckAction action)
             throws Exception;
     
     /**
      * Interface, using which {@link ExpectationHandler} may confirm or refuse
      * client expectation.
      */
-    public interface AckAction {
+    interface AckAction {
         /**
          * Acknowledges a client that server wants to receive payload.
          * 
          * @throws IOException 
          */
-        public void acknowledge() throws IOException;
+        void acknowledge() throws IOException;
         
         /**
          * Notifies a client that server doesn't want to process HTTP message
@@ -86,6 +87,6 @@ public interface ExpectationHandler {
          * 
          * @throws IOException 
          */
-        public void fail() throws IOException;
+        void fail() throws IOException;
     }
 }

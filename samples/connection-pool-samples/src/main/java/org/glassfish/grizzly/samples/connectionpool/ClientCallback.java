@@ -39,8 +39,6 @@
  */
 package org.glassfish.grizzly.samples.connectionpool;
 
-import org.glassfish.grizzly.Connection;
-
 /**
  * The general callback interface to be used by a {@link ClientFilter} to
  * delegate client {@link Connection}'s event processing.
@@ -52,7 +50,7 @@ public interface ClientCallback {
      * 
      * @param connection the new {@link Connection}
      */
-    public void onConnectionEstablished(final Connection connection);
+    void onConnectionEstablished(final Connection connection);
     
     /**
      * The callback operation will be executed once a client {@link Connection}
@@ -61,6 +59,6 @@ public interface ClientCallback {
      * @param connection the client-side {@link Connection}
      * @param responseMessage the response
      */
-    public void onResponseReceived(final Connection connection,
-            final String responseMessage);
+    void onResponseReceived(final Connection connection,
+                            final String responseMessage);
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -70,19 +70,19 @@ public class HttpResponsePacketTest extends TestCase {
         assertNull(response.getHeader(Header.ContentType));
         
         response.setHeader("Content-Length", "1");
-        assertEquals(1l, response.getContentLength());
+        assertEquals(1L, response.getContentLength());
         assertEquals("1", response.getHeader("Content-length"));
         assertTrue(response.containsHeader("content-length"));
         response.setHeader(Header.ContentLength, "2");
-        assertEquals(2l, response.getContentLength());
+        assertEquals(2L, response.getContentLength());
         assertEquals("2", response.getHeader(Header.ContentLength));
         assertTrue(response.containsHeader(Header.ContentLength));
         
         response.addHeader("content-Length", "3");
-        assertEquals(3l, response.getContentLength());
+        assertEquals(3L, response.getContentLength());
         assertEquals("3", response.getHeader("Content-length"));
         response.addHeader(Header.ContentLength, "4");
-        assertEquals(4l, response.getContentLength());
+        assertEquals(4L, response.getContentLength());
         assertEquals("4", response.getHeader(Header.ContentLength));
 
         response.setHeader("Content-Type", "text/plain");

@@ -150,7 +150,7 @@ public class BasicAjpTest extends AjpTestBase {
             @Override
             public void service(Request request, Response response)
                     throws Exception {
-                if (request.getContentLengthLong() == 0l) {
+                if (request.getContentLengthLong() == 0L) {
                     response.setStatus(200, "FINE");
                 } else {
                     response.sendError(500, "'Content-Length: 0' header has been lost?");
@@ -202,7 +202,7 @@ public class BasicAjpTest extends AjpTestBase {
             @Override
             public void service(Request request, Response response)
                     throws Exception {
-                if (request.getContentLengthLong() == 0l) {
+                if (request.getContentLengthLong() == 0L) {
                     response.setStatus(200, "FINE");
                 } else {
                     response.sendError(500, "'Content-Length: 0' header has been lost?");
@@ -535,7 +535,7 @@ public class BasicAjpTest extends AjpTestBase {
                 
                 if (isOk) {
                     try {
-                        assertEquals((Integer) 256, (Integer) request.getAttribute(SSLSupport.KEY_SIZE_KEY));
+                        assertEquals((Integer) 256, request.getAttribute(SSLSupport.KEY_SIZE_KEY));
                         assertNotNull(request.getAttribute(SSLSupport.SESSION_ID_KEY));
                         assertNotNull(request.getAttribute(SSLSupport.CIPHER_SUITE_KEY));
                         assertNotNull(request.getAttribute(SSLSupport.CERTIFICATE_KEY));

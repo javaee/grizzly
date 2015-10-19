@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -88,7 +88,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     public static final int PORT = 7778;
     private static final Logger LOGGER = Grizzly.logger(ByteBufferStreamsTest.class);
-    private final FutureImpl<Boolean> poisonFuture = SafeFutureImpl.<Boolean>create();
+    private final FutureImpl<Boolean> poisonFuture = SafeFutureImpl.create();
     private Connection clientconnection = null;
     private TCPNIOTransport servertransport = null;
     private StreamWriter clientWriter = null;
@@ -1122,7 +1122,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
         future.get(10, TimeUnit.SECONDS);
         
         // test streaming
-        MemoryManager alloc = MemoryManager.DEFAULT_MEMORY_MANAGER;;
+        MemoryManager alloc = MemoryManager.DEFAULT_MEMORY_MANAGER;
         byte[] testdata = new byte[500];
 
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -245,7 +245,7 @@ public class SuspendTest {
 
     @Test
     public void testResumeAfterClose() throws Exception {
-        final FutureImpl<Boolean> resultFuture = Futures.<Boolean>createSafeFuture();
+        final FutureImpl<Boolean> resultFuture = Futures.createSafeFuture();
 
         
         startHttpServer(new TestStaticHttpHandler() {
@@ -733,7 +733,7 @@ public class SuspendTest {
 
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpContent httpContent = ctx.getMessage();
             if (!httpContent.isLast()) {
                 return ctx.getStopAction(httpContent);
             }
@@ -751,7 +751,7 @@ public class SuspendTest {
         }
     }
 
-    private class TestCompletionHandler<E> extends EmptyCompletionHandler<E> {
+    private static class TestCompletionHandler<E> extends EmptyCompletionHandler<E> {
 
         @Override
         public void cancelled() {

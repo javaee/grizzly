@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -73,7 +73,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
         if (readResult != null) {
             readResult.connection = connection;
             readResult.message = message;
-            readResult.srcAddressHolder = Holder.<L>staticHolder(srcAddress);
+            readResult.srcAddressHolder = Holder.staticHolder(srcAddress);
             readResult.readSize = readSize;
             readResult.isRecycled = false;
             
@@ -120,7 +120,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
             final L srcAddress, final int readSize) {
         this.connection = connection;
         this.message = message;
-        this.srcAddressHolder = Holder.<L>staticHolder(srcAddress);
+        this.srcAddressHolder = Holder.staticHolder(srcAddress);
         this.readSize = readSize;
     }
 
@@ -182,7 +182,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
      */
     public final void setSrcAddress(L srcAddress) {
         checkRecycled();
-        this.srcAddressHolder = Holder.<L>staticHolder(srcAddress);
+        this.srcAddressHolder = Holder.staticHolder(srcAddress);
     }
 
     /**
@@ -227,7 +227,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
             final L srcAddress, final int readSize) {
         this.connection = connection;
         this.message = message;
-        this.srcAddressHolder = Holder.<L>staticHolder(srcAddress);
+        this.srcAddressHolder = Holder.staticHolder(srcAddress);
         this.readSize = readSize;
     }
     
@@ -252,7 +252,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
 
     @Override
     public Object copy() {
-        return ReadResult.<K, L>create(getConnection(), getMessage(),
+        return ReadResult.create(getConnection(), getMessage(),
                 getSrcAddress(), getReadSize());
     }
 }

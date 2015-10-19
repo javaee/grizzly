@@ -49,11 +49,11 @@ public abstract class HeaderBlockHead extends HeaderBlockFragment {
     public static final byte PADDED = 0x8;
     
     static final Map<Integer, String> FLAG_NAMES_MAP =
-            new HashMap<Integer, String>(2);
+            new HashMap<>(2);
     
     static {
         FLAG_NAMES_MAP.putAll(HeaderBlockFragment.FLAG_NAMES_MAP);
-        FLAG_NAMES_MAP.put(Integer.valueOf(PADDED), "PADDED");
+        FLAG_NAMES_MAP.put((int) PADDED, "PADDED");
     }
     
     protected int padLength;

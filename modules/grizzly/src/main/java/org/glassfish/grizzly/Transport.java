@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,22 +66,22 @@ public interface Transport extends MonitoringAware<TransportProbe> {
     /**
      * The default read buffer size.
      */
-    public static final int DEFAULT_READ_BUFFER_SIZE = -1;
+    int DEFAULT_READ_BUFFER_SIZE = -1;
 
     /**
      * The default write buffer size.
      */
-    public static final int DEFAULT_WRITE_BUFFER_SIZE = -1;
+    int DEFAULT_WRITE_BUFFER_SIZE = -1;
 
     /**
      * Default read timeout in seconds.
      */
-    public static final int DEFAULT_READ_TIMEOUT = 30;
+    int DEFAULT_READ_TIMEOUT = 30;
 
     /**
      * Default write timeout in seconds.
      */
-    public static final int DEFAULT_WRITE_TIMEOUT = 30;
+    int DEFAULT_WRITE_TIMEOUT = 30;
 
     
     enum State {STARTING, STARTED, PAUSING, PAUSED, STOPPING, STOPPED}

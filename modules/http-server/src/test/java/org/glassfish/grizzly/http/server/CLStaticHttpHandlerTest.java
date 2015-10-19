@@ -367,7 +367,7 @@ public class CLStaticHttpHandlerTest {
                                     new Object[]{f.length(), stop - start});
                         // result.result(f) should be the last operation in handleRead
                             // otherwise NPE may occur in handleWrite asynchronously
-                            resultQueue.add(Futures.<File>createReadyFuture(f));
+                            resultQueue.add(Futures.createReadyFuture(f));
                         } catch (Throwable e) {
                             resultQueue.add(Futures.<File>createReadyFuture(e));
                         }
@@ -444,7 +444,7 @@ public class CLStaticHttpHandlerTest {
         }
     }
     
-    private static interface ResponseValidator {
+    private interface ResponseValidator {
         
         void validate(HttpResponsePacket response);
         

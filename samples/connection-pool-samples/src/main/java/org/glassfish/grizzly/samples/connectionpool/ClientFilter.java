@@ -40,9 +40,6 @@
 package org.glassfish.grizzly.samples.connectionpool;
 
 import java.io.IOException;
-import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
  * The client {@link org.glassfish.grizzly.filterchain.Filter} responsible for

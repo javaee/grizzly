@@ -51,5 +51,5 @@ public enum Http2StreamState {
     RESERVED_REMOTE,
     HALF_CLOSED_LOCAL,
     HALF_CLOSED_REMOTE,
-    CLOSED;
+    CLOSED
 }

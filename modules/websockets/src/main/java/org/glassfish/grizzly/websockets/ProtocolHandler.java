@@ -216,7 +216,7 @@ public abstract class ProtocolHandler {
             throw new IllegalStateException("Connection is null");
         }
         
-        final FutureImpl<DataFrame> localFuture = SafeFutureImpl.<DataFrame>create();
+        final FutureImpl<DataFrame> localFuture = SafeFutureImpl.create();
 
         localConnection.write(frame, new EmptyCompletionHandler() {
             @Override

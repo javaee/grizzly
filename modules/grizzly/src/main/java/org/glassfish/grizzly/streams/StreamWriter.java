@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,25 +65,25 @@ public interface StreamWriter extends Stream {
      * @return <tt>true</tt>, if <tt>StreamReader</tt> has been closed,
      * or <tt>false</tt> otherwise.
      */
-    public boolean isClosed();
+    boolean isClosed();
     
     /**
      * Make sure that all data that has been written is
      * flushed from the stream to its destination.
      */
-    public GrizzlyFuture<Integer> flush() throws IOException;
+    GrizzlyFuture<Integer> flush() throws IOException;
 
     /**
      * Make sure that all data that has been written is
      * flushed from the stream to its destination.
      */
-    public GrizzlyFuture<Integer> flush(
+    GrizzlyFuture<Integer> flush(
             CompletionHandler<Integer> completionHandler) throws IOException;
 
     /**
      * Close the {@link StreamWriter} and make sure all data was flushed.
      */
-    public GrizzlyFuture<Integer> close(
+    GrizzlyFuture<Integer> close(
             CompletionHandler<Integer> completionHandler) throws IOException;
 
     /**
@@ -92,7 +92,7 @@ public interface StreamWriter extends Stream {
      * @param data <tt>boolean</tt> value.
      * @throws java.io.IOException
      */
-    public void writeBoolean(boolean data) throws IOException;
+    void writeBoolean(boolean data) throws IOException;
 
     /**
      * Write the <tt>byte</tt> value to the <tt>StreamWriter</tt>.
@@ -100,7 +100,7 @@ public interface StreamWriter extends Stream {
      * @param data <tt>byte</tt> value.
      * @throws java.io.IOException
      */
-    public void writeByte(byte data) throws IOException;
+    void writeByte(byte data) throws IOException;
 
     /**
      * Write the <tt>char</tt> value to the <tt>StreamWriter</tt>.
@@ -108,7 +108,7 @@ public interface StreamWriter extends Stream {
      * @param data <tt>char</tt> value.
      * @throws java.io.IOException
      */
-    public void writeChar(char data) throws IOException;
+    void writeChar(char data) throws IOException;
 
     /**
      * Write the <tt>short</tt> value to the <tt>StreamWriter</tt>.
@@ -116,7 +116,7 @@ public interface StreamWriter extends Stream {
      * @param data <tt>short</tt> value.
      * @throws java.io.IOException
      */
-    public void writeShort(short data) throws IOException;
+    void writeShort(short data) throws IOException;
 
     /**
      * Write the <tt>int</tt> value to the <tt>StreamWriter</tt>.
@@ -124,7 +124,7 @@ public interface StreamWriter extends Stream {
      * @param data <tt>int</tt> value.
      * @throws java.io.IOException
      */
-    public void writeInt(int data) throws IOException;
+    void writeInt(int data) throws IOException;
 
     /**
      * Write the <tt>long</tt> value to the <tt>StreamWriter</tt>.
@@ -132,7 +132,7 @@ public interface StreamWriter extends Stream {
      * @param data <tt>long</tt> value.
      * @throws java.io.IOException
      */
-    public void writeLong(long data) throws IOException;
+    void writeLong(long data) throws IOException;
 
     /**
      * Write the <tt>float</tt> value to the <tt>StreamWriter</tt>.
@@ -140,7 +140,7 @@ public interface StreamWriter extends Stream {
      * @param data <tt>float</tt> value.
      * @throws java.io.IOException
      */
-    public void writeFloat(float data) throws IOException;
+    void writeFloat(float data) throws IOException;
 
     /**
      * Write the <tt>double</tt> value to the <tt>StreamWriter</tt>.
@@ -148,7 +148,7 @@ public interface StreamWriter extends Stream {
      * @param data <tt>double</tt> value.
      * @throws java.io.IOException
      */
-    public void writeDouble(double data) throws IOException;
+    void writeDouble(double data) throws IOException;
 
     /**
      * Write the array of <tt>boolean</tt> values to the <tt>StreamWriter</tt>.
@@ -156,7 +156,7 @@ public interface StreamWriter extends Stream {
      * @param data array of <tt>boolean</tt> values.
      * @throws java.io.IOException
      */
-    public void writeBooleanArray(final boolean[] data) throws IOException;
+    void writeBooleanArray(final boolean[] data) throws IOException;
 
     /**
      * Write the array of <tt>byte</tt> values to the <tt>StreamWriter</tt>.
@@ -164,7 +164,7 @@ public interface StreamWriter extends Stream {
      * @param data array of <tt>byte</tt> values.
      * @throws java.io.IOException
      */
-    public void writeByteArray(final byte[] data) throws IOException;
+    void writeByteArray(final byte[] data) throws IOException;
 
     /**
      * Write the part of array of <tt>byte</tt> values to the
@@ -176,7 +176,7 @@ public interface StreamWriter extends Stream {
      * 
      * @throws java.io.IOException
      */
-    public void writeByteArray(final byte[] data, int offset, int length)
+    void writeByteArray(final byte[] data, int offset, int length)
             throws IOException;
 
     /**
@@ -185,7 +185,7 @@ public interface StreamWriter extends Stream {
      * @param data array of <tt>char</tt> values.
      * @throws java.io.IOException
      */
-    public void writeCharArray(final char[] data) throws IOException;
+    void writeCharArray(final char[] data) throws IOException;
 
     /**
      * Write the array of <tt>short</tt> values to the <tt>StreamWriter</tt>.
@@ -193,7 +193,7 @@ public interface StreamWriter extends Stream {
      * @param data array of <tt>short</tt> values.
      * @throws java.io.IOException
      */
-    public void writeShortArray(short[] data) throws IOException;
+    void writeShortArray(short[] data) throws IOException;
 
     /**
      * Write the array of <tt>int</tt> values to the <tt>StreamWriter</tt>.
@@ -201,7 +201,7 @@ public interface StreamWriter extends Stream {
      * @param data array of <tt>int</tt> values.
      * @throws java.io.IOException
      */
-    public void writeIntArray(int[] data) throws IOException;
+    void writeIntArray(int[] data) throws IOException;
 
     /**
      * Write the array of <tt>long</tt> values to the <tt>StreamWriter</tt>.
@@ -209,7 +209,7 @@ public interface StreamWriter extends Stream {
      * @param data array of <tt>long</tt> values.
      * @throws java.io.IOException
      */
-    public void writeLongArray(long[] data) throws IOException;
+    void writeLongArray(long[] data) throws IOException;
 
     /**
      * Write the array of <tt>float</tt> values to the <tt>StreamWriter</tt>.
@@ -217,7 +217,7 @@ public interface StreamWriter extends Stream {
      * @param data array of <tt>float</tt> values.
      * @throws java.io.IOException
      */
-    public void writeFloatArray(float[] data) throws IOException;
+    void writeFloatArray(float[] data) throws IOException;
 
     /**
      * Write the array of <tt>double</tt> values to the <tt>StreamWriter</tt>.
@@ -225,7 +225,7 @@ public interface StreamWriter extends Stream {
      * @param data array of <tt>double</tt> values.
      * @throws java.io.IOException
      */
-    public void writeDoubleArray(double[] data) throws IOException;
+    void writeDoubleArray(double[] data) throws IOException;
 
     /**
      * Write the {@link Buffer} to the <tt>StreamWriter</tt>.
@@ -234,13 +234,13 @@ public interface StreamWriter extends Stream {
      * 
      * @throws java.io.IOException
      */
-    public void writeBuffer(Buffer buffer) throws IOException;
+    void writeBuffer(Buffer buffer) throws IOException;
 
-    public <E> GrizzlyFuture<Stream> encode(Transformer<E, Buffer> encoder,
-            E object) throws IOException;
+    <E> GrizzlyFuture<Stream> encode(Transformer<E, Buffer> encoder,
+                                     E object) throws IOException;
 
-    public <E> GrizzlyFuture<Stream> encode(Transformer<E, Buffer> encoder,
-            E object, CompletionHandler<Stream> completionHandler)
+    <E> GrizzlyFuture<Stream> encode(Transformer<E, Buffer> encoder,
+                                     E object, CompletionHandler<Stream> completionHandler)
             throws IOException;
 
     /**
@@ -249,7 +249,7 @@ public interface StreamWriter extends Stream {
      * @return the {@link Connection} this <tt>StreamWriter</tt> belongs to.
      */
     @Override
-    public Connection getConnection();
+    Connection getConnection();
 
 
     /**
@@ -258,7 +258,7 @@ public interface StreamWriter extends Stream {
      * @param timeunit timeout unit {@link TimeUnit}.
      * @return the timeout for <tt>StreamWriter</tt> I/O operations.
      */
-    public long getTimeout(TimeUnit timeunit);
+    long getTimeout(TimeUnit timeunit);
 
     /**
      * Set the timeout for <tt>StreamWriter</tt> I/O operations.
@@ -266,6 +266,6 @@ public interface StreamWriter extends Stream {
      * @param timeout the timeout for <tt>StreamWriter</tt> I/O operations.
      * @param timeunit timeout unit {@link TimeUnit}.
      */
-    public void setTimeout(long timeout, TimeUnit timeunit);
+    void setTimeout(long timeout, TimeUnit timeunit);
 }
 

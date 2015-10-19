@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http.multipart;
 
-import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.GenericCloseListener;
@@ -304,7 +303,7 @@ public class MutlipartEntryReaderTest {
         return request;
     }
 
-    class TestMultipartEntryHandler implements MultipartEntryHandler {
+    static class TestMultipartEntryHandler implements MultipartEntryHandler {
 
         final NIOWriter writer;
 
@@ -360,7 +359,7 @@ public class MutlipartEntryReaderTest {
                     .build();
 
             final FutureImpl<Connection> future =
-                    Futures.<Connection>createSafeFuture();
+                    Futures.createSafeFuture();
             
             connector.connect(new InetSocketAddress(host, port),
                     Futures.toCompletionHandler(future, 
@@ -375,7 +374,7 @@ public class MutlipartEntryReaderTest {
         }
 
         public Future<HttpPacket> get(HttpPacket request) throws IOException {
-            final FutureImpl<HttpPacket> localFuture = SafeFutureImpl.<HttpPacket>create();
+            final FutureImpl<HttpPacket> localFuture = SafeFutureImpl.create();
             asyncFuture = localFuture;
             connection.write(request, new EmptyCompletionHandler() {
 
@@ -405,7 +404,7 @@ public class MutlipartEntryReaderTest {
         private class HttpResponseFilter extends BaseFilter {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 if (message.isLast()) {
                     final FutureImpl<HttpPacket> localFuture = asyncFuture;
                     asyncFuture = null;
@@ -428,7 +427,7 @@ public class MutlipartEntryReaderTest {
         return httpServer;
     }
 
-    private class EchoReadHandler implements ReadHandler {
+    private static class EchoReadHandler implements ReadHandler {
         private final NIOWriter writer;
         private final NIOReader reader;
         public EchoReadHandler(NIOReader reader, NIOWriter writer) {
@@ -461,7 +460,7 @@ public class MutlipartEntryReaderTest {
         }
     }
 
-    private class ResumeCompletionHandler extends EmptyCompletionHandler<Request> {
+    private static class ResumeCompletionHandler extends EmptyCompletionHandler<Request> {
         private final Response response;
 
         public ResumeCompletionHandler(Response response) {
@@ -479,7 +478,7 @@ public class MutlipartEntryReaderTest {
         }
     }
 
-    private class Task {
+    private static class Task {
         private final HttpPacket packet;
         private final Checker checker;
 
@@ -490,10 +489,10 @@ public class MutlipartEntryReaderTest {
     }
 
     private interface Checker {
-        public void check(HttpContent httpContent);
+        void check(HttpContent httpContent);
     }
 
-    private class StringChecker implements Checker {
+    private static class StringChecker implements Checker {
         final String result;
 
         public StringChecker(String result) {
@@ -506,7 +505,7 @@ public class MutlipartEntryReaderTest {
         }
     }
 
-    private class BufferChecker implements Checker {
+    private static class BufferChecker implements Checker {
         final Buffer result;
 
         public BufferChecker(Buffer result) {

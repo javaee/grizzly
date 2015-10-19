@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,7 +58,7 @@ public interface AttributeHolder {
      * @param name - name of an attribute
      * @return  attribute which has been removed
      */
-    public Object removeAttribute(String name);
+    Object removeAttribute(String name);
     
     
     /**
@@ -66,7 +66,7 @@ public interface AttributeHolder {
      * @param name - name of an attribute
      * @param value - value of named attribute
      */
-    public void setAttribute(String name, Object value);
+    void setAttribute(String name, Object value);
 
     
     /**
@@ -75,7 +75,7 @@ public interface AttributeHolder {
      * @return - attribute value for the <tt>name</tt>, null if <tt>name</tt>
      *           does not exist in <tt>attributes</tt>
      */
-    public Object getAttribute(String name);
+    Object getAttribute(String name);
 
     /**
      * Return an object based on a name.
@@ -87,31 +87,31 @@ public interface AttributeHolder {
      * 
      * @since 2.3.18
      */
-    public Object getAttribute(String name, NullaryFunction initializer);
+    Object getAttribute(String name, NullaryFunction initializer);
 
     /**
      * Return a {@link Set} of attribute names.
      * 
      * @return - {@link Set} of attribute names
      */
-    public Set<String> getAttributeNames();
+    Set<String> getAttributeNames();
     
     
     /**
      * Clear all the attributes.
      */
-    public void clear();
+    void clear();
     
     /**
      * Recycle <tt>AttributeHolder</tt>
      */
-    public void recycle();
+    void recycle();
     
     /**
      * Get AttributeBuilder, associated with this holder
      * @return AttributeBuilder
      */
-    public AttributeBuilder getAttributeBuilder();
+    AttributeBuilder getAttributeBuilder();
     
     
     /**
@@ -121,19 +121,19 @@ public interface AttributeHolder {
      * 
      * @return {@link IndexedAttributeAccessor}.
      */
-    public IndexedAttributeAccessor getIndexedAttributeAccessor();
+    IndexedAttributeAccessor getIndexedAttributeAccessor();
 
     /**
      * Copies attributes from this <tt>AttributeHolder</tt> to the dstAttributes.
      * 
      * @param dstAttributes 
      */
-    public void copyTo(AttributeHolder dstAttributes);
+    void copyTo(AttributeHolder dstAttributes);
 
     /**
      * Copies attributes from the srcAttributes to this <tt>AttributeHolder</tt>
      * 
      * @param srcAttributes 
      */
-    public void copyFrom(AttributeHolder srcAttributes);
+    void copyFrom(AttributeHolder srcAttributes);
 }

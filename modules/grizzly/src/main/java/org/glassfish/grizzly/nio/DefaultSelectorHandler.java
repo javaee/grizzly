@@ -201,7 +201,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             throws IOException {
 
         final FutureImpl<RegisterChannelResult> future =
-                SafeFutureImpl.<RegisterChannelResult>create();
+                SafeFutureImpl.create();
 
         deregisterChannelAsync(selectorRunner, channel,
                 Futures.toCompletionHandler(future));

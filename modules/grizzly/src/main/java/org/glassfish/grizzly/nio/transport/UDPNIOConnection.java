@@ -488,7 +488,7 @@ public class UDPNIOConnection extends NIOConnection {
             setWriteBufferSize(transport.getWriteBufferSize());
 
             final int transportMaxAsyncWriteQueueSize =
-                    ((UDPNIOTransport) transport).getAsyncQueueIO()
+                    transport.getAsyncQueueIO()
                     .getWriter().getMaxPendingBytesPerConnection();
             
             setMaxAsyncWriteQueueSize(

@@ -122,7 +122,7 @@ public class DefaultWebSocket extends SimpleWebSocket {
     // ----------------------------------------------------------- Inner Classes
 
     
-    private class WSRequestImpl extends Request {
+    private static class WSRequestImpl extends Request {
 
         public WSRequestImpl() {
             super(new WSResponseImpl());

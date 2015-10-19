@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,16 +52,16 @@ public interface AsyncQueueIO<L> {
      * 
      * @return {@link AsyncQueueReader} implementation.
      */
-    public AsyncQueueReader<L> getReader();
+    AsyncQueueReader<L> getReader();
 
     /**
      * Get {@link AsyncQueueWriter} implementation.
      *
      * @return {@link AsyncQueueWriter} implementation.
      */
-    public AsyncQueueWriter<L> getWriter();
+    AsyncQueueWriter<L> getWriter();
     
-    public static class Factory {
+    class Factory {
         public static <L> AsyncQueueIO<L> createImmutable(
                 final AsyncQueueReader<L> reader, final AsyncQueueWriter<L> writer) {
             return new ImmutableAsyncQueueIO<L>(reader, writer);
@@ -73,7 +73,7 @@ public interface AsyncQueueIO<L> {
         }
     }
     
-    static final class ImmutableAsyncQueueIO<L> implements AsyncQueueIO<L> {
+    final class ImmutableAsyncQueueIO<L> implements AsyncQueueIO<L> {
 
         private final AsyncQueueReader<L> reader;
         private final AsyncQueueWriter<L> writer;
@@ -100,7 +100,7 @@ public interface AsyncQueueIO<L> {
         }
     }
     
-    static final class MutableAsyncQueueIO<L> implements AsyncQueueIO<L> {
+    final class MutableAsyncQueueIO<L> implements AsyncQueueIO<L> {
 
         private volatile AsyncQueueReader<L> reader;
         private volatile AsyncQueueWriter<L> writer;

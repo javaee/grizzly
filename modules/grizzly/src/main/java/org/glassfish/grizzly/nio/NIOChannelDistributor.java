@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,29 +50,29 @@ import org.glassfish.grizzly.GrizzlyFuture;
  * @author Alexey Stashok
  */
 public interface NIOChannelDistributor {
-    public void registerChannel(SelectableChannel channel) 
+    void registerChannel(SelectableChannel channel)
             throws IOException;
     
-    public void registerChannel(SelectableChannel channel, 
-            int interestOps) throws IOException;
+    void registerChannel(SelectableChannel channel,
+                         int interestOps) throws IOException;
     
-    public void registerChannel(SelectableChannel channel,
-            int interestOps, Object attachment) throws IOException;
+    void registerChannel(SelectableChannel channel,
+                         int interestOps, Object attachment) throws IOException;
 
-    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
+    GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel);
     
-    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
+    GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps);
     
-    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
+    GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps, Object attachment);
 
-    public void registerChannelAsync(
+    void registerChannelAsync(
             SelectableChannel channel, int interestOps, Object attachment,
             CompletionHandler<RegisterChannelResult> completionHandler);
 
-    public void registerServiceChannelAsync(
+    void registerServiceChannelAsync(
             SelectableChannel channel, int interestOps, Object attachment,
             CompletionHandler<RegisterChannelResult> completionHandler);    
 }

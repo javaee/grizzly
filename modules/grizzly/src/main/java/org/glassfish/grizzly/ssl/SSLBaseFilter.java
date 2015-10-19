@@ -352,7 +352,8 @@ public class SSLBaseFilter extends BaseFilter {
         }
 
         final Connection connection = ctx.getConnection();
-        
+
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized(connection) {
             final Buffer output =
                     wrapAll(ctx, obtainSslConnectionContext(connection));
@@ -1015,7 +1016,7 @@ public class SSLBaseFilter extends BaseFilter {
 
     } // END CertificateEvent
 
-    private class InternalProcessingHandler extends IOEventLifeCycleListener.Adapter {
+    private static class InternalProcessingHandler extends IOEventLifeCycleListener.Adapter {
         private final FilterChainContext parentContext;
 
         private InternalProcessingHandler(final FilterChainContext parentContext) {
@@ -1029,10 +1030,10 @@ public class SSLBaseFilter extends BaseFilter {
 
     } // END InternalProcessingHandler
     
-    public static interface HandshakeListener {
-        public void onStart(Connection connection);
-        public void onComplete(Connection connection);
-        public void onFailure(Connection connection, Throwable t);
+    public interface HandshakeListener {
+        void onStart(Connection connection);
+        void onComplete(Connection connection);
+        void onFailure(Connection connection, Throwable t);
     }
     
     protected class SSLTransportFilterWrapper extends TransportFilter {

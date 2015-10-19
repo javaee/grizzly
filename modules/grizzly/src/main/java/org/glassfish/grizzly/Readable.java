@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,8 +56,8 @@ public interface Readable<L> {
      * Method reads data.
      * @return {@link Future}, using which it's possible to check the result
      */
-    public <M> GrizzlyFuture<ReadResult<M, L>> read();
+    <M> GrizzlyFuture<ReadResult<M, L>> read();
     
-    public <M> void read(
+    <M> void read(
             CompletionHandler<ReadResult<M, L>> completionHandler);
 }

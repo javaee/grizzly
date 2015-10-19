@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,22 +51,22 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public interface Input {
-    public GrizzlyFuture<Integer> notifyCondition(
+    GrizzlyFuture<Integer> notifyCondition(
             final Condition condition,
             final CompletionHandler<Integer> completionHandler);
 
-    public byte read() throws IOException;
+    byte read() throws IOException;
 
-    public void skip(int length);
+    void skip(int length);
     
-    public boolean isBuffered();
+    boolean isBuffered();
     
     /**
      * Return the <tt>Input</tt>'s {@link Buffer}.
      *
      * @return the <tt>Input</tt>'s {@link Buffer}.
      */
-    public Buffer getBuffer();
+    Buffer getBuffer();
 
     /**
      * Takes the <tt>Input</tt>'s {@link Buffer}. This <tt>Input</tt> should
@@ -75,9 +75,9 @@ public interface Input {
      * @return the <tt>Input</tt>'s {@link Buffer}. This <tt>Input</tt> should
      * never try to access this {@link Buffer}.
      */
-    public Buffer takeBuffer();
+    Buffer takeBuffer();
 
-    public int size();
+    int size();
 
-    public void close() throws IOException;
+    void close() throws IOException;
 }

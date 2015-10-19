@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -235,7 +235,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         server.getListener("grizzly").registerAddOn(new WebSocketAddOn());
         WebSocketEngine.getEngine().register("", "/chat", app);
         
-        final FutureImpl<Boolean> isConnectedStateWhenClosed = SafeFutureImpl.<Boolean>create();
+        final FutureImpl<Boolean> isConnectedStateWhenClosed = SafeFutureImpl.create();
         WebSocketClient client = new WebSocketClient("ws://localhost:8051/chat",
                 new WebSocketAdapter() {
             @Override

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,9 +46,9 @@ package org.glassfish.grizzly.utils;
  * @author Alexey Stashok
  */
 public interface ObjectPool<E extends PoolableObject> {
-    public E poll();
+    E poll();
 
-    public void offer(E object);
+    void offer(E object);
     
-    public void clear();
+    void clear();
 }

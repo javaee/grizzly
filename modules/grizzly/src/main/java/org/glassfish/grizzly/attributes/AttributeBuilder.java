@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,7 +65,7 @@ public interface AttributeBuilder {
      * be public and have a public no-arg constructor.
      * </p>
      */
-    public static AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER =
+    AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER =
             AttributeBuilderInitializer.initBuilder();
 
     /**
@@ -76,7 +76,7 @@ public interface AttributeBuilder {
 
      * @return Attribute<T>
      */
-    public <T> Attribute<T> createAttribute(String name);
+    <T> Attribute<T> createAttribute(String name);
 
     /**
      * Create Attribute with name and default value
@@ -87,7 +87,7 @@ public interface AttributeBuilder {
      * 
      * @return Attribute<T>
      */
-    public <T> Attribute<T> createAttribute(String name, T defaultValue);
+    <T> Attribute<T> createAttribute(String name, T defaultValue);
 
     /**
      * Create Attribute with name and initializer, which will be called, if
@@ -100,7 +100,7 @@ public interface AttributeBuilder {
      * 
      * @return Attribute<T>
      */
-    public <T> Attribute<T> createAttribute(String name, org.glassfish.grizzly.utils.NullaryFunction<T> initializer);
+    <T> Attribute<T> createAttribute(String name, org.glassfish.grizzly.utils.NullaryFunction<T> initializer);
     
     /**
      * Create Attribute with name and initializer, which will be called, if
@@ -114,19 +114,19 @@ public interface AttributeBuilder {
      * @return Attribute<T>
      * @deprecated pls. use {@link #createAttribute(java.lang.String, org.glassfish.grizzly.utils.NullaryFunction)}.
      */
-    public <T> Attribute<T> createAttribute(String name, NullaryFunction<T> initializer);
+    <T> Attribute<T> createAttribute(String name, NullaryFunction<T> initializer);
 
     /**
      * Creates and returns new thread-safe {@link AttributeHolder}
      * 
      * @return thread-safe {@link AttributeHolder}
      */
-    public AttributeHolder createSafeAttributeHolder();
+    AttributeHolder createSafeAttributeHolder();
     
     /**
      * Creates and returns new non thread-safe {@link AttributeHolder}
      * 
      * @return non thread-safe {@link AttributeHolder}
      */
-    public AttributeHolder createUnsafeAttributeHolder();
+    AttributeHolder createUnsafeAttributeHolder();
 }

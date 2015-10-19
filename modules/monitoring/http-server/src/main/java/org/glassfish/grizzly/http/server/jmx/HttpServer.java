@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,9 +65,9 @@ public class HttpServer extends JmxObject {
 
     private GrizzlyJmxManager mom;
     private final ConcurrentMap<String, NetworkListener> currentListeners =
-            DataStructures.<String, NetworkListener>getConcurrentMap(4);
+            DataStructures.getConcurrentMap(4);
     private final ConcurrentMap<String, Object> listenersJmx =
-            DataStructures.<String, Object>getConcurrentMap(4);
+            DataStructures.getConcurrentMap(4);
     
 
 

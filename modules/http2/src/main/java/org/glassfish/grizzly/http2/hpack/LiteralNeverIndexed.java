@@ -96,7 +96,7 @@ public class LiteralNeverIndexed implements BinaryRepresentation {
         private static final LiteralNeverIndexed INSTANCE = new LiteralNeverIndexed();
     }
 
-    public static final LiteralNeverIndexed getInstance() {
+    public static LiteralNeverIndexed getInstance() {
         return InstanceHolder.INSTANCE;
     }
     

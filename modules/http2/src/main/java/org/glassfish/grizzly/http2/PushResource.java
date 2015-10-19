@@ -192,7 +192,7 @@ public final class PushResource {
          */
         public PushResourceBuilder header(final String name, final String value) {
             if (pushResource.headers == null) {
-                pushResource.headers = new HashMap<String, String>(4);
+                pushResource.headers = new HashMap<>(4);
             }
             
             pushResource.headers.put(name, value);
@@ -208,7 +208,7 @@ public final class PushResource {
          */
         public PushResourceBuilder header(final Header name, final String value) {
             if (pushResource.headers == null) {
-                pushResource.headers = new HashMap<String, String>(4);
+                pushResource.headers = new HashMap<>(4);
             }
             
             pushResource.headers.put(name.toString(), value);

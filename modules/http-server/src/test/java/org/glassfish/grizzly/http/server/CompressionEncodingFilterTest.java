@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.http.server;
 
 import java.util.Arrays;
@@ -62,8 +63,8 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
 public class CompressionEncodingFilterTest {
-    public enum HeaderType {String, Buffer, Chars};
-    
+    public enum HeaderType {String, Buffer, Chars}
+
     private final HeaderType headerType;
     private final Random r = new Random();
     

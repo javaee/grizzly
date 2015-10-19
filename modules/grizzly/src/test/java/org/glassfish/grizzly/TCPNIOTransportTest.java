@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,7 +68,6 @@ import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectorRunner;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
-import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.streams.StreamReader;
@@ -86,7 +85,6 @@ import org.junit.Test;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 
 /**
@@ -304,7 +302,7 @@ public class TCPNIOTransportTest {
                     Futures.createSafeFuture();
             transport.connect(
                     new InetSocketAddress("localhost", PORT),
-                    Futures.<Connection>toCompletionHandler(
+                    Futures.toCompletionHandler(
                     connectFuture, new EmptyCompletionHandler<Connection>()  {
 
                         @Override

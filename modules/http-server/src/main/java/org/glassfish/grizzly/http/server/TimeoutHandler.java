@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,5 +57,5 @@ public interface TimeoutHandler {
      * @return <tt>true</tt> to cancel the {@link Response} processing, or
      * <tt>false</tt> to reset the timeout.
      */
-    public boolean onTimeout(final Response response);
+    boolean onTimeout(final Response response);
 }

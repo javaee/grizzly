@@ -226,7 +226,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
             assertEquals("1", values1[0]);
                         
             final HttpPacket request2 = createRequest(CONTEXT + SERVLETMAPPING, PORT,
-                    Collections.<String, String>singletonMap(Header.Cookie.toString(),
+                    Collections.singletonMap(Header.Cookie.toString(),
                     Globals.SESSION_COOKIE_NAME + "=" + cookies1[0].getValue()));
             
             final HttpContent response2 = sendRequest(request2, 10, PORT);
@@ -242,7 +242,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
             assertTrue(!cookies1[0].getValue().equals(cookies2[0].getValue()));
 
             final HttpPacket request3 = createRequest(CONTEXT + SERVLETMAPPING, PORT,
-                    Collections.<String, String>singletonMap(Header.Cookie.toString(),
+                    Collections.singletonMap(Header.Cookie.toString(),
                     Globals.SESSION_COOKIE_NAME + "=" + cookies1[0].getValue()));
 
             final HttpContent response3 = sendRequest(request3, 10, PORT);
@@ -258,7 +258,7 @@ public class HttpSessionTest extends HttpServerAbstractTest {
             assertTrue(!cookies2[0].getValue().equals(cookies3[0].getValue()));
 
             final HttpPacket request4 = createRequest(CONTEXT + SERVLETMAPPING, PORT,
-                    Collections.<String, String>singletonMap(Header.Cookie.toString(),
+                    Collections.singletonMap(Header.Cookie.toString(),
                     Globals.SESSION_COOKIE_NAME + "=" + cookies2[0].getValue()));
 
             final HttpContent response4 = sendRequest(request4, 10, PORT);

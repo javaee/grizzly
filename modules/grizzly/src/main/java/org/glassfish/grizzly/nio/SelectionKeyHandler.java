@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,7 +63,7 @@ public interface SelectionKeyHandler {
      * be public and have a public no-arg constructor.
      * </p>
      */
-    public static SelectionKeyHandler DEFAULT_SELECTION_KEY_HANDLER =
+    SelectionKeyHandler DEFAULT_SELECTION_KEY_HANDLER =
             SelectionKeyHandlerInitializer.initHandler();
 
     void onKeyRegistered(SelectionKey key);

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,7 +61,7 @@ public interface WrapperAware {
      *
      * @return {@link Buffer} wrapper on top of passed byte array.
      */
-    public Buffer wrap(byte[] data);
+    Buffer wrap(byte[] data);
 
     /**
      * Returns {@link Buffer}, which wraps the part of byte array with
@@ -73,7 +73,7 @@ public interface WrapperAware {
      *
      * @return {@link Buffer} wrapper on top of passed byte array.
      */
-    public Buffer wrap(byte[] data, int offset, int length);
+    Buffer wrap(byte[] data, int offset, int length);
     
     /**
      * Returns {@link Buffer}, which wraps the {@link String}.
@@ -82,7 +82,7 @@ public interface WrapperAware {
      *
      * @return {@link Buffer} wrapper on top of passed {@link String}.
      */
-    public Buffer wrap(String s);
+    Buffer wrap(String s);
 
     /**
      * Returns {@link Buffer}, which wraps the {@link String} with the specific
@@ -94,7 +94,7 @@ public interface WrapperAware {
      *
      * @return {@link Buffer} wrapper on top of passed {@link String}.
      */
-    public Buffer wrap(String s, Charset charset);
+    Buffer wrap(String s, Charset charset);
 
     /**
      * Returns {@link Buffer}, which wraps the {@link ByteBuffer}.
@@ -103,5 +103,5 @@ public interface WrapperAware {
      *
      * @return {@link Buffer} wrapper on top of passed {@link ByteBuffer}.
      */
-    public Buffer wrap(ByteBuffer byteBuffer);
+    Buffer wrap(ByteBuffer byteBuffer);
 }

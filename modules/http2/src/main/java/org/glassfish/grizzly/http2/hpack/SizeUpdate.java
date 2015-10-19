@@ -79,7 +79,7 @@ public class SizeUpdate implements BinaryRepresentation {
         private static final SizeUpdate INSTANCE = new SizeUpdate();
     }
 
-    public static final SizeUpdate getInstance() {
+    public static SizeUpdate getInstance() {
         return InstanceHolder.INSTANCE;
     }
     

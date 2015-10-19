@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,7 +58,7 @@ public interface HttpProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param buffer {@link Buffer} to be parsed.
      */
-    public void onDataReceivedEvent(Connection connection, Buffer buffer);
+    void onDataReceivedEvent(Connection connection, Buffer buffer);
 
     /**
      * Method will be called, when {@link Buffer}, produced by the
@@ -69,7 +69,7 @@ public interface HttpProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param buffer serialized {@link Buffer}.
      */
-    public void onDataSentEvent(Connection connection, Buffer buffer);
+    void onDataSentEvent(Connection connection, Buffer buffer);
 
     /**
      * Method will be called, when HTTP message header gets parsed
@@ -79,8 +79,8 @@ public interface HttpProbe {
      * @param header parsed {@link HttpHeader}.
      * @param size the size of the parsed header buffer.
      */
-    public void onHeaderParseEvent(Connection connection, HttpHeader header,
-            int size);
+    void onHeaderParseEvent(Connection connection, HttpHeader header,
+                            int size);
 
     /**
      * Method will be called, when HTTP message header gets serialized
@@ -90,8 +90,8 @@ public interface HttpProbe {
      * @param header serialized {@link HttpHeader}.
      * @param buffer the serialized header {@link Buffer}.
      */
-    public void onHeaderSerializeEvent(Connection connection, HttpHeader header,
-            Buffer buffer);
+    void onHeaderSerializeEvent(Connection connection, HttpHeader header,
+                                Buffer buffer);
 
     /**
      * Method will be called, when HTTP message content chunk gets parsed
@@ -100,8 +100,8 @@ public interface HttpProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param content parsed {@link HttpContent}.
      */
-    public void onContentChunkParseEvent(Connection connection,
-            HttpContent content);
+    void onContentChunkParseEvent(Connection connection,
+                                  HttpContent content);
 
     /**
      * Method will be called, when HTTP message content chunk is prepared to be
@@ -110,8 +110,8 @@ public interface HttpProbe {
      * @param connection {@link Connection}, the event belongs to.
      * @param content {@link HttpContent} to be serialized.
      */
-    public void onContentChunkSerializeEvent(Connection connection,
-            HttpContent content);
+    void onContentChunkSerializeEvent(Connection connection,
+                                      HttpContent content);
 
     /**
      * Method will be called, when {@link ContentEncoding} will be applied
@@ -122,8 +122,8 @@ public interface HttpProbe {
      * @param buffer {@link Buffer} to be parsed/decoded.
      * @param contentEncoding {@link ContentEncoding} to be applied.
      */
-    public void onContentEncodingParseEvent(Connection connection,
-            HttpHeader header, Buffer buffer, ContentEncoding contentEncoding);
+    void onContentEncodingParseEvent(Connection connection,
+                                     HttpHeader header, Buffer buffer, ContentEncoding contentEncoding);
 
     /**
      * This method will be called after the {@link ContentEncoding} has been
@@ -136,10 +136,10 @@ public interface HttpProbe {
      *
      * @since 2.3.3
      */
-    public void onContentEncodingParseResultEvent(Connection connection,
-                                                  HttpHeader header,
-                                                  Buffer result,
-                                                  ContentEncoding contentEncoding);
+    void onContentEncodingParseResultEvent(Connection connection,
+                                           HttpHeader header,
+                                           Buffer result,
+                                           ContentEncoding contentEncoding);
 
     /**
 
@@ -152,8 +152,8 @@ public interface HttpProbe {
      * @param buffer {@link Buffer} to be serialized/encoded.
      * @param contentEncoding {@link ContentEncoding} to be applied.
      */
-    public void onContentEncodingSerializeEvent(Connection connection,
-            HttpHeader header, Buffer buffer, ContentEncoding contentEncoding);
+    void onContentEncodingSerializeEvent(Connection connection,
+                                         HttpHeader header, Buffer buffer, ContentEncoding contentEncoding);
 
     /**
      * Method will be called, when {@link ContentEncoding} will be applied
@@ -166,10 +166,10 @@ public interface HttpProbe {
      *
      * @since 2.3.3
      */
-    public void onContentEncodingSerializeResultEvent(Connection connection,
-                                                      HttpHeader header,
-                                                      Buffer result,
-                                                      ContentEncoding contentEncoding);
+    void onContentEncodingSerializeResultEvent(Connection connection,
+                                               HttpHeader header,
+                                               Buffer result,
+                                               ContentEncoding contentEncoding);
 
     /**
      * Method will be called, when {@link TransferEncoding} will be applied
@@ -180,8 +180,8 @@ public interface HttpProbe {
      * @param buffer {@link Buffer} to be parsed/decoded.
      * @param transferEncoding {@link TransferEncoding} to be applied.
      */
-    public void onTransferEncodingParseEvent(Connection connection,
-            HttpHeader header, Buffer buffer, TransferEncoding transferEncoding);
+    void onTransferEncodingParseEvent(Connection connection,
+                                      HttpHeader header, Buffer buffer, TransferEncoding transferEncoding);
 
     /**
      * Method will be called, when {@link TransferEncoding} will be applied
@@ -192,8 +192,8 @@ public interface HttpProbe {
      * @param buffer {@link Buffer} to be serialized/encoded.
      * @param transferEncoding {@link TransferEncoding} to be applied.
      */
-    public void onTransferEncodingSerializeEvent(Connection connection,
-            HttpHeader header, Buffer buffer, TransferEncoding transferEncoding);
+    void onTransferEncodingSerializeEvent(Connection connection,
+                                          HttpHeader header, Buffer buffer, TransferEncoding transferEncoding);
 
     /**
      * Method will be called, when error occurs during the {@link HttpCodecFilter} processing.
@@ -202,7 +202,7 @@ public interface HttpProbe {
      * @param connection {@link HttpPacket}, the event belongs to.
      * @param error error
      */
-    public void onErrorEvent(Connection connection, HttpPacket httpPacket, Throwable error);
+    void onErrorEvent(Connection connection, HttpPacket httpPacket, Throwable error);
     
     
     // ---------------------------------------------------------- Nested Classes
@@ -215,7 +215,7 @@ public interface HttpProbe {
      * @since 2.1.9
      */
     @SuppressWarnings("UnusedDeclaration")
-    public static class Adapter implements HttpProbe {
+    class Adapter implements HttpProbe {
 
 
         // ---------------------------------------------- Methods from HttpProbe

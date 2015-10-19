@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -76,7 +76,7 @@ public interface StreamReader extends Stream {
      * @return {@link Future}, using which it's possible to check whether
      * <tt>StreamReader</tt> has required amount of bytes available for reading.
      */
-    public GrizzlyFuture<Integer> notifyAvailable(int size);
+    GrizzlyFuture<Integer> notifyAvailable(int size);
 
     /**
      * Method returns {@link Future}, using which it's possible check if
@@ -93,8 +93,8 @@ public interface StreamReader extends Stream {
      * @return {@link Future}, using which it's possible to check whether
      * <tt>StreamReader</tt> has required amount of bytes available for reading.
      */
-    public GrizzlyFuture<Integer> notifyAvailable(int size,
-            CompletionHandler<Integer> completionHandler);
+    GrizzlyFuture<Integer> notifyAvailable(int size,
+                                           CompletionHandler<Integer> completionHandler);
 
     /**
      * Method returns {@link Future}, using which it's possible check if
@@ -105,7 +105,7 @@ public interface StreamReader extends Stream {
      * @return {@link Future}, using which it's possible to check whether
      * <tt>StreamReader</tt> meets the required {@link Condition}.
      */
-    public GrizzlyFuture<Integer> notifyCondition(Condition condition);
+    GrizzlyFuture<Integer> notifyCondition(Condition condition);
 
     /**
      * Method returns {@link Future}, using which it's possible check if
@@ -120,8 +120,8 @@ public interface StreamReader extends Stream {
      * @return {@link Future}, using which it's possible to check whether
      * <tt>StreamReader</tt> meets the required {@link Condition}.
      */
-    public GrizzlyFuture<Integer> notifyCondition(Condition condition,
-            CompletionHandler<Integer> completionHandler);
+    GrizzlyFuture<Integer> notifyCondition(Condition condition,
+                                           CompletionHandler<Integer> completionHandler);
 
     /**
      * Return <tt>true</tt> if <tt>StreamReader</tt> has available data, which
@@ -130,14 +130,14 @@ public interface StreamReader extends Stream {
      * @return <tt>true</tt> if <tt>StreamReader</tt> has available data, which
      * could be read, or <tt>false</tt> otherwise.
      */
-    public boolean hasAvailable();
+    boolean hasAvailable();
 
     /**
      * Return the number of bytes available for get calls.  An attempt to
      * get more data than is present in the stream will either result in 
      * blocking (if isBlocking() returns true) or a BufferUnderflowException.
      */
-    public int available();
+    int available();
 
     /**
      * Get the next boolean in the stream.  Requires 1 byte.
@@ -147,57 +147,57 @@ public interface StreamReader extends Stream {
     /**
      * Get the next byte in the stream.  Requires 1 byte.
      */
-    public byte readByte() throws IOException;
+    byte readByte() throws IOException;
 
     /**
      * Get the next character in the stream.  Requires 2 bytes.
      */
-    public char readChar() throws IOException;
+    char readChar() throws IOException;
 
     /** Get the next short in the stream.  Requires 2 bytes.
      */
-    public short readShort() throws IOException;
+    short readShort() throws IOException;
 
     /**
      * Get the next int in the stream.  Requires 4 bytes.
      */
-    public int readInt() throws IOException;
+    int readInt() throws IOException;
 
     /**
      * Get the next long in the stream.  Requires 8 bytes.
      */
-    public long readLong() throws IOException;
+    long readLong() throws IOException;
 
     /**
      * Get the next float in the stream.  Requires 4 bytes.
      */
-    public float readFloat() throws IOException;
+    float readFloat() throws IOException;
 
     /**
      * Get the next double in the stream.  Requires 8 bytes.
      */
-    public double readDouble() throws IOException;
+    double readDouble() throws IOException;
 
     /**
      * Fill data with booleans (byte 1=true, 0=false) from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires data.length bytes.
      */
-    public void readBooleanArray(boolean[] data) throws IOException;
+    void readBooleanArray(boolean[] data) throws IOException;
 
     /**
      * Fill data with bytes from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires data.length bytes.
      */
-    public void readByteArray(byte[] data) throws IOException;
+    void readByteArray(byte[] data) throws IOException;
 
     /**
      * Fill data with bytes from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires data.length bytes.
      */
-    public void readByteArray(byte[] data, int offset, int length) throws IOException;
+    void readByteArray(byte[] data, int offset, int length) throws IOException;
 
     /**
      * Fill the buffer with data from the stream (that is, copy data
@@ -206,51 +206,51 @@ public interface StreamReader extends Stream {
      * from one stream and then added to another stream for
      * further processing.
      */
-    public void readBytes(Buffer buffer) throws IOException;
+    void readBytes(Buffer buffer) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 2*data.length bytes.
      */
-    public void readCharArray(char[] data) throws IOException;
+    void readCharArray(char[] data) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 2*data.length bytes.
      */
-    public void readShortArray(short[] data) throws IOException;
+    void readShortArray(short[] data) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 4*data.length bytes.
      */
-    public void readIntArray(int[] data) throws IOException;
+    void readIntArray(int[] data) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 8*data.length bytes.
      */
-    public void readLongArray(long[] data) throws IOException;
+    void readLongArray(long[] data) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 4*data.length bytes.
      */
-    public void readFloatArray(float[] data) throws IOException;
+    void readFloatArray(float[] data) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 8*data.length bytes.
      */
-    public void readDoubleArray(double[] data) throws IOException;
+    void readDoubleArray(double[] data) throws IOException;
 
-    public void skip(int length);
+    void skip(int length);
     
     /**
      * Read and decode data from the <tt>StreamReader</tt>
@@ -259,7 +259,7 @@ public interface StreamReader extends Stream {
      * @param decoder {@link Transformer}
      * @return {@link Future}, which will hold the decoding state.
      */
-    public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder);
+    <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder);
     
     /**
      * Read and decode data from the <tt>StreamReader</tt>
@@ -270,8 +270,8 @@ public interface StreamReader extends Stream {
      *                          notified, when decoder will become ready.
      * @return {@link Future}, which will hold the decoding state.
      */
-    public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder,
-            CompletionHandler<E> completionHandler);
+    <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder,
+                                CompletionHandler<E> completionHandler);
 
     /**
      * Returns <tt>true</tt>, if <tt>StreamReader</tt> has been closed,
@@ -280,12 +280,12 @@ public interface StreamReader extends Stream {
      * @return <tt>true</tt>, if <tt>StreamReader</tt> has been closed,
      * or <tt>false</tt> otherwise.
      */
-    public boolean isClosed();
+    boolean isClosed();
 
-    public boolean isSupportBufferWindow();
+    boolean isSupportBufferWindow();
 
-    public Buffer getBufferWindow();
+    Buffer getBufferWindow();
 
-    public Buffer takeBufferWindow();
+    Buffer takeBufferWindow();
 }
 

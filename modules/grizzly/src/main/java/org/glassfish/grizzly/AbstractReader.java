@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,7 +67,7 @@ public abstract class AbstractReader<L> implements Reader<L> {
             final Connection<L> connection,
             final Buffer buffer) {
         final FutureImpl<ReadResult<Buffer, L>> future =
-                Futures.<ReadResult<Buffer, L>>createSafeFuture();
+                Futures.createSafeFuture();
         
         read(connection, buffer, Futures.toCompletionHandler(future), null);
         return future;

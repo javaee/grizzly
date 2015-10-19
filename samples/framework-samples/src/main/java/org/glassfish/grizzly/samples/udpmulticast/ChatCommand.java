@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.samples.udpmulticast;
 
 import java.net.InetAddress;
@@ -150,7 +151,7 @@ public abstract class ChatCommand {
             
             // Create Future to be able to block until the message is sent
             final FutureImpl<WriteResult<String, SocketAddress>> writeFuture =
-                    Futures.<WriteResult<String, SocketAddress>>createSafeFuture();
+                    Futures.createSafeFuture();
             
             // Send the message
             connection.write(peerAddr, msg,
@@ -211,7 +212,7 @@ public abstract class ChatCommand {
             
             // Create Future to be able to block until the message is sent
             final FutureImpl<WriteResult<String, SocketAddress>> writeFuture =
-                    Futures.<WriteResult<String, SocketAddress>>createSafeFuture();
+                    Futures.createSafeFuture();
             
             // Send the greeting message to group
             connection.write(peerAddr, "joined the group " + groupAddr,
@@ -270,7 +271,7 @@ public abstract class ChatCommand {
 
                 // Create Future to be able to block until the message is sent
                 final FutureImpl<WriteResult<String, SocketAddress>> writeFuture =
-                        Futures.<WriteResult<String, SocketAddress>>createSafeFuture();
+                        Futures.createSafeFuture();
 
                 // Send the leave message to the group
                 connection.write(peerAddr, "left the group " + groupAddr,

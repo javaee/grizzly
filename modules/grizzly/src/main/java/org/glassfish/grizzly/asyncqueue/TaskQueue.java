@@ -373,6 +373,6 @@ public final class TaskQueue<E extends AsyncQueueRecord> {
     //----------------------------------------------------------- Nested Classes
     
     public interface MutableMaxQueueSize {
-        public int getMaxQueueSize();
+        int getMaxQueueSize();
     }
 }

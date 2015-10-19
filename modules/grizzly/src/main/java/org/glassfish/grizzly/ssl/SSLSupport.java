@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -72,30 +72,30 @@ public interface SSLSupport {
     /**
      * The Request attribute key for the cipher suite.
      */
-    public static final String CIPHER_SUITE_KEY = "javax.servlet.request.cipher_suite";
+    String CIPHER_SUITE_KEY = "javax.servlet.request.cipher_suite";
     /**
      * The Request attribute key for the key size.
      */
-    public static final String KEY_SIZE_KEY = "javax.servlet.request.key_size";
+    String KEY_SIZE_KEY = "javax.servlet.request.key_size";
     /**
      * The Request attribute key for the client certificate chain.
      */
-    public static final String CERTIFICATE_KEY = "javax.servlet.request.X509Certificate";
+    String CERTIFICATE_KEY = "javax.servlet.request.X509Certificate";
     /**
      * The Request attribute key for the session id.
      * This one is a Tomcat extension to the Servlet spec.
      */
-    public static final String SESSION_ID_KEY = "javax.servlet.request.ssl_session_id";
+    String SESSION_ID_KEY = "javax.servlet.request.ssl_session_id";
 
     /**
      * The cipher suite being used on this connection.
      */
-    public String getCipherSuite() throws IOException;
+    String getCipherSuite() throws IOException;
 
     /**
      * The client certificate chain (if any).
      */
-    public Object[] getPeerCertificateChain()
+    Object[] getPeerCertificateChain()
             throws IOException;
 
     /**
@@ -103,7 +103,7 @@ public interface SSLSupport {
      * @param force If <tt>true</tt>, then re-negotiate the
      *              connection if necessary.
      */
-    public Object[] getPeerCertificateChain(boolean force)
+    Object[] getPeerCertificateChain(boolean force)
             throws IOException;
 
     /**
@@ -120,13 +120,13 @@ public interface SSLSupport {
      *
      * Unfortunately, all of these values are nonsensical.
      **/
-    public Integer getKeySize()
+    Integer getKeySize()
             throws IOException;
 
     /**
      * The current session Id.
      */
-    public String getSessionId()
+    String getSessionId()
             throws IOException;
 
     /**

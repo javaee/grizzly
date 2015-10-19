@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -124,7 +124,7 @@ public class NIOOutputSinksTest extends TestCase {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -281,7 +281,7 @@ public class NIOOutputSinksTest extends TestCase {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -567,7 +567,7 @@ public class NIOOutputSinksTest extends TestCase {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
 
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 if (b.hasRemaining()) {
                     sb.append(b.toStringContent());
@@ -650,7 +650,7 @@ public class NIOOutputSinksTest extends TestCase {
                                     PORT);
         server.addListener(listener);
         
-        final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.<HttpHeader>create();
+        final FutureImpl<HttpHeader> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
@@ -678,7 +678,7 @@ public class NIOOutputSinksTest extends TestCase {
                 final HttpPacket message = ctx.getMessage();
                 final HttpHeader header = message.isHeader() ?
                         (HttpHeader) message :
-                        ((HttpContent) message).getHttpHeader();
+                        message.getHttpHeader();
                 
                 parseResult.result(header);
                 
@@ -795,7 +795,7 @@ public class NIOOutputSinksTest extends TestCase {
                                     PORT);
         server.addListener(listener);
         
-        final FutureImpl<Integer> parseResult = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
@@ -821,7 +821,7 @@ public class NIOOutputSinksTest extends TestCase {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -945,7 +945,7 @@ public class NIOOutputSinksTest extends TestCase {
         listener.getTransport().setIOStrategy(WorkerThreadIOStrategy.getInstance());
         server.addListener(listener);
         
-        final FutureImpl<Integer> parseResult = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new HttpClientFilter());
@@ -971,7 +971,7 @@ public class NIOOutputSinksTest extends TestCase {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                HttpContent message = (HttpContent) ctx.getMessage();
+                HttpContent message = ctx.getMessage();
                 Buffer b = message.getContent();
                 final int remaining = b.remaining();
                 
@@ -1127,8 +1127,8 @@ public class NIOOutputSinksTest extends TestCase {
         
         final AtomicReference<Connection> connectionToClose =
                 new AtomicReference<Connection>();
-        final FutureImpl<Boolean> floodReached = Futures.<Boolean>createSafeFuture();
-        final FutureImpl<HttpContent> result = Futures.<HttpContent>createSafeFuture();
+        final FutureImpl<Boolean> floodReached = Futures.createSafeFuture();
+        final FutureImpl<HttpContent> result = Futures.createSafeFuture();
         
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());

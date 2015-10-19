@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -636,7 +636,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
                                 break;        // unless slack < 2
                         }
                         LockSupport.unpark(p.waiter);
-                        return LinkedTransferQueue.<E>cast(item);
+                        return LinkedTransferQueue.cast(item);
                     }
                 }
                 Node n = p.next;
@@ -714,7 +714,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
             if (item != e) {                  // matched
                 // assert item != s;
                 s.forgetContents();           // avoid garbage
-                return LinkedTransferQueue.<E>cast(item);
+                return LinkedTransferQueue.cast(item);
             }
             if ((w.isInterrupted() || (timed && nanos <= 0)) &&
                     s.casItem(e, s)) {        // cancel
@@ -795,7 +795,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
             Object item = p.item;
             if (p.isData) {
                 if (item != null && item != p)
-                    return LinkedTransferQueue.<E>cast(item);
+                    return LinkedTransferQueue.cast(item);
             }
             else if (item == null)
                 return null;
@@ -873,7 +873,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
                 Object item = s.item;
                 if (s.isData) {
                     if (item != null && item != s) {
-                        nextItem = LinkedTransferQueue.<E>cast(item);
+                        nextItem = LinkedTransferQueue.cast(item);
                         nextNode = s;
                         return;
                     }

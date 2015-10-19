@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -444,7 +444,7 @@ public class GZipEncodingTest extends TestCase {
         public NextAction handleRead(FilterChainContext ctx)
               throws IOException {
 
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpContent httpContent = ctx.getMessage();
 
             logger.log(Level.FINE, "Got HTTP response chunk; last: {0}", httpContent.isLast());
 
@@ -507,7 +507,7 @@ public class GZipEncodingTest extends TestCase {
     private static final class SimpleResponseFilter extends BaseFilter {
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpContent httpContent = ctx.getMessage();
 
             if (httpContent.isLast()) {
                 final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();

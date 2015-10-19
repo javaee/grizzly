@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.samples.sni.httpserver;
 
-import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.http.server.HttpHandler;

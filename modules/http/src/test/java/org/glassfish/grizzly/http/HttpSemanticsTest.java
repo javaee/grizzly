@@ -817,7 +817,7 @@ public class HttpSemanticsTest extends TestCase {
     }
 
 
-    private class ClientFilter extends BaseFilter {
+    private static class ClientFilter extends BaseFilter {
         private final Logger logger = Grizzly.logger(ClientFilter.class);
 
         private Object request;
@@ -876,7 +876,7 @@ public class HttpSemanticsTest extends TestCase {
         public NextAction handleRead(FilterChainContext ctx)
               throws IOException {
 
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpContent httpContent = ctx.getMessage();
 
             logger.log(Level.FINE, "Got HTTP response chunk");
             if (httpContent.isLast()) {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -512,7 +512,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
     public void testDisconnect() throws Throwable {
 
         final AtomicInteger bytesRead = new AtomicInteger();
-        final FutureImpl<Integer> resultFuture = SafeFutureImpl.<Integer>create();
+        final FutureImpl<Integer> resultFuture = SafeFutureImpl.create();
 
         final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
         clientTransport.setProcessor(
@@ -726,7 +726,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
 
     // ---------------------------------------------------------- Nested Classes
 
-    private static interface WriteStrategy {
+    private interface WriteStrategy {
 
         void doWrite(FilterChainContext ctx) throws IOException;
 
@@ -1168,7 +1168,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
             if (request.isHeader()) {
                 header = ((HttpHeader) request);
             } else {
-                header = ((HttpContent) request).getHttpHeader();
+                header = request.getHttpHeader();
             }
 
             if (header.isChunked()) {
@@ -1187,7 +1187,7 @@ public class NIOInputSourcesTest extends AbstractSpdyTest {
                 throws IOException {
             try {
                 // Cast message to a HttpContent
-                final HttpContent httpContent = (HttpContent) ctx.getMessage();
+                final HttpContent httpContent = ctx.getMessage();
 
                 logger.log(Level.FINE, "Got HTTP response chunk");
 

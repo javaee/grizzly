@@ -68,8 +68,8 @@ import java.io.OutputStream;
  * Interchangeable algorithm of encoding.
  */
 public interface EncodingStrategy {
-    public abstract void encode(String name, String value,
-            OutputStream destination,
-            HeaderFieldTable.EncTable table)
+    void encode(String name, String value,
+                OutputStream destination,
+                HeaderFieldTable.EncTable table)
             throws IOException;
 }

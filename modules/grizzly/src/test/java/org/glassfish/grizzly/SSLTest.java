@@ -69,7 +69,6 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.URL;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -525,10 +524,10 @@ public class SSLTest {
 
             for (int i = 0; i < connectionsNum; i++) {
                 final FutureImpl<Connection> future =
-                        Futures.<Connection>createSafeFuture();
+                        Futures.createSafeFuture();
                 transport.connect(
                         new InetSocketAddress("localhost", PORT),
-                        Futures.<Connection>toCompletionHandler(
+                        Futures.toCompletionHandler(
                         future,
                         new EmptyCompletionHandler<Connection>()  {
 
@@ -736,7 +735,7 @@ public class SSLTest {
             transport.bind(PORT);
             transport.start();
 
-            final FutureImpl<Boolean> clientFuture = SafeFutureImpl.<Boolean>create();
+            final FutureImpl<Boolean> clientFuture = SafeFutureImpl.create();
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
@@ -894,7 +893,7 @@ public class SSLTest {
                 currentTurnAround++;
             }
             
-            final String message = (String) ctx.getMessage();
+            final String message = ctx.getMessage();
             if (message.equals("ping")) {
                 try {
                     connection.write("pong");
@@ -960,7 +959,7 @@ public class SSLTest {
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
             try {
-                final Buffer buffer = (Buffer) ctx.getMessage();
+                final Buffer buffer = ctx.getMessage();
 
                 final String rcvdStr = buffer.toStringContent();
                 final String expectedChunk = patternString.substring(bytesReceived, bytesReceived + buffer.remaining());

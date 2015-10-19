@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,13 +37,12 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.servlet.async;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -53,17 +52,14 @@ import java.util.logging.Logger;
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
-import javax.servlet.ReadListener;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.servlet.FilterRegistration;
 import org.glassfish.grizzly.servlet.HttpServerAbstractTest;
@@ -84,7 +80,7 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
         try {
             final int MAX_TIME_MILLIS = 10 * 1000;
             final FutureImpl<Boolean> blockFuture =
-                    Futures.<Boolean>createSafeFuture();
+                    Futures.createSafeFuture();
             
             newHttpServer(PORT);
             
@@ -105,7 +101,7 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
 
                     long count = 0;
                     System.out.println("--> Begin for loop");
-                    boolean prevCanWrite = true;
+                    boolean prevCanWrite;
                     final long startTimeMillis = System.currentTimeMillis();
 
                     while ((prevCanWrite = output.isReady())) {
@@ -177,7 +173,7 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
         try {
             final int MAX_TIME_MILLIS = 10 * 1000;
             final FutureImpl<Boolean> blockFuture =
-                    Futures.<Boolean>createSafeFuture();
+                    Futures.createSafeFuture();
             
             newHttpServer(PORT);
             
@@ -198,7 +194,7 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
 
                     long count = 0;
                     System.out.println("--> Begin for loop");
-                    boolean prevCanWrite = true;
+                    boolean prevCanWrite;
                     final long startTimeMillis = System.currentTimeMillis();
 
                     while ((prevCanWrite = output.isReady())) {
@@ -292,7 +288,7 @@ public class AsyncOutputTest extends HttpServerAbstractTest {
         
         final FilterRegistration reg = ctx.addFilter(name, filter);
         reg.addMappingForUrlPatterns(
-                EnumSet.<DispatcherType>of(DispatcherType.REQUEST),
+                EnumSet.of(DispatcherType.REQUEST),
                 alias);
 
         return reg;

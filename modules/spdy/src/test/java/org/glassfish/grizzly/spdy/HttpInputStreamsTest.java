@@ -1405,7 +1405,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
         public NextAction handleRead(FilterChainContext ctx)
               throws IOException {
 
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpContent httpContent = ctx.getMessage();
 
             final Buffer buffer = httpContent.getContent();
 
@@ -1439,7 +1439,7 @@ public class HttpInputStreamsTest extends AbstractSpdyTest {
     }
 
 
-    private final class CharsetClientFilter extends ClientFilter {
+    private static final class CharsetClientFilter extends ClientFilter {
 
         String encoding;
         private String requestData;

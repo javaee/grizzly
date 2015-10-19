@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -172,7 +172,7 @@ public class SSLEchoClient {
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
 
             // The received message is String
-            final String message = (String) ctx.getMessage();
+            final String message = ctx.getMessage();
 
             // Check the message
             if (MESSAGE.equals(message)) {

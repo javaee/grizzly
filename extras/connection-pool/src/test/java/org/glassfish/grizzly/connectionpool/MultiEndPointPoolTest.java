@@ -127,7 +127,7 @@ public class MultiEndPointPoolTest {
                         .keepAliveTimeout(-1, TimeUnit.SECONDS)
                         .build();
         final Endpoint<SocketAddress> key1 =
-                Endpoint.Factory.<SocketAddress>create(
+                Endpoint.Factory.create(
                         new InetSocketAddress("localhost", PORT),
                         localAddress,
                         transport);
@@ -151,12 +151,12 @@ public class MultiEndPointPoolTest {
         try {
         
             final Endpoint<SocketAddress> key1
-                    = Endpoint.Factory.<SocketAddress>create(
+                    = Endpoint.Factory.create(
                             new InetSocketAddress("localhost", PORT),
                             transport);
 
             final Endpoint<SocketAddress> key2
-                    = Endpoint.Factory.<SocketAddress>create(
+                    = Endpoint.Factory.create(
                             new InetSocketAddress("localhost", PORT + 1),
                             transport);
 
@@ -227,12 +227,12 @@ public class MultiEndPointPoolTest {
         
         try {
             final Endpoint<SocketAddress> key1
-                    = Endpoint.Factory.<SocketAddress>create(
+                    = Endpoint.Factory.create(
                             new InetSocketAddress("localhost", PORT),
                             transport);
 
             final Endpoint<SocketAddress> key2
-                    = Endpoint.Factory.<SocketAddress>create(
+                    = Endpoint.Factory.create(
                             new InetSocketAddress("localhost", PORT + 1),
                             transport);
 
@@ -295,12 +295,12 @@ public class MultiEndPointPoolTest {
         
         try {
             final Endpoint<SocketAddress> key1
-                    = Endpoint.Factory.<SocketAddress>create(
+                    = Endpoint.Factory.create(
                             new InetSocketAddress("localhost", PORT),
                             transport);
 
             final Endpoint<SocketAddress> key2
-                    = Endpoint.Factory.<SocketAddress>create(
+                    = Endpoint.Factory.create(
                             new InetSocketAddress("localhost", PORT + 1),
                             transport);
 
@@ -360,7 +360,7 @@ public class MultiEndPointPoolTest {
 
         try {
             final Endpoint<SocketAddress> key =
-                    Endpoint.Factory.<SocketAddress>create(
+                    Endpoint.Factory.create(
                             new InetSocketAddress("localhost", PORT),
                             transport);
 
@@ -399,12 +399,12 @@ public class MultiEndPointPoolTest {
     @Test
     public void testEndpointPoolCustomizer() throws Exception {
         final Endpoint<SocketAddress> key1
-                = Endpoint.Factory.<SocketAddress>create(
+                = Endpoint.Factory.create(
                         new InetSocketAddress("localhost", PORT),
                         transport);
 
         final Endpoint<SocketAddress> key2
-                = Endpoint.Factory.<SocketAddress>create(
+                = Endpoint.Factory.create(
                         new InetSocketAddress("localhost", PORT + 1),
                         transport);
 

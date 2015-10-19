@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,7 +51,6 @@ import java.io.IOException;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -155,7 +154,7 @@ public class SSLAndPlainTest {
             transport.start();
 
             for (final ProtocolDescription protocol : protocols) {
-                final FutureImpl<Boolean> resultFuture = SafeFutureImpl.<Boolean>create();
+                final FutureImpl<Boolean> resultFuture = SafeFutureImpl.create();
 
 
                 final FilterChainBuilder clientFilterChainBuilder =
@@ -177,7 +176,7 @@ public class SSLAndPlainTest {
                         .build();
 
                 Future<Connection> future = connectorHandler.connect("localhost", PORT);
-                connection = (TCPNIOConnection) future.get();
+                connection = future.get();
                 assertTrue(connection != null);
 
                 connection.write(protocol.name);

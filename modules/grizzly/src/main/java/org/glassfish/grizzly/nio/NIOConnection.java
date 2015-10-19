@@ -49,7 +49,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -645,7 +644,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Do the actual connection close.
      */
     protected void doClose() throws IOException {
-        ((NIOTransport) transport).closeConnection(this);
+        transport.closeConnection(this);
     }
 
     /**
@@ -985,6 +984,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         this.selectionKey = newSelectionKey;
     }
 
+    @SuppressWarnings("unchecked")
     private void invokeCloseListener(
             final org.glassfish.grizzly.CloseListener closeListener,
             final org.glassfish.grizzly.CloseType closeType) {
@@ -1118,7 +1118,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                     return state;
                 }
 
-                localStatesMap = DataStructures.<Processor, Object>getConcurrentMap(4);
+                localStatesMap = DataStructures.getConcurrentMap(4);
                 final Object state = stateFactory.evaluate();
                 localStatesMap.put(processor, state);
                 storage.processorStatesMap = localStatesMap;

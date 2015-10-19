@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -248,7 +248,7 @@ public class MultipartUploadFilter implements Filter {
     /**
      * {@link org.glassfish.grizzly.http.multipart.MultipartEntryHandler}, responsible for processing the upload.
      */
-    private final class UploadMultipartHandler
+    private static final class UploadMultipartHandler
             implements MultipartEntryHandler {
 
         // number of bytes uploaded
