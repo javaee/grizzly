@@ -129,7 +129,7 @@ public final class Method {
         } else if (method.equals(Method.PRI.getMethodString())) {
             return Method.PRI;
         } else {
-            return CUSTOM(method.toString());
+            return CUSTOM(method);
         }
     }
 

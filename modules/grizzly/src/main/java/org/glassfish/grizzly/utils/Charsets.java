@@ -238,9 +238,7 @@ public final class Charsets {
         
         private static void makeFirst(final Object[] array, final int offs,
                 final Object element) {
-            for (int i = offs - 1; i >= 0; i--) {
-                array[i + 1] = array[i];
-            }
+            System.arraycopy(array, 0, array, 1, offs - 1 + 1);
             
             array[0] = element;
         }       

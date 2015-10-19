@@ -61,14 +61,7 @@ package org.glassfish.grizzly.servlet;
 import java.nio.charset.Charset;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
 import javax.servlet.RequestDispatcher;
@@ -767,8 +760,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
             results.add((String)values1);
         else if (values1 instanceof String[]) {
             String values[] = (String[]) values1;
-            for (int i = 0; i < values.length; i++)
-                results.add(values[i]);
+            Collections.addAll(results, values);
         } else
             results.add(values1.toString());
 
@@ -778,8 +770,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
             results.add((String)values2);
         else if (values2 instanceof String[]) {
             String values[] = (String[]) values2;
-            for (int i = 0; i < values.length; i++)
-                results.add(values[i]);
+            Collections.addAll(results, values);
         } else
             results.add(values2.toString());
 
