@@ -65,7 +65,7 @@ import org.glassfish.grizzly.utils.Futures;
 
 public class WebSocketClient extends SimpleWebSocket {
     private static final Logger logger = Logger.getLogger(Constants.WEBSOCKET);
-    private Version version;
+    private final Version version;
     private final URI address;
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     protected TCPNIOTransport transport;

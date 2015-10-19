@@ -193,7 +193,7 @@ public class BasicConfigTest {
     private static class ClientFilter extends BaseFilter {
         private final static Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private FutureImpl<HttpContent> testFuture;
+        private final FutureImpl<HttpContent> testFuture;
 
         // -------------------------------------------------------- Constructors
 

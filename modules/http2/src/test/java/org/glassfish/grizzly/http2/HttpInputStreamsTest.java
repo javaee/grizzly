@@ -1433,8 +1433,8 @@ public class HttpInputStreamsTest extends AbstractHttp2Test {
 
     private static final class CharsetClientFilter extends ClientFilter {
 
-        String encoding;
-        private String requestData;
+        final String encoding;
+        private final String requestData;
 
         public CharsetClientFilter(HttpPacket request,
                                    int chunkSize,

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,6 +55,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.glassfish.grizzly.http.util;
 
 import java.io.CharConversionException;
@@ -404,8 +405,8 @@ public final class Parameters {
     // if needed
     final BufferChunk tmpName = new BufferChunk();
     final BufferChunk tmpValue = new BufferChunk();
-    private BufferChunk origName = new BufferChunk();
-    private BufferChunk origValue = new BufferChunk();
+    private final BufferChunk origName = new BufferChunk();
+    private final BufferChunk origValue = new BufferChunk();
     final CharChunk tmpNameC = new CharChunk(1024);
     final CharChunk tmpValueC = new CharChunk(1024);
 

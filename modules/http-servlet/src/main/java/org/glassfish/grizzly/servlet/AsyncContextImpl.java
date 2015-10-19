@@ -79,7 +79,7 @@ class AsyncContextImpl implements AsyncContext {
         Executors.newCachedThreadPool(new AsyncPoolThreadFactory());
 
     // The original (unwrapped) request
-    private HttpServletRequestImpl origRequest;
+    private final HttpServletRequestImpl origRequest;
 
     // The possibly wrapped request passed to ServletRequest.startAsync
     private ServletRequest servletRequest;
@@ -92,16 +92,16 @@ class AsyncContextImpl implements AsyncContext {
     private boolean isStartAsyncWithZeroArg = false;
 
     // defaults to false
-    private AtomicBoolean isDispatchInProgress = new AtomicBoolean(); 
+    private final AtomicBoolean isDispatchInProgress = new AtomicBoolean();
 
-    private ThreadLocal<Boolean> isDispatchInScope = new ThreadLocal<Boolean>() {
+    private final ThreadLocal<Boolean> isDispatchInScope = new ThreadLocal<Boolean>() {
         @Override
         protected Boolean initialValue() {
             return Boolean.FALSE;
         }
     };
 
-    private AtomicBoolean isOkToConfigure = new AtomicBoolean(true); 
+    private final AtomicBoolean isOkToConfigure = new AtomicBoolean(true);
 
     private long asyncTimeoutMillis = DEFAULT_ASYNC_TIMEOUT_MILLIS;
 
@@ -110,9 +110,9 @@ class AsyncContextImpl implements AsyncContext {
 
     // The number of times this AsyncContext has been reinitialized via a call
     // to ServletRequest#startAsync
-    private AtomicInteger startAsyncCounter = new AtomicInteger(0);
+    private final AtomicInteger startAsyncCounter = new AtomicInteger(0);
 
-    private ThreadLocal<Boolean> isStartAsyncInScope = new ThreadLocal<Boolean>() {
+    private final ThreadLocal<Boolean> isStartAsyncInScope = new ThreadLocal<Boolean>() {
         @Override  
         protected Boolean initialValue() {  
             return Boolean.FALSE;  
@@ -533,9 +533,9 @@ class AsyncContextImpl implements AsyncContext {
      */
     private static class AsyncListenerContext {
 
-        private AsyncListener listener;
-        private ServletRequest request;
-        private ServletResponse response;
+        private final AsyncListener listener;
+        private final ServletRequest request;
+        private final ServletResponse response;
 
         public AsyncListenerContext(AsyncListener listener) {
             this(listener, null, null);

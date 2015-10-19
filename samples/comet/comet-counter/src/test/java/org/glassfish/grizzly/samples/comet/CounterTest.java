@@ -69,7 +69,7 @@ public class CounterTest {
     public static final String QUERY_PATH = "/grizzly-comet-counter/long_polling";
     private HttpServer httpServer;
     private static final int PORT = 18893;
-    private ExecutorService executorService = Executors.newFixedThreadPool(5);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     @Before
     public void setUp() throws Exception {
@@ -119,8 +119,8 @@ public class CounterTest {
     }
 
     private static class HttpRequest implements Runnable {
-        private CountDownLatch connected = new CountDownLatch(1);
-        private String method;
+        private final CountDownLatch connected = new CountDownLatch(1);
+        private final String method;
         private OutputStream os;
 
         public HttpRequest(String method) {

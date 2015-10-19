@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,7 +68,7 @@ class OSGiCleanMapper {
     private static final Map<String, HttpHandler> registrations = new HashMap<String, HttpHandler>(16);
     private static final Set<Servlet> registeredServlets = new HashSet<Servlet>(16);
 
-    private Set<String> localAliases = new HashSet<String>(4);
+    private final Set<String> localAliases = new HashSet<String>(4);
     private final HashMap<HttpContext, List<OSGiServletHandler>> contextServletHandlerMap =
             new HashMap<HttpContext, List<OSGiServletHandler>>(3);
     private final Logger logger;

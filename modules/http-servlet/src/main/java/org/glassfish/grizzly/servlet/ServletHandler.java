@@ -104,7 +104,7 @@ public class ServletHandler extends HttpHandler {
     /**
      * The {@link ServletConfigImpl}
      */
-    private ServletConfigImpl servletConfig;
+    private final ServletConfigImpl servletConfig;
     /**
      * The {@link SessionManager}
      */

@@ -86,7 +86,7 @@ public class HttpSemanticsTest extends TestCase {
     public static final int PORT = 19004;
     private static final int MAX_HEADERS_SIZE = 8192;
     
-    private HttpServerFilter httpServerFilter =
+    private final HttpServerFilter httpServerFilter =
             new HttpServerFilter(false, MAX_HEADERS_SIZE, new KeepAlive(), null);
 
     // ------------------------------------------------------------ Test Methods
@@ -820,11 +820,11 @@ public class HttpSemanticsTest extends TestCase {
     private static class ClientFilter extends BaseFilter {
         private final Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private Object request;
-        private ExpectedResult expectedResult;
+        private final Object request;
+        private final ExpectedResult expectedResult;
         private boolean validated;
         private HttpContent currentContent;
-        StringBuilder accumulatedContent = new StringBuilder();
+        final StringBuilder accumulatedContent = new StringBuilder();
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
 
         final long delayMillis;
@@ -970,11 +970,11 @@ public class HttpSemanticsTest extends TestCase {
     private static final class ExpectedResult {
 
         private int statusCode = -1;
-        private Map<String,String> expectedHeaders =
+        private final Map<String,String> expectedHeaders =
                 new HashMap<String,String>();
         private String protocol;
         private String statusMessage;
-        private StringBuilder builder = new StringBuilder();
+        private final StringBuilder builder = new StringBuilder();
 
         public int getStatusCode() {
             return statusCode;

@@ -69,8 +69,8 @@ public abstract class ProtocolHandler {
     protected final boolean maskData;
     protected FilterChainContext ctx;
     protected boolean processingFragment;
-    protected Charset utf8 = new StrictUtf8();
-    protected CharsetDecoder currentDecoder = utf8.newDecoder();
+    protected final Charset utf8 = new StrictUtf8();
+    protected final CharsetDecoder currentDecoder = utf8.newDecoder();
     protected ByteBuffer remainder;
     protected WebSocketMappingData mappingData;
     

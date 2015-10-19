@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -87,7 +87,7 @@ class ThreadLocalRandom extends Random {
      * since it would cause setting seed in one part of a program to
      * unintentionally impact other usages by the thread.
      */
-    boolean initialized;
+    final boolean initialized;
 
     // Padding to help avoid memory contention among seed updates in
     // different TLRs in the common case that they are located near

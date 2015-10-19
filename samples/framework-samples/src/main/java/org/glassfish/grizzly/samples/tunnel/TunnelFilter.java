@@ -65,7 +65,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 public class TunnelFilter extends BaseFilter {
     private static final Logger logger = Grizzly.logger(TunnelFilter.class);
     
-    private Attribute<Connection> peerConnectionAttribute =
+    private final Attribute<Connection> peerConnectionAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("TunnelFilter.peerConnection");
 
     // Transport, which will be used to create peer connection

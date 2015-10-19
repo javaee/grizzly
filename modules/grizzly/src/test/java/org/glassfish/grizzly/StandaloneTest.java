@@ -57,9 +57,9 @@ import org.glassfish.grizzly.streams.StreamWriter;
  * @author Alexey Stashok
  */
 public class StandaloneTest extends GrizzlyTestCase {
-    private static Logger logger = Grizzly.logger(StandaloneTest.class);
+    private static final Logger logger = Grizzly.logger(StandaloneTest.class);
     
-    public static int PORT = 7780;
+    public static final int PORT = 7780;
     
     public void testStandalone() throws Exception {
         TCPNIOTransport transport =

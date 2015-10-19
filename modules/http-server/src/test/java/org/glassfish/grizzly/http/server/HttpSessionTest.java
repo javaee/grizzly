@@ -430,9 +430,9 @@ public class HttpSessionTest extends TestCase {
     }
     
     private static class HttpConnection {
-        private Transport transport;
-        private Connection connection;
-        private ClientFilter clientFilter;
+        private final Transport transport;
+        private final Connection connection;
+        private final ClientFilter clientFilter;
 
         private HttpConnection(TCPNIOTransport transport,
                 Connection connection,

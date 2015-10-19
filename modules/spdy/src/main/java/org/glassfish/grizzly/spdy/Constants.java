@@ -64,12 +64,12 @@ public class Constants {
     public static final int DEFAULT_INITIAL_WINDOW_SIZE = 64 * 1024;
     public static final int DEFAULT_MAX_FRAME_SIZE = 1 << 24;
     
-    static byte[] HOST_HEADER_BYTES = ":host".getBytes(Charsets.ASCII_CHARSET);
-    static byte[] METHOD_HEADER_BYTES = ":method".getBytes(Charsets.ASCII_CHARSET);
-    static byte[] PATH_HEADER_BYTES = ":path".getBytes(Charsets.ASCII_CHARSET);
-    static byte[] SCHEMA_HEADER_BYTES = ":scheme".getBytes(Charsets.ASCII_CHARSET);
-    static byte[] VERSION_HEADER_BYTES = ":version".getBytes(Charsets.ASCII_CHARSET);
-    static byte[] STATUS_HEADER_BYTES = ":status".getBytes(Charsets.ASCII_CHARSET);
+    static final byte[] HOST_HEADER_BYTES = ":host".getBytes(Charsets.ASCII_CHARSET);
+    static final byte[] METHOD_HEADER_BYTES = ":method".getBytes(Charsets.ASCII_CHARSET);
+    static final byte[] PATH_HEADER_BYTES = ":path".getBytes(Charsets.ASCII_CHARSET);
+    static final byte[] SCHEMA_HEADER_BYTES = ":scheme".getBytes(Charsets.ASCII_CHARSET);
+    static final byte[] VERSION_HEADER_BYTES = ":version".getBytes(Charsets.ASCII_CHARSET);
+    static final byte[] STATUS_HEADER_BYTES = ":status".getBytes(Charsets.ASCII_CHARSET);
     
     static final Termination IN_FIN_TERMINATION =
             new Termination(TerminationType.FIN, "End of input");

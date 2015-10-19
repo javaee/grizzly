@@ -55,7 +55,7 @@ public class TrackingWebSocket extends WebSocketClient {
             DataStructures.<String, Boolean>getConcurrentMap());
     
     private final CountDownLatch received;
-    private String name;
+    private final String name;
 
     public TrackingWebSocket(String address, Version version, int count, WebSocketListener... listeners)
         throws IOException, URISyntaxException {

@@ -330,7 +330,7 @@ public class SuspendTest {
             public void doLogic(Request req, final Response res) throws Throwable {
                 res.suspend(60, TimeUnit.SECONDS, new TestCompletionHandler<Response>() {
 
-                    private AtomicBoolean first = new AtomicBoolean(true);
+                    private final AtomicBoolean first = new AtomicBoolean(true);
 
                     @Override
                     public void completed(Response result) {

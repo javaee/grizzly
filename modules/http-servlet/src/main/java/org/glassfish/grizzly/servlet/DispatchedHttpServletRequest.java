@@ -159,7 +159,7 @@ public class DispatchedHttpServletRequest extends HttpServletRequestWrapper {
     /**
      * The dispatcher type.
      */
-    protected DispatcherType dispatcherType;
+    protected final DispatcherType dispatcherType;
 
     /**
      * Hash map used in the getParametersMap method.

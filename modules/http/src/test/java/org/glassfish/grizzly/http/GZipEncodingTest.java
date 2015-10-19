@@ -79,7 +79,7 @@ import org.glassfish.grizzly.memory.Buffers;
 public class GZipEncodingTest extends TestCase {
     private static final Logger logger = Grizzly.logger(GZipEncodingTest.class);
 
-    public static int PORT = 19006;
+    public static final int PORT = 19006;
 
     private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
@@ -405,9 +405,9 @@ public class GZipEncodingTest extends TestCase {
     private class ClientFilter extends BaseFilter {
         private final Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private HttpPacket request;
-        private FutureImpl<Boolean> testResult;
-        private ExpectedResult expectedResult;
+        private final HttpPacket request;
+        private final FutureImpl<Boolean> testResult;
+        private final ExpectedResult expectedResult;
 
         // -------------------------------------------------------- Constructors
 
@@ -550,7 +550,7 @@ public class GZipEncodingTest extends TestCase {
     private static final class ExpectedResult {
 
         private int statusCode = -1;
-        private Map<String,String> expectedHeaders =
+        private final Map<String,String> expectedHeaders =
                 new HashMap<String,String>();
         private String protocol;
         private String statusMessage;

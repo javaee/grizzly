@@ -1191,9 +1191,9 @@ public class HttpOutputStreamsTest extends AbstractSpdyTest {
     private static class ClientFilter extends BaseFilter {
         private final static Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private CompositeBuffer buf = CompositeBuffer.newBuffer();
+        private final CompositeBuffer buf = CompositeBuffer.newBuffer();
 
-        private FutureImpl<String> completeFuture;
+        private final FutureImpl<String> completeFuture;
 
         // number of bytes downloaded
         private volatile int bytesDownloaded;

@@ -80,7 +80,7 @@ public class HttpCommTest extends TestCase {
 
     private static final Logger logger = Grizzly.logger(HttpCommTest.class);
 
-    public static int PORT = 19002;
+    public static final int PORT = 19002;
 
     @SuppressWarnings("unchecked")
     public void testSinglePacket() throws Exception {

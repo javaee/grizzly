@@ -103,9 +103,9 @@ final class ApplicationDispatcher implements RequestDispatcher {
     
     private class PrivilegedDispatch implements PrivilegedExceptionAction<Void> {
 
-        private ServletRequest request;
-        private ServletResponse response;
-        private DispatcherType dispatcherType;
+        private final ServletRequest request;
+        private final ServletResponse response;
+        private final DispatcherType dispatcherType;
 
         PrivilegedDispatch( ServletRequest request, ServletResponse response,
                             DispatcherType dispatcherType ) {
@@ -123,8 +123,8 @@ final class ApplicationDispatcher implements RequestDispatcher {
 
     private class PrivilegedInclude implements PrivilegedExceptionAction<Void> {
 
-        private ServletRequest request;
-        private ServletResponse response;
+        private final ServletRequest request;
+        private final ServletResponse response;
 
         PrivilegedInclude(ServletRequest request, ServletResponse response) {
             this.request = request;
@@ -167,7 +167,7 @@ final class ApplicationDispatcher implements RequestDispatcher {
         /**
          * The type of dispatch we are performing
          */
-        DispatcherType dispatcherType;
+        final DispatcherType dispatcherType;
 
         /**
          * Outermost HttpServletRequest in the chain

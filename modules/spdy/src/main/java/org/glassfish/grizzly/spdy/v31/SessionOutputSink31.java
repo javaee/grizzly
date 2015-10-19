@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -308,14 +308,14 @@ final class SessionOutputSink31 extends SessionOutputSink {
     }
     
     private static class OutputQueueRecord extends AsyncQueueRecord<WriteResult> {
-        private int streamId;
+        private final int streamId;
         
         private ChunkedCompletionHandler chunkedCompletionHandler;
-        private CompletionHandler<WriteResult> originalCompletionHandler;
+        private final CompletionHandler<WriteResult> originalCompletionHandler;
         private Buffer buffer;
-        private boolean isLast;
+        private final boolean isLast;
         
-        private boolean isZeroSizeData;
+        private final boolean isZeroSizeData;
         
         public OutputQueueRecord(final int streamId,
                 final Buffer buffer,

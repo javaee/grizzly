@@ -58,7 +58,7 @@ public enum ErrorCode {
     ENHANCE_YOUR_CALM(11),
     INADEQUATE_SECURITY(12);
     
-    int code;
+    final int code;
     
     private static final ErrorCode[] intToErrorCode =
             new ErrorCode[ErrorCode.values().length];

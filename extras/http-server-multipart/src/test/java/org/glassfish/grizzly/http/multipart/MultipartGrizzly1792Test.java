@@ -273,8 +273,8 @@ public class MultipartGrizzly1792Test {
     }
 
     public static class PartHandler implements MultipartEntryHandler {
-        private CRC32 checksum;
-        private Response response;
+        private final CRC32 checksum;
+        private final Response response;
 
         PartHandler(CRC32 checksum, Response response) {
             this.checksum = checksum;
@@ -295,8 +295,8 @@ public class MultipartGrizzly1792Test {
     }
 
     public static class PostReader implements ReadHandler {
-        private CRC32 checksum;
-        private Response response;
+        private final CRC32 checksum;
+        private final Response response;
         private NIOInputStream in = null;
         private long totalBytes = 0;
         private final byte[] buffer = new byte[4096];

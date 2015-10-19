@@ -1126,9 +1126,9 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
     private static class ClientFilter extends BaseFilter {
         private final static Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private CompositeBuffer buf = CompositeBuffer.newBuffer();
+        private final CompositeBuffer buf = CompositeBuffer.newBuffer();
 
-        private FutureImpl<String> testFuture;
+        private final FutureImpl<String> testFuture;
 
         // number of bytes downloaded
         private volatile int bytesDownloaded;

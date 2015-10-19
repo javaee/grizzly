@@ -299,7 +299,7 @@ public class AsyncPUTest {
     }
 
     private static final class ClientResultFilter extends BaseFilter {
-        private static Attribute<AtomicInteger> responseCounterAttr =
+        private static final Attribute<AtomicInteger> responseCounterAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 ClientResultFilter.class.getName() + ".responseCounter",
                 new NullaryFunction<AtomicInteger>() {

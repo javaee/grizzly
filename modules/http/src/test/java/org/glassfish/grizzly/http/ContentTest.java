@@ -73,7 +73,7 @@ import org.glassfish.grizzly.utils.ChunkingFilter;
  */
 public class ContentTest extends TestCase {
 
-    public static int PORT = 19003;
+    public static final int PORT = 19003;
 
     @SuppressWarnings({"unchecked"})
     public void testExplicitContentLength() throws Exception {

@@ -60,7 +60,7 @@ public class Encoder {
     public static final int EMatchFinderTypeBT2 = 0;
     public static final int EMatchFinderTypeBT4 = 1;
     static final int kIfinityPrice = 0xFFFFFFF;
-    static byte[] g_FastPos = new byte[1 << 11];
+    static final byte[] g_FastPos = new byte[1 << 11];
 
     static {
         int kFastSlots = 22;
@@ -96,7 +96,7 @@ public class Encoder {
     }
     int _state = Base.stateInit();
     byte _previousByte;
-    int[] _repDistances = new int[Base.kNumRepDistances];
+    final int[] _repDistances = new int[Base.kNumRepDistances];
 
     void baseInit() {
         _state = Base.stateInit();
@@ -112,7 +112,7 @@ public class Encoder {
 
         static class Encoder2 {
 
-            short[] m_Encoders = new short[0x300];
+            final short[] m_Encoders = new short[0x300];
 
             public void init() {
                 RangeEncoder.initBitModels(m_Encoders);
@@ -200,10 +200,10 @@ public class Encoder {
 
     static class LenEncoder {
 
-        short[] _choice = new short[2];
-        BitTreeEncoder[] _lowCoder = new BitTreeEncoder[Base.kNumPosStatesEncodingMax];
-        BitTreeEncoder[] _midCoder = new BitTreeEncoder[Base.kNumPosStatesEncodingMax];
-        BitTreeEncoder _highCoder = new BitTreeEncoder(Base.kNumHighLenBits);
+        final short[] _choice = new short[2];
+        final BitTreeEncoder[] _lowCoder = new BitTreeEncoder[Base.kNumPosStatesEncodingMax];
+        final BitTreeEncoder[] _midCoder = new BitTreeEncoder[Base.kNumPosStatesEncodingMax];
+        final BitTreeEncoder _highCoder = new BitTreeEncoder(Base.kNumHighLenBits);
 
         public LenEncoder() {
             for (int posState = 0; posState < Base.kNumPosStatesEncodingMax; posState++) {
@@ -267,9 +267,9 @@ public class Encoder {
 
     static class LenPriceTableEncoder extends LenEncoder {
 
-        int[] _prices = new int[Base.kNumLenSymbols << Base.kNumPosStatesBitsEncodingMax];
+        final int[] _prices = new int[Base.kNumLenSymbols << Base.kNumPosStatesBitsEncodingMax];
         int _tableSize;
-        int[] _counters = new int[Base.kNumPosStatesEncodingMax];
+        final int[] _counters = new int[Base.kNumPosStatesEncodingMax];
 
         public void setTableSize(int tableSize) {
             _tableSize = tableSize;
@@ -329,22 +329,22 @@ public class Encoder {
         }
     }
 
-    Optimal[] _optimum = new Optimal[kNumOpts];
+    final Optimal[] _optimum = new Optimal[kNumOpts];
     BinTree _matchFinder = null;
-    RangeEncoder _rangeEncoder = new RangeEncoder();
-    short[] _isMatch = new short[Base.kNumStates << Base.kNumPosStatesBitsMax];
-    short[] _isRep = new short[Base.kNumStates];
-    short[] _isRepG0 = new short[Base.kNumStates];
-    short[] _isRepG1 = new short[Base.kNumStates];
-    short[] _isRepG2 = new short[Base.kNumStates];
-    short[] _isRep0Long = new short[Base.kNumStates << Base.kNumPosStatesBitsMax];
-    BitTreeEncoder[] _posSlotEncoder = new BitTreeEncoder[Base.kNumLenToPosStates]; // kNumPosSlotBits
-    short[] _posEncoders = new short[Base.kNumFullDistances - Base.kEndPosModelIndex];
-    BitTreeEncoder _posAlignEncoder = new BitTreeEncoder(Base.kNumAlignBits);
-    LenPriceTableEncoder _lenEncoder = new LenPriceTableEncoder();
-    LenPriceTableEncoder _repMatchLenEncoder = new LenPriceTableEncoder();
-    LiteralEncoder _literalEncoder = new LiteralEncoder();
-    int[] _matchDistances = new int[Base.kMatchMaxLen * 2 + 2];
+    final RangeEncoder _rangeEncoder = new RangeEncoder();
+    final short[] _isMatch = new short[Base.kNumStates << Base.kNumPosStatesBitsMax];
+    final short[] _isRep = new short[Base.kNumStates];
+    final short[] _isRepG0 = new short[Base.kNumStates];
+    final short[] _isRepG1 = new short[Base.kNumStates];
+    final short[] _isRepG2 = new short[Base.kNumStates];
+    final short[] _isRep0Long = new short[Base.kNumStates << Base.kNumPosStatesBitsMax];
+    final BitTreeEncoder[] _posSlotEncoder = new BitTreeEncoder[Base.kNumLenToPosStates]; // kNumPosSlotBits
+    final short[] _posEncoders = new short[Base.kNumFullDistances - Base.kEndPosModelIndex];
+    final BitTreeEncoder _posAlignEncoder = new BitTreeEncoder(Base.kNumAlignBits);
+    final LenPriceTableEncoder _lenEncoder = new LenPriceTableEncoder();
+    final LenPriceTableEncoder _repMatchLenEncoder = new LenPriceTableEncoder();
+    final LiteralEncoder _literalEncoder = new LiteralEncoder();
+    final int[] _matchDistances = new int[Base.kMatchMaxLen * 2 + 2];
     int _numFastBytes = kNumFastBytesDefault;
     int _longestMatchLength;
     int _numDistancePairs;
@@ -352,9 +352,9 @@ public class Encoder {
     int _optimumEndIndex;
     int _optimumCurrentIndex;
     boolean _longestMatchWasFound;
-    int[] _posSlotPrices = new int[1 << (Base.kNumPosSlotBits + Base.kNumLenToPosStatesBits)];
-    int[] _distancesPrices = new int[Base.kNumFullDistances << Base.kNumLenToPosStatesBits];
-    int[] _alignPrices = new int[Base.kAlignTableSize];
+    final int[] _posSlotPrices = new int[1 << (Base.kNumPosSlotBits + Base.kNumLenToPosStatesBits)];
+    final int[] _distancesPrices = new int[Base.kNumFullDistances << Base.kNumLenToPosStatesBits];
+    final int[] _alignPrices = new int[Base.kAlignTableSize];
     int _alignPriceCount;
     int _distTableSize = (kDefaultDictionaryLogSize * 2);
     int _posStateBits = 2;
@@ -528,8 +528,8 @@ public class Encoder {
         _optimumCurrentIndex = _optimum[0].PosPrev;
         return _optimumCurrentIndex;
     }
-    int[] reps = new int[Base.kNumRepDistances];
-    int[] repLens = new int[Base.kNumRepDistances];
+    final int[] reps = new int[Base.kNumRepDistances];
+    final int[] repLens = new int[Base.kNumRepDistances];
     int backRes;
 
     int getOptimum(int position) throws IOException {
@@ -1200,9 +1200,9 @@ public class Encoder {
 
         nowPos64 = 0;
     }
-    long[] processedInSize = new long[1];
-    long[] processedOutSize = new long[1];
-    boolean[] finished = new boolean[1];
+    final long[] processedInSize = new long[1];
+    final long[] processedOutSize = new long[1];
+    final boolean[] finished = new boolean[1];
 
     public void code(LZMAEncoder.LZMAOutputState state, long inSize, long outSize) throws IOException {
         _needReleaseMFStream = false;
@@ -1232,7 +1232,7 @@ public class Encoder {
             dst.put((byte) (_dictionarySize >> (8 * i)));
         }
     }
-    int[] tempPrices = new int[Base.kNumFullDistances];
+    final int[] tempPrices = new int[Base.kNumFullDistances];
     int _matchPriceCount;
 
     void fillDistancesPrices() {

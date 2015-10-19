@@ -77,7 +77,7 @@ import org.glassfish.grizzly.utils.DataStructures;
  */
 @SuppressWarnings("unchecked")
 public class FilterChainReadTest extends TestCase {
-    public static int PORT = 7785;
+    public static final int PORT = 7785;
 
     private static final Logger logger = Grizzly.logger(FilterChainReadTest.class);
 

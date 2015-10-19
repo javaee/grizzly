@@ -61,9 +61,9 @@ import org.glassfish.grizzly.servlet.ServletHandler;
  * @author Hubert Iwaniuk
  */
 public class OSGiServletHandler extends ServletHandler implements OSGiHandler {
-    private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private HttpContext httpContext;
-    private Logger logger;
+    private final Logger logger;
     private String servletPath;
 
     public OSGiServletHandler(final Servlet servlet,

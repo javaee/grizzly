@@ -73,7 +73,7 @@ public class ClientDownloadFilter extends BaseFilter {
     private final String fileName;
     
     // Download completion future
-    private FutureImpl<String> completeFuture;
+    private final FutureImpl<String> completeFuture;
 
     // local file channel, where we save resource content
     private volatile FileChannel output;

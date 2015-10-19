@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.compression.lzma;
 
 import org.glassfish.grizzly.AbstractTransformer;
@@ -161,9 +162,9 @@ public class LZMADecoder extends AbstractTransformer<Buffer,Buffer> {
 
     public static class LZMAInputState extends LastResultAwareState<Buffer,Buffer> implements Cacheable {
 
-        private Decoder decoder = new Decoder();
+        private final Decoder decoder = new Decoder();
         private boolean initialized;
-        private byte[] decoderConfigBits = new byte[5];
+        private final byte[] decoderConfigBits = new byte[5];
         private Buffer src;
         private Buffer dst;
         private MemoryManager mm;

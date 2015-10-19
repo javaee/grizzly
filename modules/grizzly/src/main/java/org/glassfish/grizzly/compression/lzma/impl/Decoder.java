@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.compression.lzma.impl;
 
 import org.glassfish.grizzly.compression.lzma.LZMADecoder;
@@ -64,10 +65,10 @@ public class Decoder {
 
     static class LenDecoder {
 
-        short[] m_Choice = new short[2];
-        BitTreeDecoder[] m_LowCoder = new BitTreeDecoder[Base.kNumPosStatesMax];
-        BitTreeDecoder[] m_MidCoder = new BitTreeDecoder[Base.kNumPosStatesMax];
-        BitTreeDecoder m_HighCoder = new BitTreeDecoder(Base.kNumHighLenBits);
+        final short[] m_Choice = new short[2];
+        final BitTreeDecoder[] m_LowCoder = new BitTreeDecoder[Base.kNumPosStatesMax];
+        final BitTreeDecoder[] m_MidCoder = new BitTreeDecoder[Base.kNumPosStatesMax];
+        final BitTreeDecoder m_HighCoder = new BitTreeDecoder(Base.kNumHighLenBits);
         int m_NumPosStates = 0;
 
         public void create(int numPosStates) {
@@ -151,7 +152,7 @@ public class Decoder {
 
         public static class Decoder2 {
 
-            short[] m_Decoders = new short[0x300];
+            final short[] m_Decoders = new short[0x300];
             int decodeNormalMethodState;
             int decodeWithMatchByteMethodState;
             int symbol;
@@ -288,20 +289,20 @@ public class Decoder {
             return m_Coders[((pos & m_PosMask) << m_NumPrevBits) + ((prevByte & 0xFF) >>> (8 - m_NumPrevBits))];
         }
     }
-    OutWindow m_OutWindow = new OutWindow();
-    RangeDecoder m_RangeDecoder = new RangeDecoder();
-    short[] m_IsMatchDecoders = new short[Base.kNumStates << Base.kNumPosStatesBitsMax];
-    short[] m_IsRepDecoders = new short[Base.kNumStates];
-    short[] m_IsRepG0Decoders = new short[Base.kNumStates];
-    short[] m_IsRepG1Decoders = new short[Base.kNumStates];
-    short[] m_IsRepG2Decoders = new short[Base.kNumStates];
-    short[] m_IsRep0LongDecoders = new short[Base.kNumStates << Base.kNumPosStatesBitsMax];
-    BitTreeDecoder[] m_PosSlotDecoder = new BitTreeDecoder[Base.kNumLenToPosStates];
-    short[] m_PosDecoders = new short[Base.kNumFullDistances - Base.kEndPosModelIndex];
-    BitTreeDecoder m_PosAlignDecoder = new BitTreeDecoder(Base.kNumAlignBits);
-    LenDecoder m_LenDecoder = new LenDecoder();
-    LenDecoder m_RepLenDecoder = new LenDecoder();
-    LiteralDecoder m_LiteralDecoder = new LiteralDecoder();
+    final OutWindow m_OutWindow = new OutWindow();
+    final RangeDecoder m_RangeDecoder = new RangeDecoder();
+    final short[] m_IsMatchDecoders = new short[Base.kNumStates << Base.kNumPosStatesBitsMax];
+    final short[] m_IsRepDecoders = new short[Base.kNumStates];
+    final short[] m_IsRepG0Decoders = new short[Base.kNumStates];
+    final short[] m_IsRepG1Decoders = new short[Base.kNumStates];
+    final short[] m_IsRepG2Decoders = new short[Base.kNumStates];
+    final short[] m_IsRep0LongDecoders = new short[Base.kNumStates << Base.kNumPosStatesBitsMax];
+    final BitTreeDecoder[] m_PosSlotDecoder = new BitTreeDecoder[Base.kNumLenToPosStates];
+    final short[] m_PosDecoders = new short[Base.kNumFullDistances - Base.kEndPosModelIndex];
+    final BitTreeDecoder m_PosAlignDecoder = new BitTreeDecoder(Base.kNumAlignBits);
+    final LenDecoder m_LenDecoder = new LenDecoder();
+    final LenDecoder m_RepLenDecoder = new LenDecoder();
+    final LiteralDecoder m_LiteralDecoder = new LiteralDecoder();
     int m_DictionarySize = -1;
     int m_DictionarySizeCheck = -1;
     int m_PosStateMask;

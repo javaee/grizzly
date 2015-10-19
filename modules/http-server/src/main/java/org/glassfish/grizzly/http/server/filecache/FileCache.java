@@ -149,12 +149,12 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
     /**
      * The current cache size in bytes
      */
-    private AtomicLong mappedMemorySize = new AtomicLong();
+    private final AtomicLong mappedMemorySize = new AtomicLong();
 
     /**
      * The current cache size in bytes
      */
-    private AtomicLong heapSize = new AtomicLong();
+    private final AtomicLong heapSize = new AtomicLong();
 
     /**
      * Is the file cache enabled.

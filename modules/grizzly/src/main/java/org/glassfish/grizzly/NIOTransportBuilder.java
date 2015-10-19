@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,7 +67,7 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 @SuppressWarnings("UnusedDeclaration")
 public abstract class NIOTransportBuilder<T extends NIOTransportBuilder> {
 
-    protected Class<? extends NIOTransport> transportClass;
+    protected final Class<? extends NIOTransport> transportClass;
     protected ThreadPoolConfig workerConfig;
     protected ThreadPoolConfig kernelConfig;
     protected SelectorProvider selectorProvider;

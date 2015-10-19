@@ -72,7 +72,7 @@ public class BasicCometTest extends TestCase {
     final static String onInterrupt = "onInterrupt";
     final static String onEvent = "onEvent";
     private HttpServer httpServer;
-    private int PORT = 18890;
+    private final int PORT = 18890;
     CometContext<String> cometContext;
 
     @Override

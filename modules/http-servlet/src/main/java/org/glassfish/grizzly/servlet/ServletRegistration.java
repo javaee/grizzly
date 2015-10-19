@@ -59,7 +59,7 @@ public class ServletRegistration extends Registration
         implements javax.servlet.ServletRegistration.Dynamic, Comparable<ServletRegistration> {
 
     protected Class<? extends Servlet> servletClass;
-    protected ArraySet<String> urlPatterns = new ArraySet<String>(String.class);
+    protected final ArraySet<String> urlPatterns = new ArraySet<String>(String.class);
     protected Servlet servlet;
     protected int loadOnStartup = -1;
     protected ExpectationHandler expectationHandler;

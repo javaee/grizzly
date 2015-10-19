@@ -74,7 +74,7 @@ public abstract class HttpHeader extends HttpPacket
             Constants.CHUNKED_ENCODING.getBytes(Charsets.ASCII_CHARSET);
 
     protected boolean isCommitted;
-    protected MimeHeaders headers;
+    protected final MimeHeaders headers;
     
     protected final DataChunk protocolC = DataChunk.newInstance();
     protected Protocol parsedProtocol;

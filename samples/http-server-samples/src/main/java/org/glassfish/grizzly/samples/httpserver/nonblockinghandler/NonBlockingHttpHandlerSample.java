@@ -213,9 +213,9 @@ public class NonBlockingHttpHandlerSample {
                 "contentD"
             };
 
-            private FutureImpl<String> future;
+            private final FutureImpl<String> future;
 
-            private StringBuilder sb = new StringBuilder();
+            private final StringBuilder sb = new StringBuilder();
 
             // ---------------------------------------------------- Constructors
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,7 +59,7 @@ import java.util.concurrent.TimeUnit;
 public class EchoFilterAsync extends BaseFilter {
 
     // Create Scheduled thread pool
-    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5, new ThreadFactory() {
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5, new ThreadFactory() {
 
         @Override
         public Thread newThread(Runnable r) {

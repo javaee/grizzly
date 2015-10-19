@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly;
 
 import java.nio.charset.Charset;
@@ -52,7 +53,7 @@ import org.glassfish.grizzly.utils.Charsets;
  * @author Alexey Stashok
  */
 public class CharsetsTest extends TestCase{
-    private Charset[] charsets = new Charset[] {
+    private final Charset[] charsets = new Charset[] {
         Charsets.UTF8_CHARSET, Charset.forName("UTF-16"),
         Charset.forName("UTF-32"), Charsets.ASCII_CHARSET,
         Charset.forName("GB2312")

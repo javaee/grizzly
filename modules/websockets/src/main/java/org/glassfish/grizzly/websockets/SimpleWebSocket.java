@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.websockets;
 
 import org.glassfish.grizzly.Buffer;
@@ -73,7 +74,7 @@ public class SimpleWebSocket implements WebSocket {
         NEW, CONNECTED, CLOSING, CLOSED
     }
 
-    protected EnumSet<State> connected = EnumSet.range(State.CONNECTED, State.CLOSING);
+    protected final EnumSet<State> connected = EnumSet.range(State.CONNECTED, State.CLOSING);
     protected final AtomicReference<State> state = new AtomicReference<State>(State.NEW);
 
 

@@ -835,9 +835,9 @@ public class PooledMemoryManagerTest {
 
 
     static final class TestProbe implements MemoryProbe {
-        AtomicInteger bufferAllocated = new AtomicInteger();
-        AtomicInteger bufferAllocatedFromPool = new AtomicInteger();
-        AtomicInteger bufferReleasedToPool = new AtomicInteger();
+        final AtomicInteger bufferAllocated = new AtomicInteger();
+        final AtomicInteger bufferAllocatedFromPool = new AtomicInteger();
+        final AtomicInteger bufferReleasedToPool = new AtomicInteger();
 
         @Override
         public void onBufferAllocateEvent(int size) {

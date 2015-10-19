@@ -318,7 +318,7 @@ public class TransferEncodingTest {
     private static class ClientFilter extends BaseFilter {
         private final static Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private FutureImpl<HttpContent> testFuture;
+        private final FutureImpl<HttpContent> testFuture;
 
         // -------------------------------------------------------- Constructors
 
@@ -378,7 +378,7 @@ public class TransferEncodingTest {
     private static class HeaderTestClientFilter extends BaseFilter {
         private final static Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private FutureImpl<HttpHeader> testFuture;
+        private final FutureImpl<HttpHeader> testFuture;
 
         // -------------------------------------------------------- Constructors
 

@@ -77,7 +77,7 @@ import static org.junit.Assert.*;
 
 public class LZMATest {
     private static final int PORT = 7786;
-    private MemoryManager manager;
+    private final MemoryManager manager;
 
     public LZMATest(MemoryManager manager) {
         this.manager = manager;

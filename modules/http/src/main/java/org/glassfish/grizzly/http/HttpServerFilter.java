@@ -97,8 +97,8 @@ public class HttpServerFilter extends HttpCodecFilter {
     private byte[] defaultResponseContentTypeBytesNoCharset;
     
     private final boolean allowKeepAlive;
-    private int maxRequestHeaders;
-    private int maxResponseHeaders;
+    private final int maxRequestHeaders;
+    private final int maxResponseHeaders;
     
     // flag, which enables/disables payload support for HTTP methods,
     // for which HTTP spec doesn't clearly state whether they support payload.

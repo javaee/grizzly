@@ -64,7 +64,7 @@ import org.glassfish.grizzly.utils.DataStructures;
 public class ServerAuthFilter extends BaseFilter {
 
     // Authenticated clients connection map
-    private Map<Connection, String> authenticatedConnections =
+    private final Map<Connection, String> authenticatedConnections =
             DataStructures.getConcurrentMap();
 
     // Random, to generate client ids.

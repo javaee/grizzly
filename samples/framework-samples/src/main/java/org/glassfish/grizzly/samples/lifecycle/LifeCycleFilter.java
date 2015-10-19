@@ -60,11 +60,11 @@ import org.glassfish.grizzly.utils.DataStructures;
  * @author Alexey Stashok
  */
 public class LifeCycleFilter extends BaseFilter {
-    private Attribute<Integer> connectionIdAttribute =
+    private final Attribute<Integer> connectionIdAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("connection-id");
 
-    private AtomicInteger totalConnectionNumber;
-    private Map<Connection, Integer> activeConnectionsMap;
+    private final AtomicInteger totalConnectionNumber;
+    private final Map<Connection, Integer> activeConnectionsMap;
 
     public LifeCycleFilter() {
         totalConnectionNumber = new AtomicInteger();

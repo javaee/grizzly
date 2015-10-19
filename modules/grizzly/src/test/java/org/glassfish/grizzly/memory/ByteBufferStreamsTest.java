@@ -108,7 +108,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     abstract static class CheckerBase implements Checker {
 
-        private String name;
+        private final String name;
 
         public CheckerBase() {
             String className = this.getClass().getName();
@@ -153,7 +153,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class CompositeChecker extends CheckerBase {
 
-        private List<Checker> checkers;
+        private final List<Checker> checkers;
 
         @Override
         public String value() {
@@ -242,8 +242,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class RepeatedChecker extends CheckerBase {
 
-        private int count;
-        private Checker checker;
+        private final int count;
+        private final Checker checker;
 
         @Override
         public String value() {
@@ -304,7 +304,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class ByteChecker extends CheckerBase {
 
-        private byte data;
+        private final byte data;
 
         @Override
         public String value() {
@@ -336,7 +336,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class BooleanChecker extends CheckerBase {
 
-        private boolean data;
+        private final boolean data;
 
         @Override
         public String value() {
@@ -368,7 +368,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class CharChecker extends CheckerBase {
 
-        private char data;
+        private final char data;
 
         @Override
         public String value() {
@@ -400,7 +400,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class ShortChecker extends CheckerBase {
 
-        private short data;
+        private final short data;
 
         @Override
         public String value() {
@@ -432,7 +432,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class IntChecker extends CheckerBase {
 
-        private int data;
+        private final int data;
 
         @Override
         public String value() {
@@ -464,7 +464,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class LongChecker extends CheckerBase {
 
-        private long data;
+        private final long data;
 
         @Override
         public String value() {
@@ -496,7 +496,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class FloatChecker extends CheckerBase {
 
-        private float data;
+        private final float data;
 
         @Override
         public String value() {
@@ -528,7 +528,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class DoubleChecker extends CheckerBase {
 
-        private double data;
+        private final double data;
 
         @Override
         public String value() {
@@ -561,8 +561,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class BooleanArrayChecker extends CheckerBase {
 
-        private boolean data;
-        private int size;
+        private final boolean data;
+        private final int size;
 
         @Override
         public String value() {
@@ -602,8 +602,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class ByteArrayChecker extends CheckerBase {
 
-        private byte data;
-        private int size;
+        private final byte data;
+        private final int size;
 
         @Override
         public String value() {
@@ -651,8 +651,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class CharArrayChecker extends CheckerBase {
 
-        private char data;
-        private int size;
+        private final char data;
+        private final int size;
 
         @Override
         public String value() {
@@ -700,8 +700,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class ShortArrayChecker extends CheckerBase {
 
-        private short data;
-        private int size;
+        private final short data;
+        private final int size;
 
         @Override
         public String value() {
@@ -749,8 +749,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class IntArrayChecker extends CheckerBase {
 
-        private int data;
-        private int size;
+        private final int data;
+        private final int size;
 
         @Override
         public String value() {
@@ -798,8 +798,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class LongArrayChecker extends CheckerBase {
 
-        private long data;
-        private int size;
+        private final long data;
+        private final int size;
 
         @Override
         public String value() {
@@ -858,8 +858,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class FloatArrayChecker extends CheckerBase {
 
-        private float data;
-        private int size;
+        private final float data;
+        private final int size;
 
         @Override
         public String value() {
@@ -907,8 +907,8 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     static class DoubleArrayChecker extends CheckerBase {
 
-        private double data;
-        private int size;
+        private final double data;
+        private final int size;
 
         @Override
         public String value() {
@@ -960,7 +960,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
      */
     static class PoisonChecker extends CheckerBase {
 
-        private byte data = 1;
+        private final byte data = 1;
 
         @Override
         public String value() {

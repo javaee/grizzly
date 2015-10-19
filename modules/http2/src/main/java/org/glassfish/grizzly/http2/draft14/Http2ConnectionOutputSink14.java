@@ -289,14 +289,14 @@ final class Http2ConnectionOutputSink14 extends Http2ConnectionOutputSink {
     }
     
     private static class OutputQueueRecord extends AsyncQueueRecord<WriteResult> {
-        private int streamId;
+        private final int streamId;
         
         private ChunkedCompletionHandler chunkedCompletionHandler;
-        private CompletionHandler<WriteResult> originalCompletionHandler;
+        private final CompletionHandler<WriteResult> originalCompletionHandler;
         private Buffer buffer;
-        private boolean isLast;
+        private final boolean isLast;
         
-        private boolean isZeroSizeData;
+        private final boolean isZeroSizeData;
         
         public OutputQueueRecord(final int streamId,
                 final Buffer buffer,

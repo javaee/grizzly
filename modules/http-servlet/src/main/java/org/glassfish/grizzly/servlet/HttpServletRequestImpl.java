@@ -135,7 +135,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     // has passed a filter or servlet that does not support async
     // operation, in which case async operation will be disabled
     private boolean isAsyncSupported = true;
-    private AtomicBoolean asyncStarted = new AtomicBoolean();
+    private final AtomicBoolean asyncStarted = new AtomicBoolean();
     private AsyncContextImpl asyncContext;
     // Has AsyncContext.complete been called?
     private boolean isAsyncComplete;

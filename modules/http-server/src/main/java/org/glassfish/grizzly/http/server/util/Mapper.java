@@ -130,11 +130,11 @@ public class Mapper {
     /**
      * Context associated with this wrapper, used for wrapper mapping.
      */
-    protected Context context = new Context();
+    protected final Context context = new Context();
 
 
     // START GlassFish 1024
-    private Map<String, String> defaultContextPathsMap = new HashMap<String, String>();
+    private final Map<String, String> defaultContextPathsMap = new HashMap<String, String>();
 
 
     /**
@@ -2001,7 +2001,7 @@ public class Mapper {
     protected static class Wrapper
         extends MapElement {
 
-        public String path = null;
+        public final String path = null;
         public boolean jspWildCard = false;
         public String servletName = null;
     }

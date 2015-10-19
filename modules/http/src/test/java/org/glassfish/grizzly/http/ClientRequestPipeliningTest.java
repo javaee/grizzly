@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -153,7 +153,7 @@ public class ClientRequestPipeliningTest extends TestCase {
     private static final class ResponseCollectingFilter extends BaseFilter {
 
         private final CountDownLatch latch;
-        List<Integer> responses = new ArrayList<Integer>();
+        final List<Integer> responses = new ArrayList<Integer>();
 
         ResponseCollectingFilter(CountDownLatch latch) {
             this.latch = latch;

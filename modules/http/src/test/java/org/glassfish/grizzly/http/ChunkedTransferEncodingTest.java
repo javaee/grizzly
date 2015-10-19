@@ -89,10 +89,10 @@ import static org.junit.Assert.*;
  */
 @RunWith(Parameterized.class)
 public class ChunkedTransferEncodingTest {
-    public static int PORT = 19007;
+    public static final int PORT = 19007;
 
-    private String eol;
-    private boolean isChunkWhenParsing;
+    private final String eol;
+    private final boolean isChunkWhenParsing;
     
     private TCPNIOTransport transport;
     private Connection connection;

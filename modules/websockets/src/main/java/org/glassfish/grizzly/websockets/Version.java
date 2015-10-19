@@ -60,7 +60,7 @@ public enum Version {
 
     public abstract boolean validate(MimeHeaders headers);
 
-    String wireProtocolVersion;
+    final String wireProtocolVersion;
 
     Version(final String wireProtocolVersion) {
         this.wireProtocolVersion = wireProtocolVersion;
