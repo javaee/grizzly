@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,26 +57,23 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
 
     protected Charset charset;
 
-    protected String stringTerminator = null;
+    protected String stringTerminator;
 
     public StringEncoder() {
         this((String) null);
     }
 
-    public StringEncoder(String stringTerminator) {
-        this(null, null);
+    public StringEncoder(final String stringTerminator) {
+        this(null, stringTerminator);
     }
 
-    public StringEncoder(Charset charset) {
+    @SuppressWarnings("unused")
+    public StringEncoder(final Charset charset) {
         this(charset, null);
     }
 
-    public StringEncoder(Charset charset, String stringTerminator) {
-        if (charset != null) {
-            this.charset = charset;
-        } else {
-            this.charset = Charset.defaultCharset();
-        }
+    public StringEncoder(final Charset charset, final String stringTerminator) {
+        this.charset = charset != null ? charset : Charset.defaultCharset();
 
         this.stringTerminator = stringTerminator;
     }
@@ -88,21 +85,21 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
 
     @Override
     protected TransformationResult<String, Buffer> transformImpl(
-            AttributeStorage storage, String input)
+            final AttributeStorage storage, String input)
             throws TransformationException {
 
         if (input == null) {
             throw new TransformationException("Input could not be null");
         }
 
-        byte[] byteRepresentation;
+        final byte[] byteRepresentation;
         try {
             if (stringTerminator != null) {
                 input = input + stringTerminator;
             }
             
             byteRepresentation = input.getBytes(charset.name());
-        } catch(UnsupportedEncodingException e) {
+        } catch(final UnsupportedEncodingException e) {
             throw new TransformationException("Charset " +
                     charset.name() + " is not supported", e);
         }
@@ -123,7 +120,8 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
     }
 
     @Override
-    public boolean hasInputRemaining(AttributeStorage storage, String input) {
+    public boolean hasInputRemaining(final AttributeStorage storage,
+                                     final String input) {
         return input != null;
     }
 
@@ -131,7 +129,7 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
         return charset;
     }
 
-    public void setCharset(Charset charset) {
+    public void setCharset(final Charset charset) {
         this.charset = charset;
     }
 }

@@ -56,15 +56,15 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
     private final Transformer<K, L> decoder;
     private final Transformer<L, K> encoder;
 
-    public AbstractCodecFilter(Transformer<K, L> decoder,
-            Transformer<L, K> encoder) {
+    public AbstractCodecFilter(final Transformer<K, L> decoder,
+                               final Transformer<L, K> encoder) {
         this.decoder = decoder;
         this.encoder = encoder;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public NextAction handleRead(FilterChainContext ctx) throws IOException {
+    public NextAction handleRead(final FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
         final K message = ctx.getMessage();
 
@@ -78,11 +78,9 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
                         decoder.hasInputRemaining(connection, remainder);
                 decoder.release(connection);
                 ctx.setMessage(result.getMessage());
-                if (hasRemaining) {
-                    return ctx.getInvokeAction(remainder);
-                } else {
-                    return ctx.getInvokeAction();
-                }
+                return hasRemaining
+                        ? ctx.getInvokeAction(remainder)
+                        : ctx.getInvokeAction();
             case INCOMPLETE:
                 return ctx.getStopAction(message);
             case ERROR:
@@ -96,7 +94,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
 
     @Override
     @SuppressWarnings("unchecked")
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+    public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
         final L message = ctx.getMessage();
 
@@ -109,11 +107,9 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
                 final boolean hasRemaining =
                         encoder.hasInputRemaining(connection, remainder);
                 encoder.release(connection);
-                if (hasRemaining) {
-                    return ctx.getInvokeAction(remainder);
-                } else {
-                    return ctx.getInvokeAction();
-                }
+                return hasRemaining
+                        ? ctx.getInvokeAction(remainder)
+                        : ctx.getInvokeAction();
             case INCOMPLETE:
                 return ctx.getStopAction(message);
             case ERROR:

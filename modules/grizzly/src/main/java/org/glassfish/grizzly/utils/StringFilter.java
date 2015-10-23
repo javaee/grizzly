@@ -55,11 +55,11 @@ public final class StringFilter extends AbstractCodecFilter<Buffer, String> {
         this(null, null);
     }
     
-    public StringFilter(Charset charset) {
+    public StringFilter(final Charset charset) {
         this(charset, null);
     }
 
-    public StringFilter(Charset charset, String stringTerminatingSymb) {
+    public StringFilter(final Charset charset, final String stringTerminatingSymb) {
         super(new StringDecoder(charset, stringTerminatingSymb),
                 new StringEncoder(charset, stringTerminatingSymb));
     }

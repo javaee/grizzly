@@ -74,26 +74,22 @@ public class MultiStringFilter extends BaseFilter {
  
     protected final byte[] stringTerminateBytes;
  
+    @SuppressWarnings("unused")
     public MultiStringFilter() {
         this(null, null);
     }
     
-    public MultiStringFilter(Charset charset) {
+    @SuppressWarnings("unused")
+    public MultiStringFilter(final Charset charset) {
         this(charset, null);
     }
  
-    public MultiStringFilter(Charset charset, String stringTerminate) {
-        if (charset != null) {
-            this.charset = charset;
-        } else {
-            this.charset = Charset.defaultCharset();
-        }
-        
-        if (stringTerminate != null) {
-            stringTerminateBytes = stringTerminate.getBytes(charset);
-        } else {
-            stringTerminateBytes = null;
-        }
+    public MultiStringFilter(final Charset charset, final String stringTerminate) {
+        this.charset = charset != null ? charset : Charset.defaultCharset();
+
+        stringTerminateBytes = stringTerminate != null
+                ? stringTerminate.getBytes(this.charset)
+                : null;
  
         decodeStateAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 MultiStringFilter.class.getName() + ".string-length");
@@ -145,7 +141,7 @@ public class MultiStringFilter extends BaseFilter {
     }
  
     @Override
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+    public NextAction handleWrite(final FilterChainContext ctx) throws IOException {
         
         final Object input = ctx.getMessage();
         if (!(input instanceof List)) {
@@ -174,11 +170,11 @@ public class MultiStringFilter extends BaseFilter {
         final DataOutputStream dos = new DataOutputStream(baos);
  
         try {
-            for (String inputString : inputStringList) {
-                byte[] byteRepresentation;
+            for (final String inputString : inputStringList) {
+                final byte[] byteRepresentation;
                 try {
                     byteRepresentation = inputString.getBytes(charsetName);
-                } catch (UnsupportedEncodingException e) {
+                } catch (final UnsupportedEncodingException e) {
                     throw new IllegalStateException("Charset "
                             + charset.name() + " is not supported", e);
                 }
@@ -228,7 +224,7 @@ public class MultiStringFilter extends BaseFilter {
             return decodeResult;
         }
  
-        String stringMessage = input.toStringContent(charset,
+        final String stringMessage = input.toStringContent(charset,
                 input.position(), input.position() + stringSize);
  
         input.position(input.position() + stringSize);        
@@ -304,7 +300,7 @@ public class MultiStringFilter extends BaseFilter {
             return result;
         }
  
-        private void done(String result) {
+        private void done(final String result) {
             this.result = result;
         }
  
