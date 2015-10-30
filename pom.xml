@@ -2,7 +2,7 @@
 
     DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
-    Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+    Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
 
     The contents of this file are subject to the terms of either the GNU
     General Public License Version 2 only ("GPL") or the Common Development
@@ -51,7 +51,7 @@
     <artifactId>grizzly-framework-http</artifactId>
     <packaging>jar</packaging>
     <name>grizzly-framework-http</name>
-    <version>1.0.52-SNAPSHOT</version>
+    <version>1.0.52</version>
     <url>http://grizzly.java.net</url>
     <issueManagement>
         <system>JIRA</system>
@@ -243,6 +243,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
