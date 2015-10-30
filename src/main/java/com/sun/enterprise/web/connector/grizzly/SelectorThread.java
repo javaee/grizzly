@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -303,6 +303,10 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      */
     protected RequestGroupInfo globalRequestProcessor= new RequestGroupInfo();
     
+    /**
+     * SelectorThread {@link ErrorHandler}.
+     */
+    protected ErrorHandler errorHandler;
     
     /**
      * Keep-alive stats
@@ -1312,7 +1316,21 @@ public class SelectorThread extends Thread implements MBeanRegistration{
         initReadTask(minReadQueueLength);   
     }
     
- 
+     /**
+     * @return the {@link ErrorHandler}
+     */
+    public ErrorHandler getErrorHandler() {
+        return errorHandler;
+    }
+
+    /**
+     * Sets the {@link ErrorHandler}.
+     * @param errorHandler {@link ErrorHandler}.
+     */
+    public void setErrorHandler(ErrorHandler errorHandler) {
+        this.errorHandler = errorHandler;
+    }
+
     /**
      * Return a <code>ProcessorTask</code> from the pool. If the pool is empty,
      * create a new instance.

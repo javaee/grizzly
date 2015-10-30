@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 1997-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -333,7 +333,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
     
     
     /**
-     * The code>RequestInfo</code> used to gather stats.
+     * The <code>RequestInfo</code> used to gather stats.
      */
     protected RequestInfo requestInfo;
     
@@ -608,6 +608,17 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
             prepareForNextRequest();
             
             boolean exitWhile = parseRequest(input, output, false);
+            
+            if (statusDropsConnection(response.getStatus())) {
+                final ErrorHandler errorHandler = getErrorHandler();
+                if (errorHandler != null) {
+                    try {
+                        errorHandler.onParsingError(socket, response);
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            
             if (exitWhile) {
                 return exitWhile;
             }
@@ -625,6 +636,10 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
         isProcessingCompleted = false;
     }
     
+    public ErrorHandler getErrorHandler() {
+        return selectorThread.getErrorHandler();
+    }
+
     /**
      * Prepare and post the response.
      * @param input the InputStream to read bytes
