@@ -242,12 +242,22 @@ public abstract class HttpHeader extends HttpPacket
      * Set <tt>true</tt>, if this {@link HttpPacket} content will be transferred
      * in chunking mode, or <tt>false</tt> if case of fixed-length message.
      *
+     * NOTE:  If the protocol version of this header is 1.0 or older, chunking
+     *        will be disabled regardless of the value passed.
+     *
      * @param isChunked  <tt>true</tt>, if this {@link HttpPacket} content
      * will be transferred in chunking mode, or <tt>false</tt> if case
      * of fixed-length message.
      */
     public void setChunked(boolean isChunked) {
-        this.isChunked = isChunked;
+        if (getProtocol().compareTo(Protocol.HTTP_1_1) >= 0) { // HTTP/1.1 and later
+            this.isChunked = isChunked;
+            if (isChunked) {
+                headers.removeHeader(Header.ContentLength);
+            }
+        } else {
+            this.isChunked = false;
+        }
     }
 
     /**
@@ -422,10 +432,7 @@ public abstract class HttpHeader extends HttpPacket
      * @param len the length of this HTTP message.
      */
     public void setContentLength(final int len) {
-        this.contentLength = len;
-        if (len < 0) {
-            headers.removeHeader(Header.ContentLength);
-        }
+        setContentLengthLong(len);
     }
 
     /**
@@ -437,7 +444,9 @@ public abstract class HttpHeader extends HttpPacket
      */
     public void setContentLengthLong(final long contentLength) {
         this.contentLength = contentLength;
-        if (contentLength < 0) {
+        final boolean negativeLength = (contentLength < 0);
+        setChunked(negativeLength);
+        if (negativeLength) {
             headers.removeHeader(Header.ContentLength);
         }
     }

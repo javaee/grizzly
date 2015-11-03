@@ -880,8 +880,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             response.setExpectContent(false);
         }
 
-        final boolean isHttp11 = (requestProtocol == Protocol.HTTP_1_1);
-        
         HttpContent encodedHttpContent = null;
         
         final Method method = request.getMethod();
@@ -906,7 +904,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                         }
 
                         response.setContentLength(httpContent.getContent().remaining());
-                    } else if (chunkingEnabled && isHttp11) {
+                    } else if (chunkingEnabled) {
                         // otherwise use chunking if possible
                         response.setChunked(true);
                     }
@@ -966,6 +964,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         final ProcessingState state = response.getProcessingState();
+        final boolean isHttp11 = (requestProtocol == Protocol.HTTP_1_1);
 
         if (state.keepAlive) {
             if (entityBody && !isHttp11 && response.getContentLength() == -1) {
