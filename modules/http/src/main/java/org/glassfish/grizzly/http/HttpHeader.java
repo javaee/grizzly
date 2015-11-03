@@ -242,12 +242,22 @@ public abstract class HttpHeader extends HttpPacket
      * Set <tt>true</tt>, if this {@link HttpPacket} content will be transferred
      * in chunking mode, or <tt>false</tt> if case of fixed-length message.
      *
+     * NOTE:  If the protocol version of this header is 1.0 or older, chunking
+     *        will be disabled regardless of the value passed.
+     *
      * @param isChunked  <tt>true</tt>, if this {@link HttpPacket} content
      * will be transferred in chunking mode, or <tt>false</tt> if case
      * of fixed-length message.
      */
     public void setChunked(boolean isChunked) {
-        this.isChunked = isChunked;
+        if (getProtocol().compareTo(Protocol.HTTP_1_1) >= 0) { // HTTP/1.1 and later
+            this.isChunked = isChunked;
+            if (isChunked) {
+                headers.removeHeader(Header.ContentLength);
+            }
+        } else {
+            this.isChunked = false;
+        }
     }
 
     /**
@@ -410,7 +420,7 @@ public abstract class HttpHeader extends HttpPacket
      * 
      * The method may return <tt>-1</tt>, which means there is no
      * content-length specified.
-     * 
+     *
      * @return the content-length of this {@link HttpPacket}. Applicable only
      * in case of fixed-length HTTP message.
      */
@@ -424,12 +434,12 @@ public abstract class HttpHeader extends HttpPacket
      * If the <code>length</code> argument is negative - then {@link HttpPacket}
      * content-length value will be reset to <tt>-1</tt> and
      * <tt>Content-Length</tt> header (if present) will be removed.
-     * 
+     *
      * @param length the content-length of this {@link HttpPacket}.
      * Applicable only in case of fixed-length HTTP message.
      */
-    public void setContentLength(final int length) {
-        setContentLengthLong(length);
+    public void setContentLength(final int len) {
+        setContentLengthLong(len);
     }
 
     /**
@@ -442,10 +452,11 @@ public abstract class HttpHeader extends HttpPacket
      * @param length  the content-length of this {@link HttpPacket}.
      * Applicable only in case of fixed-length HTTP message.
      */
-    public void setContentLengthLong(final long length) {
-        this.contentLength = length;
-        if (length < 0) {
-            this.contentLength = -1;
+    public void setContentLengthLong(final long contentLength) {
+        this.contentLength = contentLength;
+        final boolean negativeLength = (contentLength < 0);
+        setChunked(negativeLength);
+        if (negativeLength) {
             headers.removeHeader(Header.ContentLength);
         }
     }
