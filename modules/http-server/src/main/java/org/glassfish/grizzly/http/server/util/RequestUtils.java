@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,13 +42,15 @@ package org.glassfish.grizzly.http.server.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.localization.LogMessages;
-import org.glassfish.grizzly.ssl.SSLBaseFilter;
+import org.glassfish.grizzly.ssl.SSLBaseFilter.CertificateEvent;
 import org.glassfish.grizzly.ssl.SSLSupport;
 import org.glassfish.grizzly.ssl.SSLSupportImpl;
 
@@ -70,10 +72,19 @@ public class RequestUtils {
                     throw new IllegalStateException("Can't complete SSL re-negotation", e);
                 }
             }
-            
-            SSLBaseFilter.CertificateEvent event = new SSLBaseFilter.CertificateEvent(true);
-            request.getContext().notifyDownstream(event);
-            certificates = event.getCertificates();
+
+            GrizzlyFuture<Object[]> certFuture =
+                    new CertificateEvent(true).trigger(request.getContext());
+            try {
+                // TODO: make the timeout configurable
+                certificates = certFuture.get(30, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE,
+                               "Unable to obtain certificates from peer.",
+                               e);
+                }
+            }
             request.setAttribute(SSLSupport.CERTIFICATE_KEY, certificates);
         }
 
@@ -106,11 +117,6 @@ public class RequestUtils {
                             "Unable to populate SSL attributes",
                             ioe);
                 }
-            }
-        } else {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE,
-                        "Unable to populate SSL attributes on plain HTTP request");
             }
         }
     }

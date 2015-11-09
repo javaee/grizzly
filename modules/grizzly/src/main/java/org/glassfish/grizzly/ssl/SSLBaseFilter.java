@@ -47,6 +47,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Filter;
 import java.util.logging.Level;
@@ -58,27 +59,34 @@ import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.FileTransfer;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOEventLifeCycleListener;
+import org.glassfish.grizzly.IOEventLifeCycleListener.Adapter;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainContext.Operation;
+import org.glassfish.grizzly.filterchain.FilterChainContext.TransportContext;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLConnectionContext.Allocator;
+import org.glassfish.grizzly.ssl.SSLConnectionContext.SslResult;
 import org.glassfish.grizzly.utils.DataStructures;
+import org.glassfish.grizzly.utils.Futures;
 
 import static org.glassfish.grizzly.ssl.SSLUtils.*;
 
@@ -104,8 +112,8 @@ public class SSLBaseFilter extends BaseFilter {
         }
     };
     
-    private static final SSLConnectionContext.Allocator OUTPUT_BUFFER_ALLOCATOR =
-            new SSLConnectionContext.Allocator() {
+    private static final Allocator OUTPUT_BUFFER_ALLOCATOR =
+            new Allocator() {
         @Override
         public Buffer grow(final SSLConnectionContext sslCtx,
             final Buffer oldBuffer, final int newSize) {
@@ -156,13 +164,14 @@ public class SSLBaseFilter extends BaseFilter {
                      boolean renegotiateOnClientAuthWant) {
         
         this.renegotiateOnClientAuthWant = renegotiateOnClientAuthWant;
-        if (serverSSLEngineConfigurator == null) {
-            this.serverSSLEngineConfigurator = new SSLEngineConfigurator(
-                    SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
-                    false, false, false);
-        } else {
-            this.serverSSLEngineConfigurator = serverSSLEngineConfigurator;
-        }
+        this.serverSSLEngineConfigurator =
+                ((serverSSLEngineConfigurator != null)
+                        ? serverSSLEngineConfigurator
+                        : new SSLEngineConfigurator(
+                                  SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
+                                  false,
+                                  false,
+                                  false));
     }
 
     /**
@@ -188,6 +197,7 @@ public class SSLBaseFilter extends BaseFilter {
         handshakeListeners.add(listener);
     }
     
+    @SuppressWarnings("unused")
     public void removeHandshakeListener(final HandshakeListener listener) {
         handshakeListeners.remove(listener);
     }
@@ -197,6 +207,7 @@ public class SSLBaseFilter extends BaseFilter {
      * @return the handshake timeout, <code>-1</code> if blocking handshake mode
      * is disabled (default).
      */
+    @SuppressWarnings("unused")
     public long getHandshakeTimeout(final TimeUnit timeUnit) {
         if (handshakeTimeoutMillis < 0) {
             return -1;
@@ -211,8 +222,9 @@ public class SSLBaseFilter extends BaseFilter {
      * non-blocking handshake mode.
      * @param timeUnit {@link TimeUnit}
      */
+    @SuppressWarnings("unused")
     public void setHandshakeTimeout(final long handshakeTimeout,
-            final TimeUnit timeUnit) {
+                                    final TimeUnit timeUnit) {
         if (handshakeTimeout < 0) {
             handshakeTimeoutMillis = -1;
         } else {
@@ -233,7 +245,7 @@ public class SSLBaseFilter extends BaseFilter {
     
     protected SSLTransportFilterWrapper createOptimizedTransportFilter(
             final TransportFilter childFilter) {
-        return new SSLTransportFilterWrapper(childFilter);
+        return new SSLTransportFilterWrapper(childFilter, this);
     }
 
     @Override
@@ -268,13 +280,19 @@ public class SSLBaseFilter extends BaseFilter {
 
 
     @Override
-    public NextAction handleEvent(FilterChainContext ctx, FilterChainEvent event) throws IOException {
+    public NextAction handleEvent(final FilterChainContext ctx,
+                                  final FilterChainEvent event)
+    throws IOException {
         if (event.type() == CertificateEvent.TYPE) {
             final CertificateEvent ce = (CertificateEvent) event;
-            ce.certs = getPeerCertificateChain(obtainSslConnectionContext(ctx.getConnection()),
-                                               ctx,
-                                               ce.needClientAuth);
-            return ctx.getStopAction();
+            try {
+                return ctx.getSuspendAction();
+            } finally {
+                getPeerCertificateChain(obtainSslConnectionContext(ctx.getConnection()),
+                                        ctx,
+                                        ce.needClientAuth,
+                                        ce.certsFuture);
+            }
         }
         return ctx.getInvokeAction();
     }
@@ -297,13 +315,16 @@ public class SSLBaseFilter extends BaseFilter {
             }
 
             final Buffer buffer;
-            if (handshakeTimeoutMillis >= 0) {
-                buffer = doHandshakeSync(sslCtx, ctx, (Buffer) ctx.getMessage(),
-                        handshakeTimeoutMillis);
-            } else {
-                buffer = makeInputRemainder(sslCtx, ctx,
-                        doHandshakeStep(sslCtx, ctx, (Buffer) ctx.getMessage()));
-            }
+            buffer = ((handshakeTimeoutMillis >= 0)
+                         ? doHandshakeSync(sslCtx,
+                                           ctx,
+                                           (Buffer) ctx.getMessage(),
+                                           handshakeTimeoutMillis)
+                         : makeInputRemainder(sslCtx,
+                                              ctx,
+                                              doHandshakeStep(sslCtx,
+                                                              ctx,
+                                                              (Buffer) ctx.getMessage())));
         
             final boolean hasRemaining = buffer != null && buffer.hasRemaining();
             
@@ -358,7 +379,7 @@ public class SSLBaseFilter extends BaseFilter {
             final Buffer output =
                     wrapAll(ctx, obtainSslConnectionContext(connection));
 
-            final FilterChainContext.TransportContext transportContext =
+            final TransportContext transportContext =
                     ctx.getTransportContext();
 
             ctx.write(null, output,
@@ -389,7 +410,7 @@ public class SSLBaseFilter extends BaseFilter {
                 break;
             }
 
-            final SSLConnectionContext.SslResult result =
+            final SslResult result =
                     sslCtx.unwrap(input, output, MM_ALLOCATOR);
             
             if (isHandshaking(sslCtx.getSslEngine())) {
@@ -439,8 +460,9 @@ public class SSLBaseFilter extends BaseFilter {
         return ctx.getStopAction(makeInputRemainder(sslCtx, ctx, input));
     }
 
+    @SuppressWarnings("MethodMayBeStatic")
     protected Buffer wrapAll(final FilterChainContext ctx,
-            final SSLConnectionContext sslCtx) throws SSLException {
+                             final SSLConnectionContext sslCtx) throws SSLException {
         
         final Buffer input = ctx.getMessage();
         
@@ -644,7 +666,7 @@ public class SSLBaseFilter extends BaseFilter {
                             inputBuffer = null;
                         }
 
-                        final SSLEngineResult.Status status = sslEngineResult.getStatus();
+                        final Status status = sslEngineResult.getStatus();
 
                         if (status == Status.BUFFER_UNDERFLOW ||
                                 status == Status.BUFFER_OVERFLOW) {
@@ -683,7 +705,7 @@ public class SSLBaseFilter extends BaseFilter {
                 }
 
                 if (handshakeStatus == HandshakeStatus.FINISHED) {
-                    break _exitWhile;
+                    break;
                 }
             }
         } catch (IOException ioe) {
@@ -838,40 +860,57 @@ public class SSLBaseFilter extends BaseFilter {
      *  this certificate request.
      * @param needClientAuth determines whether or not SSL renegotiation will
      *  be attempted to obtain the certificate chain.
-     *
-     * @return the certificate chain as an <code>Object[]</code>.  If no
-     *  certificate chain can be determined, this method will return
-     *  <code>null</code>.
-     *
-     * @throws IOException if an error occurs during renegotiation.
+     * @param certFuture the future that will be provided the result of the
+     *                   peer certificate processing.
      */
-    protected Object[] getPeerCertificateChain(final SSLConnectionContext sslCtx,
-                                               final FilterChainContext context,
-                                               final boolean needClientAuth)
-    throws IOException {
+    protected void getPeerCertificateChain(final SSLConnectionContext sslCtx,
+                                           final FilterChainContext context,
+                                           final boolean needClientAuth,
+                                           final FutureImpl<Object[]> certFuture) {
 
         Certificate[] certs = getPeerCertificates(sslCtx);
         if (certs != null) {
-            return certs;
+            certFuture.result(certs);
+            return;
         }
 
         if (needClientAuth) {
-            renegotiate(sslCtx, context);
+            final Transport transport = context.getConnection().getTransport();
+            ExecutorService threadPool = transport.getWorkerThreadPool();
+            if (threadPool == null) {
+                threadPool = transport.getKernelThreadPool();
+            }
+            threadPool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        try {
+                            renegotiate(sslCtx, context);
+                        } catch (IOException ioe) {
+                            certFuture.failure(ioe);
+                            return;
+                        }
+                        Certificate[] certs = getPeerCertificates(sslCtx);
+
+                        if (certs == null) {
+                            certFuture.result(null);
+                            return;
+                        }
+
+                        X509Certificate[] x509Certs = extractX509Certs(certs);
+
+                        if (x509Certs == null || x509Certs.length < 1) {
+                            certFuture.result(null);
+                            return;
+                        }
+
+                        certFuture.result(x509Certs);
+                    } finally {
+                        context.resume(context.getStopAction());
+                    }
+                }
+            });
         }
-
-        certs = getPeerCertificates(sslCtx);
-
-        if (certs == null) {
-            return null;
-        }
-
-        X509Certificate[] x509Certs = extractX509Certs(certs);
-
-        if (x509Certs == null || x509Certs.length < 1) {
-            return null;
-        }
-
-        return x509Certs;
     }
 
     protected SSLConnectionContext obtainSslConnectionContext(
@@ -885,12 +924,13 @@ public class SSLBaseFilter extends BaseFilter {
         return sslCtx;
     }
     
+    @SuppressWarnings("MethodMayBeStatic")
     protected SSLConnectionContext createSslConnectionContext(
             final Connection connection) {
         return new SSLConnectionContext(connection);
     }
 
-    private FilterChainContext obtainProtocolChainContext(
+    private static FilterChainContext obtainProtocolChainContext(
             final FilterChainContext ctx,
             final FilterChain completeProtocolFilterChain) {
 
@@ -913,7 +953,7 @@ public class SSLBaseFilter extends BaseFilter {
 
     // --------------------------------------------------------- Private Methods
 
-    private X509Certificate[] extractX509Certs(final Certificate[] certs) {
+    private static X509Certificate[] extractX509Certs(final Certificate[] certs) {
         final X509Certificate[] x509Certs = new X509Certificate[certs.length];
         for(int i = 0, len = certs.length; i < len; i++) {
             if( certs[i] instanceof X509Certificate ) {
@@ -941,7 +981,7 @@ public class SSLBaseFilter extends BaseFilter {
         return x509Certs;
     }
 
-    private Certificate[] getPeerCertificates(final SSLConnectionContext sslCtx) {
+    private static Certificate[] getPeerCertificates(final SSLConnectionContext sslCtx) {
         try {
             return sslCtx.getSslEngine().getSession().getPeerCertificates();
         } catch( Throwable t ) {
@@ -983,11 +1023,11 @@ public class SSLBaseFilter extends BaseFilter {
 
     public static class CertificateEvent implements FilterChainEvent {
 
-        private static final String TYPE = "CERT_EVENT";
+        static final String TYPE = "CERT_EVENT";
 
-        private Object[] certs;
+        final FutureImpl<Object[]> certsFuture;
 
-        private final boolean needClientAuth;
+        final boolean needClientAuth;
 
 
         // -------------------------------------------------------- Constructors
@@ -995,6 +1035,7 @@ public class SSLBaseFilter extends BaseFilter {
 
         public CertificateEvent(final boolean needClientAuth) {
             this.needClientAuth = needClientAuth;
+            certsFuture = Futures.createSafeFuture();
         }
 
 
@@ -1010,13 +1051,32 @@ public class SSLBaseFilter extends BaseFilter {
         // ------------------------------------------------------ Public Methods
 
 
-        public Object[] getCertificates() {
-            return certs;
+        /**
+         * Invoke this method to trigger processing to abtain certificates from
+         * the remote peer.  Do not fire this event down stream manually.
+         *
+         * Register a {@link CompletionHandler} with the returned
+         * {@link GrizzlyFuture} to be notified when the result is available
+         * to prevent blocking.
+         *
+         * @param ctx the current {@link FilterChainContext}
+         *
+         * @return a {@link GrizzlyFuture} representing the processing of
+         *  the remote peer certificates.
+         */
+        public GrizzlyFuture<Object[]> trigger(final FilterChainContext ctx) {
+            try {
+                return certsFuture;
+            } finally {
+                ctx.getFilterChain().fireEventDownstream(ctx.getConnection(),
+                        this,
+                        null);
+            }
         }
 
     } // END CertificateEvent
 
-    private static class InternalProcessingHandler extends IOEventLifeCycleListener.Adapter {
+    private static class InternalProcessingHandler extends Adapter {
         private final FilterChainContext parentContext;
 
         private InternalProcessingHandler(final FilterChainContext parentContext) {
@@ -1036,11 +1096,14 @@ public class SSLBaseFilter extends BaseFilter {
         void onFailure(Connection connection, Throwable t);
     }
     
-    protected class SSLTransportFilterWrapper extends TransportFilter {
+    protected static class SSLTransportFilterWrapper extends TransportFilter {
         protected final TransportFilter wrappedFilter;
+        protected final SSLBaseFilter sslBaseFilter;
 
-        public SSLTransportFilterWrapper(final TransportFilter transportFilter) {
+        public SSLTransportFilterWrapper(final TransportFilter transportFilter,
+                                         final SSLBaseFilter sslBaseFilter) {
             this.wrappedFilter = transportFilter;
+            this.sslBaseFilter = sslBaseFilter;
         }
         
         @Override
@@ -1057,13 +1120,13 @@ public class SSLBaseFilter extends BaseFilter {
         public NextAction handleRead(final FilterChainContext ctx) throws IOException {
             final Connection connection = ctx.getConnection();
             final SSLConnectionContext sslCtx =
-                    obtainSslConnectionContext(connection);
+                    sslBaseFilter.obtainSslConnectionContext(connection);
             
             if (sslCtx.getSslEngine() == null) {
-                final SSLEngine sslEngine = serverSSLEngineConfigurator.createSSLEngine();
+                final SSLEngine sslEngine = sslBaseFilter.serverSSLEngineConfigurator.createSSLEngine();
                 sslEngine.beginHandshake();
                 sslCtx.configure(sslEngine);
-                notifyHandshakeStart(connection);
+                sslBaseFilter.notifyHandshakeStart(connection);
             }
             
             ctx.setMessage(allowDispose(allocateInputBuffer(sslCtx)));
