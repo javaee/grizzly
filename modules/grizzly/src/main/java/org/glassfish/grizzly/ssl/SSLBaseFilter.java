@@ -1065,13 +1065,10 @@ public class SSLBaseFilter extends BaseFilter {
          *  the remote peer certificates.
          */
         public GrizzlyFuture<Object[]> trigger(final FilterChainContext ctx) {
-            try {
-                return certsFuture;
-            } finally {
-                ctx.getFilterChain().fireEventDownstream(ctx.getConnection(),
-                        this,
-                        null);
-            }
+            ctx.getFilterChain().fireEventDownstream(ctx.getConnection(),
+                                                     this,
+                                                     null);
+            return certsFuture;
         }
 
     } // END CertificateEvent
