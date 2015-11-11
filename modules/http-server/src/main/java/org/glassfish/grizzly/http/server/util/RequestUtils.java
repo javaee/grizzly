@@ -48,7 +48,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.localization.LogMessages;
-import org.glassfish.grizzly.ssl.SSLBaseFilter;
+import org.glassfish.grizzly.ssl.SSLBaseFilter.CertificateEvent;
 import org.glassfish.grizzly.ssl.SSLSupport;
 import org.glassfish.grizzly.ssl.SSLSupportImpl;
 
@@ -71,7 +71,7 @@ public class RequestUtils {
                 }
             }
             
-            SSLBaseFilter.CertificateEvent event = new SSLBaseFilter.CertificateEvent(true);
+            CertificateEvent event = new CertificateEvent(true);
             request.getContext().notifyDownstream(event);
             certificates = event.getCertificates();
             request.setAttribute(SSLSupport.CERTIFICATE_KEY, certificates);
