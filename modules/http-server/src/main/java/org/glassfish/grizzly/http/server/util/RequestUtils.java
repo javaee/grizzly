@@ -42,9 +42,11 @@ package org.glassfish.grizzly.http.server.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.localization.LogMessages;
@@ -70,11 +72,19 @@ public class RequestUtils {
                     throw new IllegalStateException("Can't complete SSL re-negotation", e);
                 }
             }
-            
-            CertificateEvent event = new CertificateEvent(true);
-            request.getContext().notifyDownstream(event);
-            certificates = event.getCertificates();
-            request.setAttribute(SSLSupport.CERTIFICATE_KEY, certificates);
+
+            GrizzlyFuture<Object[]> certFuture =
+                    new CertificateEvent(true).trigger(request.getContext());
+            try {
+                // TODO: make the timeout configurable
+                certificates = certFuture.get(30, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE,
+                            "Unable to obtain certificates from peer.",
+                            e);
+                }
+            }
         }
 
         return certificates;
