@@ -45,7 +45,6 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.Collections;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -106,24 +105,27 @@ public class DefaultSelectorHandler implements SelectorHandler {
     public Set<SelectionKey> select(final SelectorRunner selectorRunner)
             throws IOException {
         final Selector selector = selectorRunner.getSelector();
-        final boolean hasSelectedKeys;
         final boolean hasPostponedTasks =
                 !selectorRunner.getPostponedTasks().isEmpty();
-      
-        if (!hasPostponedTasks) {
-            hasSelectedKeys = selector.select(selectTimeout) > 0;
-        } else {
-            hasSelectedKeys = selector.selectNow() > 0;
-        }
         
+        // The selector.select(...) returns the *new* SelectionKey count,
+        // so it may return 0 even in the case, when there are unprocessed, but
+        // ready SelectionKeys in the Selector's selected key set.
+        if (!hasPostponedTasks) {
+            selector.select(selectTimeout);
+        } else {
+            selector.selectNow();
+        }
+
+        final Set<SelectionKey> selectedKeys = selector.selectedKeys();
+
         if (IS_WORKAROUND_SELECTOR_SPIN) {
             selectorRunner.checkSelectorSpin(
-                    hasSelectedKeys || hasPostponedTasks,
+                    !selectedKeys.isEmpty() || hasPostponedTasks,
                     SPIN_RATE_THRESHOLD);
         }
 
-        return hasSelectedKeys ? selector.selectedKeys() :
-                Collections.<SelectionKey>emptySet();
+        return selectedKeys;
     }
 
     @Override
