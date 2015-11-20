@@ -105,24 +105,27 @@ public class DefaultSelectorHandler implements SelectorHandler {
     public Set<SelectionKey> select(final SelectorRunner selectorRunner)
             throws IOException {
         final Selector selector = selectorRunner.getSelector();
-        final boolean hasSelectedKeys;
         final boolean hasPostponedTasks =
                 !selectorRunner.getPostponedTasks().isEmpty();
         
+        // The selector.select(...) returns the *new* SelectionKey count,
+        // so it may return 0 even in the case, when there are unprocessed, but
+        // ready SelectionKeys in the Selector's selected key set.
         if (!hasPostponedTasks) {
-            hasSelectedKeys = selector.select(selectTimeout) > 0;
+            selector.select(selectTimeout);
         } else {
-            hasSelectedKeys = selector.selectNow() > 0;
+            selector.selectNow();
         }
+
+        final Set<SelectionKey> selectedKeys = selector.selectedKeys();
 
         if (IS_WORKAROUND_SELECTOR_SPIN) {
             selectorRunner.checkSelectorSpin(
-                    hasSelectedKeys || hasPostponedTasks,
+                    !selectedKeys.isEmpty() || hasPostponedTasks,
                     SPIN_RATE_THRESHOLD);
         }
 
-        return hasSelectedKeys ? selector.selectedKeys() :
-                Collections.<SelectionKey>emptySet();
+        return selectedKeys;
     }
 
     @Override

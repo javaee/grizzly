@@ -359,11 +359,11 @@ public final class SelectorRunner implements Runnable {
                 }
             }
             
-            notifyConnectionException(key,
+            dropConnectionDueToException(key,
                     "Selector was unexpectedly closed", e,
                     Level.SEVERE, Level.FINE);
         } catch (Exception e) {
-            notifyConnectionException(key,
+            dropConnectionDueToException(key,
                     "doSelect exception", e,
                     Level.SEVERE, Level.FINE);
         } catch (Throwable t) {
@@ -386,10 +386,10 @@ public final class SelectorRunner implements Runnable {
                 }
             } catch (IOException e) {
                 keyReadyOps = 0;
-                notifyConnectionException(key, "Unexpected IOException. Channel " + key.channel() + " will be closed.", e, Level.WARNING, Level.FINE);
+                dropConnectionDueToException(key, "Unexpected IOException. Channel " + key.channel() + " will be closed.", e, Level.WARNING, Level.FINE);
             } catch (CancelledKeyException e) {
                 keyReadyOps = 0;
-                notifyConnectionException(key, "Unexpected CancelledKeyException. Channel " + key.channel() + " will be closed.", e, Level.FINE, Level.FINE);
+                dropConnectionDueToException(key, "Unexpected CancelledKeyException. Channel " + key.channel() + " will be closed.", e, Level.FINE, Level.FINE);
             }
         }
         return true;
@@ -457,7 +457,7 @@ public final class SelectorRunner implements Runnable {
      * @param runLogLevel logger {@link Level} to use, if transport is in running state
      * @param stoppedLogLevel logger {@link Level} to use, if transport is not in running state
      */
-    private void notifyConnectionException(final SelectionKey key,
+    private void dropConnectionDueToException(final SelectionKey key,
             final String description,
             final Exception e, final Level runLogLevel,
             final Level stoppedLogLevel) {
