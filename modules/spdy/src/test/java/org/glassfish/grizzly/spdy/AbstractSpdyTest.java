@@ -82,7 +82,7 @@ public abstract class AbstractSpdyTest {
 //        modes.add(new Object[] {SpdyVersion.SPDY_3, SpdyMode.PLAIN, Boolean.FALSE});
 //        modes.add(new Object[] {SpdyVersion.SPDY_3, SpdyMode.PLAIN, Boolean.TRUE});
         
-        modes.add(new Object[] {SpdyVersion.SPDY_3_1, SpdyMode.PLAIN, Boolean.FALSE});
+       //modes.add(new Object[] {SpdyVersion.SPDY_3_1, SpdyMode.PLAIN, Boolean.FALSE});
         modes.add(new Object[] {SpdyVersion.SPDY_3_1, SpdyMode.PLAIN, Boolean.TRUE});
         
         if (NextProtoNegSupport.isEnabled()) {
@@ -195,13 +195,13 @@ public abstract class AbstractSpdyTest {
                                 new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                                 false, false, false);
 
-                        serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
+                        //serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
 
                         clientSSLEngineConfigurator =
                                 new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                                 true, false, false);
 
-                        clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
+                        //clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
                     } else {
                         throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
                     }        

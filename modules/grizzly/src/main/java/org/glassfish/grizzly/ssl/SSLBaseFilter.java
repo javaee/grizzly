@@ -417,7 +417,7 @@ public class SSLBaseFilter extends BaseFilter {
             }
 
             final SslResult result =
-                    sslCtx.unwrap(input, output, MM_ALLOCATOR);
+                    sslCtx.unwrap(len, input, output, MM_ALLOCATOR);
             
             if (isHandshaking(sslCtx.getSslEngine())) {
                 // is it re-handshake or graceful ssl termination
@@ -665,7 +665,7 @@ public class SSLBaseFilter extends BaseFilter {
                         }
                         
                         final SSLEngineResult sslEngineResult =
-                                handshakeUnwrap(sslCtx, inputBuffer, tmpAppBuffer);
+                                handshakeUnwrap(expectedLength, sslCtx, inputBuffer, tmpAppBuffer);
 
                         if (!inputBuffer.hasRemaining()) {
                             tmpInputToDispose = inputBuffer;

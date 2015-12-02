@@ -116,7 +116,7 @@ public final class SSLConnectionContext {
     }
     
     public void attach() {
-        SSLUtils.SSL_CTX_ATTR.set(connection, this);
+        SSL_CTX_ATTR.set(connection, this);
     }
     
     public void configure(final SSLEngine sslEngine) {
@@ -157,6 +157,7 @@ public final class SSLConnectionContext {
         return tmp;
     }
 
+    @SuppressWarnings("unused")
     void setLastOutputBuffer(final Buffer lastOutputBuffer) {
         this.lastOutputBuffer = lastOutputBuffer;
     }
@@ -167,12 +168,13 @@ public final class SSLConnectionContext {
         return tmp;
     }
 
+    @SuppressWarnings("unused")
     InputBufferWrapper useInputBuffer() {
         lastInputBuffer = inputBuffer;
         return lastInputBuffer;
     }
 
-    SslResult unwrap(final Buffer input, Buffer output,
+    SslResult unwrap(final int len, final Buffer input, Buffer output,
             final Allocator allocator) {
             
         output = ensureBufferSize(output, appBufferSize, allocator);
@@ -185,7 +187,7 @@ public final class SSLConnectionContext {
         final int inPos = input.position();
         final int outPos = output.position();
         
-        final ByteBuffer inputByteBuffer = input.toByteBuffer();
+        final ByteBuffer inputByteBuffer = input.toByteBuffer(input.position(), input.position() + len);
         final SSLEngineResult sslEngineResult;
         
         try {
@@ -211,13 +213,13 @@ public final class SSLConnectionContext {
         }
         
         final Status status = sslEngineResult.getStatus();
-        final boolean isOverflow = (status == SSLEngineResult.Status.BUFFER_OVERFLOW);
+        final boolean isOverflow = (status == Status.BUFFER_OVERFLOW);
         
         if (allocator != null && isOverflow) {
             updateBufferSizes();
             output = ensureBufferSize(output, appBufferSize, allocator);
-            return unwrap(input, output, null);
-        } else if (isOverflow || status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+            return unwrap(len, input, output, null);
+        } else if (isOverflow || status == Status.BUFFER_UNDERFLOW) {
             return new SslResult(output, new SSLException("SSL unwrap error: " + status));
         }
         
@@ -312,17 +314,17 @@ public final class SSLConnectionContext {
         
         final Status status = sslEngineResult.getStatus();
         
-        if (status == SSLEngineResult.Status.CLOSED) {
+        if (status == Status.CLOSED) {
             return new SslResult(output, new SSLException("SSLEngine is CLOSED"));
         }
         
-        final boolean isOverflow = (status == SSLEngineResult.Status.BUFFER_OVERFLOW);
+        final boolean isOverflow = (status == Status.BUFFER_OVERFLOW);
         
         if (allocator != null && isOverflow) {
             updateBufferSizes();
             output = ensureBufferSize(output, netBufferSize, allocator);
             return wrap(input, inputArray, inputArraySize, output, null);
-        } else if (isOverflow || status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+        } else if (isOverflow || status == Status.BUFFER_UNDERFLOW) {
             return new SslResult(output, new SSLException("SSL wrap error: " + status));
         }
         
@@ -380,13 +382,13 @@ public final class SSLConnectionContext {
         
         final Status status = sslEngineResult.getStatus();
         
-        final boolean isOverflow = (status == SSLEngineResult.Status.BUFFER_OVERFLOW);
+        final boolean isOverflow = (status == Status.BUFFER_OVERFLOW);
         
         if (allocator != null && isOverflow) {
             updateBufferSizes();
             output = ensureBufferSize(output, netBufferSize, allocator);
             return wrap(input, output, null);
-        } else if (isOverflow || status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+        } else if (isOverflow || status == Status.BUFFER_UNDERFLOW) {
             return new SslResult(output, new SSLException("SSL wrap error: " + status));
         }
         
@@ -419,8 +421,8 @@ public final class SSLConnectionContext {
     }
     
     interface Allocator {
-        public Buffer grow(final SSLConnectionContext sslCtx,
-                final Buffer oldBuffer, final int newSize);
+        Buffer grow(final SSLConnectionContext sslCtx,
+                    final Buffer oldBuffer, final int newSize);
     }
     
     final static class SslResult {
