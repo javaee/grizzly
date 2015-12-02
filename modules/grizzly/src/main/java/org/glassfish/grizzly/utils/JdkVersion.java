@@ -39,11 +39,23 @@
  */
 package org.glassfish.grizzly.utils;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.glassfish.grizzly.Grizzly;
+
 /**
  *
  * @since 2.2.11
  */
 public class JdkVersion implements Comparable<JdkVersion> {
+    private static final Logger LOGGER = Grizzly.logger(JdkVersion.class);
+    
+    // take max 4 parts of the JDK version and cut the rest (usually the build number)
+    private static final Pattern VERSION_PATTERN = Pattern.compile(
+                "([0-9]+)(\\.([0-9]+))?(\\.([0-9]+))?(_([0-9]+))?.*");
+
     private static final boolean IS_UNSAFE_SUPPORTED;
     
     static {
@@ -81,27 +93,26 @@ public class JdkVersion implements Comparable<JdkVersion> {
 
     // ---------------------------------------------------------- Public Methods
 
-    public static JdkVersion parseVersion(String versionString) {
+    public static JdkVersion parseVersion(final String versionString) {
+
         try {
-            int dashIdx = versionString.indexOf('-');
-            if (dashIdx != -1) {
-                versionString = versionString.substring(0, dashIdx);
+            final Matcher matcher = VERSION_PATTERN.matcher(versionString);
+            if (matcher.matches()) {
+                return new JdkVersion(parseInt(matcher.group(1)),
+                        parseInt(matcher.group(3)),
+                        parseInt(matcher.group(5)),
+                        parseInt(matcher.group(7)));
             }
-            String[] parts = versionString.split("\\.|_");
-            if (parts.length == 3) {
-                return new JdkVersion(Integer.parseInt(parts[0]),
-                        Integer.parseInt(parts[1]),
-                        Integer.parseInt(parts[2]),
-                        0);
-            } else {
-                return new JdkVersion(Integer.parseInt(parts[0]),
-                        Integer.parseInt(parts[1]),
-                        Integer.parseInt(parts[2]),
-                        Integer.parseInt(parts[3]));
-            }
+            
+            LOGGER.log(Level.FINE,
+                    "Can't parse the JDK version {0}", versionString);
+            
         } catch (Exception e) {
-            return UNKNOWN_VERSION;
+            LOGGER.log(Level.FINE,
+                    "Error parsing the JDK version " + versionString, e);
         }
+
+        return UNKNOWN_VERSION;
     }
 
     public static JdkVersion getJdkVersion() {
@@ -185,4 +196,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
         return 0;
     }
 
+    private static int parseInt(final String s) {
+        return s != null ? Integer.parseInt(s) : 0;
+    }
 }
