@@ -49,12 +49,15 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.ThreadCache.CachedTypeIndex;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.ssl.SSLConnectionContext.Allocator;
+import org.glassfish.grizzly.ssl.SSLConnectionContext.SslResult;
 
 /**
  * Utility class, which implements the set of useful SSL related operations.
@@ -78,7 +81,7 @@ public final class SSLUtils {
                         .getField("SDK_INT").getInt(null);
                 
                 isNeedWorkAround = (version >= LOLLIPOP_VER);
-            } catch (Throwable t) {
+            } catch (Throwable ignored) {
             }
         }
         
@@ -92,8 +95,8 @@ public final class SSLUtils {
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             SSL_CONNECTION_CTX_ATTR_NAME);
 
-    private static final SSLConnectionContext.Allocator HS_UNWRAP_ALLOCATOR =
-            new SSLConnectionContext.Allocator() {
+    private static final Allocator HS_UNWRAP_ALLOCATOR =
+            new Allocator() {
         @Override
         public Buffer grow(final SSLConnectionContext sslCtx,
             final Buffer oldBuffer, final int newSize) {
@@ -104,8 +107,8 @@ public final class SSLUtils {
         }
     };
     
-    private static final SSLConnectionContext.Allocator HS_WRAP_ALLOCATOR =
-            new SSLConnectionContext.Allocator() {
+    private static final Allocator HS_WRAP_ALLOCATOR =
+            new Allocator() {
         @Override
         public Buffer grow(final SSLConnectionContext sslCtx,
             final Buffer oldBuffer, final int newSize) {
@@ -147,6 +150,7 @@ public final class SSLUtils {
      *
      * @return -1 if there are not enough bytes to tell (small header),
      */
+    @SuppressWarnings("UnnecessaryLocalVariable")
     public static int getSSLPacketSize(final Buffer buf) throws SSLException {
         
         /*
@@ -278,13 +282,14 @@ public final class SSLUtils {
                 handshakeStatus == HandshakeStatus.NOT_HANDSHAKING);
     }
 
-    public static SSLEngineResult handshakeUnwrap(final SSLConnectionContext sslCtx,
+    public static SSLEngineResult handshakeUnwrap(final int length,
+                                                  final SSLConnectionContext sslCtx,
                                                   final Buffer inputBuffer,
                                                   final Buffer tmpOutputBuffer)
     throws SSLException {
 
-        SSLConnectionContext.SslResult result =
-                sslCtx.unwrap(inputBuffer, tmpOutputBuffer, HS_UNWRAP_ALLOCATOR);
+        SslResult result =
+                sslCtx.unwrap(length, inputBuffer, tmpOutputBuffer, HS_UNWRAP_ALLOCATOR);
 
         final Buffer output = result.getOutput();
         
@@ -318,14 +323,14 @@ public final class SSLUtils {
             buffer = allocateOutputBuffer(packetBufferSize * 2);
         }
         
-        final SSLConnectionContext.SslResult result =
+        final SslResult result =
                 sslCtx.wrap(Buffers.EMPTY_BUFFER, buffer, HS_WRAP_ALLOCATOR);
         
         Buffer output = result.getOutput();
         
         output.flip();
         if (buffer != output) {
-            if (buffer == netBuffer) {
+            if (netBuffer != null && buffer == netBuffer) {
                 netBuffer.flip();
             }
         }
@@ -347,7 +352,7 @@ public final class SSLUtils {
         return output;
     }
 
-    private static final ThreadCache.CachedTypeIndex<Buffer> SSL_OUTPUT_BUFFER_IDX =
+    private static final CachedTypeIndex<Buffer> SSL_OUTPUT_BUFFER_IDX =
             ThreadCache.obtainIndex(SSLBaseFilter.class.getName() + ".output-buffer-cache",
             Buffer.class, 4);
     
