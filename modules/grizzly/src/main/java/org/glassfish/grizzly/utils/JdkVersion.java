@@ -54,7 +54,7 @@ public class JdkVersion implements Comparable<JdkVersion> {
     
     // take max 4 parts of the JDK version and cut the rest (usually the build number)
     private static final Pattern VERSION_PATTERN = Pattern.compile(
-                "([0-9]+)(\\.([0-9]+))?(\\.([0-9]+))?(_([0-9]+))?.*");
+                "([0-9]+)(\\.([0-9]+))?(\\.([0-9]+))?([_\\.]([0-9]+))?.*");
 
     private static final boolean IS_UNSAFE_SUPPORTED;
     
