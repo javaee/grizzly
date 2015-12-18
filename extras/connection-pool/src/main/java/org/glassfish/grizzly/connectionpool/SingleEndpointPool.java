@@ -1101,9 +1101,9 @@ public class SingleEndpointPool<E> {
                         final Link<ConnectionInfo<E>> link = readyConnections.getFirstLink();
                         
                         if ((now - link.getAttachmentTimeStamp()) >= keepAliveTimeoutMillis) {
-                            final Connection connection = link.getValue().connection;
-                            // CloseListener will update the counters in this thread
-                            connection.closeSilently();
+                            final Connection c = link.getValue().connection;
+                            detach(c);
+                            c.closeSilently();
                         } else { // the rest of links are ok
                             break;
                         }
@@ -1113,7 +1113,7 @@ public class SingleEndpointPool<E> {
                 }
             }
         }
-
+        
         cleanerTask.timeoutMillis = System.currentTimeMillis() + keepAliveCheckIntervalMillis;
         return false;
     }
