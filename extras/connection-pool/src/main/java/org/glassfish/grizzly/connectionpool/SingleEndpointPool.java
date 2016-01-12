@@ -866,6 +866,7 @@ public class SingleEndpointPool<E> {
 
             // close pooled connection, if keepAliveTimeoutMillis == 0
             if (keepAliveTimeoutMillis == 0 && poolSize > corePoolSize) {
+                detach(info.connection); // detach in sync block and close outside sync
                 isKeepAlive = false;
             } else {
                 isKeepAlive = true;
