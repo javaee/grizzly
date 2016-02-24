@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URL;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
@@ -200,6 +201,7 @@ public class StaticHttpHandlerTest {
         }        
     }
     
+<<<<<<< HEAD
     @Test
     @SuppressWarnings("unchecked")
     public void testStaticHttpHandlerFileSend() throws Exception {
@@ -231,10 +233,25 @@ public class StaticHttpHandlerTest {
         }, "/custom");
         
         final FutureImpl<File> result = Futures.<File>createSafeFuture();
+=======
+    /**
+     * Make sure we receive 301 redirect, when trying to access directory
+     * without trailing slash.
+     * 
+     * @throws Exception 
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testDirectoryTrailingSlash() throws Exception {
+        final File tmpDir = createTempFolder();
+        
+        final FutureImpl<File> result = Futures.createSafeFuture();
+>>>>>>> d5231d9... [2.3.x] + fix issue #1823
 
         TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
             @Override
             public void validate(HttpResponsePacket response) {
+<<<<<<< HEAD
                 assertEquals(Integer.toString(fileSize), response.getHeader(Header.ContentLength));
                 // static resource handler won't know how to handle .tmp extension,
                 // so it should punt.
@@ -242,11 +259,18 @@ public class StaticHttpHandlerTest {
             }
         }, isSslEnabled);
         BigInteger controlSum = getMDSum(file);
+=======
+                assertEquals(301, response.getStatus());
+                assertEquals("/" + tmpDir.getName() + "/", response.getHeader(Header.Location));
+            }
+        }, isSslEnabled);
+>>>>>>> d5231d9... [2.3.x] + fix issue #1823
         try {
             client.start();
             Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
             
             HttpRequestPacket request =
+<<<<<<< HEAD
                     HttpRequestPacket.builder().uri("/custom/" + file.getName())
                         .method(Method.GET)
                         .protocol(Protocol.HTTP_1_1)
@@ -257,6 +281,16 @@ public class StaticHttpHandlerTest {
             assertTrue("MD5Sum between control and test files differ.",
                         controlSum.equals(resultSum));
             assertTrue(completionHandlerInvokedFuture.get(5, TimeUnit.SECONDS));
+=======
+                    HttpRequestPacket.builder().uri("/" + tmpDir.getName())
+                        .method(Method.POST)
+                        .protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+            c.write(request);
+            File fResult = result.get(20, TimeUnit.SECONDS);
+            //assertEquals(0, fResult.length());
+            
+>>>>>>> d5231d9... [2.3.x] + fix issue #1823
             c.close();
         } finally {
             client.shutdownNow();
@@ -359,7 +393,7 @@ public class StaticHttpHandlerTest {
         listener.setSendFileEnabled(isFileSendEnabled);
         server.addListener(listener);
         server.getServerConfiguration().addHttpHandler(
-                new StaticHttpHandler(System.getProperty("java.io.tmpdir")), "/");
+                new StaticHttpHandler(getSystemTmpDir()), "/");
         
         return server;
     }
@@ -379,6 +413,9 @@ public class StaticHttpHandlerTest {
         return new BigInteger(digest.digest());
     }
 
+    private static String getSystemTmpDir() {
+        return System.getProperty("java.io.tmpdir");
+    }
 
     private static File generateTempFile(final int size) throws IOException {
         final File f = File.createTempFile("grizzly-temp-" + size, ".tmp2");
@@ -396,6 +433,12 @@ public class StaticHttpHandlerTest {
         }
         f.deleteOnExit();
         return f;
+    }
+    
+    private static File createTempFolder() throws IOException {
+        final File tmpDir = Files.createTempDirectory("grizzly-temp-dir").toFile();
+        tmpDir.deleteOnExit();
+        return tmpDir;
     }
     
     private static SSLEngineConfigurator createSSLConfig(boolean isServer) throws Exception {
