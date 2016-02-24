@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,6 +60,8 @@ public class StaticHttpHandler extends StaticHttpHandlerBase {
 
     protected final ArraySet<File> docRoots = new ArraySet<File>(File.class);
 
+    private boolean directorySlashOff;
+    
     /**
      * Create <tt>HttpHandler</tt>, which, by default, will handle requests
      * to the static resources located in the current directory.
@@ -161,7 +163,24 @@ public class StaticHttpHandler extends StaticHttpHandlerBase {
     public void removeDocRoot(File docRoot) {
         docRoots.remove(docRoot);
     }
-    
+
+    /**
+     * @return <tt>true</tt> if HTTP 301 redirect shouldn't be sent when requested
+     *      static resource is a directory, or <tt>false</tt> otherwise
+     */
+    public boolean isDirectorySlashOff() {
+        return directorySlashOff;
+    }
+
+    /**
+     * If the  directorySlashOff is <tt>true</tt> HTTP 301 redirect will not be
+     * sent when requested static resource is a directory.
+     * 
+     * @param directorySlashOff 
+     */
+    public void setDirectorySlashOff(boolean directorySlashOff) {
+        this.directorySlashOff = directorySlashOff;
+    }
 
     // ------------------------------------------------------- Protected Methods
     
@@ -191,6 +210,14 @@ public class StaticHttpHandler extends StaticHttpHandlerBase {
             final boolean isDirectory = resource.isDirectory();
 
             if (exists && isDirectory) {
+                
+                if (!directorySlashOff && !uri.endsWith("/")) { // redirect to the same url, but with trailing slash
+                    response.setStatus(HttpStatus.MOVED_PERMANENTLY_301);
+                    response.setHeader(Header.Location,
+                            response.encodeRedirectURL(uri + "/"));
+                    return true;
+                }
+                
                 final File f = new File(resource, "/index.html");
                 if (f.exists()) {
                     resource = f;

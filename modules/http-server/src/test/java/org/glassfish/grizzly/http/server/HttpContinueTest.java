@@ -51,6 +51,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -151,7 +152,8 @@ public class HttpContinueTest {
     @Test
     public void testExpectationIgnored() throws Exception {
 
-        HttpServer server = createServer(new StaticHttpHandler(), "/path");
+        HttpServer server = createServer(new StaticHttpHandler(
+                Collections.<String>emptySet()), "/path");
 
         Socket s = null;
         try {

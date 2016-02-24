@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URL;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collection;
@@ -195,6 +196,45 @@ public class StaticHttpHandlerTest {
         }        
     }
     
+    /**
+     * Make sure we receive 301 redirect, when trying to access directory
+     * without trailing slash.
+     * 
+     * @throws Exception 
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testDirectoryTrailingSlash() throws Exception {
+        final File tmpDir = createTempFolder();
+        
+        final FutureImpl<File> result = Futures.createSafeFuture();
+
+        TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
+            @Override
+            public void validate(HttpResponsePacket response) {
+                assertEquals(301, response.getStatus());
+                assertEquals("/" + tmpDir.getName() + "/", response.getHeader(Header.Location));
+            }
+        }, isSslEnabled);
+        try {
+            client.start();
+            Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
+            
+            HttpRequestPacket request =
+                    HttpRequestPacket.builder().uri("/" + tmpDir.getName())
+                        .method(Method.POST)
+                        .protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+            c.write(request);
+            File fResult = result.get(20, TimeUnit.SECONDS);
+            //assertEquals(0, fResult.length());
+            
+            c.close();
+        } finally {
+            client.shutdownNow();
+        }        
+    }
+    
     private static TCPNIOTransport createClient(final FutureImpl<File> result,
             final ResponseValidator validator,
             final boolean isSslEnabled) throws Exception {
@@ -291,7 +331,7 @@ public class StaticHttpHandlerTest {
         listener.setSendFileEnabled(isFileSendEnabled);
         server.addListener(listener);
         server.getServerConfiguration().addHttpHandler(
-                new StaticHttpHandler(System.getProperty("java.io.tmpdir")), "/");
+                new StaticHttpHandler(getSystemTmpDir()), "/");
         
         return server;
     }
@@ -311,6 +351,9 @@ public class StaticHttpHandlerTest {
         return new BigInteger(digest.digest());
     }
 
+    private static String getSystemTmpDir() {
+        return System.getProperty("java.io.tmpdir");
+    }
 
     private static File generateTempFile(final int size) throws IOException {
         final File f = File.createTempFile("grizzly-temp-" + size, ".tmp2");
@@ -328,6 +371,12 @@ public class StaticHttpHandlerTest {
         }
         f.deleteOnExit();
         return f;
+    }
+    
+    private static File createTempFolder() throws IOException {
+        final File tmpDir = Files.createTempDirectory("grizzly-temp-dir").toFile();
+        tmpDir.deleteOnExit();
+        return tmpDir;
     }
     
     private static SSLEngineConfigurator createSSLConfig(boolean isServer) throws Exception {
