@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -185,6 +185,7 @@ public final class SSLConnectionContext {
         
         final ByteBuffer inputByteBuffer =
                 input.toByteBuffer(input.position(), input.position() + len);
+        final int initPosition = inputByteBuffer.position();
         final SSLEngineResult sslEngineResult;
         
         try {
@@ -220,7 +221,7 @@ public final class SSLConnectionContext {
             return new SslResult(output, new SSLException("SSL unwrap error: " + status));
         }
         
-        input.position(inPos + sslEngineResult.bytesConsumed());
+        input.position(inPos + inputByteBuffer.position() - initPosition); // GRIZZLY-1827 input.position(inPos + sslEngineResult.bytesConsumed());
         output.position(outPos + sslEngineResult.bytesProduced());
 
         if (LOGGER.isLoggable(Level.FINE)) {
