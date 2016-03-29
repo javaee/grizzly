@@ -430,10 +430,26 @@ public class CookieWrapper extends Cookie {
 	wrappedCookie.setVersion(v);
     }
 
-   @SuppressWarnings("UnusedDeclaration")
-   public Object cloneCookie() {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isHttpOnly() {
+        return wrappedCookie.isHttpOnly();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setHttpOnly(boolean isHttpOnly) {
+        wrappedCookie.setHttpOnly(isHttpOnly);
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public Object cloneCookie() {
         return wrappedCookie.clone();
-   }
+    }
 
     public javax.servlet.http.Cookie getWrappedCookie() {
         return wrappedCookie;
