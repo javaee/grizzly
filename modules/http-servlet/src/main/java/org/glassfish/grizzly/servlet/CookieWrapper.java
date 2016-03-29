@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -430,10 +430,26 @@ public class CookieWrapper extends Cookie {
 	wrappedCookie.setVersion(v);
     }
 
-   @SuppressWarnings("UnusedDeclaration")
-   public Object cloneCookie() {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isHttpOnly() {
+        return wrappedCookie.isHttpOnly();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setHttpOnly(boolean isHttpOnly) {
+        wrappedCookie.setHttpOnly(isHttpOnly);
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    public Object cloneCookie() {
         return wrappedCookie.clone();
-   }
+    }
 
     public javax.servlet.http.Cookie getWrappedCookie() {
         return wrappedCookie;
