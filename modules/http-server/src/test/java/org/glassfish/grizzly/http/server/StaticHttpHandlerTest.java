@@ -201,7 +201,6 @@ public class StaticHttpHandlerTest {
         }        
     }
     
-<<<<<<< HEAD
     @Test
     @SuppressWarnings("unchecked")
     public void testStaticHttpHandlerFileSend() throws Exception {
@@ -233,7 +232,38 @@ public class StaticHttpHandlerTest {
         }, "/custom");
         
         final FutureImpl<File> result = Futures.<File>createSafeFuture();
-=======
+
+        TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
+            @Override
+            public void validate(HttpResponsePacket response) {
+                assertEquals(Integer.toString(fileSize), response.getHeader(Header.ContentLength));
+                // static resource handler won't know how to handle .tmp extension,
+                // so it should punt.
+                assertEquals("text/plain", response.getHeader(Header.ContentType));
+            }
+        }, isSslEnabled);
+        BigInteger controlSum = getMDSum(file);
+        try {
+            client.start();
+            Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
+            
+            HttpRequestPacket request =
+                    HttpRequestPacket.builder().uri("/custom/" + file.getName())
+                        .method(Method.GET)
+                        .protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+            c.write(request);
+            File fResult = result.get(60, TimeUnit.SECONDS);
+            BigInteger resultSum = getMDSum(fResult);
+            assertTrue("MD5Sum between control and test files differ.",
+                        controlSum.equals(resultSum));
+            assertTrue(completionHandlerInvokedFuture.get(5, TimeUnit.SECONDS));
+            c.close();
+        } finally {
+            client.shutdownNow();
+        }        
+    }
+    
     /**
      * Make sure we receive 301 redirect, when trying to access directory
      * without trailing slash.
@@ -246,42 +276,19 @@ public class StaticHttpHandlerTest {
         final File tmpDir = createTempFolder();
         
         final FutureImpl<File> result = Futures.createSafeFuture();
->>>>>>> d5231d9... [2.3.x] + fix issue #1823
 
         TCPNIOTransport client = createClient(result, new StaticHttpHandlerTest.ResponseValidator() {
             @Override
             public void validate(HttpResponsePacket response) {
-<<<<<<< HEAD
-                assertEquals(Integer.toString(fileSize), response.getHeader(Header.ContentLength));
-                // static resource handler won't know how to handle .tmp extension,
-                // so it should punt.
-                assertEquals("text/plain", response.getHeader(Header.ContentType));
-            }
-        }, isSslEnabled);
-        BigInteger controlSum = getMDSum(file);
-=======
                 assertEquals(301, response.getStatus());
                 assertEquals("/" + tmpDir.getName() + "/", response.getHeader(Header.Location));
             }
         }, isSslEnabled);
->>>>>>> d5231d9... [2.3.x] + fix issue #1823
         try {
             client.start();
             Connection c = client.connect("localhost", PORT).get(10, TimeUnit.SECONDS);
             
             HttpRequestPacket request =
-<<<<<<< HEAD
-                    HttpRequestPacket.builder().uri("/custom/" + file.getName())
-                        .method(Method.GET)
-                        .protocol(Protocol.HTTP_1_1)
-                        .header("Host", "localhost:" + PORT).build();
-            c.write(request);
-            File fResult = result.get(60, TimeUnit.SECONDS);
-            BigInteger resultSum = getMDSum(fResult);
-            assertTrue("MD5Sum between control and test files differ.",
-                        controlSum.equals(resultSum));
-            assertTrue(completionHandlerInvokedFuture.get(5, TimeUnit.SECONDS));
-=======
                     HttpRequestPacket.builder().uri("/" + tmpDir.getName())
                         .method(Method.POST)
                         .protocol(Protocol.HTTP_1_1)
@@ -290,12 +297,11 @@ public class StaticHttpHandlerTest {
             File fResult = result.get(20, TimeUnit.SECONDS);
             //assertEquals(0, fResult.length());
             
->>>>>>> d5231d9... [2.3.x] + fix issue #1823
             c.close();
         } finally {
             client.shutdownNow();
         }        
-    }
+    }    
     
     private static TCPNIOTransport createClient(final FutureImpl<File> result,
             final ResponseValidator validator,
