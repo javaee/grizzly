@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -180,7 +180,9 @@ public class TCPNIOUtils {
             final int bufferSize = buffer.remaining();
             if (bufferSize == 0) {
                 continue;
-            } else if (buffer.isDirect()) {
+            }
+            
+            if (buffer.isDirect()) {
                 ioRecord.finishBufferSlice();
                 ioRecord.putToArray(buffer.toByteBuffer());
             } else {
@@ -188,12 +190,11 @@ public class TCPNIOUtils {
                 
                 if (currentDirectBufferSlice == null) {
                     final ByteBuffer directByteBuffer = ioRecord.getDirectBuffer();
-                    currentDirectBufferSlice =
-                            directByteBuffer == null
-                                ? ioRecord.allocate(remaining)
-                                : ioRecord.sliceBuffer();
+                    if (directByteBuffer == null) {
+                        ioRecord.allocate(remaining);   // allocate buffer big enough to put the entire message (not just the chunk  we're writing)
+                    }
                     
-                    ioRecord.putToArray(currentDirectBufferSlice);
+                    currentDirectBufferSlice = ioRecord.sliceBuffer();
                 }
                 
                 final int oldLim = currentDirectBufferSlice.limit();

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -102,14 +102,20 @@ public final class DirectByteBufferRecord {
         int oldLim = directBuffer.limit();
         Buffers.setPositionLimit(directBuffer, sliceOffset, directBuffer.capacity());
         directBufferSlice = directBuffer.slice();
-        Buffers.setPositionLimit(directBuffer, 0, oldLim);
+        Buffers.setPositionLimit(directBuffer, 0, oldLim);        
         return directBufferSlice;
     }
 
     public void finishBufferSlice() {
         if (directBufferSlice != null) {
             directBufferSlice.flip();
-            sliceOffset += directBufferSlice.remaining();
+            final int sliceSz = directBufferSlice.remaining();
+            sliceOffset += sliceSz;
+
+            if (sliceSz > 0) {
+                putToArray(directBufferSlice);
+            }
+
             directBufferSlice = null;
         }
     }
@@ -139,21 +145,21 @@ public final class DirectByteBufferRecord {
         sliceOffset = 0;
     }
 
-    ByteBuffer switchToStrong() {
+    private ByteBuffer switchToStrong() {
         if (directBuffer == null && softRef != null) {
             directBuffer = directBufferSlice = softRef.get();
         }
         return directBuffer;
     }
 
-    void switchToSoft() {
+    private void switchToSoft() {
         if (directBuffer != null && softRef == null) {
             softRef = new SoftReference<ByteBuffer>(directBuffer);
         }
         directBuffer = null;
     }
 
-    void reset(ByteBuffer byteBuffer) {
+    private void reset(ByteBuffer byteBuffer) {
         directBuffer = directBufferSlice = byteBuffer;
         softRef = null;
     }
