@@ -74,16 +74,15 @@ public class TCPNIOUtils {
         
         final SocketChannel socketChannel = (SocketChannel) connection.getChannel();
         
-        final DirectByteBufferRecord ioRecord = DirectByteBufferRecord.get();
-        final BufferArray bufferArray = buffer.toBufferArray();
         int written = 0;
-        
-        fill(bufferArray, bufferSize, ioRecord);
-        ioRecord.finishBufferSlice();
-        
-        final int arraySize = ioRecord.getArraySize();
+        final BufferArray bufferArray = buffer.toBufferArray();
+        final DirectByteBufferRecord ioRecord = DirectByteBufferRecord.get();
         
         try {
+            fill(bufferArray, bufferSize, ioRecord);
+            ioRecord.finishBufferSlice();
+
+            final int arraySize = ioRecord.getArraySize();
             written = arraySize != 1
                     ? flushByteBuffers(socketChannel, ioRecord.getArray(), 0, arraySize)
                     : flushByteBuffer(socketChannel, ioRecord.getArray()[0]);
@@ -94,9 +93,10 @@ public class TCPNIOUtils {
                         });
             }
         } finally {
+            ioRecord.release();
+            
             bufferArray.restore();
             bufferArray.recycle();
-            ioRecord.release();
         }
         
         Buffers.setPositionLimit(buffer, oldPos + written, oldLim);
@@ -170,7 +170,7 @@ public class TCPNIOUtils {
         final Buffer buffers[] = bufferArray.getArray();
         final int size = bufferArray.size();
         
-        int remaining = totalBufferSize;
+        int totalRemaining = totalBufferSize;
         
         for (int i = 0; i < size; i++) {
             
@@ -191,7 +191,7 @@ public class TCPNIOUtils {
                 if (currentDirectBufferSlice == null) {
                     final ByteBuffer directByteBuffer = ioRecord.getDirectBuffer();
                     if (directByteBuffer == null) {
-                        ioRecord.allocate(remaining);   // allocate buffer big enough to put the entire message (not just the chunk  we're writing)
+                        ioRecord.allocate(totalRemaining);   // allocate buffer big enough to put the entire message (not just the chunk  we're writing)
                     }
                     
                     currentDirectBufferSlice = ioRecord.sliceBuffer();
@@ -203,7 +203,7 @@ public class TCPNIOUtils {
                 currentDirectBufferSlice.limit(oldLim);
             }
             
-            remaining -= bufferSize;
+            totalRemaining -= bufferSize;
         }
 
     }
