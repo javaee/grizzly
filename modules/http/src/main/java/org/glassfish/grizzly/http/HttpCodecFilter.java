@@ -164,6 +164,9 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     
     protected final int maxHeadersSize;
 
+    protected boolean preserveHeaderCase =
+            Boolean.parseBoolean(System.getProperty("org.glassfish.grizzly.http.PRESERVE_HEADER_CASE", "false"));
+
     /**
      * Method is responsible for parsing initial line of HTTP message (different
      * for {@link HttpRequestPacket} and {@link HttpResponsePacket}).
@@ -394,6 +397,23 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
      */
     public void setMaxPayloadRemainderToSkip(long maxPayloadRemainderToSkip) {
         this.maxPayloadRemainderToSkip = maxPayloadRemainderToSkip;
+    }
+
+    /**
+     * @return <code>true</code> if header case will be preserved, otherwise <code>false</code>.
+     *  Default is <code>false</code>.
+     */
+    public boolean isPreserveHeaderCase() {
+        return preserveHeaderCase;
+    }
+
+    /**
+     * Set to <code>true</code> to preserve header case.  Default is <code>false</code>.
+     *
+     * @param preserveHeaderCase <code>true</code> to preserve header case.
+     */
+    public void setPreserveHeaderCase(boolean preserveHeaderCase) {
+        this.preserveHeaderCase = preserveHeaderCase;
     }
 
     /**
@@ -1025,7 +1045,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         } while (true);
     }
     
-    protected static boolean parseHeaderFromBuffer(final HttpHeader httpHeader,
+    protected boolean parseHeaderFromBuffer(final HttpHeader httpHeader,
             final MimeHeaders mimeHeaders, final HeaderParsingState parsingState,
             final Buffer input) {
         
@@ -1085,7 +1105,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         }
     }
     
-    protected static boolean parseHeaderName(final HttpHeader httpHeader,
+    protected boolean parseHeaderName(final HttpHeader httpHeader,
             final MimeHeaders mimeHeaders, final HeaderParsingState parsingState,
             final Buffer input) {
         final int limit = Math.min(input.limit(), parsingState.packetLimit);
@@ -1104,7 +1124,9 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
                 return true;
             } else if ((b >= Constants.A) && (b <= Constants.Z)) {
-                b -= Constants.LC_OFFSET;
+                if (!preserveHeaderCase) {
+                    b -= Constants.LC_OFFSET;
+                }
                 input.put(offset, b);
             }
 
