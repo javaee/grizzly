@@ -61,6 +61,7 @@ import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
@@ -98,6 +99,14 @@ public class HttpRequestParseTest extends TestCase {
         doHttpRequestTest("POST", "/index.html", "HTTP/1.1", headers, "\r\n");
     }
 
+    public void testSimpleHeadersPreserveCase() throws Exception {
+        Map<String, Pair<String, String>> headers =
+                new HashMap<String, Pair<String, String>>();
+        headers.put("Host", new Pair<String,String>("localhost", "localhost"));
+        headers.put("Content-length", new Pair<String,String>("2345", "2345"));
+        doHttpRequestTest("POST", "/index.html", "HTTP/1.1", headers, "\r\n", true);
+    }
+
     public void testMultiLineHeaders() throws Exception {
         Map<String, Pair<String, String>> headers =
                 new HashMap<String, Pair<String, String>>();
@@ -123,7 +132,7 @@ public class HttpRequestParseTest extends TestCase {
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpRequestTest(new Pair<String, String>("POST", "POST"),
                 new Pair<String, String>("http://localhost:8180/index.html", "/index.html"),
-                new Pair<String,String>("HTTP/1.1", "HTTP/1.1"), headers, "\n");
+                new Pair<String,String>("HTTP/1.1", "HTTP/1.1"), headers, "\n", false);
     }
 
     public void testCompleteEmptyURI() throws Exception {
@@ -133,7 +142,7 @@ public class HttpRequestParseTest extends TestCase {
         headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpRequestTest(new Pair<String, String>("POST", "POST"),
                 new Pair<String, String>("http://localhost:8180", "/"),
-                new Pair<String,String>("HTTP/1.1", "HTTP/1.1"), headers, "\n");
+                new Pair<String,String>("HTTP/1.1", "HTTP/1.1"), headers, "\n", false);
     }
 
     public void testDecoderOK() {
@@ -230,25 +239,37 @@ public class HttpRequestParseTest extends TestCase {
             throws Exception {
         doHttpRequestTest(new Pair<String, String>(method, method),
                 new Pair<String,String>(requestURI, requestURI), new Pair<String,String>(protocol, protocol),
-                headers, eol);
+                headers, eol, false);
+    }
+
+    private void doHttpRequestTest(String method, String requestURI,
+                                   String protocol, Map<String, Pair<String, String>> headers, String eol,
+                                   boolean preserveCase)
+            throws Exception {
+        doHttpRequestTest(new Pair<String, String>(method, method),
+                new Pair<String,String>(requestURI, requestURI), new Pair<String,String>(protocol, protocol),
+                headers, eol, preserveCase);
     }
 
     @SuppressWarnings("unchecked")
     private void doHttpRequestTest(Pair<String, String> method,
             Pair<String, String> requestURI, Pair<String, String> protocol,
-            Map<String, Pair<String, String>> headers, String eol)
+            Map<String, Pair<String, String>> headers, String eol, boolean preserveHeaderCase)
             throws Exception {
         
         final FutureImpl<Boolean> parseResult = SafeFutureImpl.create();
 
         Connection connection = null;
 
+        final HttpServerFilter serverFilter = new HttpServerFilter();
+        serverFilter.setPreserveHeaderCase(preserveHeaderCase);
+
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance()
                 .add(new TransportFilter())
                 .add(new ChunkingFilter(2))
-                .add(new HttpServerFilter())
+                .add(serverFilter)
                 .add(new HTTPRequestCheckFilter(parseResult,
-                method, requestURI, protocol, headers));
+                method, requestURI, protocol, headers, preserveHeaderCase));
 
         TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
         transport.setFilterChain(filterChainBuilder.build());
@@ -307,17 +328,20 @@ public class HttpRequestParseTest extends TestCase {
         private final String requestURI;
         private final String protocol;
         private final Map<String, Pair<String, String>> headers;
+        private final boolean preserveCase;
 
         public HTTPRequestCheckFilter(FutureImpl<Boolean> parseResult,
                 Pair<String, String> method,
                 Pair<String, String> requestURI,
                 Pair<String, String> protocol,
-                Map<String, Pair<String, String>> headers) {
+                Map<String, Pair<String, String>> headers,
+                boolean preserveCase) {
             this.parseResult = parseResult;
             this.method = method.getSecond();
             this.requestURI = requestURI.getSecond();
             this.protocol = protocol.getSecond();
             this.headers = headers;
+            this.preserveCase = preserveCase;
         }
 
         @Override
@@ -330,6 +354,22 @@ public class HttpRequestParseTest extends TestCase {
                 assertEquals(method, httpRequest.getMethod().getMethodString());
                 assertEquals(requestURI, httpRequest.getRequestURI());
                 assertEquals(protocol, httpRequest.getProtocol().getProtocolString());
+
+                MimeHeaders mimeHeaders = httpRequest.getHeaders();
+                _outer: for (String original : headers.keySet()) {
+                    for (String name : mimeHeaders.names()) {
+                        if (preserveCase) {
+                            if (original.equals(name)) {
+                                continue _outer;
+                            }
+                        } else {
+                            if (original.equalsIgnoreCase(name)) {
+                                continue _outer;
+                            }
+                        }
+                    }
+                    fail(String.format("Unable to find header %s in headers %s", original, mimeHeaders));
+                }
 
                 for(Entry<String, Pair<String, String>> entry : headers.entrySet()) {
                     assertEquals(entry.getValue().getSecond(),
