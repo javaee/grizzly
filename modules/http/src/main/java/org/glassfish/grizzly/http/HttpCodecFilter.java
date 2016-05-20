@@ -770,7 +770,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         } while (true);
     }
 
-    protected static boolean parseHeaderFromBytes(final HttpHeader httpHeader,
+    protected boolean parseHeaderFromBytes(final HttpHeader httpHeader,
             final MimeHeaders mimeHeaders, final HeaderParsingState parsingState,
             final byte[] input, final int end) {
         
@@ -835,7 +835,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         }
     }
     
-    protected static boolean parseHeaderName(final HttpHeader httpHeader,
+    protected boolean parseHeaderName(final HttpHeader httpHeader,
             final MimeHeaders mimeHeaders, final HeaderParsingState parsingState,
             final byte[] input, final int end) {
         final int arrayOffs = parsingState.arrayOffset;
@@ -856,7 +856,9 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
                 return true;
             } else if ((b >= Constants.A) && (b <= Constants.Z)) {
-                b -= Constants.LC_OFFSET;
+                if (!preserveHeaderCase) {
+                    b -= Constants.LC_OFFSET;
+                }
                 input[offset] =  b;
             }
 
