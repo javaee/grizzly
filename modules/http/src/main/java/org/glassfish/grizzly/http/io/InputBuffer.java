@@ -314,7 +314,7 @@ public class InputBuffer {
         }
 
         if (closed) {
-            throw new IOException();
+            throw new IOException("Already closed");
         }
         if (!inputContentBuffer.hasRemaining()) {
             if (fill(1) == -1) {
@@ -338,7 +338,7 @@ public class InputBuffer {
         }
 
         if (closed) {
-            throw new IOException();
+            throw new IOException("Already closed");
         }
 
         if (len == 0) {
@@ -472,7 +472,7 @@ public class InputBuffer {
         }
 
         if (closed) {
-            throw new IOException();
+            throw new IOException("Already closed");
         }
         if (!processingChars) {
             throw new IllegalStateException();
@@ -498,7 +498,7 @@ public class InputBuffer {
         }
       
         if (closed) {
-            throw new IOException();
+            throw new IOException("Already closed");
         }
         if (!processingChars) {
             throw new IllegalStateException();
@@ -528,7 +528,7 @@ public class InputBuffer {
         }
 
         if (closed) {
-            throw new IOException();
+            throw new IOException("Already closed");
         }
         if (!processingChars) {
             throw new IllegalStateException();
@@ -638,7 +638,7 @@ public class InputBuffer {
     public void reset() throws IOException {
 
         if (closed) {
-            throw new IOException();
+            throw new IOException("Already closed");
         }
 
         if (readAheadLimit == -1) {
