@@ -959,6 +959,12 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             final int start, final int end) {
 
         if (parsingState.isContentLengthHeader) {
+            // chunked transfer encoding may have already been processed.
+            // If so, then ignore the content-length.
+            if (httpHeader.isChunked()) {
+                parsingState.isContentLengthHeader = false;
+                return;
+            }
             final long contentLengthLong = Ascii.parseLong(input, start, end - start);
             
             if (parsingState.contentLengthHeadersCount++ == 0) {
@@ -976,6 +982,9 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                     ByteChunk.equalsIgnoreCaseLowerCase(input, start,
                     start + CHUNKED_ENCODING_BYTES.length,
                     CHUNKED_ENCODING_BYTES)) {
+                // content-length may have been already set.  If so,
+                // the transfer encoding takes precedence.
+                httpHeader.setContentLengthLong(-1);
                 httpHeader.setChunked(true);
             }
             parsingState.isTransferEncodingHeader = false;            
@@ -1225,6 +1234,12 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             final int start, final int end) {
 
         if (parsingState.isContentLengthHeader) {
+            // chunked transfer encoding may have already been processed.
+            // If so, then ignore the content-length.
+            if (httpHeader.isChunked()) {
+                parsingState.isContentLengthHeader = false;
+                return;
+            }
             final long contentLengthLong = Ascii.parseLong(input, start, end - start);
             
             if (parsingState.contentLengthHeadersCount++ == 0) {
@@ -1239,6 +1254,9 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         } else if (parsingState.isTransferEncodingHeader) {
             if (BufferChunk.startsWith(input, start, end,
                     CHUNKED_ENCODING_BYTES)) {
+                // content-length may have been already set.  If so,
+                // the transfer encoding takes precedence.
+                httpHeader.setContentLengthLong(-1);
                 httpHeader.setChunked(true);
             }
             parsingState.isTransferEncodingHeader = false;            
