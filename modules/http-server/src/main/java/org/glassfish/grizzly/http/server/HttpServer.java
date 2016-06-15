@@ -391,8 +391,14 @@ public class HttpServer {
                     }
                 };
 
-        for (NetworkListener listener : listeners.values()) {
-            listener.shutdown(gracePeriod, timeUnit).addCompletionHandler(shutdownCompletionHandler);
+        if (listenersCount > 0) {
+            for (NetworkListener listener : listeners.values()) {
+                listener.shutdown(gracePeriod, timeUnit).addCompletionHandler(shutdownCompletionHandler);
+            }
+        } else {
+            // No listeners (edge-case), so call shutdown now to ensure the server is properly torn down.
+            shutdownNow();
+            shutdownFutureLocal.result(HttpServer.this);
         }
 
 
