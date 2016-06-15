@@ -68,6 +68,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -82,12 +83,13 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 /**
  * Test cases to validate HTTP protocol semantics.
  */
+@SuppressWarnings("Duplicates")
 public class HttpSemanticsTest extends TestCase {
 
     public static final int PORT = 19004;
     private static final int MAX_HEADERS_SIZE = 8192;
     
-    private HttpServerFilter httpServerFilter =
+    private final HttpServerFilter httpServerFilter =
             new HttpServerFilter(false, MAX_HEADERS_SIZE, new KeepAliveConfig(), null);
 
     // ------------------------------------------------------------ Test Methods
@@ -386,6 +388,104 @@ public class HttpSemanticsTest extends TestCase {
         });
     }
 
+    /**
+     * Added for GRIZZLY-1833.
+     */
+    public void testHttp11PostChunkedContentLengthIgnored() throws Throwable {
+
+        final HttpRequestPacket header = HttpRequestPacket.builder()
+                .method("POST")
+                .uri("/path")
+                .chunked(false)
+                .header(Header.Host, "localhost:" + PORT)
+                .header(Header.TransferEncoding, "chunked")
+                .header(Header.ContentLength, "1000")
+                .protocol("HTTP/1.1")
+                .build();
+
+        final HttpContent chunk1 = HttpContent.builder(header)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "b\r\nHello World\r\n0\r\n\r\n"))
+                .build();
+
+        List<HttpContent> request = Collections.singletonList(chunk1);
+
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("Connection", "close");
+        result.addHeader("!Transfer-Encoding", "chunked");
+        result.addHeader("!Content-Length", "0");
+        result.setStatusMessage("ok");
+        result.appendContent("Hello World");
+        doTest(new ClientFilter(request, result), new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent requestContent = ctx.getMessage();
+                HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+
+                final Buffer payload = requestContent.getContent();
+
+                HttpContent responseContent = response.httpContentBuilder().
+                        content(payload).last(requestContent.isLast()).build();
+                ctx.write(responseContent);
+                if (requestContent.isLast()) {
+                    ctx.flush(new FlushAndCloseHandler());
+                }
+                return ctx.getStopAction();
+            }
+        });
+    }
+
+    /**
+     * Added for GRIZZLY-1833.
+     */
+    public void testHttp11PostChunkedContentLengthIgnored2() throws Throwable {
+
+        final HttpRequestPacket header = HttpRequestPacket.builder()
+                .method("POST")
+                .uri("/path")
+                .chunked(false)
+                .header(Header.Host, "localhost:" + PORT)
+                .header(Header.ContentLength, "1000")
+                .header(Header.TransferEncoding, "chunked")
+                .protocol("HTTP/1.1")
+                .build();
+
+        final HttpContent chunk1 = HttpContent.builder(header)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "b\r\nHello World\r\n0\r\n\r\n"))
+                .build();
+
+        List<HttpContent> request = Collections.singletonList(chunk1);
+
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("Connection", "close");
+        result.addHeader("!Transfer-Encoding", "chunked");
+        result.addHeader("!Content-Length", "0");
+        result.setStatusMessage("ok");
+        result.appendContent("Hello World");
+        doTest(new ClientFilter(request, result), new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent requestContent = ctx.getMessage();
+                HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+
+                final Buffer payload = requestContent.getContent();
+
+                HttpContent responseContent = response.httpContentBuilder().
+                        content(payload).last(requestContent.isLast()).build();
+                ctx.write(responseContent);
+                if (requestContent.isLast()) {
+                    ctx.flush(new FlushAndCloseHandler());
+                }
+                return ctx.getStopAction();
+            }
+        });
+    }
+
     public void testHttpGetWithPayloadDisabled() throws Throwable {
 
         final HttpRequestPacket header = HttpRequestPacket.builder()
@@ -508,8 +608,8 @@ public class HttpSemanticsTest extends TestCase {
         result.addHeader("!ContentLength", "");
         result.appendContent(testMsg);
         doTest(new ClientFilter(request, result, 1000), new BaseFilter() {
-            int packetCounter = 0;
-            int contentCounter = 0;
+            int packetCounter;
+            int contentCounter;
             
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
@@ -716,8 +816,8 @@ public class HttpSemanticsTest extends TestCase {
         
         Buffer requestBuf = Buffers.wrap(connection.getMemoryManager(),
                 "GET /path HTTP/1.1\n"
-                        + "Host: localhost:" + PORT + "\n"
-                        + "\n");
+                        + "Host: localhost:" + PORT + '\n'
+                        + '\n');
         
         FilterChainContext ctx = FilterChainContext.create(connection);
         ctx.setMessage(requestBuf);
@@ -751,7 +851,7 @@ public class HttpSemanticsTest extends TestCase {
     // --------------------------------------------------------- Private Methods
 
     
-    private HttpRequestPacket createHttpRequest() {
+    private static HttpRequestPacket createHttpRequest() {
         return HttpRequestPacket.builder()
                 .method("GET")
                 .uri("/path")
@@ -806,8 +906,11 @@ public class HttpSemanticsTest extends TestCase {
                 }
             }
         } finally {
-            transport.shutdownNow();
-            ctransport.shutdownNow();
+            try {
+                transport.shutdownNow();
+                ctransport.shutdownNow();
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -819,11 +922,11 @@ public class HttpSemanticsTest extends TestCase {
     }
 
 
-    private class ClientFilter extends BaseFilter {
+    private static class ClientFilter extends BaseFilter {
         private final Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private Object request;
-        private ExpectedResult expectedResult;
+        private final Object request;
+        private final ExpectedResult expectedResult;
         private boolean validated;
         private HttpContent currentContent;
         StringBuilder accumulatedContent = new StringBuilder();
@@ -851,6 +954,7 @@ public class HttpSemanticsTest extends TestCase {
         // ------------------------------------------------ Methods from Filters
 
 
+        @SuppressWarnings("BusyWait")
         @Override
         public NextAction handleConnect(FilterChainContext ctx)
               throws IOException {
@@ -878,7 +982,7 @@ public class HttpSemanticsTest extends TestCase {
         public NextAction handleRead(FilterChainContext ctx)
               throws IOException {
 
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpContent httpContent = ctx.getMessage();
 
             logger.log(Level.FINE, "Got HTTP response chunk");
             if (httpContent.isLast()) {
@@ -916,7 +1020,7 @@ public class HttpSemanticsTest extends TestCase {
                 assertEquals(expectedResult.getContent(), content);
 
                 if (!expectedResult.getExpectedHeaders().isEmpty()) {
-                    for (Map.Entry<String,String> entry : expectedResult.getExpectedHeaders().entrySet()) {
+                    for (Entry<String,String> entry : expectedResult.getExpectedHeaders().entrySet()) {
                         if (entry.getKey().charAt(0) != '!') {
                             assertTrue("Missing header: " + entry.getKey(),
                                        response.containsHeader(entry.getKey()));
@@ -972,11 +1076,11 @@ public class HttpSemanticsTest extends TestCase {
     private static final class ExpectedResult {
 
         private int statusCode = -1;
-        private Map<String,String> expectedHeaders =
+        private final Map<String,String> expectedHeaders =
                 new HashMap<String,String>();
         private String protocol;
         private String statusMessage;
-        private StringBuilder builder = new StringBuilder();
+        private final StringBuilder builder = new StringBuilder();
 
         public int getStatusCode() {
             return statusCode;
@@ -990,7 +1094,7 @@ public class HttpSemanticsTest extends TestCase {
             if (name.startsWith("!")) {
                 expectedHeaders.remove(name.substring(1));
             } else {
-                expectedHeaders.remove("!" + name);
+                expectedHeaders.remove('!' + name);
             }
             expectedHeaders.put(name, value);
         }

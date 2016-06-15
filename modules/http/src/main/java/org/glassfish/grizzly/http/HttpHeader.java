@@ -455,7 +455,6 @@ public abstract class HttpHeader extends HttpPacket
     public void setContentLengthLong(final long length) {
         contentLength = length;
         final boolean negativeLength = (contentLength < 0);
-        setChunked(negativeLength);
         if (negativeLength) {
             headers.removeHeader(Header.ContentLength);
         }
@@ -917,23 +916,31 @@ public abstract class HttpHeader extends HttpPacket
     }
 
     protected final boolean handleSetSpecialHeaders(final String name, final String value) {
-        return isSpecialHeader(name) && setValueBasedOnHeader(name, value);
+        return isSpecialHeaderSet(name) && setValueBasedOnHeader(name, value);
     }
 
     protected final boolean handleSetSpecialHeaders(final String name, final HeaderValue value) {
-        return isSpecialHeader(name) && setValueBasedOnHeader(name, value.get());
+        return isSpecialHeaderSet(name) && setValueBasedOnHeader(name, value.get());
     }
     
     protected final boolean handleSetSpecialHeaders(final Header header, final String value) {
-        return isSpecialHeader(header.toString()) && setValueBasedOnHeader(header, value);
+        return isSpecialHeaderSet(header.toString()) && setValueBasedOnHeader(header, value);
     }
 
     protected final boolean handleSetSpecialHeaders(final Header header, final HeaderValue value) {
-        return isSpecialHeader(header.toString()) && setValueBasedOnHeader(header, value.get());
+        return isSpecialHeaderSet(header.toString()) && setValueBasedOnHeader(header, value.get());
     }
     
     protected static boolean isSpecialHeader(final String name) {
+        return isSpecialHeader(name.charAt(0));
+    }
+
+    private static boolean isSpecialHeaderSet(final String name) {
         final char c = name.charAt(0);
+        return (isSpecialHeader(c) || (c == 'T' || c == 't'));
+    }
+
+    private static boolean isSpecialHeader(final char c) {
         return (c == 'C' || c == 'c' || c == 'U' || c == 'u');
     }
 
@@ -988,17 +995,17 @@ public abstract class HttpHeader extends HttpPacket
             setContentType(value);
             return true;
         } else if (Header.ContentLength.toString().equalsIgnoreCase(name)) {
-            try {
-                final long cLL = Long.parseLong(value);
-                setContentLengthLong(cLL);
-                return true;
-            } catch (NumberFormatException ex) {
-                // Do nothing - the spec doesn't have any "throws"
-                // and the user might know what he's doing
-                return false;
-            }
+            headers.removeHeader(Header.TransferEncoding);
+            setChunked(false);
+            return setContentLength(value);
         } else if (Header.Upgrade.toString().equalsIgnoreCase(name)) {
             setUpgrade(value);
+        } else if (Header.TransferEncoding.toString().equalsIgnoreCase(name)) {
+            if ("chunked".equalsIgnoreCase(value)) {
+                setContentLengthLong(-1);
+                setChunked(true);
+            }
+            return true;
         }
         //if (name.equalsIgnoreCase("Content-Language")) {
         //    // TODO XXX XXX Need to construct Locale or something else
@@ -1016,24 +1023,36 @@ public abstract class HttpHeader extends HttpPacket
             setContentType(value);
             return true;
         } else if (Header.ContentLength.equals(header)) {
-            try {
-                final long cLL = Long.parseLong(value);
-                setContentLengthLong(cLL);
-                return true;
-            } catch (NumberFormatException ex) {
-                // Do nothing - the spec doesn't have any "throws"
-                // and the user might know what he's doing
-                return false;
-            }
+            headers.removeHeader(Header.TransferEncoding);
+            setChunked(false);
+            return setContentLength(value);
         } else if (Header.Upgrade.equals(header)) {
             setUpgrade(value);
+        } else if (Header.TransferEncoding.equals(header)) {
+            if ("chunked".equalsIgnoreCase(value)) {
+                setContentLengthLong(-1);
+                setChunked(true);
+            }
+            return true;
         }
         //if (name.equalsIgnoreCase("Content-Language")) {
         //    // TODO XXX XXX Need to construct Locale or something else
         //}
         return false;
     }
-    
+
+    private boolean setContentLength(String value) {
+        try {
+            final long cLL = Long.parseLong(value);
+            setContentLengthLong(cLL);
+            return true;
+        } catch (NumberFormatException ex) {
+            // Do nothing - the spec doesn't have any "throws"
+            // and the user might know what he's doing
+            return false;
+        }
+    }
+
     /**
      * Flush internal fields for special header names to the headers map.
      */
