@@ -266,7 +266,7 @@ public class OutputBuffer {
     public void reset() {
 
         if (committed)
-            throw new IllegalStateException(/*FIXME:Put an error message*/);
+            throw new IllegalStateException("Cannot reset the response as it has already been committed.");
 
         compositeBuffer = null;
 
