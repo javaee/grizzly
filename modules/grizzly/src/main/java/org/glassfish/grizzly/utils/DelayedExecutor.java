@@ -191,8 +191,9 @@ public class DelayedExecutor {
 
         public void add(final E elem, final long delay, final TimeUnit timeUnit) {
             if (delay >= 0) {
-                resolver.setTimeoutMillis(elem, System.currentTimeMillis() +
-                        TimeUnit.MILLISECONDS.convert(delay, timeUnit));
+                final long delayWithSysTime =
+                        System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(delay, timeUnit);
+                resolver.setTimeoutMillis(elem, ((delayWithSysTime < 0) ? Long.MAX_VALUE : delayWithSysTime));
                 queue.put(elem, this);
             }
         }
@@ -210,7 +211,7 @@ public class DelayedExecutor {
         /**
          * The method is executed by <tt>DelayExecutor</tt> once element's timeout expires.
          * 
-         * @param element
+         * @param element element to operate upon.
          * @return <tt>true</tt>, if the work is done and element has to be removed
          *          from the delay queue, or <tt>false</tt> if the element
          *          should be re-registered on the delay queue again
