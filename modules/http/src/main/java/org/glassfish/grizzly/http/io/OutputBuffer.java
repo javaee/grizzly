@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -72,7 +72,7 @@ import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpContent.Builder;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpServerFilter;
@@ -164,7 +164,7 @@ public class OutputBuffer {
     // which helps to limit the number of reentrants
     private Runnable writePossibleRunnable;
     
-    private HttpContent.Builder builder;
+    private Builder builder;
     
     private boolean isNonBlockingWriteGuaranteed;
     private boolean isLastWriteNonBlocking;
@@ -204,6 +204,7 @@ public class OutputBuffer {
      * @since 2.1.2
      * @deprecated will always return true
      */
+    @Deprecated
     @SuppressWarnings({"UnusedDeclaration"})
     public boolean isAsyncEnabled() {
         return true;
@@ -219,6 +220,7 @@ public class OutputBuffer {
      * @since 2.1.2
      * @deprecated <tt>OutputBuffer</tt> always supports async mode
      */
+    @Deprecated
     @SuppressWarnings("UnusedDeclaration")
     public void setAsyncEnabled(boolean asyncEnabled) {
     }
@@ -425,7 +427,7 @@ public class OutputBuffer {
         charsArray[charsArrayLength++] = (char) c;
     }
     
-    public void write(char cbuf[], int off, int len) throws IOException {
+    public void write(char[] cbuf, int off, int len) throws IOException {
 
         connection.assertOpen();
 
@@ -456,7 +458,7 @@ public class OutputBuffer {
         }
     }
 
-    public void write(final char cbuf[]) throws IOException {
+    public void write(final char[] cbuf) throws IOException {
         write(cbuf, 0, cbuf.length);
     }
 
@@ -539,7 +541,7 @@ public class OutputBuffer {
     }
 
 
-    public void write(final byte b[]) throws IOException {
+    public void write(final byte[] b) throws IOException {
         write(b, 0, b.length);
     }
 
@@ -648,7 +650,7 @@ public class OutputBuffer {
         ctx.write(f, handler);
     }
 
-    public void write(final byte b[], final int off, final int len) throws IOException {
+    public void write(final byte[] b, final int off, final int len) throws IOException {
 
         connection.assertOpen();
         if (closed || len == 0) {
@@ -801,6 +803,7 @@ public class OutputBuffer {
      * @see AsyncQueueWriter#canWrite(org.glassfish.grizzly.Connection, int)
      * @deprecated the <code>length</code> parameter will be ignored. Please use {@link #canWrite()}.
      */
+    @Deprecated
     @SuppressWarnings("UnusedParameters")
     public boolean canWrite(@SuppressWarnings("UnusedParameters") final int length) {
         return canWrite();
@@ -825,6 +828,7 @@ public class OutputBuffer {
      * @see AsyncQueueWriter#notifyWritePossible(org.glassfish.grizzly.Connection, org.glassfish.grizzly.WriteHandler, int)
      * @deprecated the <code>length</code> parameter will be ignored. Please use {@link #notifyCanWrite(org.glassfish.grizzly.WriteHandler)}.
      */
+    @Deprecated
     @SuppressWarnings("UnusedParameters")
     public void notifyCanWrite(final WriteHandler handler,
                                @SuppressWarnings("UnusedParameters") final int length) {
