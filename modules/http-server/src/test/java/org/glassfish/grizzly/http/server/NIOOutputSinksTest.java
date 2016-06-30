@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -71,6 +71,7 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.io.NIOOutputStream;
 import org.glassfish.grizzly.http.io.NIOWriter;
+import org.glassfish.grizzly.http.io.OutputBuffer;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.NIOConnection;
@@ -82,6 +83,7 @@ import org.glassfish.grizzly.utils.Futures;
 
 import static org.glassfish.grizzly.Writer.Reentrant;
 
+@SuppressWarnings("Duplicates")
 public class NIOOutputSinksTest extends TestCase {
     private static final Logger LOGGER = Grizzly.logger(NIOOutputSinksTest.class);
     private static final int PORT = 9339;
@@ -640,6 +642,118 @@ public class NIOOutputSinksTest extends TestCase {
             server.shutdownNow();
         }
     }
+
+    /*
+     * Added for GRIZZLY-1839.
+     */
+    public void testBufferBinaryCharInterleave() throws Exception {
+
+        final HttpServer server = new HttpServer();
+        final NetworkListener listener =
+                new NetworkListener("Grizzly",
+                        NetworkListener.DEFAULT_NETWORK_HOST,
+                        PORT);
+        server.addListener(listener);
+        final FutureImpl<String> parseResult = SafeFutureImpl.create();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new HttpClientFilter());
+        filterChainBuilder.add(new BaseFilter() {
+
+            private final StringBuilder sb = new StringBuilder();
+
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+                // Build the HttpRequestPacket, which will be sent to a server
+                // We construct HTTP request version 1.1 and specifying the URL of the
+                // resource we want to download
+                final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
+                        .uri("/path").protocol(Protocol.HTTP_1_1)
+                        .header("Host", "localhost:" + PORT).build();
+
+                // Write the request asynchronously
+                ctx.write(httpRequest);
+
+                // Return the stop action, which means we don't expect next filter to process
+                // connect event
+                return ctx.getStopAction();
+            }
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+
+                HttpContent message = ctx.getMessage();
+                Buffer b = message.getContent();
+                if (b.hasRemaining()) {
+                    sb.append(b.toStringContent());
+                }
+
+                if (message.isLast()) {
+                    parseResult.result(sb.toString());
+                }
+                return ctx.getStopAction();
+            }
+        });
+
+
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setProcessor(filterChainBuilder.build());
+        final HttpHandler ga = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                response.setContentType("text/plain");
+                response.setCharacterEncoding("UTF-8");
+
+                // disable buffering
+                response.setBufferSize(0);
+
+                final OutputBuffer out = response.getOutputBuffer();
+                out.write("abc");
+                out.write("def".getBytes("UTF-8"));
+                out.write("ghi".toCharArray());
+                out.write("jkl".getBytes("UTF-8"));
+                out.write("mno");
+                out.write("pqr".getBytes("UTF-8"));
+                out.write("stu".toCharArray());
+                out.write("vwx".toCharArray());
+                out.write("yz0".getBytes("UTF-8"));
+                out.write("123".getBytes("UTF-8"));
+                out.write("456");
+
+            }
+        };
+
+
+        server.getServerConfiguration().addHttpHandler(ga, "/path");
+
+        try {
+            server.start();
+            clientTransport.start();
+
+            Future<Connection> connectFuture = clientTransport.connect("localhost", PORT);
+            Connection connection = null;
+            try {
+                connection = connectFuture.get(10, TimeUnit.SECONDS);
+                String resultStr = parseResult.get(10, TimeUnit.SECONDS);
+                assertEquals("abcdefghijklmnopqrstuvwxyz0123456", resultStr);
+
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            clientTransport.shutdownNow();
+            server.shutdownNow();
+        }
+    }
     
     public void testWritePossibleReentrants() throws Exception {
 
@@ -1016,6 +1130,7 @@ public class NIOOutputSinksTest extends TestCase {
                     outputStream.write(b);
                     outputStream.flush();
                     sentBytesCount.addAndGet(LENGTH);
+                    //noinspection BusyWait
                     Thread.sleep(20);
                 }
                 
@@ -1169,6 +1284,7 @@ public class NIOOutputSinksTest extends TestCase {
                         byte[] b = new byte[4096];
                         outputStream.write(b);
                         outputStream.flush();
+                        //noinspection BusyWait
                         Thread.sleep(20);
                     }
                 } catch (Exception e) {
@@ -1180,6 +1296,7 @@ public class NIOOutputSinksTest extends TestCase {
         final String checkString = "Check#";
         String checkPattern = "";
         for (int i = 0; i < 10; i++) {
+            //noinspection StringConcatenationInLoop
             checkPattern += (checkString + i);
         }
         
@@ -1194,6 +1311,7 @@ public class NIOOutputSinksTest extends TestCase {
                     for (int i = 0; i < 10; i++) {
                         writer.write(checkString + i);
                         writer.flush();
+                        //noinspection BusyWait
                         Thread.sleep(20);
                     }
                 } catch (Exception e) {
@@ -1256,10 +1374,6 @@ public class NIOOutputSinksTest extends TestCase {
         }
     }
 
-    private static void check(StringBuilder sb, int lastCameSize) {
-        check(sb, 0, lastCameSize);
-    }
-
     private static void check(StringBuilder sb, int offset, int lastCameSize) {
         final int start = sb.length() - lastCameSize;
 
@@ -1272,7 +1386,7 @@ public class NIOOutputSinksTest extends TestCase {
         }
     }
 
-    private void check1(final String resultStr, final int LENGTH) {
+    private static void check1(final String resultStr, final int LENGTH) {
         for (int i = 0; i < resultStr.length() / LENGTH; i++) {
             final char expect = (char) ('a' + (i % ('z' - 'a')));
             for (int j = 0; j < LENGTH; j++) {

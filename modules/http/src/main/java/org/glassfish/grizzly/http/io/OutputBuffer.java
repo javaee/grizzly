@@ -105,6 +105,8 @@ public class OutputBuffer {
     private static final int MAX_CHAR_BUFFER_SIZE =
             Integer.getInteger(OutputBuffer.class.getName() + ".max-char-buffer-size",
                     1024 * 64 + 1);
+
+    private static final int MIN_BUFFER_SIZE = 512;
     
     /**
      * Flag indicating whether or not async operations are being used on the
@@ -245,13 +247,20 @@ public class OutputBuffer {
     }
 
     public void setBufferSize(final int bufferSize) {
-        if (!committed && currentBuffer == null) {
-            this.bufferSize = bufferSize;
+
+        if (committed) {
+            return;
+        }
+
+        final int bufferSizeLocal = Math.max(bufferSize, MIN_BUFFER_SIZE);
+
+        if (currentBuffer == null) {
+            this.bufferSize = bufferSizeLocal;
         }
         
         if (charsArray != null &&
-                charsArray.length < bufferSize) {
-            final char[] newCharsArray = new char[bufferSize];
+                charsArray.length < bufferSizeLocal) {
+            final char[] newCharsArray = new char[bufferSizeLocal];
             System.arraycopy(charsArray, 0, newCharsArray, 0, charsArrayLength);
             charsBuffer = CharBuffer.wrap(newCharsArray);
             charsArray = newCharsArray;
@@ -265,8 +274,9 @@ public class OutputBuffer {
      */
     public void reset() {
 
-        if (committed)
+        if (committed) {
             throw new IllegalStateException("Cannot reset the response as it has already been committed.");
+        }
 
         compositeBuffer = null;
 
@@ -437,6 +447,10 @@ public class OutputBuffer {
 
         updateNonBlockingStatus();
 
+        if (writingBytes()) {
+            flushBinaryBuffers(false);
+        }
+
         checkCharBuffer();
         
         final int remaining = charsArray.length - charsArrayLength;
@@ -477,6 +491,10 @@ public class OutputBuffer {
         }
 
         updateNonBlockingStatus();
+
+        if (writingBytes()) {
+            flushBinaryBuffers(false);
+        }
         
         checkCharBuffer();
         
@@ -521,6 +539,10 @@ public class OutputBuffer {
         }
 
         updateNonBlockingStatus();
+
+        if (writingChars()) {
+            flushCharsToBuf(false);
+        }
         
         checkCurrentBuffer();
         
@@ -658,6 +680,10 @@ public class OutputBuffer {
         }
 
         updateNonBlockingStatus();
+
+        if (writingChars()) {
+            flushCharsToBuf(false);
+        }
         
         // Copy the content of the b[] to the currentBuffer, if it's possible
         if (bufferSize >= len &&
@@ -1042,6 +1068,14 @@ public class OutputBuffer {
             charsArray = new char[bufferSize];
             charsBuffer = CharBuffer.wrap(charsArray);
         }
+    }
+
+    private boolean writingChars() {
+        return (charsArray != null && charsArrayLength > 0);
+    }
+
+    private boolean writingBytes() {
+        return (currentBuffer != null && currentBuffer.position() != 0);
     }
     
     private void checkCurrentBuffer() {
