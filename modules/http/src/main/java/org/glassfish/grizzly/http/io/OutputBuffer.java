@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -73,8 +73,9 @@ import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.Writer.Reentrant;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
+import org.glassfish.grizzly.asyncqueue.LifeCycleHandler.Adapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpContent.Builder;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpServerFilter;
@@ -106,6 +107,8 @@ public class OutputBuffer implements OutputSink {
     private static final int MAX_CHAR_BUFFER_SIZE =
             Integer.getInteger(OutputBuffer.class.getName() + ".max-char-buffer-size",
                     1024 * 64 + 1);
+
+    private static final int MIN_BUFFER_SIZE = 512;
     
     /**
      * Flag indicating whether or not async operations are being used on the
@@ -165,7 +168,7 @@ public class OutputBuffer implements OutputSink {
     // which helps to limit the number of reentrants
     private Runnable writePossibleRunnable;
     
-    private HttpContent.Builder builder;
+    private Builder builder;
     
     private boolean isNonBlockingWriteGuaranteed;
     private boolean isLastWriteNonBlocking;
@@ -212,13 +215,19 @@ public class OutputBuffer implements OutputSink {
     }
     
     public void setBufferSize(final int bufferSize) {
-        if (!committed && currentBuffer == null) {
-            this.bufferSize = bufferSize;  
+        if (committed) {
+            return;
         }
-        
+
+        final int bufferSizeLocal = Math.max(bufferSize, MIN_BUFFER_SIZE);
+
+        if (currentBuffer == null) {
+            this.bufferSize = bufferSizeLocal;
+        }
+
         if (charsArray != null &&
-                charsArray.length < bufferSize) {
-            final char[] newCharsArray = new char[bufferSize];
+                charsArray.length < bufferSizeLocal) {
+            final char[] newCharsArray = new char[bufferSizeLocal];
             System.arraycopy(charsArray, 0, newCharsArray, 0, charsArrayLength);
             charsBuffer = CharBuffer.wrap(newCharsArray);
             charsArray = newCharsArray;
@@ -233,7 +242,7 @@ public class OutputBuffer implements OutputSink {
     public void reset() {
 
         if (committed)
-            throw new IllegalStateException(/*FIXME:Put an error message*/);
+            throw new IllegalStateException("Cannot reset the response as it has already been committed.");
 
         compositeBuffer = null;
         
@@ -394,7 +403,7 @@ public class OutputBuffer implements OutputSink {
         charsArray[charsArrayLength++] = (char) c;
     }
     
-    public void write(char cbuf[], int off, int len) throws IOException {
+    public void write(char[] cbuf, int off, int len) throws IOException {
 
         connection.assertOpen();
 
@@ -403,6 +412,10 @@ public class OutputBuffer implements OutputSink {
         }
 
         updateNonBlockingStatus();
+
+        if (writingBytes()) {
+            flushBinaryBuffers(false);
+        }
 
         checkCharBuffer();
         
@@ -425,7 +438,7 @@ public class OutputBuffer implements OutputSink {
         }
     }
 
-    public void write(final char cbuf[]) throws IOException {
+    public void write(final char[] cbuf) throws IOException {
         write(cbuf, 0, cbuf.length);
     }
 
@@ -444,6 +457,10 @@ public class OutputBuffer implements OutputSink {
         }
 
         updateNonBlockingStatus();
+
+        if (writingBytes()) {
+            flushBinaryBuffers(false);
+        }
         
         checkCharBuffer();
         
@@ -488,6 +505,10 @@ public class OutputBuffer implements OutputSink {
         }
 
         updateNonBlockingStatus();
+
+        if (writingChars()) {
+            flushCharsToBuf(false);
+        }
         
         checkCurrentBuffer();
         
@@ -508,7 +529,7 @@ public class OutputBuffer implements OutputSink {
     }
 
 
-    public void write(final byte b[]) throws IOException {
+    public void write(final byte[] b) throws IOException {
         write(b, 0, b.length);
     }
 
@@ -617,7 +638,7 @@ public class OutputBuffer implements OutputSink {
         ctx.write(f, handler);
     }
 
-    public void write(final byte b[], final int off, final int len) throws IOException {
+    public void write(final byte[] b, final int off, final int len) throws IOException {
 
         connection.assertOpen();
         if (closed || len == 0) {
@@ -625,6 +646,10 @@ public class OutputBuffer implements OutputSink {
         }
         
         updateNonBlockingStatus();
+
+        if (writingChars()) {
+            flushCharsToBuf(false);
+        }
         
         // Copy the content of the b[] to the currentBuffer, if it's possible
         if (bufferSize >= len &&
@@ -989,7 +1014,7 @@ public class OutputBuffer implements OutputSink {
             charsBuffer = CharBuffer.wrap(charsArray);
         }
     }
-    
+
     private void checkCurrentBuffer() {
         if (currentBuffer == null) {
             currentBuffer = memoryManager.allocate(bufferSize);
@@ -1004,6 +1029,14 @@ public class OutputBuffer implements OutputSink {
             compositeBuffer.append(currentBuffer);
             currentBuffer = null;
         }
+    }
+
+    private boolean writingChars() {
+        return (charsArray != null && charsArrayLength > 0);
+    }
+
+    private boolean writingBytes() {
+        return (currentBuffer != null && currentBuffer.position() != 0);
     }
 
     private CharsetEncoder getEncoder() {
@@ -1197,7 +1230,7 @@ public class OutputBuffer implements OutputSink {
      * of async write queues, and content of the passed byte[] might be changed
      * by user application once in gets control back.
      */
-    static final class ByteArrayCloner extends LifeCycleHandler.Adapter {
+    static final class ByteArrayCloner extends Adapter {
 
         private final TemporaryHeapBuffer temporaryWriteBuffer;
 
@@ -1245,8 +1278,8 @@ public class OutputBuffer implements OutputSink {
         }
     }
     
-    public static interface LifeCycleListener {
-        public void onCommit() throws IOException;
+    public interface LifeCycleListener {
+        void onCommit() throws IOException;
     }
     
     private static class InternalWriteHandler implements WriteHandler {
