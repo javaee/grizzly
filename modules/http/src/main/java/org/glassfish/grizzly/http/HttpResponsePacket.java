@@ -400,6 +400,11 @@ public abstract class HttpResponsePacket extends HttpHeader {
         this.contentLanguage = contentLanguage;
     }
 
+    @Override
+    public void setContentLengthLong(long contentLength) {
+        setChunked(contentLength < 0);
+        super.setContentLengthLong(contentLength);
+    }
 
     // ------------------------------------------------- Package Private Methods
 
