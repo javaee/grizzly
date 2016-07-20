@@ -48,6 +48,9 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.npn.AlpnClientNegotiator;
 
+import static org.glassfish.grizzly.http2.Http2Constants.HTTP11;
+import static org.glassfish.grizzly.http2.Http2Constants.HTTP2;
+
 /**
  *
  * @author oleksiys
@@ -55,19 +58,15 @@ import org.glassfish.grizzly.npn.AlpnClientNegotiator;
 class AlpnClientNegotiatorImpl implements AlpnClientNegotiator {
     private final static Logger LOGGER = Grizzly.logger(AlpnClientNegotiatorImpl.class);
 
-    private static final String HTTP11 = "http/1.1";
     private final String[] supportedProtocolsStr;
     private final Http2ClientFilter filter;
 
-    public AlpnClientNegotiatorImpl(final DraftVersion[] supportedHttp2Drafts,
-            final Http2ClientFilter filter) {
+    public AlpnClientNegotiatorImpl(final Http2ClientFilter filter) {
         this.filter = filter;
         
-        supportedProtocolsStr = new String[supportedHttp2Drafts.length + 1];
-        for (int i = 0; i < supportedHttp2Drafts.length; i++) {
-            supportedProtocolsStr[i] = supportedHttp2Drafts[i].getTlsId();
-        }
-        supportedProtocolsStr[supportedProtocolsStr.length - 1] = HTTP11;
+        supportedProtocolsStr = new String[2];
+        supportedProtocolsStr[0] = HTTP2;
+        supportedProtocolsStr[1] = HTTP11;
     }
 
     @Override
@@ -87,10 +86,9 @@ class AlpnClientNegotiatorImpl implements AlpnClientNegotiator {
         }
         
         final Connection connection = AlpnSupport.getConnection(sslEngine);
-        final DraftVersion draft = DraftVersion.fromString(selectedProtocol);
-        if (draft != null) {
+        if (HTTP2.equals(selectedProtocol)) {
             final Http2Connection http2Connection =
-                    filter.createClientHttp2Connection(draft, connection);
+                    filter.createClientHttp2Connection(connection);
             
             // we expect preface
             http2Connection.getHttp2State().setDirectUpgradePhase();

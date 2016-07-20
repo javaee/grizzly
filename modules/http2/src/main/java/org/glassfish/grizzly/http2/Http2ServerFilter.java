@@ -73,6 +73,7 @@ import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.utils.Pair;
 import static org.glassfish.grizzly.http2.Constants.IN_FIN_TERMINATION;
+import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
 
 /**
  *
@@ -87,16 +88,11 @@ public class Http2ServerFilter extends Http2BaseFilter {
     private boolean allowPayloadForUndefinedHttpMethods;
 
     public Http2ServerFilter() {
-        this(null, ALL_HTTP2_DRAFTS);
+        this(null);
     }
 
-    public Http2ServerFilter(final DraftVersion... supportedDraftVersions) {
-        this(null, supportedDraftVersions);
-    }
-
-    public Http2ServerFilter(final ExecutorService threadPool,
-            final DraftVersion... supportedDraftVersions) {
-        super(threadPool, supportedDraftVersions);
+    public Http2ServerFilter(final ExecutorService threadPool) {
+        super(threadPool);
     }
 
 
@@ -289,9 +285,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
     private Http2State doDirectUpgrade(final FilterChainContext ctx) {
         final Connection connection = ctx.getConnection();
         
-        final DraftVersion version = getSupportedHttp2Drafts()[0]; // take the default supported version
         final Http2Connection http2Connection =
-                version.newConnection(connection, true, this);
+            new Http2Connection(connection, true, this);
 
         // Create HTTP/2.0 connection for the given Grizzly Connection
         final Http2State http2State = Http2State.create(connection);
@@ -317,9 +312,9 @@ public class Http2ServerFilter extends Http2BaseFilter {
             return false;
         }
         
-        final DraftVersion version = getHttp2UpgradingVersion(httpRequest);
+        final boolean http2Upgrade = isHttp2UpgradingVersion(httpRequest);
         
-        if (version == null) {
+        if (!http2Upgrade) {
             // Not HTTP/2.0 HTTP packet
             return false;
         }
@@ -335,7 +330,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
         final Connection connection = ctx.getConnection();
         
         final Http2Connection http2Connection =
-                version.newConnection(connection, true, this);
+                new Http2Connection(connection, true, this);
         // Create HTTP/2.0 connection for the given Grizzly Connection
         final Http2State http2State = Http2State.create(connection);
         http2State.setHttp2Connection(http2Connection);
@@ -355,7 +350,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
         final HttpResponsePacket httpResponse = httpRequest.getResponse();
         httpResponse.setStatus(HttpStatus.SWITCHING_PROTOCOLS_101);
         httpResponse.setHeader(Header.Connection, "Upgrade");
-        httpResponse.setHeader(Header.Upgrade, version.getClearTextId());
+        httpResponse.setHeader(Header.Upgrade, HTTP2_CLEAR);
         httpResponse.setIgnoreContentModifiers(true);
         
         ctx.write(httpResponse);

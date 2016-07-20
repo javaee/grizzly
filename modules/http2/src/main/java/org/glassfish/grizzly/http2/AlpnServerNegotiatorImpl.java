@@ -48,24 +48,23 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.npn.AlpnServerNegotiator;
 
+import static org.glassfish.grizzly.http2.Http2Constants.HTTP2;
+import static org.glassfish.grizzly.http2.Http2Constants.HTTP11;
+
 // ---------------------------------------------------------- Nested Classes
 
 final class AlpnServerNegotiatorImpl implements AlpnServerNegotiator {
     private final static Logger LOGGER = Grizzly.logger(AlpnServerNegotiatorImpl.class);
 
-    private static final String HTTP11 = "http/1.1";
     private final String[] supportedProtocols;
     private final Http2BaseFilter filter;
     // ---------------------------------------------------- Constructors
 
-    public AlpnServerNegotiatorImpl(final DraftVersion[] supportedDrafts,
-            final Http2ServerFilter http2HandlerFilter) {
+    public AlpnServerNegotiatorImpl(final Http2ServerFilter http2HandlerFilter) {
         this.filter = http2HandlerFilter;
-        supportedProtocols = new String[supportedDrafts.length + 1];
-        for (int i = 0; i < supportedDrafts.length; i++) {
-            supportedProtocols[i] = supportedDrafts[i].getTlsId();
-        }
-        supportedProtocols[supportedProtocols.length - 1] = HTTP11;
+        supportedProtocols = new String[2];
+        supportedProtocols[0] = HTTP2;
+        supportedProtocols[1] = HTTP11;
     }
 
     // ------------------------------- Methods from ServerSideNegotiator
@@ -94,12 +93,11 @@ final class AlpnServerNegotiatorImpl implements AlpnServerNegotiator {
     }
 
     private void configureHttp2(final Connection connection, final String supportedProtocol) {
-        final DraftVersion http2Version = DraftVersion.fromString(supportedProtocol);
+        if (HTTP2.equals(supportedProtocol)) {
         // If HTTP2 is supported - initialize HTTP2 connection
-        if (http2Version != null) {
             // Create HTTP2 connection and bind it to the Grizzly connection
-            final Http2Connection http2Connection = filter.createHttp2Connection(
-                    http2Version, connection, true);
+            final Http2Connection http2Connection =
+                    filter.createHttp2Connection(connection, true);
             
             // we expect client preface
             http2Connection.getHttp2State().setDirectUpgradePhase();

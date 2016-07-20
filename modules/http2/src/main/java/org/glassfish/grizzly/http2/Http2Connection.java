@@ -61,6 +61,9 @@ import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http2.frames.DataFrame;
+import org.glassfish.grizzly.http2.frames.PingFrame;
+import org.glassfish.grizzly.http2.frames.PriorityFrame;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
@@ -100,7 +103,7 @@ import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
  * 
  * @author Alexey Stashok
  */
-public abstract class Http2Connection {
+public class Http2Connection {
     private static final Logger LOGGER = Grizzly.logger(Http2Connection.class);
     private static final Level LOGGER_LEVEL = Level.INFO;
 
@@ -217,35 +220,109 @@ public abstract class Http2Connection {
         this.outputSink = newOutputSink();
     }
 
-    public abstract DraftVersion getVersion();
-    protected abstract Http2ConnectionOutputSink newOutputSink();
-    protected abstract int getSpecDefaultFramePayloadSize();
-    protected abstract int getSpecMinFramePayloadSize();
-    protected abstract int getSpecMaxFramePayloadSize();
-    
-    public abstract int getFrameHeaderSize();
-    
-    public abstract void serializeHttp2FrameHeader(Http2Frame frame,
-            Buffer buffer);
-    
-    public abstract Http2Frame parseHttp2FrameHeader(final Buffer buffer)
-            throws Http2ConnectionException;
+    protected Http2ConnectionOutputSink newOutputSink() {
+        return new Http2ConnectionOutputSink(this);
+    }
 
-    public abstract int getDefaultConnectionWindowSize();
-    public abstract int getDefaultStreamWindowSize();
-    public abstract int getDefaultMaxConcurrentStreams();
-    
-    protected abstract boolean isFrameReady(final Buffer buffer);
-    
+    public int getFrameHeaderSize() {
+        return 9;
+    }
+
+    protected int getSpecDefaultFramePayloadSize() {
+        return 16384; //2^14
+    }
+
+    protected int getSpecMinFramePayloadSize() {
+        return 16384; //2^14
+    }
+
+    protected int getSpecMaxFramePayloadSize() {
+        return 0xffffff; // 2^24-1 (16,777,215)
+    }
+
+    public int getDefaultConnectionWindowSize() {
+        return 65535;
+    }
+
+    public int getDefaultStreamWindowSize() {
+        return 65535;
+    }
+
+    public int getDefaultMaxConcurrentStreams() {
+        return 100;
+    }
+
+    protected boolean isFrameReady(final Buffer buffer) {
+        final int frameLen = getFrameSize(buffer);
+        return frameLen > 0 && buffer.remaining() >= frameLen;
+    }
+
     /**
      * Returns the total frame size (including header size), or <tt>-1</tt>
      * if the buffer doesn't contain enough bytes to read the size.
-     * 
+     *
      * @param buffer
      * @return the total frame size (including header size), or <tt>-1</tt>
      * if the buffer doesn't contain enough bytes to read the size
      */
-    protected abstract int getFrameSize(final Buffer buffer);
+    protected int getFrameSize(final Buffer buffer) {
+        return buffer.remaining() < 4 // even though we need just 3 bytes - we require 4 for simplicity
+                ? -1
+                : (buffer.getInt(buffer.position()) >>> 8) + getFrameHeaderSize();
+    }
+
+    public Http2Frame parseHttp2FrameHeader(final Buffer buffer)
+            throws Http2ConnectionException {
+        // we assume the passed buffer represents only this frame, no remainders allowed
+        assert buffer.remaining() == getFrameSize(buffer);
+
+        final int i1 = buffer.getInt();
+
+        final int length = (i1 >>> 8) & 0xffffff;
+        final int type =  i1 & 0xff;
+
+        final int flags = buffer.get() & 0xff;
+        final int streamId = buffer.getInt() & 0x7fffffff;
+
+        switch (type) {
+            case DataFrame.TYPE:
+                return DataFrame.fromBuffer(length, flags, streamId, buffer)
+                        .normalize(); // remove padding
+            case HeadersFrame.TYPE:
+                return HeadersFrame.fromBuffer(length, flags, streamId, buffer)
+                        .normalize(); // remove padding
+            case PriorityFrame.TYPE:
+                return PriorityFrame.fromBuffer(streamId, buffer);
+            case RstStreamFrame.TYPE:
+                return RstStreamFrame.fromBuffer(flags, streamId, buffer);
+            case SettingsFrame.TYPE:
+                return SettingsFrame.fromBuffer(length, flags, buffer);
+            case PushPromiseFrame.TYPE:
+                return PushPromiseFrame.fromBuffer(length, flags, streamId, buffer);
+            case PingFrame.TYPE:
+                return PingFrame.fromBuffer(flags, buffer);
+            case GoAwayFrame.TYPE:
+                return GoAwayFrame.fromBuffer(length, buffer);
+            case WindowUpdateFrame.TYPE:
+                return WindowUpdateFrame.fromBuffer(flags, streamId, buffer);
+            case ContinuationFrame.TYPE:
+                return ContinuationFrame.fromBuffer(length, flags, streamId, buffer);
+            default:
+                throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR,
+                        "Unknown frame type: " + type);
+        }
+    }
+
+    public void serializeHttp2FrameHeader(final Http2Frame frame,
+                                          final Buffer buffer) {
+        assert buffer.remaining() >= getFrameHeaderSize();
+
+        buffer.putInt(
+                ((frame.getLength() & 0xffffff) << 8) |
+                        frame.getType());
+        buffer.put((byte) frame.getFlags());
+        buffer.putInt(frame.getStreamId());
+    }
     
     protected Http2Stream newStream(final HttpRequestPacket request,
             final int streamId, final int refStreamId,
@@ -742,7 +819,7 @@ public abstract class Http2Connection {
     }
     
     /**
-     * Completes the {@link AbstractHeadersFrame} sequence serialization.
+     * Completes the {@link HeaderBlockFragment} sequence serialization.
      * 
      * @param streamId
      * @param compressedHeaders
@@ -950,7 +1027,7 @@ public abstract class Http2Connection {
      * Initializes HTTP2 communication (if not initialized before) by forming
      * HTTP2 connection and stream {@link FilterChain}s.
      * 
-     * @param ctx {@link FilterChainContext}
+     * @param context {@link FilterChainContext}
      * @param isUpStream 
      */
     boolean setupFilterChains(final FilterChainContext context,

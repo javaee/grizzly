@@ -90,6 +90,8 @@ import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.PriorityFrame;
 
+import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
+
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter} serves as a bridge
  * between HTTP2 frames and upper-level HTTP layers by converting {@link Http2Frame}s into
@@ -104,10 +106,6 @@ import org.glassfish.grizzly.http2.frames.PriorityFrame;
 public abstract class Http2BaseFilter extends HttpBaseFilter {
     private final static Logger LOGGER = Grizzly.logger(Http2BaseFilter.class);
     
-    static final String HTTP2_CLEAR_TCP_UPGRADE_SIGNATURE = "h2c";
-    static final DraftVersion[] ALL_HTTP2_DRAFTS =
-            {DraftVersion.DRAFT_14};
-    
     static final byte[] PRI_MSG = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".getBytes(Charsets.ASCII_CHARSET);
     static final byte[] PRI_PAYLOAD = "SM\r\n\r\n".getBytes(Charsets.ASCII_CHARSET);
     
@@ -115,8 +113,6 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             new FixedLengthTransferEncoding();
 
     final Http2FrameCodec frameCodec = new Http2FrameCodec();
-    
-    private final DraftVersion[] supportedHttp2Drafts;
     
     private final ExecutorService threadPool;
     
@@ -129,33 +125,16 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      * Constructs Http2HandlerFilter.
      */
     public Http2BaseFilter() {
-        this(null, ALL_HTTP2_DRAFTS);
+        this(null);
     }
 
     /**
      * Constructs Http2HandlerFilter.
      * 
-     * @param supportedDraftVersions HTTP2 draft versions this filter has to support
+     * @param threadPool the {@link ExecutorService} to be used to process streams.
      */
-    public Http2BaseFilter(final DraftVersion... supportedDraftVersions) {
-        this(null, supportedDraftVersions);
-    }
-    
-    /**
-     * Constructs Http2HandlerFilter.
-     * 
-     * @param threadPool the {@link ExecutorService} to be used to process {@link SynStreamFrame} and
-     * {@link SynReplyFrame} frames, if <tt>null</tt> mentioned frames will be processed in the same thread they were parsed.
-     * @param supportedDraftVersions HTTP2 draft versions this filter has to support
-     */
-    public Http2BaseFilter(final ExecutorService threadPool,
-            final DraftVersion... supportedDraftVersions) {
+    public Http2BaseFilter(final ExecutorService threadPool) {
         this.threadPool = threadPool;
-        
-        this.supportedHttp2Drafts =
-                (supportedDraftVersions == null || supportedDraftVersions.length == 0)
-                ? Arrays.copyOf(ALL_HTTP2_DRAFTS, ALL_HTTP2_DRAFTS.length)
-                : Arrays.copyOf(supportedDraftVersions, supportedDraftVersions.length);
     }
 
     
@@ -265,11 +244,6 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         return false;
     }
 
-
-    DraftVersion[] getSupportedHttp2Drafts() {
-        return supportedHttp2Drafts;
-    }
-    
     protected boolean checkRequestHeadersOnUpgrade(
             final HttpRequestPacket httpRequest) {
         
@@ -364,32 +338,14 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 : null;
     }
     
-    protected DraftVersion getHttp2UpgradingVersion(
+    protected boolean isHttp2UpgradingVersion(
             final HttpHeader httpHeader) {
         final DataChunk upgradeDC= httpHeader.getUpgradeDC();
 
         assert upgradeDC != null && !upgradeDC.isNull(); // should've been check before
         
-        // Check "Upgrade: h2c-XX" header
-        if (!upgradeDC.startsWith(HTTP2_CLEAR_TCP_UPGRADE_SIGNATURE, 0)) {
-            return null;
-        }
-
-        final int versionOffs = HTTP2_CLEAR_TCP_UPGRADE_SIGNATURE.length() + 1;
-        final int versionLen = upgradeDC.getLength() - versionOffs;
-
-        final String version = versionLen <= 0
-                ? "0" // reserved for HTTP/2.0 standard
-                : upgradeDC.toString(versionOffs, versionOffs + versionLen);
-
-        DraftVersion foundVersion = null;
-        for (DraftVersion draft : getSupportedHttp2Drafts()) {
-            if (draft.getVersion().equals(version)) {
-                foundVersion = draft;
-            }
-        }
-        
-        return foundVersion;
+        // Check "Upgrade: h2c" header
+        return upgradeDC.equals(HTTP2_CLEAR);
     }
     
     // ------------------------------------------------------- Protected Methods
@@ -867,18 +823,16 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     /**
      * Creates {@link Http2Connection} with preconfigured initial-windows-size and
      * max-concurrent-streams
-     * @param draftVersion
      * @param connection
      * @param isServer
      * @return {@link Http2Connection}
      */
-    protected Http2Connection createHttp2Connection(final DraftVersion draftVersion,
-            final Connection connection,
+    protected Http2Connection createHttp2Connection(final Connection connection,
             final boolean isServer) {
         
         final Http2Connection http2Connection =
-                draftVersion.newConnection(connection, isServer, this);
-        
+            new Http2Connection(connection, isServer, this);
+
         if (initialWindowSize != -1) {
             http2Connection.setLocalStreamWindowSize(initialWindowSize);
         }
@@ -1036,8 +990,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             http2Connection = Http2Connection.get(connection);
             if (http2Connection == null) {
 
-                http2Connection = createHttp2Connection(supportedHttp2Drafts[0],
-                        connection, true);
+                http2Connection = createHttp2Connection(connection, true);
             }
         }
         

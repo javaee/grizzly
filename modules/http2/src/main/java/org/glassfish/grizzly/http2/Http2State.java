@@ -55,8 +55,7 @@ class Http2State {
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             Http2State.class.getName() + ".state");
     
-    static Http2State getOrCreate(final Connection connection,
-            final DraftVersion version) {
+    static Http2State getOrCreate(final Connection connection) {
         
         Http2State state = http2State.get(connection);
         if (state == null) {

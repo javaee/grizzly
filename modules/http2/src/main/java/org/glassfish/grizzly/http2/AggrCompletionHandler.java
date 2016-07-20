@@ -38,7 +38,7 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http2.draft14;
+package org.glassfish.grizzly.http2;
 
 import java.util.Arrays;
 import org.glassfish.grizzly.CompletionHandler;

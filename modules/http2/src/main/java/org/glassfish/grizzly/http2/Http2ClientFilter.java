@@ -47,6 +47,7 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLEngine;
@@ -83,6 +84,8 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 
 import static org.glassfish.grizzly.http2.Constants.OUT_FIN_TERMINATION;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
+
+import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
 
@@ -95,25 +98,19 @@ public class Http2ClientFilter extends Http2BaseFilter {
     
     private boolean isNeverForceUpgrade;
     private boolean sendPushRequestUpstream;
-    private final HeaderValue defaultHttp2DraftUpgrade;
+    private final HeaderValue defaultHttp2Upgrade;
     private final HeaderValue connectionUpgradeHeaderValue;
     
     public Http2ClientFilter() {
-        this(null, ALL_HTTP2_DRAFTS);
+        this(null);
     }
 
-    public Http2ClientFilter(final DraftVersion... supportedDraftVersions) {
-        this(null, supportedDraftVersions);
-    }
-
-    public Http2ClientFilter(final ExecutorService threadPool,
-            final DraftVersion... supportedDraftVersions) {
-        super(threadPool, supportedDraftVersions);
+    public Http2ClientFilter(final ExecutorService threadPool) {
+        super(threadPool);
         defaultClientAlpnNegotiator =
-                new AlpnClientNegotiatorImpl(supportedDraftVersions, this);
+                new AlpnClientNegotiatorImpl(this);
         
-        defaultHttp2DraftUpgrade = HeaderValue.newHeaderValue(
-                getSupportedHttp2Drafts()[0].getClearTextId());
+        defaultHttp2Upgrade = HeaderValue.newHeaderValue(HTTP2_CLEAR);
         connectionUpgradeHeaderValue =
                 HeaderValue.newHeaderValue("Upgrade, HTTP2-Settings");
     }
@@ -386,14 +383,12 @@ public class Http2ClientFilter extends Http2BaseFilter {
      *       because peer frames must not be processed at the time this method
      *       is running.
      * 
-     * @param draftVersion
      * @param connection
      * @return {@link Http2Connection}
      */
-    protected Http2Connection createClientHttp2Connection(
-            final DraftVersion draftVersion, final Connection connection) {
+    protected Http2Connection createClientHttp2Connection(final Connection connection) {
 
-        return createHttp2Connection(draftVersion, connection, false);
+        return createHttp2Connection(connection, false);
     }
     
     protected AlpnClientNegotiator getClientAlpnNegotioator() {
@@ -432,14 +427,12 @@ public class Http2ClientFilter extends Http2BaseFilter {
             return false;
         }
         
-        final DraftVersion requestVersion = getHttp2UpgradingVersion(httpRequest);
-        final DraftVersion responseVersion = getHttp2UpgradingVersion(httpResponse);
+        final boolean requestVersion = isHttp2UpgradingVersion(httpRequest);
+        final boolean responseVersion = isHttp2UpgradingVersion(httpResponse);
         
-        if (requestVersion == null || (requestVersion != responseVersion)) {
+        if (!requestVersion || (requestVersion != responseVersion)) {
             throw new IOException("HTTP2 handshake failed: HTTP2 versions mismatch");
         }
-        
-        final DraftVersion version = requestVersion;
         
         final Connection connection = ctx.getConnection();
         
@@ -447,7 +440,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
         http2State.setDirectUpgradePhase();  // expecting preface (settings frame)
         
         final Http2Connection http2Connection =
-                createClientHttp2Connection(version, connection);
+                createClientHttp2Connection(connection);
         
         if (http2State.tryLockClientPreface()) {
             http2Connection.sendPreface();
@@ -525,11 +518,11 @@ public class Http2ClientFilter extends Http2BaseFilter {
 
         // Ok, here we know that it's a request, which we can use to offer
         // a peer to upgrade to HTTP 2.0
-        httpHeader.addHeader(Header.Upgrade, defaultHttp2DraftUpgrade);
+        httpHeader.addHeader(Header.Upgrade, defaultHttp2Upgrade);
         httpHeader.addHeader(Header.Connection, connectionUpgradeHeaderValue);
 
         httpHeader.addHeader(Header.HTTP2Settings,
-                prepareSettings().build().toBase64Uri());
+                prepareSettings(Http2Connection.get(connection)).build().toBase64Uri());
         
         // pass the updated request downstream
         return true;
@@ -625,37 +618,30 @@ public class Http2ClientFilter extends Http2BaseFilter {
             sendUpstream(http2Connection, stream, request, false);
         }
     }
-    
-    protected final SettingsFrame.SettingsFrameBuilder prepareSettings() {
-        return prepareSettings(getSupportedHttp2Drafts()[0], null);
-    }
-    
-    protected final SettingsFrame.SettingsFrameBuilder prepareSettings(
-            final DraftVersion version) {
-        return prepareSettings(version, null);
+
+    protected SettingsFrame.SettingsFrameBuilder prepareSettings(final Http2Connection http2Connection) {
+        return prepareSettings(http2Connection, null);
     }
 
     protected SettingsFrame.SettingsFrameBuilder prepareSettings(
-            DraftVersion version,
+            final Http2Connection http2Connection,
             SettingsFrame.SettingsFrameBuilder builder) {
         
         if (builder == null) {
             builder = SettingsFrame.builder();
         }
         
-        if (version == null) {
-            version = getSupportedHttp2Drafts()[0];
-        }
-        
         final int maxConcStreams = getMaxConcurrentStreams();
         
         if (maxConcStreams != -1 &&
-                maxConcStreams != version.getDefaultMaxConcurrentStreams()) {
+                maxConcStreams != http2Connection.getDefaultMaxConcurrentStreams()) {
             builder.setting(SETTINGS_MAX_CONCURRENT_STREAMS, maxConcStreams);
         }
 
         final int initWindSize = getInitialWindowSize();
-        if (initWindSize != -1 && initWindSize != version.getDefaultStreamWindowSize()) {
+        if (initWindSize != -1
+                && http2Connection != null
+                && initWindSize != http2Connection.getDefaultStreamWindowSize()) {
             builder.setting(SETTINGS_INITIAL_WINDOW_SIZE, initWindSize);
         }
         
