@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,12 +38,14 @@
  * holder.
  */
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -61,45 +63,79 @@
  */
 package org.glassfish.grizzly.http2.hpack;
 
-//
-//
-public final class Hpack {
-    private static final int DEFAULT_MAX_HEADER_TABLE_SIZE = 4096;
-    
-    private Hpack() {
-        throw new AssertionError();
+
+import org.glassfish.grizzly.Buffer;
+
+abstract class IndexNameValueWriter implements BinaryRepresentationWriter {
+
+    private final int pattern;
+    private final int prefix;
+    private final IntegerWriter intWriter = new IntegerWriter();
+    private final StringWriter nameWriter = new StringWriter();
+    private final StringWriter valueWriter = new StringWriter();
+
+    protected boolean indexedRepresentation;
+
+    private static final int NEW               = 0;
+    private static final int NAME_PART_WRITTEN = 1;
+    private static final int VALUE_WRITTEN     = 2;
+
+    private int state = NEW;
+
+    protected IndexNameValueWriter(int pattern, int prefix) {
+        this.pattern = pattern;
+        this.prefix = prefix;
     }
 
-    public static Decoder newDecoder(final int maxHeaderTableSize) {
-        return new Decoder(checkMaxHeaderTableSize(maxHeaderTableSize));
+    IndexNameValueWriter index(int index) {
+        indexedRepresentation = true;
+        intWriter.configure(index, prefix, pattern);
+        return this;
     }
 
-    public static Encoder newEncoder(final int maxHeaderTableSize) {
-        return newEncoder(new DefaultEncoding(true),
-                checkMaxHeaderTableSize(maxHeaderTableSize));
-    }
-    
-    public static Encoder newEncoder() {
-        // TODO: should there be a system property for huffman?
-        // e.g. 'blah.blah.blah.hpack.useHuffman=true'
-        return newEncoder(new DefaultEncoding(true));
+    IndexNameValueWriter name(CharSequence name, boolean useHuffman) {
+        indexedRepresentation = false;
+        intWriter.configure(0, prefix, pattern);
+        nameWriter.configure(name, useHuffman);
+        return this;
     }
 
-    public static Encoder newEncoder(EncodingStrategy strategy) {
-        return newEncoder(strategy, DEFAULT_MAX_HEADER_TABLE_SIZE);
+    IndexNameValueWriter value(CharSequence value, boolean useHuffman) {
+        valueWriter.configure(value, useHuffman);
+        return this;
     }
-    
-    public static Encoder newEncoder(EncodingStrategy strategy,
-            final int maxHeaderTableSize) {
-        
-        return new Encoder(strategy,
-                HeaderFieldTable.createEncodingTable(
-                checkMaxHeaderTableSize(maxHeaderTableSize), 16));
+
+    @Override
+    public boolean write(HeaderTable table, Buffer destination) {
+        if (state < NAME_PART_WRITTEN) {
+            if (indexedRepresentation) {
+                if (!intWriter.write(destination)) {
+                    return false;
+                }
+            } else {
+                if (!intWriter.write(destination) || !nameWriter.write(destination)) {
+                    return false;
+                }
+            }
+            state = NAME_PART_WRITTEN;
+        }
+        if (state < VALUE_WRITTEN) {
+            if (!valueWriter.write(destination)) {
+                return false;
+            }
+            state = VALUE_WRITTEN;
+        }
+        return state == VALUE_WRITTEN;
     }
-    
-    private static int checkMaxHeaderTableSize(final int maxHeaderTableSize) {
-        return maxHeaderTableSize <= 0
-                ? DEFAULT_MAX_HEADER_TABLE_SIZE
-                : maxHeaderTableSize;
+
+    @Override
+    public IndexNameValueWriter reset() {
+        intWriter.reset();
+        if (!indexedRepresentation) {
+            nameWriter.reset();
+        }
+        valueWriter.reset();
+        state = NEW;
+        return this;
     }
 }

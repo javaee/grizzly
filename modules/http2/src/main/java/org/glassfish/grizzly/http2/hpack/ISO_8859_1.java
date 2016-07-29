@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,12 +38,14 @@
  * holder.
  */
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -61,43 +63,80 @@
  */
 package org.glassfish.grizzly.http2.hpack;
 
-import org.glassfish.grizzly.http2.compression.HeaderListener;
-import java.io.IOException;
-import java.io.OutputStream;
 import org.glassfish.grizzly.Buffer;
 
-import static org.glassfish.grizzly.http2.hpack.BinaryPrimitives.*;
+import java.io.IOException;
 
-//                  0   1   2   3   4   5   6   7
-//                +---+---+---+---+---+---+---+---+
-//                | 0 | 0 | 1 |   Max size (5+)   |
-//                +---+---------------------------+
 //
-public class SizeUpdate implements BinaryRepresentation {
+// Custom implementation of ISO/IEC 8859-1:1998
+//
+// The rationale behind this is not to deal with CharsetEncoder/CharsetDecoder,
+// basically because it would require wrapping every single CharSequence into a
+// CharBuffer and then copying it back.
+//
+// But why not to give a CharBuffer instead of Appendable? Because I can choose
+// an Appendable (e.g. StringBuilder) that adjusts its length when needed and
+// therefore not to deal with pre-sized CharBuffers or copying.
+//
+// The encoding is simple and well known: 1 byte <-> 1 char
+//
+final class ISO_8859_1 {
 
-    private static class InstanceHolder {
-        private static final SizeUpdate INSTANCE = new SizeUpdate();
+    private ISO_8859_1() { }
+
+    public static final class Reader {
+
+        public void read(Buffer source, Appendable destination) {
+            for (int i = 0, len = source.remaining(); i < len; i++) {
+                char c = (char) (source.get() & 0xff);
+                try {
+                    destination.append(c);
+                } catch (IOException e) {
+                    throw new RuntimeException
+                            ("Error appending to the destination", e);
+                }
+            }
+        }
+
+        public Reader reset() {
+            return this;
+        }
     }
 
-    public static SizeUpdate getInstance() {
-        return InstanceHolder.INSTANCE;
-    }
-    
-    private SizeUpdate() {
-    }
+    public static final class Writer {
 
-    public static boolean matches(byte sig) {
-        return (sig & 0b11100000) == 0b00100000;
-    }
+        private CharSequence source;
+        private int pos;
+        private int end;
 
-    @Override
-    public void process(Buffer source, HeaderFieldTable.DecTable table,
-                        HeaderListener handler) {
-        int size = readInteger(source, 5);
-        table.setMaxSize(size);
-    }
+        public Writer configure(CharSequence source, int start, int end) {
+            this.source = source;
+            this.pos = start;
+            this.end = end;
+            return this;
+        }
 
-    public static void write(int newSize, OutputStream destination) throws IOException {
-        writeInteger(destination, newSize, 5);
+        public boolean write(Buffer destination) {
+            for (; pos < end; pos++) {
+                char c = source.charAt(pos);
+                if (c > '\u00FF') {
+                    throw new IllegalArgumentException(
+                            "Illegal ISO-8859-1 char: " + (int) c);
+                }
+                if (destination.hasRemaining()) {
+                    destination.put((byte) c);
+                } else {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public Writer reset() {
+            source = null;
+            pos = -1;
+            end = -1;
+            return this;
+        }
     }
 }

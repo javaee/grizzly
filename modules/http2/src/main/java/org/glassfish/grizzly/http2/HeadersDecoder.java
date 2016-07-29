@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,40 +38,59 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http2.compression;
+package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http2.hpack.Encoder;
-import org.glassfish.grizzly.http2.hpack.Hpack;
+import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
+import org.glassfish.grizzly.http2.hpack.Decoder;
+import org.glassfish.grizzly.http2.hpack.DecodingCallback;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.utils.BufferOutputStream;
 
 /**
  *
  * @author oleksiys
  */
-public class HeadersEncoder {
-    private final Encoder hpackEncoder;
-    private final BufferOutputStream outputStream;
+public class HeadersDecoder {
+    private final Decoder hpackDecoder;
+    private final MemoryManager memoryManager;
     
-    public HeadersEncoder(final MemoryManager memoryManager,
-            final int maxHeaderTableSize) {
-        hpackEncoder = Hpack.newEncoder(maxHeaderTableSize);
-        outputStream = new BufferOutputStream(memoryManager);
+    private HeaderBlockHead firstHeaderFrame;
+    private Buffer inBuffer;
+
+    // @TODO Implement maxHeaderSize limitation handling
+    public HeadersDecoder(final MemoryManager memoryManager,
+            final int maxHeaderSize, final int maxHeaderTableSize) {
+        this.memoryManager = memoryManager;
+        this.hpackDecoder =  new Decoder(maxHeaderTableSize);
     }
     
-    public void encodeHeader(final String name, final String value)
-            throws IOException {
-        hpackEncoder.encode(name, value, outputStream);
+    public void append(final Buffer buffer) {
+        inBuffer = Buffers.appendBuffers(memoryManager, inBuffer, buffer, true);
     }
     
-    public Buffer flushHeaders() throws IOException {
-        final Buffer buffer = outputStream.getBuffer();
-        buffer.trim();
-        
-        outputStream.reset();
-        
-        return buffer;
+    public void decode(final DecodingCallback callback) throws IOException {
+        if (inBuffer != null) {
+            hpackDecoder.decode(inBuffer, !isProcessingHeaders(), callback);
+            
+            inBuffer.tryDispose();
+            inBuffer = null;
+        }
+    }
+
+    public HeaderBlockHead finishHeader() {
+        final HeaderBlockHead firstHeaderFrameLocal = firstHeaderFrame;
+        firstHeaderFrame = null;
+        return firstHeaderFrameLocal;
+    }
+
+    public void setFirstHeaderFrame(
+            final HeaderBlockHead firstHeaderFrame) {
+        this.firstHeaderFrame = firstHeaderFrame;
+    }
+
+    public boolean isProcessingHeaders() {
+        return firstHeaderFrame != null;
     }
 }

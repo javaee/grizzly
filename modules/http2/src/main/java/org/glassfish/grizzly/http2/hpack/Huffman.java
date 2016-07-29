@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,12 +38,14 @@
  * holder.
  */
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -61,13 +63,185 @@
  */
 package org.glassfish.grizzly.http2.hpack;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
-import static java.lang.String.format;
 import org.glassfish.grizzly.Buffer;
 
-public class HuffmanCoding {
+import java.io.IOException;
+
+import static java.lang.String.format;
+
+/**
+ * Huffman coding table.
+ *
+ * <p> Instances of this class are safe for use by multiple threads.
+ */
+public final class Huffman {
+
+    // TODO: check if reset is done in both reader and writer
+
+    static final class Reader {
+
+        private Node curr; // position in the trie
+        private int len;   // length of the path from the root to 'curr'
+        private int p;     // byte probe
+
+        {
+            reset();
+        }
+
+        public void read(Buffer source, Appendable destination,
+                         boolean isLast) {
+            read(source, destination, true, isLast);
+        }
+
+        // Takes 'isLast' rather than returns whether the reading is done or
+        // not, for more informative exceptions.
+        void read(Buffer source, Appendable destination, boolean reportEOS,
+                  boolean isLast) {
+
+            Node c = curr;
+            int l = len;
+            /*
+               Since ByteBuffer is itself stateful, its position is
+               remembered here NOT as a part of Reader's state,
+               but to set it back in the case of a failure
+             */
+            int pos = source.position();
+
+            while (source.hasRemaining()) {
+                int d = source.get();
+                for (; p != 0; p >>= 1) {
+                    c = c.getChild(p & d);
+                    l++;
+                    if (c.isLeaf()) {
+                        if (reportEOS && c.isEOSPath) {
+                            throw new IllegalArgumentException("Encountered EOS");
+                        }
+                        try {
+                            destination.append(c.getChar());
+                        } catch (RuntimeException | Error e) {
+                            source.position(pos);
+                            throw e;
+                        } catch (IOException e) {
+                            source.position(pos);
+                            throw new RuntimeException(e);
+                        }
+                        c = INSTANCE.root;
+                        l = 0;
+                    }
+                    curr = c;
+                    len = l;
+                }
+                resetProbe();
+                pos++;
+            }
+            if (!isLast) {
+                return; // it's too early to jump to any conclusions, let's wait
+            }
+            if (c.isLeaf()) {
+                return; // it's perfectly ok, no extra padding bits
+            }
+            if (c.isEOSPath && len <= 7) {
+                return; // it's ok, some extra padding bits
+            }
+            if (c.isEOSPath) {
+                throw new IllegalArgumentException(
+                        "Padding is too long (len=" + len + ") " +
+                                "or unexpected end of data");
+            }
+            throw new IllegalArgumentException(
+                    "Not a EOS prefix padding or unexpected end of data");
+        }
+
+        public void reset() {
+            curr = INSTANCE.root;
+            len = 0;
+            resetProbe();
+        }
+
+        private void resetProbe() {
+            p = 0x80;
+        }
+    }
+
+    static final class Writer {
+
+        private int pos;       // position in 'source'
+        private int avail = 8; // number of least significant bits available in 'curr'
+        private int curr;      // next byte to put to the destination
+        private int rem;       // number of least significant bits in 'code' yet to be processed
+        private int code;      // current code being written
+
+        private CharSequence source;
+        private int end;
+
+        public Writer from(CharSequence input, int start, int end) {
+            if (start < 0 || end < 0 || end > input.length() || start > end) {
+                throw new IndexOutOfBoundsException(
+                        String.format("input.length()=%s, start=%s, end=%s",
+                                input.length(), start, end));
+            }
+            pos = start;
+            this.end = end;
+            this.source = input;
+            return this;
+        }
+
+        public boolean write(Buffer destination) {
+            for (; pos < end; pos++) {
+                if (rem == 0) {
+                    Code desc = INSTANCE.codeOf(source.charAt(pos));
+                    rem = desc.length;
+                    code = desc.code;
+                }
+                while (rem > 0) {
+                    if (rem < avail) {
+                        curr |= (code << (avail - rem));
+                        avail -= rem;
+                        rem = 0;
+                    } else {
+                        int c = (curr | (code >>> (rem - avail)));
+                        if (destination.hasRemaining()) {
+                            destination.put((byte) c);
+                        } else {
+                            return false;
+                        }
+                        curr = c;
+                        code <<= (32 - rem + avail);  // throw written bits off the cliff (is this Sparta?)
+                        code >>>= (32 - rem + avail); // return to the position
+                        rem -= avail;
+                        curr = 0;
+                        avail = 8;
+                    }
+                }
+            }
+
+            if (avail < 8) { // have to pad
+                if (destination.hasRemaining()) {
+                    destination.put((byte) (curr | (INSTANCE.EOS.code >>> (INSTANCE.EOS.length - avail))));
+                    avail = 8;
+                } else {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public Writer reset() {
+            source = null;
+            end = -1;
+            pos = -1;
+            avail = 8;
+            curr = 0;
+            code = 0;
+            return this;
+        }
+    }
+
+    /**
+     * Shared instance.
+     */
+    public static final Huffman INSTANCE = new Huffman();
 
     private final Code EOS = new Code(0x3fffffff, 30);
     private final Code[] codes = new Code[257];
@@ -76,15 +250,8 @@ public class HuffmanCoding {
         public String toString() { return "root"; }
     };
 
-    private static class LazySingletonHolder {
-        private static final HuffmanCoding INSTANCE = new HuffmanCoding();
-    }
-    
-    public static HuffmanCoding getInstance() {
-        return LazySingletonHolder.INSTANCE;
-    }
-    
-    private HuffmanCoding() {
+    // TODO: consider builder and immutable trie
+    private Huffman() {
         // @formatter:off
         addChar(0,   0x1ff8,     13);
         addChar(1,   0x7fffd8,   23);
@@ -346,133 +513,54 @@ public class HuffmanCoding {
         // @formatter:on
     }
 
-    public String from(Buffer source) {
-        return from(source, true);
+
+    /**
+     * Calculates the number of bytes required to represent the given {@code
+     * CharSequence} with the Huffman coding.
+     *
+     * @param value
+     *         characters
+     *
+     * @return number of bytes
+     *
+     * @throws NullPointerException
+     *         if the value is null
+     */
+    @SuppressWarnings("unused")
+    public int lengthOf(CharSequence value) {
+        return lengthOf(value, 0, value.length());
     }
 
-    String from(Buffer source, boolean reportEOS) {
-
-        // TODO: reuse? (objects creation, performance)
-        StringBuilder result = new StringBuilder();
-
-        Node curr = root;
+    /**
+     * Calculates the number of bytes required to represent a subsequence of the
+     * given {@code CharSequence} with the Huffman coding.
+     *
+     * @param value
+     *         characters
+     * @param start
+     *         the start index, inclusive
+     * @param end
+     *         the end index, exclusive
+     *
+     * @return number of bytes
+     *
+     * @throws NullPointerException
+     *         if the value is null
+     * @throws IndexOutOfBoundsException
+     *         if any invocation of {@code value.charAt(i)}, where {@code start
+     *         <= i < end} would throw an IndexOutOfBoundsException
+     */
+    public int lengthOf(CharSequence value, int start, int end) {
         int len = 0;
-        while(source.hasRemaining()) {
-            int d = source.get();
-            for (int p = 0x80; p != 0; p = p >> 1) {
-                curr = curr.getChild(p & d);
-                len++;
-                if (curr.isLeaf()) {
-                    if (reportEOS && curr.isEOSPath) {
-                        throw new IllegalArgumentException("Encountered EOS");
-                    }
-                    len = 0;
-                    result.append(curr.getChar());
-                    curr = root;
-                }
-            }
+        for (int i = start; i < end; i++) {
+            char c = value.charAt(i);
+            len += INSTANCE.codeOf(c).length;
         }
-
-        if (curr.isLeaf()) {
-            return result.toString();
-        }
-
-        if (curr.isEOSPath) {
-            if (len > 7) {
-                throw new IllegalArgumentException(
-                        "Padding is too long (len=" + len + ") " +
-                                "or unexpected end of data");
-            } else {
-                return result.toString();
-            }
-        } else {
-            throw new IllegalArgumentException(
-                    "Not a EOS prefix padding or unexpected end of data");
-        }
+        // Integer division with ceiling, assumption:
+        assert (len / 8 + (len % 8 != 0 ? 1 : 0)) == (len + 7) / 8 : len;
+        return (len + 7) / 8;
     }
 
-    public int lengthOf(final byte[] value,
-            final int off, final int len) {
-        int rsltLen = 0;
-        final int end = off + len;
-        for (int i = off; i < end; i++) {
-            rsltLen += codeOf(value[i]).length;
-        }
-        return (rsltLen >> 3) + ((rsltLen & 7) != 0 ? 1 : 0);
-    }
-
-    public int lengthOf(final String value) {
-        int rsltLen = 0;
-        
-        final int length = value.length();
-        for (int i = 0; i < length; i++) {
-            rsltLen += codeOf((byte) value.charAt(i)).length;
-        }
-        return (rsltLen >> 3) + ((rsltLen & 7) != 0 ? 1 : 0);
-    }
-
-    public void to(OutputStream destination, byte[] value, int off, int len)
-            throws IOException {
-        int a = 8; // how much space left in 'b' to append to (available)
-        int b = 0; // the byte to write next (8 least significant bits)
-
-        final int end = off + len;
-        for (int i = off; i < end; i++) {
-            Code desc = codeOf(value[i]);
-            int code = desc.code;
-            int r = desc.length; // remaining number code bits to write
-            while (r > 0) {
-                if (r < a) {
-                    b |= (code << (a - r));
-                    a -= r;
-                    r = 0;
-                } else {
-                    b |= (code >>> (r - a));
-                    destination.write((byte) b);
-
-                    code &= (1 << (r - a)) - 1; // keep only (r-a) lower bits
-                    r -= a;
-                    b = 0;
-                    a = 8;
-                }
-            }
-        }
-        if (a < 8) { // have to pad with EOS
-            destination.write((byte) (b | ((1 << a) - 1)));
-        }
-    }
-
-    public void to(final OutputStream destination, final String value)
-            throws IOException {
-        int a = 8; // how much space left in 'b' to append to (available)
-        int b = 0; // the byte to write next (8 least significant bits)
-
-        final int len = value.length();
-        for (int i = 0; i < len; i++) {
-            Code desc = codeOf((byte) value.charAt(i));
-            int code = desc.code;
-            int r = desc.length; // remaining number code bits to write
-            while (r > 0) {
-                if (r < a) {
-                    b |= (code << (a - r));
-                    a -= r;
-                    r = 0;
-                } else {
-                    b |= (code >>> (r - a));
-                    destination.write((byte) b);
-
-                    code &= (1 << (r - a)) - 1; // keep only (r-a) lower bits
-                    r -= a;
-                    b = 0;
-                    a = 8;
-                }
-            }
-        }
-        if (a < 8) { // have to pad with EOS
-            destination.write((byte) (b | ((1 << a) - 1)));
-        }
-    }
-    
     private void addChar(int c, int code, int bitLength) {
         addLeaf(c, code, bitLength, false);
         codes[c] = new Code(code, bitLength);
@@ -484,32 +572,32 @@ public class HuffmanCoding {
     }
 
     private void addLeaf(int c, int code, int bitLength, boolean isEOS) {
-        if (bitLength < 1)
+        if (bitLength < 1) {
             throw new IllegalArgumentException("bitLength < 1");
-
+        }
         Node curr = root;
         for (int p = 1 << bitLength - 1; p != 0 && !curr.isLeaf(); p = p >> 1) {
-            curr.isEOSPath |= isEOS; // if it's already true,
-                                     // it can't become false
+            curr.isEOSPath |= isEOS; // If it's already true, it can't become false
             curr = curr.addChildIfAbsent(p & code);
         }
-
-        curr.isEOSPath |= isEOS; // the last one needs to have this property
-                                 // as well
-
-        if (curr.isLeaf())
+        curr.isEOSPath |= isEOS; // The last one needs to have this property as well
+        if (curr.isLeaf()) {
             throw new IllegalStateException("Specified code is already taken");
-
+        }
         curr.setChar((char) c);
     }
 
-    private Code codeOf(byte c) {
+    private Code codeOf(char c) {
+        if (c > 255) {
+            throw new IllegalArgumentException("char=" + ((int) c));
+        }
         return codes[c];
     }
 
     //
-    // for debugging/testing purposes
+    // For debugging/testing purposes
     //
+    @SuppressWarnings("unused")
     Node getRoot() {
         return root;
     }
@@ -535,9 +623,10 @@ public class HuffmanCoding {
                 throw new IllegalStateException("This is a leaf node");
             }
             Node result = selector == 0 ? left : right;
-            if (result == null)
+            if (result == null) {
                 throw new IllegalStateException(format(
                         "Node doesn't have a child (selector=%s)", selector));
+            }
             return result;
         }
 
@@ -546,8 +635,9 @@ public class HuffmanCoding {
         }
 
         char getChar() {
-            if (!isLeaf())
+            if (!isLeaf()) {
                 throw new IllegalStateException("This node is not a leaf node");
+            }
             return c;
         }
 
@@ -565,15 +655,19 @@ public class HuffmanCoding {
         }
 
         Node addChildIfAbsent(int i) {
-            if (charIsSet)
-                throw new IllegalStateException();
+            if (charIsSet) {
+                throw new IllegalStateException("The node cannot have a child "
+                        + "as it's already a leaf node");
+            }
             Node child;
             if (i == 0) {
-                if ((child = left) == null)
+                if ((child = left) == null) {
                     child = left = new Node();
+                }
             } else {
-                if ((child = right) == null)
+                if ((child = right) == null) {
                     child = right = new Node();
+                }
             }
             return child;
         }
@@ -591,7 +685,9 @@ public class HuffmanCoding {
         }
     }
 
-    private static class Code {
+    // TODO: value-based class?
+    // FIXME: can we re-use Node instead of this class?
+    private static final class Code {
 
         final int code;
         final int length;

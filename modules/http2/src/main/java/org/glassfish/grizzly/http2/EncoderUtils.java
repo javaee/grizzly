@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,11 +54,9 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
-import static org.glassfish.grizzly.http.util.Constants.*;
 import static org.glassfish.grizzly.http.util.DataChunk.Type.Buffer;
 import static org.glassfish.grizzly.http.util.DataChunk.Type.Bytes;
 
-import org.glassfish.grizzly.http2.compression.HeadersEncoder;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.ssl.SSLUtils;
 
@@ -69,11 +67,8 @@ import org.glassfish.grizzly.ssl.SSLUtils;
  */
 class EncoderUtils {
     private static final String HTTP = "http";
-    private static final byte[] HTTP_BYTES = HTTP.getBytes(DEFAULT_HTTP_CHARSET);
-
     private static final String HTTPS = "https";
-    private static final byte[] HTTPS_BYTES = HTTPS.getBytes(DEFAULT_HTTP_CHARSET);
-    
+
     @SuppressWarnings("unchecked")
     static Buffer encodeResponseHeaders(final Http2Connection http2Connection,
             final HttpResponsePacket response) throws IOException {
@@ -326,6 +321,7 @@ class EncoderUtils {
         }
     }
     
+    @SuppressWarnings("unused")
     private static byte[] nameToLowerCaseByteArray(final DataChunk name) {
         final int length = name.getLength();
         final byte[] lowercase = new byte[length];
@@ -382,8 +378,9 @@ class EncoderUtils {
         return sb.toString();
     }
     
+    @SuppressWarnings("unused")
     private static int valueToByteArray(final DataChunk value,
-            final byte[] dstArray, int arrayOffs) {
+                                        final byte[] dstArray, int arrayOffs) {
         
         final int length = value.getLength();
 
@@ -413,6 +410,7 @@ class EncoderUtils {
         return length;
     }
 
+    @SuppressWarnings("unused")
     private static byte[] valueToByteArray(final DataChunk value) {
         final int length = value.getLength();
 

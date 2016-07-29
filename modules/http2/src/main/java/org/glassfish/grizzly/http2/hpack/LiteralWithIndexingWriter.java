@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,12 +38,14 @@
  * holder.
  */
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -61,20 +63,63 @@
  */
 package org.glassfish.grizzly.http2.hpack;
 
-public class ObjectHolder<T> {
 
-    private T obj;
+import org.glassfish.grizzly.Buffer;
 
-    public T getObj() {
-        return obj;
-    }
+final class LiteralWithIndexingWriter extends IndexNameValueWriter {
 
-    public void setObj(T obj) {
-        this.obj = obj;
+    private boolean tableUpdated;
+
+    private CharSequence name;
+    private CharSequence value;
+    private int index;
+
+    LiteralWithIndexingWriter() {
+        super(0b0100_0000, 6);
     }
 
     @Override
-    public String toString() {
-        return "(" + obj + ")";
+    LiteralWithIndexingWriter index(int index) {
+        super.index(index);
+        this.index = index;
+        return this;
+    }
+
+    @Override
+    LiteralWithIndexingWriter name(CharSequence name, boolean useHuffman) {
+        super.name(name, useHuffman);
+        this.name = name;
+        return this;
+    }
+
+    @Override
+    LiteralWithIndexingWriter value(CharSequence value, boolean useHuffman) {
+        super.value(value, useHuffman);
+        this.value = value;
+        return this;
+    }
+
+    @Override
+    public boolean write(HeaderTable table, Buffer destination) {
+        if (!tableUpdated) {
+            CharSequence n;
+            if (indexedRepresentation) {
+                n = table.get(index).name;
+            } else {
+                n = name;
+            }
+            table.put(n, value);
+            tableUpdated = true;
+        }
+        return super.write(table, destination);
+    }
+
+    @Override
+    public IndexNameValueWriter reset() {
+        tableUpdated = false;
+        name = null;
+        value = null;
+        index = -1;
+        return super.reset();
     }
 }

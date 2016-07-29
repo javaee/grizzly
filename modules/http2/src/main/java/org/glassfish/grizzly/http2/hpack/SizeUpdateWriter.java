@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,12 +38,14 @@
  * holder.
  */
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -61,45 +63,36 @@
  */
 package org.glassfish.grizzly.http2.hpack;
 
-import org.glassfish.grizzly.http2.compression.HeaderListener;
-import java.io.IOException;
-import java.io.OutputStream;
 import org.glassfish.grizzly.Buffer;
 
-import static org.glassfish.grizzly.http2.hpack.BinaryPrimitives.*;
-import org.glassfish.grizzly.http2.hpack.HeaderFieldTable.DecTable;
+final class SizeUpdateWriter implements BinaryRepresentationWriter {
 
+    private final IntegerWriter intWriter = new IntegerWriter();
+    private int maxSize;
+    private boolean tableUpdated;
 
-//                  0   1   2   3   4   5   6   7
-//                +---+---+---+---+---+---+---+---+
-//                | 1 |        Index (7+)         |
-//                +---+---------------------------+
-//
-public class Indexed implements BinaryRepresentation {
-    private static class InstanceHolder {
-        private static final Indexed INSTANCE = new Indexed();
-    }
+    SizeUpdateWriter() { }
 
-    public static Indexed getInstance() {
-        return InstanceHolder.INSTANCE;
-    }
-    
-    private Indexed() {
-    }
-    
-    public static boolean matches(byte sig) {
-        return (sig & 0b10000000) != 0;
+    SizeUpdateWriter maxHeaderTableSize(int size) {
+        intWriter.configure(size, 5, 0b0010_0000);
+        this.maxSize = size;
+        return this;
     }
 
     @Override
-    public void process(Buffer source, DecTable table,
-                        HeaderListener handler) {
-        int index = readInteger(source, 7);
-        HeaderField e = table.get(index);
-        handler.onDecodedHeader(e.getName(), e.getValue());
+    public boolean write(HeaderTable table, Buffer destination) {
+        if (!tableUpdated) {
+            table.setMaxSize(maxSize);
+            tableUpdated = true;
+        }
+        return intWriter.write(destination);
     }
 
-    public static void write(int index, OutputStream destination) throws IOException {
-        writeInteger(destination, index, 7, 0b10000000);
+    @Override
+    public BinaryRepresentationWriter reset() {
+        intWriter.reset();
+        maxSize = -1;
+        tableUpdated = false;
+        return this;
     }
 }

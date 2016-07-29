@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,37 +37,62 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-/*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
- * or visit www.oracle.com if you need additional information or have any
- * questions.
- */
-package org.glassfish.grizzly.http2.hpack;
 
-import org.glassfish.grizzly.http2.compression.HeaderListener;
+package org.glassfish.grizzly.http2;
+
+import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.http2.hpack.Encoder;
+import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.memory.MemoryManager;
 
-//
-// Binary format for different header field representations.
-//
-public interface BinaryRepresentation {
-    void process(Buffer source, HeaderFieldTable.DecTable table,
-                 HeaderListener handler);
+/**
+ *
+ * @author oleksiys
+ */
+public class HeadersEncoder {
+
+    private static final String DEFAULT_BUFFER_SIZE_PROP_NAME =
+            "org.glassfish.grizzly.http2.HeadersEncoder.DEFAULT_BUFFER_SIZE";
+    private static final String DEFAULT_BUFFER_SIZE_STRING = "8192";
+
+    private static final int DEFAULT_BUFFER_SIZE =
+            Integer.parseInt(System.getProperty(DEFAULT_BUFFER_SIZE_PROP_NAME, DEFAULT_BUFFER_SIZE_STRING));
+
+    private final Encoder hpackEncoder;
+    private final MemoryManager memoryManager;
+
+    private CompositeBuffer buffer;
+
+    public HeadersEncoder(final MemoryManager memoryManager,
+                          final int maxHeaderTableSize) {
+        this.memoryManager = memoryManager;
+        hpackEncoder = new Encoder(maxHeaderTableSize);
+    }
+    
+    public void encodeHeader(final String name, final String value)
+            throws IOException {
+        init();
+        hpackEncoder.header(name, value);
+        while (!hpackEncoder.encode(buffer)) {
+            buffer.append(memoryManager.allocate(DEFAULT_BUFFER_SIZE));
+        }
+    }
+    
+    public Buffer flushHeaders() throws IOException {
+        final Buffer bufferLocal = buffer;
+        bufferLocal.trim();
+        buffer = null;
+
+        return bufferLocal;
+    }
+
+    private void init() {
+        if (buffer == null) {
+            buffer = CompositeBuffer.newBuffer(memoryManager);
+            buffer.allowInternalBuffersDispose(true);
+            buffer.allowBufferDispose(true);
+            buffer.append(memoryManager.allocate(DEFAULT_BUFFER_SIZE));
+        }
+    }
 }

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,12 +38,14 @@
  * holder.
  */
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -61,39 +63,9 @@
  */
 package org.glassfish.grizzly.http2.hpack;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import org.glassfish.grizzly.http2.hpack.HeaderFieldTable.EncTable;
+final class LiteralNeverIndexedWriter extends IndexNameValueWriter {
 
-/**
- * Arguably a good balance between complexity of implementation and
- * efficiency of encoding.
- * Uses already indexed fields as much as it can, encoding everything else
- * with huffman (if it's told so).
- */
-public class DefaultEncoding implements EncodingStrategy {
-
-    private final boolean useHuffman;
-
-    public DefaultEncoding(boolean useHuffmanOnLiterals) {
-        this.useHuffman = useHuffmanOnLiterals;
-    }
-
-    @Override
-    public void encode(final String name, final String value,
-            final OutputStream destination, final EncTable table)
-            throws IOException {
-        
-        int index = table.indexOf(name, value);
-        if (index != -1) {
-            Indexed.write(index, destination);
-        } else {
-            index = table.indexOf(name);
-            if (index != -1) {
-                Literal.write(index, value, destination, useHuffman);
-            } else {
-                Literal.write(name, value, destination, useHuffman);
-            }
-        }
+    LiteralNeverIndexedWriter() {
+        super(0b0001_0000, 4);
     }
 }

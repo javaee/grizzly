@@ -75,8 +75,6 @@ import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
 
-import org.glassfish.grizzly.http2.compression.HeadersDecoder;
-import org.glassfish.grizzly.http2.compression.HeadersEncoder;
 import org.glassfish.grizzly.http2.frames.ContinuationFrame;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.GoAwayFrame;

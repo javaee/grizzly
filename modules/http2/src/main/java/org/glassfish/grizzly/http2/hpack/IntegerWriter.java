@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,12 +38,14 @@
  * holder.
  */
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -61,93 +63,95 @@
  */
 package org.glassfish.grizzly.http2.hpack;
 
-public class HeaderField {
+import org.glassfish.grizzly.Buffer;
 
-    String name;
-    String value;
+import java.util.Arrays;
 
-    public static HeaderField of(final String name) {
-        return new HeaderField(name);
-    }
-    
-    public static HeaderField of(final String name, final String value) {
-        return new HeaderField(name, value);
-    }
+final class IntegerWriter {
 
-    public static DynamicHeaderField dynamic() {
-        return new DynamicHeaderField();
-    }
-    
-    HeaderField(){
-    }
-    
-    HeaderField(final String name) {
-        this(name, null);
-    }
+    private static final byte NEW                = 0x0;
+    private static final byte CONFIGURED         = 0x1;
+    private static final byte FIRST_BYTE_WRITTEN = 0x2;
+    private static final byte DONE               = 0x4;
 
-    HeaderField(final String name, final String value) {
-        this.name = name;
-        this.value = value;
-    }
+    private byte state = NEW;
 
-    public String getName() {
-        return name;
-    }
+    private int payload;
+    private int N;
+    private int value;
 
-    public String getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        if (value == null) {
-            return name;
-        } else {
-            return name + ": " + value;
+    //
+    //      0   1   2   3   4   5   6   7
+    //    +---+---+---+---+---+---+---+---+
+    //    |   |   |   |   |   |   |   |   |
+    //    +---+---+---+-------------------+
+    //    |<--------->|<----------------->|
+    //       payload           N=5
+    //
+    // payload is the contents of the left-hand side part of the octet;
+    //         it is truncated to fit into 8-N bits, where 1 <= N <= 8;
+    //
+    public IntegerWriter configure(int value, int N, int payload) {
+        if (state != NEW) {
+            throw new IllegalStateException("Already configured");
         }
+        if (value < 0) {
+            throw new IllegalArgumentException("value >= 0: value=" + value);
+        }
+        checkPrefix(N);
+        this.value = value;
+        this.N = N;
+        this.payload = payload & 0xFF & (0xFFFFFFFF << N);
+        state = CONFIGURED;
+        return this;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean write(Buffer output) {
+        if (state == NEW) {
+            throw new IllegalStateException("Configure first");
+        }
+        if (state == DONE) {
             return true;
         }
-        if (!(o instanceof HeaderField)) {
+
+        if (!output.hasRemaining()) {
             return false;
         }
-
-        HeaderField that = (HeaderField) o;
-
-        if (!name.equals(that.name)) {
-            return false;
+        if (state == CONFIGURED) {
+            int max = (2 << (N - 1)) - 1;
+            if (value < max) {
+                output.put((byte) (payload | value));
+                state = DONE;
+                return true;
+            }
+            output.put((byte) (payload | max));
+            value -= max;
+            state = FIRST_BYTE_WRITTEN;
         }
-        if (value != null ? !value.equals(that.value) : that.value != null) {
-            return false;
+        if (state == FIRST_BYTE_WRITTEN) {
+            while (value >= 128 && output.hasRemaining()) {
+                output.put((byte) (value % 128 + 128));
+                value /= 128;
+            }
+            if (!output.hasRemaining()) {
+                return false;
+            }
+            output.put((byte) value);
+            state = DONE;
+            return true;
         }
-
-        return true;
+        throw new InternalError(Arrays.toString(
+                new Object[]{state, payload, N, value}));
     }
 
-    @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + (value != null ? value.hashCode() : 0);
-        return result;
+    private static void checkPrefix(int N) {
+        if (N < 1 || N > 8) {
+            throw new IllegalArgumentException("1 <= N <= 8: N= " + N);
+        }
     }
-    
-    public static final class DynamicHeaderField extends HeaderField {
 
-        DynamicHeaderField() {
-        }
-        
-        public void set(final String name, final String value) {
-            this.name = name;
-            this.value = value;
-        }
-        
-        public void reset() {
-            name = null;
-            value = null;
-        }
+    public IntegerWriter reset() {
+        state = NEW;
+        return this;
     }
 }
