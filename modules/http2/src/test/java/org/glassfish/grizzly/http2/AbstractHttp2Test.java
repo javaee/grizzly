@@ -184,13 +184,13 @@ public abstract class AbstractHttp2Test {
                                 new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                                 false, false, false);
 
-                        serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
+                        serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"});
 
                         clientSSLEngineConfigurator =
                                 new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                                 true, false, false);
 
-                        clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
+                        clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"});
                     } else {
                         throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
                     }        
@@ -202,7 +202,7 @@ public abstract class AbstractHttp2Test {
     protected static SSLContextConfigurator createSSLContextConfigurator() {
         SSLContextConfigurator sslContextConfigurator =
                 new SSLContextConfigurator();
-        ClassLoader cl = Http2BaseFilter.class.getClassLoader();
+        ClassLoader cl = AbstractHttp2Test.class.getClassLoader();
         // override system properties
         URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
         if (cacertsUrl != null) {
