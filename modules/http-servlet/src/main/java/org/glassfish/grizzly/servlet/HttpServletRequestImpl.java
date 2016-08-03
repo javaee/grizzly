@@ -1435,12 +1435,12 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
                     return processTimeout();
                 }
             };
-
             request.getResponse().suspend(-1, TimeUnit.MILLISECONDS,
                     requestCompletionHandler, timeoutHandler);
             asyncStartedThread = Thread.currentThread();
         }
 
+        getInternalRequest().getContext().suspend();
         asyncStarted.set(true);
 
         return asyncContext;
