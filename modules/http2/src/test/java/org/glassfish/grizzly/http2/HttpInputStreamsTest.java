@@ -60,7 +60,6 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
-import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
@@ -68,8 +67,6 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
-import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.junit.Test;
@@ -83,6 +80,7 @@ import static org.junit.Assert.*;
  * Test cases to validate the behaviors of {@link org.glassfish.grizzly.http.io.NIOInputStream} and
  * {@link org.glassfish.grizzly.http.io.NIOReader}.
  */
+@SuppressWarnings("Duplicates")
 @RunWith(Parameterized.class)
 public class HttpInputStreamsTest extends AbstractHttp2Test {
 
@@ -1144,6 +1142,7 @@ public class HttpInputStreamsTest extends AbstractHttp2Test {
                 long skipped = in.skip(0);
                 assertEquals(0, skipped);
                 try {
+                    //noinspection ResultOfMethodCallIgnored
                     in.skip(-1000);
                     fail();
                 } catch (IllegalArgumentException iae) {
@@ -1358,8 +1357,26 @@ public class HttpInputStreamsTest extends AbstractHttp2Test {
 
 
         @Override
-        public NextAction handleConnect(FilterChainContext ctx)
+        public NextAction handleConnect(final FilterChainContext ctx)
               throws IOException {
+
+            final Http2Connection c = Http2Connection.get(ctx.getConnection());
+            if (c != null) { // we're going over TLS
+                c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                    @Override
+                    public void ready(Http2Connection http2Connection) {
+                        sendRequest(ctx);
+                        ctx.resume(ctx.getStopAction());
+                    }
+                });
+                return ctx.getSuspendAction();
+            } else {
+                sendRequest(ctx);
+                return ctx.getStopAction();
+            }
+        }
+
+        private void sendRequest(FilterChainContext ctx) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "Connected... Sending the request: {0}", request);
             }
@@ -1370,26 +1387,24 @@ public class HttpInputStreamsTest extends AbstractHttp2Test {
                 final HttpHeader httpHeader = request.getHttpHeader();
                 final HttpContent entireContent = (HttpContent) request;
                 Buffer workingBuffer = entireContent.getContent();
-                
-       
+
+
                 while (workingBuffer.hasRemaining()) {
                     final int chunkSize0 =
                             Math.min(chunkSize, workingBuffer.remaining());
                     final Buffer remainder = workingBuffer.split(
                             workingBuffer.position() + chunkSize0);
-                    
+
                     ctx.write(HttpContent.builder(httpHeader)
                             .content(workingBuffer)
                             .last(!remainder.hasRemaining())
                             .build());
-                    
+
                     workingBuffer = remainder;
                 }
             } else {
                 ctx.write(request);
             }
-
-            return ctx.getStopAction();
         }
 
 
@@ -1430,41 +1445,4 @@ public class HttpInputStreamsTest extends AbstractHttp2Test {
 
     }
 
-
-    private static final class CharsetClientFilter extends ClientFilter {
-
-        final String encoding;
-        private final String requestData;
-
-        public CharsetClientFilter(HttpPacket request,
-                                   int chunkSize,
-                                   String requestData,
-                                   FutureImpl<Boolean> testResult,
-                                   String encoding) {
-            super(request, chunkSize, testResult);
-            this.requestData = requestData;
-            this.encoding = encoding;
-        }
-
-
-        // -------------------------------------------------------- Constructors
-
-        @SuppressWarnings({"unchecked"})
-        @Override
-        public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-            ((HttpHeader) request).addHeader("Content-Type", "plain/text;charset=" + encoding);
-            ctx.write(request);
-            byte[] bytes = requestData.getBytes(encoding);
-            MemoryManager mm = ctx.getMemoryManager();
-            Buffer b = Buffers.wrap(mm, bytes);
-            HttpContent.Builder builder = ((HttpHeader) request).httpContentBuilder();
-            builder.content(b);
-            ctx.write(builder.build());
-            if (((HttpHeader) request).isChunked()) {
-                HttpTrailer.Builder trailer = ((HttpHeader) request).httpTrailerBuilder();
-                ctx.write(trailer.build());
-            }
-            return ctx.getStopAction();
-        }
-    } // END CharsetClientFilter;
 }

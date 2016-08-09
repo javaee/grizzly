@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http2;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.attributes.Attribute;
@@ -54,6 +56,8 @@ class Http2State {
     private static final Attribute<Http2State> http2State =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             Http2State.class.getName() + ".state");
+
+    private List<ReadyListener> listeners;
     
     static Http2State getOrCreate(final Connection connection) {
         
@@ -139,8 +143,26 @@ class Http2State {
      * @return <tt>true</tt> if HTTP2 connection received preface from the peer,
      *          or <tt>false</tt> otherwise
      */
-    boolean isReady() {
+    public boolean isReady() {
         return status.get() == Status.OPEN;
+    }
+
+    public synchronized void addReadyListener(final ReadyListener... readyListeners) {
+        if (readyListeners == null) {
+            return;
+        }
+        if (isReady()) {
+            for (int i = 0, len = readyListeners.length; i < len; i++) {
+                readyListeners[i].ready(http2Connection);
+            }
+        } else {
+            if (listeners == null) {
+                listeners = new ArrayList<>(readyListeners.length + 2);
+            }
+            for (int i = 0, len = readyListeners.length; i < len; i++) {
+                listeners.add(readyListeners[i]);
+            }
+        }
     }
 
     /**
@@ -148,6 +170,7 @@ class Http2State {
      */
     void setOpen() {
         status.set(Status.OPEN);
+        notifyReadyListeners();
     }
     
     boolean isUpgradePhase() {
@@ -205,5 +228,19 @@ class Http2State {
         }
         
         return false;
+    }
+
+    private synchronized void notifyReadyListeners() {
+        if (listeners != null && !listeners.isEmpty()) {
+            for (ReadyListener listener : listeners) {
+                listener.ready(http2Connection);
+            }
+            listeners.clear();
+            listeners = null;
+        }
+    }
+
+    interface ReadyListener {
+        void ready(Http2Connection http2Connection);
     }
 }

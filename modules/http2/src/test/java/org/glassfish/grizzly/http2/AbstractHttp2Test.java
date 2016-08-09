@@ -82,11 +82,11 @@ public abstract class AbstractHttp2Test {
         
         modes.add(new Object[] {Boolean.FALSE});
         
-//        if (AlpnSupport.isEnabled()) {
-//            modes.add(new Object[] {Boolean.TRUE});
-//        } else {
-//            LOGGER.info("Alpn is not supported by this JDK, so Alpn mode will be skipped");
-//        }
+        if (AlpnSupport.isEnabled()) {
+            modes.add(new Object[] {Boolean.TRUE});
+        } else {
+            LOGGER.info("Alpn is not supported by this JDK, so Alpn mode will be skipped");
+        }
         
         return modes;
     }
@@ -184,13 +184,13 @@ public abstract class AbstractHttp2Test {
                                 new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                                 false, false, false);
 
-                        serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"});
+                        serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"TLS_RSA_WITH_AES_256_CBC_SHA"});
 
                         clientSSLEngineConfigurator =
                                 new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                                 true, false, false);
 
-                        clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"});
+                        clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"TLS_RSA_WITH_AES_256_CBC_SHA"});
                     } else {
                         throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
                     }        

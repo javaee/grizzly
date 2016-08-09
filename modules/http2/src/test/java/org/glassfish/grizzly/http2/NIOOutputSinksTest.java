@@ -85,6 +85,7 @@ import org.junit.runners.Parameterized;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings("Duplicates")
 @RunWith(Parameterized.class)
 public class NIOOutputSinksTest extends AbstractHttp2Test {
     private static final Logger LOGGER = Grizzly.logger(NIOOutputSinksTest.class);
@@ -115,7 +116,25 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
             private int bytesRead;
             
             @Override
-            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+            public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+
+                final Http2Connection c = Http2Connection.get(ctx.getConnection());
+                if (c != null) { // we're going over TLS
+                    c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                        @Override
+                        public void ready(Http2Connection http2Connection) {
+                            sendRequest(ctx);
+                            ctx.resume(ctx.getStopAction());
+                        }
+                    });
+                    return ctx.getSuspendAction();
+                } else {
+                    sendRequest(ctx);
+                    return ctx.getStopAction();
+                }
+            }
+
+            private void sendRequest(final FilterChainContext ctx) {
                 // Build the HttpRequestPacket, which will be sent to a server
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
@@ -128,10 +147,6 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                         .content(Buffers.EMPTY_BUFFER)
                         .last(true)
                         .build());
-
-                // Return the stop action, which means we don't expect next filter to process
-                // connect event
-                return ctx.getStopAction();
             }
 
             @Override
@@ -185,8 +200,6 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                 }
                 
                 response.suspend();
-
-                final Connection c = request.getContext().getConnection();
 
                 out.notifyCanWrite(new WriteHandler() {
                     @Override
@@ -267,9 +280,27 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         filterChainBuilder.add(new BaseFilter() {
 
             private int bytesRead;
-            
+
             @Override
-            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+            public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+
+                final Http2Connection c = Http2Connection.get(ctx.getConnection());
+                if (c != null) { // we're going over TLS
+                    c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                        @Override
+                        public void ready(Http2Connection http2Connection) {
+                            sendRequest(ctx);
+                            ctx.resume(ctx.getStopAction());
+                        }
+                    });
+                    return ctx.getSuspendAction();
+                } else {
+                    sendRequest(ctx);
+                    return ctx.getStopAction();
+                }
+            }
+
+            private void sendRequest(final FilterChainContext ctx) {
                 // Build the HttpRequestPacket, which will be sent to a server
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
@@ -282,10 +313,6 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                         .content(Buffers.EMPTY_BUFFER)
                         .last(true)
                         .build());
-
-                // Return the stop action, which means we don't expect next filter to process
-                // connect event
-                return ctx.getStopAction();
             }
 
             @Override
@@ -389,7 +416,25 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
             private int bytesRead;
 
             @Override
-            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+            public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+
+                final Http2Connection c = Http2Connection.get(ctx.getConnection());
+                if (c != null) { // we're going over TLS
+                    c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                        @Override
+                        public void ready(Http2Connection http2Connection) {
+                            sendRequest(ctx);
+                            ctx.resume(ctx.getStopAction());
+                        }
+                    });
+                    return ctx.getSuspendAction();
+                } else {
+                    sendRequest(ctx);
+                    return ctx.getStopAction();
+                }
+            }
+
+            private void sendRequest(final FilterChainContext ctx) {
                 // Build the HttpRequestPacket, which will be sent to a server
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
@@ -402,10 +447,6 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                         .content(Buffers.EMPTY_BUFFER)
                         .last(true)
                         .build());
-
-                // Return the stop action, which means we don't expect next filter to process
-                // connect event
-                return ctx.getStopAction();
             }
 
             @Override
@@ -459,14 +500,13 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                 }                
 
                 response.suspend();
-                notifyCanWrite(c, out, response);
+                notifyCanWrite(out, response);
                 
                 clientTransport.resume();
             }
 
-            private void notifyCanWrite(final Connection c,
-                    final NIOWriter out,
-                    final Response response) {
+            private void notifyCanWrite(final NIOWriter out,
+                                        final Response response) {
 
                 out.notifyCanWrite(new WriteHandler() {
 
@@ -545,9 +585,27 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         filterChainBuilder.add(new BaseFilter() {
 
             private int bytesRead;
-            
+
             @Override
-            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+            public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+
+                final Http2Connection c = Http2Connection.get(ctx.getConnection());
+                if (c != null) { // we're going over TLS
+                    c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                        @Override
+                        public void ready(Http2Connection http2Connection) {
+                            sendRequest(ctx);
+                            ctx.resume(ctx.getStopAction());
+                        }
+                    });
+                    return ctx.getSuspendAction();
+                } else {
+                    sendRequest(ctx);
+                    return ctx.getStopAction();
+                }
+            }
+
+            private void sendRequest(final FilterChainContext ctx) {
                 // Build the HttpRequestPacket, which will be sent to a server
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
@@ -560,10 +618,6 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                         .content(Buffers.EMPTY_BUFFER)
                         .last(true)
                         .build());
-
-                // Return the stop action, which means we don't expect next filter to process
-                // connect event
-                return ctx.getStopAction();
             }
 
             @Override
@@ -656,7 +710,25 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         filterChainBuilder.add(new BaseFilter() {
 
             @Override
-            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+            public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+
+                final Http2Connection c = Http2Connection.get(ctx.getConnection());
+                if (c != null) { // we're going over TLS
+                    c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                        @Override
+                        public void ready(Http2Connection http2Connection) {
+                            sendRequest(ctx);
+                            ctx.resume(ctx.getStopAction());
+                        }
+                    });
+                    return ctx.getSuspendAction();
+                } else {
+                    sendRequest(ctx);
+                    return ctx.getStopAction();
+                }
+            }
+
+            private void sendRequest(final FilterChainContext ctx) {
                 // Build the HttpRequestPacket, which will be sent to a server
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
@@ -669,10 +741,6 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                         .content(Buffers.EMPTY_BUFFER)
                         .last(true)
                         .build());
-
-                // Return the stop action, which means we don't expect next filter to process
-                // connect event
-                return ctx.getStopAction();
             }
 
             @Override
@@ -785,9 +853,27 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                 createClientFilterChainAsBuilder(isSecure);
         filterChainBuilder.add(new BaseFilter() {
             private final StringBuilder sb = new StringBuilder();
-            
+
             @Override
-            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+            public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+
+                final Http2Connection c = Http2Connection.get(ctx.getConnection());
+                if (c != null) { // we're going over TLS
+                    c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                        @Override
+                        public void ready(Http2Connection http2Connection) {
+                            sendRequest(ctx);
+                            ctx.resume(ctx.getStopAction());
+                        }
+                    });
+                    return ctx.getSuspendAction();
+                } else {
+                    sendRequest(ctx);
+                    return ctx.getStopAction();
+                }
+            }
+
+            private void sendRequest(final FilterChainContext ctx) {
                 // Build the HttpRequestPacket, which will be sent to a server
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
@@ -800,10 +886,6 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                         .content(Buffers.EMPTY_BUFFER)
                         .last(true)
                         .build());
-
-                // Return the stop action, which means we don't expect next filter to process
-                // connect event
-                return ctx.getStopAction();
             }
 
             @Override
@@ -897,7 +979,25 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         filterChainBuilder.add(new BaseFilter() {
 
             @Override
-            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+            public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+
+                final Http2Connection c = Http2Connection.get(ctx.getConnection());
+                if (c != null) { // we're going over TLS
+                    c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                        @Override
+                        public void ready(Http2Connection http2Connection) {
+                            sendRequest(ctx);
+                            ctx.resume(ctx.getStopAction());
+                        }
+                    });
+                    return ctx.getSuspendAction();
+                } else {
+                    sendRequest(ctx);
+                    return ctx.getStopAction();
+                }
+            }
+
+            private void sendRequest(final FilterChainContext ctx) {
                 // Build the HttpRequestPacket, which will be sent to a server
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
@@ -910,10 +1010,6 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                         .content(Buffers.EMPTY_BUFFER)
                         .last(true)
                         .build());
-
-                // Return the stop action, which means we don't expect next filter to process
-                // connect event
-                return ctx.getStopAction();
             }
 
             @Override
@@ -1036,7 +1132,25 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
             private int bytesRead;
 
             @Override
-            public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+            public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+
+                final Http2Connection c = Http2Connection.get(ctx.getConnection());
+                if (c != null) { // we're going over TLS
+                    c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                        @Override
+                        public void ready(Http2Connection http2Connection) {
+                            sendRequest(ctx);
+                            ctx.resume(ctx.getStopAction());
+                        }
+                    });
+                    return ctx.getSuspendAction();
+                } else {
+                    sendRequest(ctx);
+                    return ctx.getStopAction();
+                }
+            }
+
+            private void sendRequest(final FilterChainContext ctx) {
                 // Build the HttpRequestPacket, which will be sent to a server
                 // We construct HTTP request version 1.1 and specifying the URL of the
                 // resource we want to download
@@ -1049,10 +1163,6 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
                         .content(Buffers.EMPTY_BUFFER)
                         .last(true)
                         .build());
-
-                // Return the stop action, which means we don't expect next filter to process
-                // connect event
-                return ctx.getStopAction();
             }
 
             @Override

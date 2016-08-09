@@ -99,6 +99,7 @@ import static org.junit.Assert.*;
 /**
  * Test case to exercise <code>AsyncStreamReader</code>.
  */
+@SuppressWarnings("Duplicates")
 @RunWith(Parameterized.class)
 public class NIOInputSourcesTest extends AbstractHttp2Test {
 
@@ -253,7 +254,7 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
     public void testDirectAsyncReadSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
-        final EchoHandler httpHandler = new DirectBufferEchoHttpHandler(testResult, 2000);
+        final EchoHandler httpHandler = new DirectBufferEchoHttpHandler(testResult);
         final String expected = buildString(5000);
 
         final HttpRequestPacket.Builder b = HttpRequestPacket.builder();
@@ -527,6 +528,7 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
                         chunkReceivedLatch.countDown();
                         
                         final int readyData = inputStream.readyData();
+                        //noinspection ResultOfMethodCallIgnored
                         inputStream.skip(readyData);
                         bytesRead.addAndGet(readyData);
 
@@ -537,6 +539,7 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
                     @Override
                     public void onAllDataRead() throws IOException {
                         final int readyData = inputStream.readyData();
+                        //noinspection ResultOfMethodCallIgnored
                         inputStream.skip(readyData);
                         bytesRead.addAndGet(readyData);
                         resultFuture.failure(new IllegalStateException("Connection should have been terminated"));
@@ -584,7 +587,7 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
                                 try {
                                     chunkReceivedLatch.await(10, TimeUnit.SECONDS);
                                     c.closeSilently();
-                                } catch (InterruptedException e) {
+                                } catch (InterruptedException ignored) {
                                 }
                             }
                         }.start();
@@ -592,7 +595,7 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
                 });
 
                 try {
-                    final Integer i = resultFuture.get(10, TimeUnit.SECONDS);
+                    resultFuture.get(10, TimeUnit.SECONDS);
                     fail("Wrapped EOFException expected");
                 } catch (ExecutionException e) {
                     assertEquals("NOT EOF Exception:\n" +
@@ -924,17 +927,15 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
     private static class DirectBufferEchoHttpHandler extends EchoHandler {
 
         private final FutureImpl<String> testResult;
-        private final int readSize;
 
         private final StringBuffer echoedString = new StringBuffer();
 
         // -------------------------------------------------------- Constructors
 
 
-        DirectBufferEchoHttpHandler(final FutureImpl<String> testResult, final int readSize) {
+        DirectBufferEchoHttpHandler(final FutureImpl<String> testResult) {
 
             this.testResult = testResult;
-            this.readSize = readSize;
 
         }
 
@@ -1156,9 +1157,32 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
 
 
         @Override
-        public NextAction handleConnect(FilterChainContext ctx)
+        public NextAction handleConnect(final FilterChainContext ctx)
                 throws IOException {
 
+            final Http2Connection c = Http2Connection.get(ctx.getConnection());
+            if (c != null) { // we're going over TLS
+                c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                    @Override
+                    public void ready(Http2Connection http2Connection) {
+                        try {
+                            sendRequest(ctx);
+                            ctx.resume(ctx.getStopAction());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            fail(e.toString());
+                        }
+                    }
+                });
+                return ctx.getSuspendAction();
+            } else {
+                sendRequest(ctx);
+                return ctx.getStopAction();
+            }
+
+        }
+
+        private void sendRequest(FilterChainContext ctx) throws IOException {
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "Connected... Sending the request: {0}", request);
             }
@@ -1180,11 +1204,6 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
             if (header.isChunked()) {
                 ctx.write(header.httpTrailerBuilder().build());
             }
-
-
-            // Return the stop action, which means we don't expect next filter to process
-            // connect event
-            return ctx.getStopAction();
         }
 
 

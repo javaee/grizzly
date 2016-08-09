@@ -77,6 +77,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings("Duplicates")
 @RunWith(Parameterized.class)
 public class HttpOutputStreamsTest extends AbstractHttp2Test {
 
@@ -1206,28 +1207,37 @@ public class HttpOutputStreamsTest extends AbstractHttp2Test {
 
 
         @Override
-        public NextAction handleConnect(FilterChainContext ctx)
-              throws IOException {
+        public NextAction handleConnect(final FilterChainContext ctx) throws IOException {
+
+            final Http2Connection c = Http2Connection.get(ctx.getConnection());
+            if (c != null) { // we're going over TLS
+                c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
+                    @Override
+                    public void ready(Http2Connection http2Connection) {
+                        sendRequest(ctx);
+                        ctx.resume(ctx.getStopAction());
+                    }
+                });
+                return ctx.getSuspendAction();
+            } else {
+                sendRequest(ctx);
+                return ctx.getStopAction();
+            }
+        }
+
+        private void sendRequest(final FilterChainContext ctx) {
             // Build the HttpRequestPacket, which will be sent to a server
             // We construct HTTP request version 1.1 and specifying the URL of the
             // resource we want to download
             final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
                     .uri("/path").protocol(Protocol.HTTP_1_1)
-                    .header("Host", "localhost:" + PORT)
-                    .build();
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "Connected... Sending the request: {0}", httpRequest);
-            }
+                    .header("Host", "localhost:" + PORT).build();
 
             // Write the request asynchronously
             ctx.write(HttpContent.builder(httpRequest)
                     .content(Buffers.EMPTY_BUFFER)
                     .last(true)
                     .build());
-
-            // Return the stop action, which means we don't expect next filter to process
-            // connect event
-            return ctx.getStopAction();
         }
 
 
