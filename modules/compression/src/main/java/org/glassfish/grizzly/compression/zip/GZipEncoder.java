@@ -331,7 +331,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
         private void reset() {
             isInitialized = false;
             isHeaderWritten = false;
-            
+            deflater.end(); // ensure we don't leak memory in native compression library
             crc32 = null;
             deflater = null;
         }
