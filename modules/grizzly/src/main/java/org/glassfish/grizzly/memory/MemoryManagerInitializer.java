@@ -85,7 +85,7 @@ class MemoryManagerInitializer {
     private static MemoryManager initMemoryManagerFallback() {
         final String className = System.getProperty(DMM_PROP_NAME);
         final MemoryManager mm = newInstance(className);
-        return (mm != null) ? mm : new HeapMemoryManager();
+        return (mm != null) ? mm : new PooledMemoryManager();
     }
 
     @SuppressWarnings("unchecked")
