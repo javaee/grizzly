@@ -811,7 +811,7 @@ public class Buffers {
             args[0] = remaining + line;
             for (int i = 0, aIdx = 1; i < remaining; i++, aIdx++) {
                 final int b = buffer.get(line + i);
-                args[aIdx] = b;
+                args[aIdx] = b & 0xFF;
                 args[aIdx + remaining] = getChar(b);
             }
             formatter.format(DumpStrings.DUMP_STRINGS[remaining - 1], args);
