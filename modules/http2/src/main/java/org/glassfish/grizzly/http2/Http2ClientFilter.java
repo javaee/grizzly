@@ -38,11 +38,6 @@
  * holder.
  */
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
@@ -97,6 +92,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
     
     private boolean isNeverForceUpgrade;
     private boolean sendPushRequestUpstream;
+    private boolean priorKnowledge;
     private final HeaderValue defaultHttp2Upgrade;
     private final HeaderValue connectionUpgradeHeaderValue;
     
@@ -142,6 +138,25 @@ public class Http2ClientFilter extends Http2BaseFilter {
     }
 
     /**
+     * @return <code>true</code> if this filter will bypass using the HTTP/1.1 upgrade mechanism and send the
+     *  client preface immediately with the knowledge that the remote endpoint supports HTTP/2.
+     */
+    @SuppressWarnings("unused")
+    public boolean isPriorKnowledge() {
+        return priorKnowledge;
+    }
+
+    /**
+     * Control how the HTTP/2 connection is established with the remote peer.
+     * @param priorKnowledge <code>true</code> if it's known that the remote peer supports HTTP/2.  By default no
+     *                       prior knowledge is assumed.
+     */
+    @SuppressWarnings("unused")
+    public void setPriorKnowledge(boolean priorKnowledge) {
+        this.priorKnowledge = priorKnowledge;
+    }
+
+    /**
      * @param sendPushRequestUpstream <tt>true</tt> if the push request has to
      *         be sent upstream, so a user have a chance to process it,
      *         or <tt>false</tt> otherwise
@@ -181,6 +196,23 @@ public class Http2ClientFilter extends Http2BaseFilter {
 
             });
 
+            connection.enableIOEvent(IOEvent.READ);
+            return suspendAction;
+        } else if (priorKnowledge) {
+            final Http2Connection http2Connection = createClientHttp2Connection(connection);
+            final Http2State state = http2Connection.getHttp2State();
+            state.setDirectUpgradePhase();
+            http2Connection.sendPreface();
+            final NextAction suspendAction = ctx.getSuspendAction();
+            ctx.suspend();
+            state.addReadyListener(new Http2State.ReadyListener() {
+                @Override
+                public void ready(Http2Connection http2Connection) {
+                    state.onClientHttpUpgradeRequestFinished();
+                    http2Connection.setupFilterChains(ctx, true);
+                    ctx.resumeNext();
+                }
+            });
             connection.enableIOEvent(IOEvent.READ);
             return suspendAction;
         }
