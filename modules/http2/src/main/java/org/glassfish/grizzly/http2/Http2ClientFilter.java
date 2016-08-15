@@ -158,11 +158,11 @@ public class Http2ClientFilter extends Http2BaseFilter {
         final FilterChain filterChain = (FilterChain) connection.getProcessor();
         final int idx = filterChain.indexOfType(SSLFilter.class);
         
-        if (idx != -1) { // use TLS Apln
+        if (idx != -1) { // use TLS ALPN
             final SSLFilter sslFilter = (SSLFilter) filterChain.get(idx);
             AlpnSupport.getInstance().configure(sslFilter);
             AlpnSupport.getInstance().setClientSideNegotiator(
-                    connection, getClientAlpnNegotioator());
+                    connection, getClientAlpnNegotiator());
 
             final NextAction suspendAction = ctx.getSuspendAction();
             ctx.suspend();
@@ -402,7 +402,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
         return createHttp2Connection(connection, false);
     }
     
-    protected AlpnClientNegotiator getClientAlpnNegotioator() {
+    protected AlpnClientNegotiator getClientAlpnNegotiator() {
         return defaultClientAlpnNegotiator;
     }    
 
@@ -429,7 +429,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
             return false;
         }
 
-        // chech the initial request, if it was correct HTTP/2.0 Upgrade request
+        // check the initial request, if it was correct HTTP/2.0 Upgrade request
         if (!checkRequestHeadersOnUpgrade(httpRequest)) {
             return false;
         }
