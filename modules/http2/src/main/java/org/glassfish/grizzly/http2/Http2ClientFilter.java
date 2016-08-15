@@ -47,7 +47,6 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLEngine;
@@ -73,18 +72,18 @@ import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.http.util.HttpStatus;
-import static org.glassfish.grizzly.http2.Constants.IN_FIN_TERMINATION;
+
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
+import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.npn.AlpnClientNegotiator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 
+import static org.glassfish.grizzly.http2.Constants.IN_FIN_TERMINATION;
 import static org.glassfish.grizzly.http2.Constants.OUT_FIN_TERMINATION;
-import org.glassfish.grizzly.http2.frames.HeadersFrame;
-
 import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
@@ -115,10 +114,20 @@ public class Http2ClientFilter extends Http2BaseFilter {
                 HeaderValue.newHeaderValue("Upgrade, HTTP2-Settings");
     }
 
+    /**
+     * @return <code>true</code> if an upgrade to HTTP/2 will not be performed, otherwise <code>false</code>
+     */
+    @SuppressWarnings("unused")
     public boolean isNeverForceUpgrade() {
         return isNeverForceUpgrade;
     }
 
+    /**
+     * Configure this filter to completely disable attempts to upgrade to HTTP/2.
+     *
+     * @param neverForceUpgrade <code>true</code> to disable upgrade attempts, otherwise <code>false</code>
+     */
+    @SuppressWarnings("unused")
     public void setNeverForceUpgrade(boolean neverForceUpgrade) {
         this.isNeverForceUpgrade = neverForceUpgrade;
     }
@@ -127,6 +136,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
      * @return <tt>true</tt> if the push request has to be sent upstream, so
      *         a user have a chance to process it, or <tt>false</tt> otherwise
      */
+    @SuppressWarnings("unused")
     public boolean isSendPushRequestUpstream() {
         return sendPushRequestUpstream;
     }
@@ -136,6 +146,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
      *         be sent upstream, so a user have a chance to process it,
      *         or <tt>false</tt> otherwise
      */
+    @SuppressWarnings("unused")
     public void setSendPushRequestUpstream(boolean sendPushRequestUpstream) {
         this.sendPushRequestUpstream = sendPushRequestUpstream;
     }
@@ -212,7 +223,6 @@ public class Http2ClientFilter extends Http2BaseFilter {
             }
         }
         
-        assert http2State != null;
         final Http2Connection http2Connection =
                 obtainHttp2Connection(http2State, ctx, true);
         
@@ -300,12 +310,13 @@ public class Http2ClientFilter extends Http2BaseFilter {
     }
     
     /**
+     * Process the provided outbound header/packet.
      *
-     * @param ctx
-     * @param http2Connection
-     * @param httpHeader
-     * @param entireHttpPacket
-     * @throws IOException
+     * @param ctx the current {@link FilterChainContext}
+     * @param http2Connection the {@link Http2Connection} that's being written to.
+     * @param httpHeader the {@link HttpHeader} to write.
+     * @param entireHttpPacket the {@link HttpPacket} to write.
+     * @throws IOException if an I/O error occurs.
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -376,14 +387,14 @@ public class Http2ClientFilter extends Http2BaseFilter {
     }
     
     /**
-     * Creates client-side {@link Http2Connection} with preconfigured
+     * Creates client-side {@link Http2Connection} with pre-configured
      * initial-windows-size and max-concurrent-streams.
      * 
      * Note: Should be called with disabled OP_READ (or during OP_READ processing),
      *       because peer frames must not be processed at the time this method
      *       is running.
      * 
-     * @param connection
+     * @param connection the TCP connection
      * @return {@link Http2Connection}
      */
     protected Http2Connection createClientHttp2Connection(final Connection connection) {
@@ -399,18 +410,19 @@ public class Http2ClientFilter extends Http2BaseFilter {
      * The method is called once a client receives an HTTP response to its initial
      * propose to establish HTTP/2.0 connection.
      * 
-     * @param ctx
-     * @param http2State
-     * @param httpRequest
-     * @param httpResponse
-     * @return
-     * @throws Http2StreamException
-     * @throws IOException 
+     * @param ctx the current {@link FilterChainContext}
+     * @param http2State the HTTP2 connection state
+     * @param httpRequest the HTTP request
+     * @param httpResponse the HTTP response
+     * @return <code>true</code> if the connection was successfully upgraded, otherwise <code>false</code>
+     * @throws Http2StreamException if an exception occurs with the stream
+     * @throws IOException if a general I/O error occurs
      */
+    @SuppressWarnings("DuplicateThrows")
     private boolean tryHttpUpgrade(final FilterChainContext ctx,
-            final Http2State http2State,
-            final HttpRequestPacket httpRequest,
-            final HttpResponsePacket httpResponse)
+                                   final Http2State http2State,
+                                   final HttpRequestPacket httpRequest,
+                                   final HttpResponsePacket httpResponse)
             throws Http2StreamException, IOException {
 
         if (httpRequest == null) {
@@ -544,7 +556,8 @@ public class Http2ClientFilter extends Http2BaseFilter {
                     (HeadersFrame) firstHeaderFrame);
         }
     }
-    
+
+    @SuppressWarnings("DuplicateThrows")
     private void processInResponse(final Http2Connection http2Connection,
             final FilterChainContext context,
             final HeadersFrame headersFrame)
@@ -581,7 +594,8 @@ public class Http2ClientFilter extends Http2BaseFilter {
 
         sendUpstream(http2Connection, stream, response, !isEOS);
     }
-    
+
+    @SuppressWarnings("DuplicateThrows")
     private void processInPushPromise(final Http2Connection http2Connection,
             final FilterChainContext context,
             final PushPromiseFrame pushPromiseFrame)
@@ -654,7 +668,6 @@ public class Http2ClientFilter extends Http2BaseFilter {
             // HTTP content of the upgrade request
             if (((HttpContent) msg).isLast()) {
                 http2State.onClientHttpUpgradeRequestFinished();
-                final Http2State finalState = http2State;
 
                 // send the preface once the last payload chunk reaches the
                 // network layer
@@ -663,9 +676,9 @@ public class Http2ClientFilter extends Http2BaseFilter {
 
                             @Override
                             public void onComplete(final FilterChainContext context) {
-                                if (finalState.tryLockClientPreface()) {
-                                    final Http2Connection http2Connection
-                                    = finalState.getHttp2Connection();
+                                if (http2State.tryLockClientPreface()) {
+                                    final Http2Connection http2Connection =
+                                            http2State.getHttp2Connection();
                                     assert http2Connection != null;
 
                                     http2Connection.sendPreface();
