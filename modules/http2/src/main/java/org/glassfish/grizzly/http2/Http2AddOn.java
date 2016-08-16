@@ -43,11 +43,9 @@ package org.glassfish.grizzly.http2;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.server.AddOn;
-import org.glassfish.grizzly.http.server.HttpServerFilter;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.ssl.SSLFilter;
 
-import java.util.Arrays;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -56,16 +54,13 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.SSLBaseFilter;
 
 /**
- * FilterChain after being processed by Http2AddOn:
+ * FilterChain after being processed by {@link Http2AddOn}:
  *
  * <pre>
- *     {@link org.glassfish.grizzly.filterchain.TransportFilter} <-> {@link SSLFilter}(1) <-> {@link FrameCodec} <-> {@link Http2BaseFilter}(2) <-> {@link HttpServerFilter}
+ *     {@link org.glassfish.grizzly.filterchain.TransportFilter} <-> {@link SSLFilter}(optional) <-> {@link org.glassfish.grizzly.http.HttpServerFilter} <-> {@link Http2ServerFilter} <-> {@link org.glassfish.grizzly.http.server.HttpServer}
  * </pre>
- * <ol>
- *     <li>SSLFilter is configured to use NPN for HTTP2 protocol negotiation</li>
- *     <li>Http2FramingFilter and Http2HandlerFilter replace {@link org.glassfish.grizzly.http.HttpServerFilter}</li>
- * </ol>
  *
+ * {@link SSLFilter}, if present, is configured to use ALPN for HTTP2 protocol negotiation
  */
 public class Http2AddOn implements AddOn {
     private static final Logger LOGGER = Grizzly.logger(Http2AddOn.class);
@@ -82,12 +77,9 @@ public class Http2AddOn implements AddOn {
     public void setup(NetworkListener networkListener, FilterChainBuilder builder) {
         final TCPNIOTransport transport = networkListener.getTransport();
         
-        if (networkListener.isSecure()) {
-            // ALPN mode is on
-            if (!AlpnSupport.isEnabled()) {
-                LOGGER.warning("TLS ALPN (Application-Layer Protocol Negotiation) support is not available. HTTP/2 support will not be enabled.");
-                return;
-            }
+        if (networkListener.isSecure() && !AlpnSupport.isEnabled()) {
+            LOGGER.warning("TLS ALPN (Application-Layer Protocol Negotiation) support is not available. HTTP/2 support will not be enabled.");
+            return;
         }
         
         final Http2ServerFilter http2Filter = updateFilterChain(builder);
@@ -138,8 +130,9 @@ public class Http2AddOn implements AddOn {
 
     /**
      * Sets the maximum allowed HTTP2 frame payload size.
-     * @param maxFramePayloadSize
+     * @param maxFramePayloadSize the maximum allowed HTTP2 frame size.
      */
+    @SuppressWarnings("unused")
     public void setMaxFramePayloadSize(final int maxFramePayloadSize) {
         this.maxFramePayloadSize = maxFramePayloadSize;
     }
@@ -148,8 +141,7 @@ public class Http2AddOn implements AddOn {
     // ----------------------------------------------------- Private Methods
 
 
-    private Http2ServerFilter updateFilterChain(
-            final FilterChainBuilder builder) {
+    private satic Http2ServerFilter updateFilterChain(final FilterChainBuilder builder) {
         
         final int codecFilterIdx = builder.indexOfType(
                 org.glassfish.grizzly.http.HttpServerFilter.class);
@@ -165,9 +157,9 @@ public class Http2AddOn implements AddOn {
         return http2HandlerFilter;
     }
     
-    private void configureAlpn(final Transport transport,
-            final Http2ServerFilter http2Filter,
-            final FilterChainBuilder builder) {
+    private static void configureAlpn(final Transport transport,
+                                      final Http2ServerFilter http2Filter,
+                                      final FilterChainBuilder builder) {
         
         final int idx = builder.indexOfType(SSLBaseFilter.class);
         if (idx != -1) {
