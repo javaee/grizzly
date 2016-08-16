@@ -58,15 +58,11 @@ import static org.glassfish.grizzly.http2.Http2Constants.HTTP2;
 class AlpnClientNegotiatorImpl implements AlpnClientNegotiator {
     private final static Logger LOGGER = Grizzly.logger(AlpnClientNegotiatorImpl.class);
 
-    private final String[] supportedProtocolsStr;
+    private final String[] supportedProtocolsStr = new String[] { HTTP2, HTTP11 };
     private final Http2ClientFilter filter;
 
     public AlpnClientNegotiatorImpl(final Http2ClientFilter filter) {
         this.filter = filter;
-        
-        supportedProtocolsStr = new String[2];
-        supportedProtocolsStr[0] = HTTP2;
-        supportedProtocolsStr[1] = HTTP11;
     }
 
     @Override
