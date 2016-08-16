@@ -141,7 +141,7 @@ public class Http2AddOn implements AddOn {
     // ----------------------------------------------------- Private Methods
 
 
-    private satic Http2ServerFilter updateFilterChain(final FilterChainBuilder builder) {
+    private Http2ServerFilter updateFilterChain(final FilterChainBuilder builder) {
         
         final int codecFilterIdx = builder.indexOfType(
                 org.glassfish.grizzly.http.HttpServerFilter.class);
