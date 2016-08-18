@@ -92,6 +92,10 @@ public class HttpSemanticsTest extends TestCase {
     private final HttpServerFilter httpServerFilter =
             new HttpServerFilter(false, MAX_HEADERS_SIZE, new KeepAlive(), null);
 
+    @SuppressWarnings("deprecation")
+    private final HttpServerFilter httpServerFilterChunking =
+            new HttpServerFilter(true, MAX_HEADERS_SIZE, new KeepAlive(), null);
+
     // ------------------------------------------------------------ Test Methods
 
 
@@ -236,7 +240,43 @@ public class HttpSemanticsTest extends TestCase {
             }
         });
     }
+    
+    public void testHttp10NoContentLengthNoChunking() throws Throwable {
 
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.0")
+                .build();
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("Connection", "close");
+        result.addHeader("!Content-Length", "0");
+        result.addHeader("!Transfer-Encoding", "chunked");
+        result.setStatusMessage("ok");
+        result.appendContent("Content");
+        doTest(request, result, new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                HttpRequestPacket request =
+                        (HttpRequestPacket)
+                                ((HttpContent) ctx.getMessage()).getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+                HttpStatus.OK_200.setValues(response);
+                MemoryManager mm = ctx.getMemoryManager();
+                HttpContent content = response.httpContentBuilder().content(Buffers.wrap(mm, "Content")).build();
+                // Setting last flag to false to make sure HttpServerFilter will not
+                // add content-length header
+                content.setLast(false);
+                ctx.write(content);
+                ctx.flush(new FlushAndCloseHandler());
+                return ctx.getStopAction();
+            }
+        }, true);
+    }
+    
     public void testHeadFixedLength() throws Throwable {
 
         HttpRequestPacket request = HttpRequestPacket.builder()
@@ -809,21 +849,31 @@ public class HttpSemanticsTest extends TestCase {
                 .protocol("HTTP/1.1")
                 .build();
     }
-    
+
     private void doTest(Object request, ExpectedResult expectedResults, Filter serverFilter)
+            throws Throwable {
+        doTest(request, expectedResults, serverFilter, false);
+    }
+
+    private void doTest(Object request, ExpectedResult expectedResults, Filter serverFilter, boolean chunkingEnabled)
             throws Throwable {
         final ClientFilter clientFilter = new ClientFilter(request,
                 expectedResults);
 
-        doTest(clientFilter, serverFilter);
+        doTest(clientFilter, serverFilter, chunkingEnabled);
     }
 
     private void doTest(final ClientFilter clientFilter, Filter serverFilter)
             throws Throwable {
+        doTest(clientFilter, serverFilter, false);
+    }
+    
+    private void doTest(final ClientFilter clientFilter, Filter serverFilter, boolean chunkingEnabled)
+            throws Throwable {
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(1024));
-        filterChainBuilder.add(httpServerFilter);
+        filterChainBuilder.add(chunkingEnabled ? httpServerFilterChunking : httpServerFilter);
         filterChainBuilder.add(serverFilter);
         FilterChain filterChain = filterChainBuilder.build();
 
