@@ -848,6 +848,8 @@ public class HttpServerFilter extends HttpCodecFilter {
             entityBody = false;
             response.setExpectContent(false);
         }
+        
+        final boolean isHttp11OrHigher = (requestProtocol.compareTo(Protocol.HTTP_1_1) >= 0);
 
         HttpContent encodedHttpContent = null;
         
@@ -873,7 +875,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                         }
 
                         response.setContentLength(httpContent.getContent().remaining());
-                    } else if (chunkingEnabled) {
+                    } else if (chunkingEnabled && isHttp11OrHigher) {
                         // otherwise use chunking if possible
                         response.setChunked(true);
                     }
