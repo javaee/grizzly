@@ -68,12 +68,14 @@ import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.utils.Pair;
 import static org.glassfish.grizzly.http2.Constants.IN_FIN_TERMINATION;
+import static org.glassfish.grizzly.http2.Constants.RESET_TERMINATION;
 import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
 
 /**
@@ -435,16 +437,32 @@ public class Http2ServerFilter extends Http2BaseFilter {
         final Http2Request request = Http2Request.create();
         request.setConnection(context.getConnection());
 
-        final Http2Stream stream;
-
-        stream = http2Connection.acceptStream(request,
-                headersFrame.getStreamId(), 0, 0, Http2StreamState.IDLE);
+        final Http2Stream stream = http2Connection.acceptStream(request,
+                                                                headersFrame.getStreamId(),
+                                                                0,
+                                                                0,
+                                                                Http2StreamState.IDLE);
         if (stream == null) { // GOAWAY has been sent, so ignoring this request
             request.recycle();
             return;
         }
 
-        DecoderUtils.decodeRequestHeaders(http2Connection, request);
+        try {
+            DecoderUtils.decodeRequestHeaders(http2Connection, request);
+        } catch (IOException ioe) {
+            if (ioe instanceof InvalidCharacterException) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.warning(ioe.getMessage());
+                }
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, ioe.getMessage(), ioe);
+                }
+                http2Connection.sendRstFrame(ErrorCode.PROTOCOL_ERROR, stream.getId());
+                return;
+            } else {
+                throw ioe;
+            }
+        }
         onHttpHeadersParsed(request, context);        
 
         prepareIncomingRequest(stream, request);

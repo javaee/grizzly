@@ -61,42 +61,60 @@ import org.glassfish.grizzly.http2.hpack.DecodingCallback;
 class DecoderUtils {
     private final static Logger LOGGER = Grizzly.logger(DecoderUtils.class);
 
+    private static final String INVALID_CHARACTER_MESSAGE =
+            "Invalid character 0x%02x at index '%s' found in header %s [%s: %s]";
+
+    @SuppressWarnings("DuplicateThrows")
     static void decodeRequestHeaders(final Http2Connection http2Connection,
-            final HttpRequestPacket request) throws IOException {
-        
-        http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
+                                     final HttpRequestPacket request)
+            throws InvalidCharacterException, IOException {
 
-            @Override
-            public void onDecoded(CharSequence name, CharSequence value) {
-                if (name.charAt(0) == ':') {
-                    processServiceRequestHeader(request, name.toString(), value.toString());
-                } else {
-                    processNormalHeader(request, name.toString(), value.toString());
+        try {
+            http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
+
+                @Override
+                public void onDecoded(CharSequence name, CharSequence value) {
+                    validateHeaderCharacters(name, value);
+                    if (name.charAt(0) == ':') {
+                        processServiceRequestHeader(request, name.toString(), value.toString());
+                    } else {
+                        processNormalHeader(request, name.toString(), value.toString());
+                    }
                 }
-            }
 
-        });
-        
-        request.setProtocol(Protocol.HTTP_2_0);
+            });
+        } catch (RuntimeException re) {
+            throw new InvalidCharacterException(re);
+        } finally {
+            request.setProtocol(Protocol.HTTP_2_0);
+        }
     }
 
+    @SuppressWarnings("DuplicateThrows")
     static void decodeResponseHeaders(final Http2Connection http2Connection,
-            final HttpResponsePacket response) throws IOException {
-        
-        http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
+                                      final HttpResponsePacket response)
+            throws InvalidCharacterException, IOException {
 
-            @Override
-            public void onDecoded(final CharSequence name, final CharSequence value) {
-                if (name.charAt(0) == ':') {
-                    processServiceResponseHeader(response, name.toString(), value.toString());
-                } else {
-                    processNormalHeader(response, name.toString(), value.toString());
+        try {
+            http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
+
+                @Override
+                public void onDecoded(final CharSequence name, final CharSequence value) {
+                    validateHeaderCharacters(name, value);
+                    if (name.charAt(0) == ':') {
+                        processServiceResponseHeader(response, name.toString(), value.toString());
+                    } else {
+                        processNormalHeader(response, name.toString(), value.toString());
+                    }
                 }
-            }
 
-        });
-        
-        response.setProtocol(Protocol.HTTP_2_0);
+            });
+        } catch (RuntimeException re) {
+            throw new InvalidCharacterException(re);
+        } finally {
+            response.setProtocol(Protocol.HTTP_2_0);
+        }
+
     }
 
     private static void processServiceRequestHeader(
@@ -189,6 +207,31 @@ class DecoderUtils {
                 ((Http2Request) httpHeader).requiresAcknowledgement(true);
             }
         }
+    }
+
+    private static void validateHeaderCharacters(final CharSequence name, final CharSequence value) {
+        assert (name != null);
+        assert (value != null);
+        int idx = ensureRange(name);
+        if (idx != -1) {
+            final String msg = String.format(INVALID_CHARACTER_MESSAGE, (int) name.charAt(idx), idx, "name", name, value);
+            throw new RuntimeException(msg);
+        }
+        idx = ensureRange(value);
+        if (idx != -1) {
+            final String msg = String.format(INVALID_CHARACTER_MESSAGE, (int) name.charAt(idx), idx, "value", name, value);
+            throw new RuntimeException(msg);
+        }
+    }
+
+    private static int ensureRange(final CharSequence cs) {
+        for (int i = 0, len = cs.length(); i < len; i++) {
+            final char c = cs.charAt(i);
+            if (c < 0x20 || c > 0xFF) {
+                return i;
+            }
+        }
+        return -1;
     }
 
 }

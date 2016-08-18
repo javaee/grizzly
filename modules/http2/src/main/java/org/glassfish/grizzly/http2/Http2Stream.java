@@ -124,7 +124,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     private static final AtomicIntegerFieldUpdater<Http2Stream> completeFinalizationCounterUpdater =
             AtomicIntegerFieldUpdater.newUpdater(Http2Stream.class, "completeFinalizationCounter");
     private volatile int completeFinalizationCounter;
-    
+
     // flag, which is indicating if Http2Stream processing has been marked as complete by external code
     volatile boolean isProcessingComplete;
     
@@ -433,7 +433,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
                 new CloseReason(CloseType.REMOTELY, null))) {
             // initiat graceful shutdown for input, so user is able to read
             // the bufferred data
-            inputBuffer.close(RESET_TERMINATION);
+            inputBuffer.terminate(RESET_TERMINATION);
             
             // forcibly terminate the output, so no more data will be sent
             outputSink.terminate(RESET_TERMINATION);
