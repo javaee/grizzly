@@ -82,12 +82,9 @@ public abstract class AbstractHttp2Test {
         
         modes.add(new Object[] {Boolean.FALSE});
         
-        if (AlpnSupport.isEnabled()) {
+        if (AlpnSupport.isEnabled() && !Boolean.valueOf(System.getProperty("grizzly.skip.http2tls", "false"))) {
             modes.add(new Object[] {Boolean.TRUE});
-        } else {
-            LOGGER.info("Alpn is not supported by this JDK, so Alpn mode will be skipped");
         }
-        
         return modes;
     }
     
