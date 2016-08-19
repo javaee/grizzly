@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -158,69 +158,34 @@ public class CompressionEncodingFilterTest {
         assertTrue(filter.applyEncoding(response));
     }
 
-    @Test
-    public void testContentEncodingProcessing() throws Exception {
-        
-        final CompressionEncodingFilter filter =
-                new CompressionEncodingFilter(CompressionMode.ON,
-                                              1,
-                                              new String[0],
-                                              new String[0],
-                                              new String[] {"gzip"});
-        
-        // Valid gzip compression
-        HttpRequestPacket request = setContentEncoding(
-                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
-                "gzip");
-        assertTrue(filter.applyDecoding(request));
-        
-        // Other encoding header
-        request = setContentEncoding(
-                HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),
-                "identity");
-        assertFalse(filter.applyDecoding(request));
-        
-        // No header - assume uncompressed
-        request = HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build();
-        assertFalse(filter.applyDecoding(request));
-    }
-    
     private HttpRequestPacket setAcceptEncoding(HttpRequestPacket request, String acceptEncoding) {
-        return setHeader(request, Header.AcceptEncoding, acceptEncoding);
-    }
-
-    private HttpRequestPacket setContentEncoding(HttpRequestPacket request, String contentEncoding) {
-        return setHeader(request, Header.ContentEncoding, contentEncoding);
-    }
-
-    private HttpRequestPacket setHeader(HttpRequestPacket request, Header header, String headerValue) {
         switch (headerType) {
             case String: {
-                request.addHeader(header, headerValue);
+                request.addHeader(Header.AcceptEncoding, acceptEncoding);
                 break;
             }
             case Buffer: {
                 final byte[] encodingBytes =
-                        headerValue.getBytes(Charsets.ASCII_CHARSET);
+                        acceptEncoding.getBytes(Charsets.ASCII_CHARSET);
                 
                 final byte[] array = new byte[2048];
                 final int offs = r.nextInt(array.length - encodingBytes.length);
                 System.arraycopy(encodingBytes, 0, array, offs, encodingBytes.length);
                 final Buffer b = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, array);
                 
-                request.getHeaders().addValue(header)
+                request.getHeaders().addValue(Header.AcceptEncoding)
                         .setBuffer(b, offs, offs + encodingBytes.length);
                 break;
             }
                 
             case Chars: {
                 final char[] array = new char[2048];
-                final int offs = r.nextInt(array.length - headerValue.length());
+                final int offs = r.nextInt(array.length - acceptEncoding.length());
                 
-                headerValue.getChars(0, headerValue.length(), array, offs);
+                acceptEncoding.getChars(0, acceptEncoding.length(), array, offs);
                 
-                request.getHeaders().addValue(header)
-                        .setChars(array, offs, offs + headerValue.length());
+                request.getHeaders().addValue(Header.AcceptEncoding)
+                        .setChars(array, offs, offs + acceptEncoding.length());
                 break;
             }
         }
