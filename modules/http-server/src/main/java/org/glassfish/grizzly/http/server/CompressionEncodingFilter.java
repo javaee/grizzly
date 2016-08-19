@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -105,13 +105,7 @@ public class CompressionEncodingFilter implements EncodingFilter {
 
     @Override
     public boolean applyDecoding(final HttpHeader httpPacket) {
-        if(! httpPacket.isRequest()) {
-            return false;
-        }
-        
-        assert httpPacket instanceof HttpRequestPacket;
-        return canDecompressHttpRequest((HttpRequestPacket) httpPacket, 
-                aliases);
+        return false;
     }
     
     /**
@@ -164,33 +158,5 @@ public class CompressionEncodingFilter implements EncodingFilter {
         }
 
         return false;
-    }
-    
-    /**
-     * Returns <tt>true</tt> if the {@link HttpResponsePacket} could be
-     * compressed, or <tt>false</tt> otherwise.
-     * The method checks if client supports compression and if the resource,
-     * that we are about to send matches {@link CompressionConfig} configuration.
-     */
-    protected static boolean canDecompressHttpRequest(
-            final HttpRequestPacket request,
-            final String[] aliases) {
-        
-        String contentEncoding = request.getHeader(Header.ContentEncoding);
-        
-        // If no header is present, assume request is not encoded, so don't decode
-        if (contentEncoding == null) {
-            return false;
-        }
-        
-        // If content encoding is set to one of the aliases supported by this
-        // filter, decoding should happen.
-        contentEncoding = contentEncoding.trim();
-        for (String alias : aliases) {
-            if (alias.equals(contentEncoding)) {
-                return true;
-            }
-        }
-        return false;
-    }
+    }    
 }
