@@ -430,7 +430,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected void onWorkerExit(Worker worker) {
         synchronized (stateLock) {
             workers.remove(worker);
-
+            if (delayedQueue != null) {
+                delayedQueue.remove(worker);
+            }
             if (workers.isEmpty()) {
                 // notify awaitTermination threads
                 stateLock.notifyAll();
