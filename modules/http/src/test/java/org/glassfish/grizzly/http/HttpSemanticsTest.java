@@ -667,6 +667,43 @@ public class HttpSemanticsTest extends TestCase {
             }
         });
     }
+
+    public void testHttp1ExplicitChunkingNoContentLengthOnSingleChunk() throws Throwable {
+
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .chunked(false)
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .build();
+
+        ExpectedResult result = new ExpectedResult();
+        result.setProtocol("HTTP/1.1");
+        result.setStatusCode(200);
+        result.addHeader("Transfer-Encoding", "chunked");
+        result.addHeader("!Content-Length", "7");
+        result.setStatusMessage("ok");
+        result.appendContent("Content");
+        doTest(request, result, new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                HttpRequestPacket request =
+                        (HttpRequestPacket)
+                                ((HttpContent) ctx.getMessage()).getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+                response.setChunked(true);
+                HttpStatus.OK_200.setValues(response);
+                MemoryManager mm = ctx.getMemoryManager();
+                HttpContent content = response.httpContentBuilder().content(Buffers.wrap(mm, "Content")).build();
+                // HttpServerFilter should apply content-length implicitly
+                content.setLast(true);
+                ctx.write(content);
+                ctx.flush(new FlushAndCloseHandler());
+                return ctx.getStopAction();
+            }
+        });
+    }
     
     public void testContentLengthDuplicationSame() throws Throwable {
 
