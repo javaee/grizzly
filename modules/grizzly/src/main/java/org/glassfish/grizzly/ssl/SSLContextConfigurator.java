@@ -329,6 +329,27 @@ public class SSLContextConfigurator {
         return validateConfiguration(false);
     }
 
+    private static void loadBytes(final byte[] bytes, final String storeFile, final char[] password, final KeyStore store)
+    throws IOException, CertificateException, NoSuchAlgorithmException {
+        InputStream inputStream = null;
+        try {
+            if (bytes != null) {
+                inputStream = new ByteArrayInputStream(bytes);
+            } else if (!"NONE".equals(storeFile)) {
+                inputStream = new FileInputStream(storeFile);
+            }
+
+            store.load(inputStream, password);
+        } finally {
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
     /**
      * Validates {@link SSLContextConfigurator} configuration.
      *
@@ -352,24 +373,7 @@ public class SSLContextConfigurator {
                             .getInstance(keyStoreType != null ? keyStoreType
                                     : KeyStore.getDefaultType());
                 }
-                InputStream keyStoreInputStream = null;
-                try {
-                    if (keyStoreBytes != null) {
-                        keyStoreInputStream = new ByteArrayInputStream(keyStoreBytes);
-                    } else if (!keyStoreFile.equals("NONE")) {
-                        keyStoreInputStream = new FileInputStream(keyStoreFile);
-                    }
-
-                    keyStore.load(keyStoreInputStream, keyStorePass);
-                } finally {
-                    try {
-                        if (keyStoreInputStream != null) {
-                            keyStoreInputStream.close();
-                        }
-                    } catch (IOException ignored) {
-                    }
-                }
-
+                loadBytes(keyStoreBytes, keyStoreFile, keyStorePass, keyStore);
                 String kmfAlgorithm = keyManagerFactoryAlgorithm;
                 if (kmfAlgorithm == null) {
                     kmfAlgorithm = System.getProperty(
@@ -407,7 +411,7 @@ public class SSLContextConfigurator {
                 valid = false;
             }
         } else {
-            valid &= !needsKeyStore;
+            valid = !needsKeyStore;
         }
 
         if (trustStoreBytes != null || trustStoreFile != null) {
@@ -422,22 +426,7 @@ public class SSLContextConfigurator {
                             .getInstance(trustStoreType != null ? trustStoreType
                                     : KeyStore.getDefaultType());
                 }
-                InputStream trustStoreInputStream = null;
-                try {
-                    if (trustStoreBytes != null) {
-                        trustStoreInputStream = new ByteArrayInputStream(trustStoreBytes);
-                    } else if (!trustStoreFile.equals("NONE")) {
-                        trustStoreInputStream = new FileInputStream(trustStoreFile);
-                    }
-                    trustStore.load(trustStoreInputStream, trustStorePass);
-                } finally {
-                    try {
-                        if (trustStoreInputStream != null) {
-                            trustStoreInputStream.close();
-                        }
-                    } catch (IOException ignored) {
-                    }
-                }
+                loadBytes(trustStoreBytes, trustStoreFile, trustStorePass, trustStore);
 
                 String tmfAlgorithm = trustManagerFactoryAlgorithm;
                 if (tmfAlgorithm == null) {
@@ -498,22 +487,7 @@ public class SSLContextConfigurator {
                                 .getInstance(keyStoreType != null ? keyStoreType
                                         : KeyStore.getDefaultType());
                     }
-                    InputStream keyStoreInputStream = null;
-                    try {
-                        if (keyStoreBytes != null) {
-                            keyStoreInputStream = new ByteArrayInputStream(keyStoreBytes);
-                        } else if (!keyStoreFile.equals("NONE")) {
-                            keyStoreInputStream = new FileInputStream(keyStoreFile);
-                        }
-                        keyStore.load(keyStoreInputStream, keyStorePass);
-                    } finally {
-                        try {
-                            if (keyStoreInputStream != null) {
-                                keyStoreInputStream.close();
-                            }
-                        } catch (IOException ignored) {
-                        }
-                    }
+                    loadBytes(keyStoreBytes, keyStoreFile, keyStorePass, keyStore);
 
                     String kmfAlgorithm = keyManagerFactoryAlgorithm;
                     if (kmfAlgorithm == null) {
@@ -566,23 +540,7 @@ public class SSLContextConfigurator {
                                 .getInstance(trustStoreType != null ? trustStoreType
                                         : KeyStore.getDefaultType());
                     }
-                    InputStream trustStoreInputStream = null;
-                    try {
-                        if (trustStoreBytes != null) {
-                            trustStoreInputStream = new ByteArrayInputStream(trustStoreBytes);
-                        } else if (!trustStoreFile.equals("NONE")) {
-                            trustStoreInputStream = new FileInputStream(
-                                    trustStoreFile);
-                        }
-                        trustStore.load(trustStoreInputStream, trustStorePass);
-                    } finally {
-                        try {
-                            if (trustStoreInputStream != null) {
-                                trustStoreInputStream.close();
-                            }
-                        } catch (IOException ignored) {
-                        }
-                    }
+                    loadBytes(trustStoreBytes, trustStoreFile, trustStorePass, trustStore);
 
                     String tmfAlgorithm = trustManagerFactoryAlgorithm;
                     if (tmfAlgorithm == null) {
