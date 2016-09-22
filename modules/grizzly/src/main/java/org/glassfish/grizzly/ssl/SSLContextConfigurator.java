@@ -329,27 +329,6 @@ public class SSLContextConfigurator {
         return validateConfiguration(false);
     }
 
-    private static void loadBytes(final byte[] bytes, final String storeFile, final char[] password, final KeyStore store)
-    throws IOException, CertificateException, NoSuchAlgorithmException {
-        InputStream inputStream = null;
-        try {
-            if (bytes != null) {
-                inputStream = new ByteArrayInputStream(bytes);
-            } else if (!"NONE".equals(storeFile)) {
-                inputStream = new FileInputStream(storeFile);
-            }
-
-            store.load(inputStream, password);
-        } finally {
-            try {
-                if (inputStream != null) {
-                    inputStream.close();
-                }
-            } catch (IOException ignored) {
-            }
-        }
-    }
-
     /**
      * Validates {@link SSLContextConfigurator} configuration.
      *
@@ -624,5 +603,26 @@ public class SSLContextConfigurator {
         keyStoreBytes = null;
         
         securityProtocol = "TLS";
+    }
+
+    private static void loadBytes(final byte[] bytes, final String storeFile, final char[] password, final KeyStore store)
+            throws IOException, CertificateException, NoSuchAlgorithmException {
+        InputStream inputStream = null;
+        try {
+            if (bytes != null) {
+                inputStream = new ByteArrayInputStream(bytes);
+            } else if (!"NONE".equals(storeFile)) {
+                inputStream = new FileInputStream(storeFile);
+            }
+
+            store.load(inputStream, password);
+        } finally {
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+            } catch (IOException ignored) {
+            }
+        }
     }
 }
