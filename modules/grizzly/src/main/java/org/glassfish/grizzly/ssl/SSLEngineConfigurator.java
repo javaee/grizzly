@@ -206,7 +206,7 @@ public class SSLEngineConfigurator implements SSLEngineFactory {
         if (sslContext == null) {
             synchronized(sync) {
                 if (sslContext == null) {
-                    sslContext = sslContextConfiguration.createSSLContextOrDie();
+                    sslContext = sslContextConfiguration.createSSLContext(true);
                 }
             }
         }
@@ -370,7 +370,7 @@ public class SSLEngineConfigurator implements SSLEngineFactory {
         if (sslContext == null) {
             synchronized(sync) {
                 if (sslContext == null) {
-                    sslContext = sslContextConfiguration.createSSLContextOrDie();
+                    sslContext = sslContextConfiguration.createSSLContext(true);
                 }
             }
         }

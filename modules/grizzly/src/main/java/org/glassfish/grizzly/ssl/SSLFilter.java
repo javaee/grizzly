@@ -123,7 +123,7 @@ public class SSLFilter extends SSLBaseFilter {
 
         if (clientSSLEngineConfigurator == null) {
             this.clientSSLEngineConfigurator = new SSLEngineConfigurator(
-                    SSLContextConfigurator.DEFAULT_CONFIG.createSSLContextOrDie(),
+                    SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(true),
                     true, false, false);
         } else {
             this.clientSSLEngineConfigurator = clientSSLEngineConfigurator;

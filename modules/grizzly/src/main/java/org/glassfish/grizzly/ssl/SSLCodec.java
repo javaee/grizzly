@@ -63,7 +63,7 @@ public class SSLCodec implements Codec<Buffer, Buffer> {
     private final Transformer<Buffer, Buffer> encoder;
 
     public SSLCodec(SSLContextConfigurator config) {
-        this(config.createSSLContextOrDie());
+        this(config.createSSLContext(true));
     }
 
     public SSLCodec(SSLContext sslContext) {

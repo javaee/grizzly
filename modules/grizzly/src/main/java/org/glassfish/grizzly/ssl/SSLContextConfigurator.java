@@ -325,7 +325,7 @@ public class SSLContextConfigurator {
      * @return <code>true</code> if configuration is valid, else
      *         <code>false</code>.
      *
-     * @deprecated Use {@link #createSSLContextOrDie}.
+     * @deprecated Use {@link #createSSLContext(boolean)}.
      */
     @Deprecated
     public boolean validateConfiguration() {
@@ -340,7 +340,7 @@ public class SSLContextConfigurator {
      * @return <code>true</code> if configuration is valid, else
      *         <code>false</code>.
      *
-     * @deprecated Use {@link #createSSLContextOrDie}.
+     * @deprecated Use {@link #createSSLContext(boolean)}.
      */
     @Deprecated
     public boolean validateConfiguration(boolean needsKeyStore) {
@@ -457,7 +457,7 @@ public class SSLContextConfigurator {
      *
      * @return a new {@link SSLContext}
      *
-     * @deprecated Use {@link #createSSLContextOrDie}.
+     * @deprecated Use {@link #createSSLContext(boolean)}.
      */
     @Deprecated
     public SSLContext createSSLContext() {
@@ -469,17 +469,16 @@ public class SSLContextConfigurator {
      * a {@link GenericStoreException}
      * will be raised containing the root cause of the failure.
      *
+     * @param throwException <code>true</code> if an exception should be raised upon failure.
+     *
      * @return a new {@link SSLContext}
      *
-     * @throws GenericStoreException if the SSLContext cannot be created.
+     * @throws GenericStoreException <code>throwException</code> is <code>true</code> and
+     *  the SSLContext cannot be created
      *
      * @since 2.3.28
      */
-    public SSLContext createSSLContextOrDie() {
-        return createSSLContext(true);
-    }
-
-    private SSLContext createSSLContext(final boolean throwException) {
+    public SSLContext createSSLContext(final boolean throwException) {
         SSLContext sslContext = null;
 
         try {

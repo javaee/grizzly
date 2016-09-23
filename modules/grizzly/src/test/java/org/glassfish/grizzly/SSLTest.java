@@ -278,7 +278,7 @@ public class SSLTest {
                                               false,
                                               false);
             serverSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContextOrDie(),
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true),
                                               false,
                                               false,
                                               false);
@@ -414,9 +414,9 @@ public class SSLTest {
 
         if (sslContextConfigurator.validateConfiguration(true)) {
             clientSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContextOrDie());
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true));
             serverSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContextOrDie(),
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true),
                     false, false, false);
         } else {
             fail("Failed to validate SSLContextConfiguration.");
@@ -492,9 +492,9 @@ public class SSLTest {
                         false, false, false);
             } else {
                 clientSSLEngineConfigurator =
-                        new SSLEngineConfigurator(sslContextConfigurator.createSSLContextOrDie());
+                        new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true));
                 serverSSLEngineConfigurator =
-                        new SSLEngineConfigurator(sslContextConfigurator.createSSLContextOrDie(),
+                        new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true),
                         false, false, false);
             }
         } else {
@@ -618,9 +618,9 @@ public class SSLTest {
 
         if (sslContextConfigurator.validateConfiguration(true)) {
             clientSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContextOrDie());
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true));
             serverSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContextOrDie(),
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true),
                     false, false, false);
         } else {
             fail("Failed to validate SSLContextConfiguration.");
@@ -706,9 +706,9 @@ public class SSLTest {
 
         if (sslContextConfigurator.validateConfiguration(true)) {
             clientSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContextOrDie());
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true));
             serverSSLEngineConfigurator =
-                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContextOrDie(),
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true),
                     false, false, false);
         } else {
             fail("Failed to validate SSLContextConfiguration.");

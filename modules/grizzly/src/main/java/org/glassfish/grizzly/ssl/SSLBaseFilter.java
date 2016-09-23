@@ -168,7 +168,7 @@ public class SSLBaseFilter extends BaseFilter {
                 ((serverSSLEngineConfigurator != null)
                         ? serverSSLEngineConfigurator
                         : new SSLEngineConfigurator(
-                                  SSLContextConfigurator.DEFAULT_CONFIG.createSSLContextOrDie(),
+                                  SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(true),
                                   false,
                                   false,
                                   false));
