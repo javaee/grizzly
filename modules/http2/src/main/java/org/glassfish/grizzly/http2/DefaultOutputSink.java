@@ -57,6 +57,7 @@ import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
 import org.glassfish.grizzly.memory.Buffers;
@@ -277,6 +278,20 @@ class DefaultOutputSink implements StreamOutputSink {
                 headerFrames = http2Connection.encodeHttpHeaderAsHeaderFrames(
                         ctx, httpHeader, stream.getId(), isNoPayload, null);
                 stream.onSndHeaders(isNoPayload);
+
+                // 100-Continue block
+                if (!httpHeader.isRequest()) {
+                    HttpResponsePacket response = (HttpResponsePacket) httpHeader;
+                    if (response.isAcknowledgement()) {
+                        response.acknowledged();
+                        response.getHeaders().clear();
+                        unflushedWritesCounter.incrementAndGet();
+                        flushToConnectionOutputSink(headerFrames, null,
+                                new FlushCompletionHandler(completionHandler),
+                                messageCloner, false);
+                        return;
+                    }
+                }
                 
                 httpHeader.setCommitted(true);
 
@@ -419,7 +434,7 @@ class DefaultOutputSink implements StreamOutputSink {
 
     /**
      * Send the data represented by the {@link Source} to the {@link Http2Stream}.
-     * Unlike {@link #writeDownStream(org.glassfish.grizzly.http.HttpPacket, org.glassfish.grizzly.filterchain.FilterChainContext)} ,
+     * Unlike {@link #writeDownStream(HttpPacket, FilterChainContext, CompletionHandler, MessageCloner)} ,
      * here we assume the resource is going to be send on non-commited header and
      * it will be the only resource sent over this {@link Http2Stream} (isLast flag will be set).
      * 

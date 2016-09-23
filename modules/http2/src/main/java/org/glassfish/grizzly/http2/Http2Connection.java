@@ -512,6 +512,10 @@ public class Http2Connection {
         return peerMaxConcurrentStreams;
     }
 
+    public synchronized void clearTempHeaders() {
+        tmpHeaderFramesList.clear();
+    }
+
     /**
      * Sets the default maximum number of concurrent streams allowed for this session by peer.
      */
