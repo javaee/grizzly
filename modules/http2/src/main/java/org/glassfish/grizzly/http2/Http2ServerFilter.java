@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -50,6 +51,8 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -73,9 +76,12 @@ import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
+import org.glassfish.grizzly.ssl.SSLUtils;
 import org.glassfish.grizzly.utils.Pair;
+
+import javax.net.ssl.SSLEngine;
+
 import static org.glassfish.grizzly.http2.Constants.IN_FIN_TERMINATION;
-import static org.glassfish.grizzly.http2.Constants.RESET_TERMINATION;
 import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
 
 /**
@@ -84,11 +90,297 @@ import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
  */
 public class Http2ServerFilter extends Http2BaseFilter {
     private final static Logger LOGGER = Grizzly.logger(Http2ServerFilter.class);
+
+    protected static final String[] CIPHER_SUITE_BLACK_LIST = {
+            "TLS_NULL_WITH_NULL_NULL",
+            "TLS_RSA_WITH_NULL_MD5",
+            "TLS_RSA_WITH_NULL_SHA",
+            "TLS_RSA_EXPORT_WITH_RC4_40_MD5",
+            "TLS_RSA_WITH_RC4_128_MD5",
+            "TLS_RSA_WITH_RC4_128_SHA",
+            "TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5",
+            "TLS_RSA_WITH_IDEA_CBC_SHA",
+            "TLS_RSA_EXPORT_WITH_DES40_CBC_SHA",
+            "TLS_RSA_WITH_DES_CBC_SHA",
+            "TLS_RSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA",
+            "TLS_DH_DSS_WITH_DES_CBC_SHA",
+            "TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA",
+            "TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA",
+            "TLS_DH_RSA_WITH_DES_CBC_SHA",
+            "TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA",
+            "TLS_DHE_DSS_WITH_DES_CBC_SHA",
+            "TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
+            "TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA",
+            "TLS_DHE_RSA_WITH_DES_CBC_SHA",
+            "TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_DH_anon_EXPORT_WITH_RC4_40_MD5",
+            "TLS_DH_anon_WITH_RC4_128_MD5",
+            "TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA",
+            "TLS_DH_anon_WITH_DES_CBC_SHA",
+            "TLS_DH_anon_WITH_3DES_EDE_CBC_SHA",
+            "TLS_KRB5_WITH_DES_CBC_SHA",
+            "TLS_KRB5_WITH_3DES_EDE_CBC_SHA",
+            "TLS_KRB5_WITH_RC4_128_SHA",
+            "TLS_KRB5_WITH_IDEA_CBC_SHA",
+            "TLS_KRB5_WITH_DES_CBC_MD5",
+            "TLS_KRB5_WITH_3DES_EDE_CBC_MD5",
+            "TLS_KRB5_WITH_RC4_128_MD5",
+            "TLS_KRB5_WITH_IDEA_CBC_MD5",
+            "TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA",
+            "TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA",
+            "TLS_KRB5_EXPORT_WITH_RC4_40_SHA",
+            "TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5",
+            "TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5",
+            "TLS_KRB5_EXPORT_WITH_RC4_40_MD5",
+            "TLS_PSK_WITH_NULL_SHA",
+            "TLS_DHE_PSK_WITH_NULL_SHA",
+            "TLS_RSA_PSK_WITH_NULL_SHA",
+            "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DH_DSS_WITH_AES_128_CBC_SHA",
+            "TLS_DH_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DH_anon_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_DH_DSS_WITH_AES_256_CBC_SHA",
+            "TLS_DH_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
+            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_DH_anon_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_WITH_NULL_SHA256",
+            "TLS_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_RSA_WITH_AES_256_CBC_SHA256",
+            "TLS_DH_DSS_WITH_AES_128_CBC_SHA256",
+            "TLS_DH_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
+            "TLS_RSA_WITH_CAMELLIA_128_CBC_SHA",
+            "TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA",
+            "TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA",
+            "TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA",
+            "TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA",
+            "TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA",
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_DH_DSS_WITH_AES_256_CBC_SHA256",
+            "TLS_DH_RSA_WITH_AES_256_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256",
+            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
+            "TLS_DH_anon_WITH_AES_128_CBC_SHA256",
+            "TLS_DH_anon_WITH_AES_256_CBC_SHA256",
+            "TLS_RSA_WITH_CAMELLIA_256_CBC_SHA",
+            "TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA",
+            "TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA",
+            "TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA",
+            "TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA",
+            "TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA",
+            "TLS_PSK_WITH_RC4_128_SHA",
+            "TLS_PSK_WITH_3DES_EDE_CBC_SHA",
+            "TLS_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_PSK_WITH_AES_256_CBC_SHA",
+            "TLS_DHE_PSK_WITH_RC4_128_SHA",
+            "TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA",
+            "TLS_DHE_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_PSK_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_PSK_WITH_RC4_128_SHA",
+            "TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA",
+            "TLS_RSA_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_PSK_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_WITH_SEED_CBC_SHA",
+            "TLS_DH_DSS_WITH_SEED_CBC_SHA",
+            "TLS_DH_RSA_WITH_SEED_CBC_SHA",
+            "TLS_DHE_DSS_WITH_SEED_CBC_SHA",
+            "TLS_DHE_RSA_WITH_SEED_CBC_SHA",
+            "TLS_DH_anon_WITH_SEED_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_DH_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_DH_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_DH_DSS_WITH_AES_128_GCM_SHA256",
+            "TLS_DH_DSS_WITH_AES_256_GCM_SHA384",
+            "TLS_DH_anon_WITH_AES_128_GCM_SHA256",
+            "TLS_DH_anon_WITH_AES_256_GCM_SHA384",
+            "TLS_PSK_WITH_AES_128_GCM_SHA256",
+            "TLS_PSK_WITH_AES_256_GCM_SHA384",
+            "TLS_RSA_PSK_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_PSK_WITH_AES_256_GCM_SHA384",
+            "TLS_PSK_WITH_AES_128_CBC_SHA256",
+            "TLS_PSK_WITH_AES_256_CBC_SHA384",
+            "TLS_PSK_WITH_NULL_SHA256",
+            "TLS_PSK_WITH_NULL_SHA384",
+            "TLS_DHE_PSK_WITH_AES_128_CBC_SHA256",
+            "TLS_DHE_PSK_WITH_AES_256_CBC_SHA384",
+            "TLS_DHE_PSK_WITH_NULL_SHA256",
+            "TLS_DHE_PSK_WITH_NULL_SHA384",
+            "TLS_RSA_PSK_WITH_AES_128_CBC_SHA256",
+            "TLS_RSA_PSK_WITH_AES_256_CBC_SHA384",
+            "TLS_RSA_PSK_WITH_NULL_SHA256",
+            "TLS_RSA_PSK_WITH_NULL_SHA384",
+            "TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256",
+            "TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256",
+            "TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256",
+            "TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256",
+            "TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256",
+            "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
+            "TLS_ECDH_ECDSA_WITH_NULL_SHA",
+            "TLS_ECDH_ECDSA_WITH_RC4_128_SHA",
+            "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_NULL_SHA",
+            "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA",
+            "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_NULL_SHA",
+            "TLS_ECDH_RSA_WITH_RC4_128_SHA",
+            "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_NULL_SHA",
+            "TLS_ECDHE_RSA_WITH_RC4_128_SHA",
+            "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDH_anon_WITH_NULL_SHA",
+            "TLS_ECDH_anon_WITH_RC4_128_SHA",
+            "TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDH_anon_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_anon_WITH_AES_256_CBC_SHA",
+            "TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA",
+            "TLS_SRP_SHA_DSS_WITH_3DES_EDE_CBC_SHA",
+            "TLS_SRP_SHA_WITH_AES_128_CBC_SHA",
+            "TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_SRP_SHA_DSS_WITH_AES_128_CBC_SHA",
+            "TLS_SRP_SHA_WITH_AES_256_CBC_SHA",
+            "TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_SRP_SHA_DSS_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_PSK_WITH_RC4_128_SHA",
+            "TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDHE_PSK_WITH_NULL_SHA",
+            "TLS_ECDHE_PSK_WITH_NULL_SHA256",
+            "TLS_ECDHE_PSK_WITH_NULL_SHA384",
+            "TLS_RSA_WITH_ARIA_128_CBC_SHA256",
+            "TLS_RSA_WITH_ARIA_256_CBC_SHA384",
+            "TLS_DH_DSS_WITH_ARIA_128_CBC_SHA256",
+            "TLS_DH_DSS_WITH_ARIA_256_CBC_SHA384",
+            "TLS_DH_RSA_WITH_ARIA_128_CBC_SHA256",
+            "TLS_DH_RSA_WITH_ARIA_256_CBC_SHA384",
+            "TLS_DHE_DSS_WITH_ARIA_128_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_ARIA_256_CBC_SHA384",
+            "TLS_DHE_RSA_WITH_ARIA_128_CBC_SHA256",
+            "TLS_DHE_RSA_WITH_ARIA_256_CBC_SHA384",
+            "TLS_DH_anon_WITH_ARIA_128_CBC_SHA256",
+            "TLS_DH_anon_WITH_ARIA_256_CBC_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_ARIA_128_CBC_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_ARIA_256_CBC_SHA384",
+            "TLS_ECDH_ECDSA_WITH_ARIA_128_CBC_SHA256",
+            "TLS_ECDH_ECDSA_WITH_ARIA_256_CBC_SHA384",
+            "TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256",
+            "TLS_ECDHE_RSA_WITH_ARIA_256_CBC_SHA384",
+            "TLS_ECDH_RSA_WITH_ARIA_128_CBC_SHA256",
+            "TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384",
+            "TLS_RSA_WITH_ARIA_128_GCM_SHA256",
+            "TLS_RSA_WITH_ARIA_256_GCM_SHA384",
+            "TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256",
+            "TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384",
+            "TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256",
+            "TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384",
+            "TLS_DH_anon_WITH_ARIA_128_GCM_SHA256",
+            "TLS_DH_anon_WITH_ARIA_256_GCM_SHA384",
+            "TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256",
+            "TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384",
+            "TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256",
+            "TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384",
+            "TLS_PSK_WITH_ARIA_128_CBC_SHA256",
+            "TLS_PSK_WITH_ARIA_256_CBC_SHA384",
+            "TLS_DHE_PSK_WITH_ARIA_128_CBC_SHA256",
+            "TLS_DHE_PSK_WITH_ARIA_256_CBC_SHA384",
+            "TLS_RSA_PSK_WITH_ARIA_128_CBC_SHA256",
+            "TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384",
+            "TLS_PSK_WITH_ARIA_128_GCM_SHA256",
+            "TLS_PSK_WITH_ARIA_256_GCM_SHA384",
+            "TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256",
+            "TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384",
+            "TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256",
+            "TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384",
+            "TLS_ECDH_ECDSA_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_ECDH_ECDSA_WITH_CAMELLIA_256_CBC_SHA384",
+            "TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384",
+            "TLS_ECDH_RSA_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384",
+            "TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256",
+            "TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384",
+            "TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256",
+            "TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384",
+            "TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256",
+            "TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384",
+            "TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256",
+            "TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384",
+            "TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256",
+            "TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384",
+            "TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256",
+            "TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384",
+            "TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256",
+            "TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384",
+            "TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256",
+            "TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384",
+            "TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384",
+            "TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384",
+            "TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384",
+            "TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256",
+            "TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384",
+            "TLS_RSA_WITH_AES_128_CCM",
+            "TLS_RSA_WITH_AES_256_CCM",
+            "TLS_RSA_WITH_AES_128_CCM_8",
+            "TLS_RSA_WITH_AES_256_CCM_8",
+            "TLS_PSK_WITH_AES_128_CCM",
+            "TLS_PSK_WITH_AES_256_CCM",
+            "TLS_PSK_WITH_AES_128_CCM_8",
+            "TLS_PSK_WITH_AES_256_CCM_8"
+    };
+
+    static {
+        Arrays.sort(CIPHER_SUITE_BLACK_LIST);
+    }
     
     // flag, which enables/disables payload support for HTTP methods,
     // for which HTTP spec doesn't clearly state whether they support payload.
     // Known "undefined" methods are: GET, HEAD, DELETE
     private boolean allowPayloadForUndefinedHttpMethods;
+
+    private final Attribute<Connection> CIPHER_CHECKED =
+            AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("BLACK_LIST_CIPHER_SUITE_CHEKCED");
 
     public Http2ServerFilter() {
         this(null);
@@ -173,6 +465,18 @@ public class Http2ServerFilter extends Http2BaseFilter {
         
         final Http2Connection http2Connection =
                 obtainHttp2Connection(http2State, ctx, true);
+
+        if (!CIPHER_CHECKED.isSet(connection)) {
+            CIPHER_CHECKED.set(connection, connection);
+            final SSLEngine engine = SSLUtils.getSSLEngine(connection);
+            if (engine != null) {
+                if (Arrays.binarySearch(CIPHER_SUITE_BLACK_LIST, engine.getSession().getCipherSuite()) >= 0) {
+                    http2Connection.goAway(ErrorCode.INADEQUATE_SECURITY);
+                    ctx.getConnection().closeSilently();
+                    return ctx.getStopAction();
+                }
+            }
+        }
         
         final Buffer framePayload;
         if (!http2Connection.isHttp2InputEnabled()) { // Preface is not received yet
