@@ -53,12 +53,14 @@ import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteHandler;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http2.frames.DataFrame;
@@ -84,6 +86,7 @@ import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
 import org.glassfish.grizzly.http2.frames.RstStreamFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.ssl.SSLBaseFilter;
 import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
@@ -178,6 +181,7 @@ public class Http2Connection {
     private int peerMaxFramePayloadSize = getSpecDefaultFramePayloadSize();
     
     private boolean isFirstInFrame = true;
+    private volatile SSLBaseFilter sslFilter;
     
     private final AtomicInteger unackedReadBytes  = new AtomicInteger();
         
@@ -185,6 +189,11 @@ public class Http2Connection {
                        final boolean isServer,
                        final Http2BaseFilter handlerFilter) {
         this.connection = connection;
+        final FilterChain chain = (FilterChain) connection.getProcessor();
+        final int sslIdx = chain.indexOfType(SSLBaseFilter.class);
+        if (sslIdx != -1) {
+            sslFilter = (SSLBaseFilter) chain.get(sslIdx);
+        }
         this.isServer = isServer;
         this.handlerFilter = handlerFilter;
         
@@ -642,9 +651,15 @@ public class Http2Connection {
                     + "Connection={0}, settingsFrame={1}",
                     new Object[]{connection, settingsFrame});
         }
-        
+
         // server preface
-        connection.write(settingsFrame.toBuffer(this));
+        //noinspection unchecked
+        connection.write(settingsFrame.toBuffer(this), ((sslFilter != null) ? new EmptyCompletionHandler() {
+            @Override
+            public void completed(Object result) {
+                sslFilter.setRenegotiationDisabled(true);
+            }
+        } : null));
     }
     
     protected void sendClientPreface() {

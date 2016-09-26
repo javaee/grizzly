@@ -124,6 +124,7 @@ public class SSLBaseFilter extends BaseFilter {
     
     private final SSLEngineConfigurator serverSSLEngineConfigurator;
     private final boolean renegotiateOnClientAuthWant;
+    private volatile boolean renegotiationDisabled;
 
     protected final Set<HandshakeListener> handshakeListeners =
             Collections.newSetFromMap(
@@ -231,6 +232,15 @@ public class SSLBaseFilter extends BaseFilter {
             this.handshakeTimeoutMillis =
                     TimeUnit.MILLISECONDS.convert(handshakeTimeout, timeUnit);
         }
+    }
+
+    /**
+     * Completely disables renegotiation.
+     *
+     * @param renegotiationDisabled <code>true</code> to disable renegotiation.
+     */
+    public void setRenegotiationDisabled(boolean renegotiationDisabled) {
+        this.renegotiationDisabled = renegotiationDisabled;
     }
 
     protected SSLTransportFilterWrapper getOptimizedTransportFilter(
@@ -752,6 +762,9 @@ public class SSLBaseFilter extends BaseFilter {
                                final FilterChainContext context)
                                throws IOException {
 
+        if (renegotiationDisabled) {
+            return;
+        }
         final SSLEngine sslEngine = sslCtx.getSslEngine();
         if (sslEngine.getWantClientAuth() && !renegotiateOnClientAuthWant) {
             return;
