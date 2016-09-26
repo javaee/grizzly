@@ -114,6 +114,7 @@ public abstract class AbstractHttp2Test {
         }
 
         http2Addon = new Http2AddOn();
+        http2Addon.setDisableCipherCheck(true);
         listener.registerAddOn(http2Addon);
         
         ServerConfiguration sconfig = server.getServerConfiguration();

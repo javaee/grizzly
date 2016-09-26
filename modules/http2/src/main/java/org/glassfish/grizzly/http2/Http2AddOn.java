@@ -68,6 +68,7 @@ public class Http2AddOn implements AddOn {
     private int maxConcurrentStreams = -1;
     private int initialWindowSize = -1;
     private int maxFramePayloadSize = -1;
+    private boolean disableCipherCheck;
     
 
     // ------------------------------------------------------ Methods From AddOn
@@ -137,7 +138,24 @@ public class Http2AddOn implements AddOn {
         this.maxFramePayloadSize = maxFramePayloadSize;
     }
 
-    
+    /**
+     * @return whether or not strict cipher suite checking against RFC 7540's blacklist is performed or not.
+     *  If not explicitly configured, checking will be performed.
+     */
+    public boolean isDisableCipherCheck() {
+        return disableCipherCheck;
+    }
+
+    /**
+     * Allows the developer to disable strict cipher suite checking of the connection against RFC 7540's blacklist.
+     *
+     * @param disableCipherCheck pass <code>true</code> to disable the checking.
+     */
+    public void setDisableCipherCheck(boolean disableCipherCheck) {
+        this.disableCipherCheck = disableCipherCheck;
+    }
+
+
     // ----------------------------------------------------- Private Methods
 
 
@@ -147,7 +165,7 @@ public class Http2AddOn implements AddOn {
                 org.glassfish.grizzly.http.HttpServerFilter.class);
                 
         final Http2ServerFilter http2HandlerFilter =
-                new Http2ServerFilter();
+                new Http2ServerFilter(null, disableCipherCheck);
         
         http2HandlerFilter.setLocalMaxFramePayloadSize(getMaxFramePayloadSize());
         http2HandlerFilter.setInitialWindowSize(getInitialWindowSize());

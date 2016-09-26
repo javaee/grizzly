@@ -382,12 +382,15 @@ public class Http2ServerFilter extends Http2BaseFilter {
     private final Attribute<Connection> CIPHER_CHECKED =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("BLACK_LIST_CIPHER_SUITE_CHEKCED");
 
+    private final boolean disableCipherCheck;
+
     public Http2ServerFilter() {
-        this(null);
+        this(null, false);
     }
 
-    public Http2ServerFilter(final ExecutorService threadPool) {
+    public Http2ServerFilter(final ExecutorService threadPool, final boolean disableCipherCheck) {
         super(threadPool);
+        this.disableCipherCheck = disableCipherCheck;
     }
 
 
@@ -466,7 +469,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
         final Http2Connection http2Connection =
                 obtainHttp2Connection(http2State, ctx, true);
 
-        if (!CIPHER_CHECKED.isSet(connection)) {
+        if (!disableCipherCheck && !CIPHER_CHECKED.isSet(connection)) {
             CIPHER_CHECKED.set(connection, connection);
             final SSLEngine engine = SSLUtils.getSSLEngine(connection);
             if (engine != null) {
