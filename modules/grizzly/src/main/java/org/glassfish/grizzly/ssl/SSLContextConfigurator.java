@@ -320,156 +320,9 @@ public class SSLContextConfigurator {
     }
 
     /**
-     * Validates {@link SSLContextConfigurator} configuration.
-     *
-     * @return <code>true</code> if configuration is valid, else
-     *         <code>false</code>.
-     *
-     * @deprecated Use {@link #createSSLContext(boolean)}.
-     */
-    @Deprecated
-    public boolean validateConfiguration() {
-        return validateConfiguration(false);
-    }
-
-    /**
-     * Validates {@link SSLContextConfigurator} configuration.
-     *
-     * @param needsKeyStore
-     *            forces failure if no keystore is specified.
-     * @return <code>true</code> if configuration is valid, else
-     *         <code>false</code>.
-     *
-     * @deprecated Use {@link #createSSLContext(boolean)}.
-     */
-    @Deprecated
-    public boolean validateConfiguration(boolean needsKeyStore) {
-        boolean valid = true;
-
-        if (keyStoreBytes != null || keyStoreFile != null) {
-            try {
-                KeyStore keyStore;
-                if (keyStoreProvider != null) {
-                    keyStore = KeyStore.getInstance(
-                            keyStoreType != null ? keyStoreType : KeyStore
-                                    .getDefaultType(), keyStoreProvider);
-                } else {
-                    keyStore = KeyStore
-                            .getInstance(keyStoreType != null ? keyStoreType
-                                    : KeyStore.getDefaultType());
-                }
-                loadBytes(keyStoreBytes, keyStoreFile, keyStorePass, keyStore);
-                String kmfAlgorithm = keyManagerFactoryAlgorithm;
-                if (kmfAlgorithm == null) {
-                    kmfAlgorithm = System.getProperty(
-                            KEY_FACTORY_MANAGER_ALGORITHM, KeyManagerFactory
-                                    .getDefaultAlgorithm());
-                }
-                KeyManagerFactory keyManagerFactory = KeyManagerFactory
-                        .getInstance(kmfAlgorithm);
-                keyManagerFactory.init(keyStore, keyPass != null ? keyPass
-                        : keyStorePass);
-            } catch (KeyStoreException e) {
-                LOGGER.log(Level.FINE, "Error initializing key store", e);
-                valid = false;
-            } catch (CertificateException e) {
-                LOGGER.log(Level.FINE, "Key store certificate exception.", e);
-                valid = false;
-            } catch (UnrecoverableKeyException e) {
-                LOGGER.log(Level.FINE, "Key store unrecoverable exception.", e);
-                valid = false;
-            } catch (FileNotFoundException e) {
-                LOGGER.log(Level.FINE, "Can't find key store file: "
-                        + keyStoreFile, e);
-                valid = false;
-            } catch (IOException e) {
-                LOGGER.log(Level.FINE, "Error loading key store from file: "
-                        + keyStoreFile, e);
-                valid = false;
-            } catch (NoSuchAlgorithmException e) {
-                LOGGER.log(Level.FINE,
-                        "Error initializing key manager factory (no such algorithm)", e);
-                valid = false;
-            } catch (NoSuchProviderException e) {
-                LOGGER.log(Level.FINE,
-                        "Error initializing key store (no such provider)", e);
-                valid = false;
-            }
-        } else {
-            valid = !needsKeyStore;
-        }
-
-        if (trustStoreBytes != null || trustStoreFile != null) {
-            try {
-                KeyStore trustStore;
-                if (trustStoreProvider != null) {
-                    trustStore = KeyStore.getInstance(
-                            trustStoreType != null ? trustStoreType : KeyStore
-                                    .getDefaultType(), trustStoreProvider);
-                } else {
-                    trustStore = KeyStore
-                            .getInstance(trustStoreType != null ? trustStoreType
-                                    : KeyStore.getDefaultType());
-                }
-                loadBytes(trustStoreBytes, trustStoreFile, trustStorePass, trustStore);
-
-                String tmfAlgorithm = trustManagerFactoryAlgorithm;
-                if (tmfAlgorithm == null) {
-                    tmfAlgorithm = System.getProperty(
-                            TRUST_FACTORY_MANAGER_ALGORITHM,
-                            TrustManagerFactory.getDefaultAlgorithm());
-                }
-
-                TrustManagerFactory trustManagerFactory = TrustManagerFactory
-                        .getInstance(tmfAlgorithm);
-                trustManagerFactory.init(trustStore);
-            } catch (KeyStoreException e) {
-                LOGGER.log(Level.FINE, "Error initializing trust store", e);
-                valid = false;
-            } catch (CertificateException e) {
-                LOGGER.log(Level.FINE, "Trust store certificate exception.", e);
-                valid = false;
-            } catch (FileNotFoundException e) {
-                LOGGER.log(Level.FINE, "Can't find trust store file: "
-                        + trustStoreFile, e);
-                valid = false;
-            } catch (IOException e) {
-                LOGGER.log(Level.FINE, "Error loading trust store from file: "
-                        + trustStoreFile, e);
-                valid = false;
-            } catch (NoSuchAlgorithmException e) {
-                LOGGER.log(Level.FINE,
-                        "Error initializing trust manager factory (no such algorithm)",
-                        e);
-                valid = false;
-            } catch (NoSuchProviderException e) {
-                LOGGER.log(Level.FINE,
-                        "Error initializing trust store (no such provider)", e);
-                valid = false;
-            }
-        }
-        return valid;
-    }
-
-    /**
-     * Create a new {@link SSLContext}.  Note that if there are any problems with the key or trust stores, that no
-     * exception will be thrown.
-     *
-     * @return a new {@link SSLContext}
-     *
-     * @deprecated Use {@link #createSSLContext(boolean)}.
-     */
-    @Deprecated
-    public SSLContext createSSLContext() {
-        return createSSLContext(false);
-    }
-
-    /**
      * Create a new {@link SSLContext}.  If the {@link SSLContext} cannot be created for whatever reason,
      * a {@link GenericStoreException}
      * will be raised containing the root cause of the failure.
-     *
-     * @param throwException <code>true</code> if an exception should be raised upon failure.
      *
      * @return a new {@link SSLContext}
      *
@@ -478,8 +331,8 @@ public class SSLContextConfigurator {
      *
      * @since 2.3.28
      */
-    public SSLContext createSSLContext(final boolean throwException) {
-        SSLContext sslContext = null;
+    public SSLContext createSSLContext() {
+        SSLContext sslContext;
 
         try {
             TrustManagerFactory trustManagerFactory = null;
@@ -511,34 +364,22 @@ public class SSLContextConfigurator {
                             : keyStorePass);
                 } catch (KeyStoreException e) {
                     LOGGER.log(Level.FINE, "Error initializing key store", e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (CertificateException e) {
                     LOGGER.log(Level.FINE, "Key store certificate exception.", e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (UnrecoverableKeyException e) {
                     LOGGER.log(Level.FINE, "Key store unrecoverable exception.", e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (FileNotFoundException e) {
                     LOGGER.log(Level.FINE, "Can't find key store file: " + keyStoreFile, e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (IOException e) {
                     LOGGER.log(Level.FINE, "Error loading key store from file: " + keyStoreFile, e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (NoSuchAlgorithmException e) {
                     LOGGER.log(Level.FINE, "Error initializing key manager factory (no such algorithm)", e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (NoSuchProviderException e) {
                     LOGGER.log(Level.FINE, "Error initializing key store (no such provider)", e);
                 }
@@ -571,34 +412,22 @@ public class SSLContextConfigurator {
                     trustManagerFactory.init(trustStore);
                 } catch (KeyStoreException e) {
                     LOGGER.log(Level.FINE, "Error initializing trust store", e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (CertificateException e) {
                     LOGGER.log(Level.FINE, "Trust store certificate exception.", e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (FileNotFoundException e) {
                     LOGGER.log(Level.FINE, "Can't find trust store file: " + trustStoreFile, e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (IOException e) {
                     LOGGER.log(Level.FINE, "Error loading trust store from file: " + trustStoreFile, e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (NoSuchAlgorithmException e) {
                     LOGGER.log(Level.FINE, "Error initializing trust manager factory (no such algorithm)", e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 } catch (NoSuchProviderException e) {
                     LOGGER.log(Level.FINE, "Error initializing trust store (no such provider)", e);
-                    if (throwException) {
-                        throw new GenericStoreException(e);
-                    }
+                    throw new GenericStoreException(e);
                 }
             }
 
@@ -613,14 +442,10 @@ public class SSLContextConfigurator {
                             .getTrustManagers() : null, null);
         } catch (KeyManagementException e) {
             LOGGER.log(Level.FINE, "Key management error.", e);
-            if (throwException) {
-                throw new GenericStoreException(e);
-            }
+            throw new GenericStoreException(e);
         } catch (NoSuchAlgorithmException e) {
             LOGGER.log(Level.FINE, "Error initializing algorithm.", e);
-            if (throwException) {
-                throw new GenericStoreException(e);
-            }
+            throw new GenericStoreException(e);
         }
 
         return sslContext;
