@@ -55,19 +55,28 @@ import org.glassfish.grizzly.memory.MemoryManager;
 public class HeadersDecoder {
     private final Decoder hpackDecoder;
     private final MemoryManager memoryManager;
-    
+    private final int maxHeaderSize;
+    private int currentHeaderSize;
+
     private HeaderBlockHead firstHeaderFrame;
     private Buffer inBuffer;
 
     // @TODO Implement maxHeaderSize limitation handling
     public HeadersDecoder(final MemoryManager memoryManager,
-            final int maxHeaderSize, final int maxHeaderTableSize) {
+                          final int maxHeaderSize,
+                          final int maxHeaderTableSize) {
         this.memoryManager = memoryManager;
+        this.maxHeaderSize = maxHeaderSize;
         this.hpackDecoder =  new Decoder(maxHeaderTableSize);
     }
-    
-    public void append(final Buffer buffer) {
-        inBuffer = Buffers.appendBuffers(memoryManager, inBuffer, buffer, true);
+
+    public boolean append(final Buffer buffer) {
+        currentHeaderSize += buffer.remaining();
+        if (currentHeaderSize <= maxHeaderSize) {
+            inBuffer = Buffers.appendBuffers(memoryManager, inBuffer, buffer, true);
+            return true;
+        }
+        return false;
     }
     
     public void decode(final DecodingCallback callback) throws IOException {
@@ -82,6 +91,7 @@ public class HeadersDecoder {
     public HeaderBlockHead finishHeader() {
         final HeaderBlockHead firstHeaderFrameLocal = firstHeaderFrame;
         firstHeaderFrame = null;
+        currentHeaderSize = 0;
         return firstHeaderFrameLocal;
     }
 

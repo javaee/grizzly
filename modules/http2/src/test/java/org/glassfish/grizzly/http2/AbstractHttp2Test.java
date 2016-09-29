@@ -82,9 +82,9 @@ public abstract class AbstractHttp2Test {
         
         modes.add(new Object[] {Boolean.FALSE});
         
-        if (AlpnSupport.isEnabled() && !Boolean.valueOf(System.getProperty("grizzly.skip.http2tls", "false"))) {
-            modes.add(new Object[] {Boolean.TRUE});
-        }
+//        if (AlpnSupport.isEnabled() && !Boolean.valueOf(System.getProperty("grizzly.skip.http2tls", "false"))) {
+//            modes.add(new Object[] {Boolean.TRUE});
+//        }
         return modes;
     }
     

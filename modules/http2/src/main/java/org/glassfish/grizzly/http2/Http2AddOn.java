@@ -63,11 +63,13 @@ import org.glassfish.grizzly.ssl.SSLBaseFilter;
  * {@link SSLFilter}, if present, is configured to use ALPN for HTTP2 protocol negotiation
  */
 public class Http2AddOn implements AddOn {
+
     private static final Logger LOGGER = Grizzly.logger(Http2AddOn.class);
     
     private int maxConcurrentStreams = -1;
     private int initialWindowSize = -1;
     private int maxFramePayloadSize = -1;
+    private int maxHeaderListSize = Constants.DEFAULT_MAX_HEADER_LIST_SIZE;
     private boolean disableCipherCheck;
     
 
@@ -155,6 +157,23 @@ public class Http2AddOn implements AddOn {
         this.disableCipherCheck = disableCipherCheck;
     }
 
+    /**
+     * @return the maximum size, in bytes, of header list.  If not explicitly configured, the default of
+     *  {@link Constants#DEFAULT_MAX_HEADER_LIST_SIZE} is used.
+     */
+    public int getMaxHeadersListSize() {
+        return maxHeaderListSize;
+    }
+
+    /**
+     * Set the maximum size, in bytes, of the header list.
+     *
+     * @param maxHeaderListSize size, in bytes, of the header list.
+     */
+    public void setMaxHeadersListSize(int maxHeaderListSize) {
+        this.maxHeaderListSize = maxHeaderListSize;
+    }
+
 
     // ----------------------------------------------------- Private Methods
 
@@ -170,6 +189,7 @@ public class Http2AddOn implements AddOn {
         http2HandlerFilter.setLocalMaxFramePayloadSize(getMaxFramePayloadSize());
         http2HandlerFilter.setInitialWindowSize(getInitialWindowSize());
         http2HandlerFilter.setMaxConcurrentStreams(getMaxConcurrentStreams());
+        http2HandlerFilter.setMaxHeaderListSize(getMaxHeadersListSize());
         builder.add(codecFilterIdx + 1, http2HandlerFilter);
         
         return http2HandlerFilter;

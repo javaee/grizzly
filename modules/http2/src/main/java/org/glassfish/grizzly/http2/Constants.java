@@ -49,7 +49,9 @@ import org.glassfish.grizzly.utils.Charsets;
  * @author oleksiys
  */
 public class Constants {
-    
+
+    public static final int DEFAULT_MAX_HEADER_LIST_SIZE = 4096;
+
     static final String AUTHORITY_HEADER = ":authority";
     static final byte[] AUTHORITY_HEADER_BYTES = AUTHORITY_HEADER.getBytes(Charsets.ASCII_CHARSET);
 

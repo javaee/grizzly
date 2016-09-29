@@ -770,6 +770,15 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 throw ioe;
             }
         }
+        if (headersFrame.isTruncated()) {
+            final HttpResponsePacket response = request.getResponse();
+            HttpStatus.REQUEST_HEADER_FIELDS_TOO_LARGE.setValues(response);
+            final HttpHeader header = response.getHttpHeader();
+            header.setContentLength(0);
+            header.setExpectContent(false);
+            processOutgoingHttpHeader(context, http2Connection, header, response);
+            return;
+        }
         onHttpHeadersParsed(request, context);        
 
         prepareIncomingRequest(stream, request);
@@ -792,11 +801,12 @@ public class Http2ServerFilter extends Http2BaseFilter {
     
     /**
      *
-     * @param ctx
-     * @param http2Connection
-     * @param httpHeader
-     * @param entireHttpPacket
-     * @throws IOException
+     * @param ctx the current {@link FilterChainContext}
+     * @param http2Connection the {@link Http2Connection} associated with this {@link HttpHeader}
+     * @param httpHeader the out-going {@link HttpHeader}
+     * @param entireHttpPacket the complete {@link HttpPacket}
+     *
+     * @throws IOException if an error occurs sending the packet
      */
     @Override
     @SuppressWarnings("unchecked")
@@ -981,7 +991,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
     }
 
     private String composeRefererOf(final HttpRequestPacket request) {
-        return new StringBuilder().append(request.isSecure() ? "https" : "http")
+        //noinspection StringBufferReplaceableByString
+        return new StringBuilder(64).append(request.isSecure() ? "https" : "http")
                 .append("://")
                 .append(request.getHeader(Header.Host))
                 .append(request.getRequestURI())

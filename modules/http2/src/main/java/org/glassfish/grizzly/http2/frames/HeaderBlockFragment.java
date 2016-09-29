@@ -56,6 +56,7 @@ public abstract class HeaderBlockFragment extends Http2Frame {
     }
     
     protected Buffer compressedHeaders;
+    protected boolean truncated;
 
 
     // ---------------------------------------------------------- Public Methods
@@ -67,7 +68,15 @@ public abstract class HeaderBlockFragment extends Http2Frame {
 
     public boolean isEndHeaders() {
         return isFlagSet(END_HEADERS);
-    }    
+    }
+
+    public boolean isTruncated() {
+        return truncated;
+    }
+
+    public void setTruncated() {
+        truncated = true;
+    }
 
     public Buffer takePayload() {
         final Buffer payload = compressedHeaders;
@@ -124,7 +133,7 @@ public abstract class HeaderBlockFragment extends Http2Frame {
         /**
          * Sets compressed headers buffer.
          *
-         * @param compressedHeaders
+         * @param compressedHeaders {@link Buffer} containing compressed headers
          * @see CompressedHeadersBuilder
          */
         @SuppressWarnings("unchecked")

@@ -118,6 +118,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     private volatile int initialWindowSize = -1;
 
     private int localMaxFramePayloadSize;
+    private int maxHeaderListSize = Constants.DEFAULT_MAX_HEADER_LIST_SIZE;
     
     /**
      * Constructs Http2HandlerFilter.
@@ -154,7 +155,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     /**
      * Sets the default maximum number of concurrent streams allowed for one session.
      * Negative value means "unlimited".
-     * @param maxConcurrentStreams
+     * @param maxConcurrentStreams the default maximum number of streams.
      */
     public void setMaxConcurrentStreams(final int maxConcurrentStreams) {
         this.maxConcurrentStreams = maxConcurrentStreams;
@@ -170,7 +171,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
     /**
      * Sets the default initial stream window size (in bytes) for new HTTP2 connections.
-     * @param initialWindowSize
+     * @param initialWindowSize the default initial window size.
      */
     public void setInitialWindowSize(final int initialWindowSize) {
         this.initialWindowSize = initialWindowSize;
@@ -181,7 +182,24 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      */
     public int getInitialWindowSize() {
         return initialWindowSize;
-    }    
+    }
+
+    /**
+     * @return the maximum size, in bytes, of header list. If not explicitly configured, the default of
+     *  {@link Constants#DEFAULT_MAX_HEADER_LIST_SIZE} is used.
+     */
+    public int getMaxHeaderListSize() {
+        return maxHeaderListSize;
+    }
+
+    /**
+     * Set the maximum size, in bytes, of the header list.
+     *
+     * @param maxHeaderListSize size, in bytes, of the header list.
+     */
+    public void setMaxHeaderListSize(int maxHeaderListSize) {
+        this.maxHeaderListSize = maxHeaderListSize;
+    }
 
     protected boolean processFrames(final FilterChainContext ctx,
             final Http2Connection http2Connection,
@@ -315,14 +333,10 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         // Check "Connection: Upgrade, HTTP2-Settings" header
         final DataChunk connectionHeaderDC =
                 httpResponse.getHeaders().getValue(Header.Connection);
-        
-        if (connectionHeaderDC == null || connectionHeaderDC.isNull() ||
-                !connectionHeaderDC.equals(Header.Upgrade.getBytes())) {
-            // No "Connection: Upgrade"
-            return false;
-        }
-            
-        return true;
+
+        return !(connectionHeaderDC == null || connectionHeaderDC.isNull() ||
+                !connectionHeaderDC.equals(Header.Upgrade.getBytes()));
+
     }
     
     protected SettingsFrame getHttp2UpgradeSettings(
@@ -490,7 +504,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx        the {@link FilterChainContext} processing this request
      * @param t          the cause of the error
-     * @throws java.io.IOException
+     * @throws java.io.IOException if an error occurs when dealing with the event.
      *
      * @since 2.3.3
      */
@@ -509,7 +523,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx        the {@link FilterChainContext} processing this request
      * @param t          the cause of the error
-     * @throws java.io.IOException
+     * @throws java.io.IOException if an error occurs when dealing with the event.
      *
      * @since 2.3.3
      */
@@ -521,6 +535,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
     // --------------------------------------------------------- Private Methods
     
+    @SuppressWarnings("DuplicateThrows")
     private void processInFrame(final Http2Connection http2Connection,
                                 final FilterChainContext context,
                                 final Http2Frame frame)
@@ -586,15 +601,12 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         } else {
             final Http2Stream stream = http2Connection.getStream(streamId);
 
+            //noinspection Duplicates
             if (stream != null) {
                 stream.getOutputSink().onPeerWindowUpdate(delta);
             } else {
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    final StringBuilder sb = new StringBuilder(64);
-                    sb.append("\nStream id=")
-                            .append(streamId)
-                            .append(" was not found. Ignoring the message.");
-                    LOGGER.fine(sb.toString());
+                    LOGGER.fine("\nStream id=" + streamId + " was not found. Ignoring the message.");
                 }
             }
         }
@@ -626,8 +638,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     void applySettings(final Http2Connection http2Connection,
             final SettingsFrame settingsFrame) throws Http2ConnectionException {
 
-        final int numberOfSettings = settingsFrame.getNumberOfSettings();
-        for (int i = 0; i < numberOfSettings; i++) {
+        for (int i = 0, numberOfSettings = settingsFrame.getNumberOfSettings(); i < numberOfSettings; i++) {
             final SettingsFrame.Setting setting = settingsFrame.getSettingByIndex(i);
             
             switch (setting.getId()) {
@@ -682,7 +693,19 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         final HeadersDecoder headersDecoder = http2Connection.getHeadersDecoder();
         
         if (headerFragment.getCompressedHeaders().hasRemaining()) {
-            headersDecoder.append(headerFragment.takePayload());
+            if (!headersDecoder.append(headerFragment.takePayload())) {
+                headersDecoder.setFirstHeaderFrame((HeaderBlockHead) headerFragment);
+                final HeaderBlockHead firstHeaderFrame =
+                        headersDecoder.finishHeader();
+                firstHeaderFrame.setTruncated();
+                try {
+                    processCompleteHeader(http2Connection, context, firstHeaderFrame);
+                } finally {
+                    firstHeaderFrame.recycle();
+                }
+
+                return;
+            }
         }
 
         final boolean isEOH = headerFragment.isEndHeaders();
@@ -710,10 +733,10 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     /**
      * The method is called once complete HTTP header block arrives on {@link Http2Connection}.
      * 
-     * @param http2Connection
-     * @param context
-     * @param firstHeaderFrame
-     * @throws IOException 
+     * @param http2Connection the {@link Http2Connection} associated with this header.
+     * @param context the current {@link FilterChainContext}
+     * @param firstHeaderFrame the first {@link HeaderBlockHead} from the first {@link HeadersFrame} received.
+     * @throws IOException if an error occurs when dealing with the event.
      */
     protected abstract void processCompleteHeader(
             final Http2Connection http2Connection,
@@ -821,8 +844,8 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     /**
      * Creates {@link Http2Connection} with preconfigured initial-windows-size and
      * max-concurrent-streams
-     * @param connection
-     * @param isServer
+     * @param connection the TCP {@link Connection}
+     * @param isServer flag indicating whether this connection is server side or not.
      * @return {@link Http2Connection}
      */
     protected Http2Connection createHttp2Connection(final Connection connection,
@@ -898,6 +921,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             request.setExpectContent(false);
         }
 
+        //noinspection Duplicates
         try {
             request.getProtocol();
         } catch (IllegalStateException e) {

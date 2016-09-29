@@ -60,7 +60,6 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteHandler;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http2.frames.DataFrame;
@@ -148,6 +147,8 @@ public class Http2Connection {
     private volatile int localStreamWindowSize = getDefaultStreamWindowSize();
     
     private volatile int localConnectionWindowSize = getDefaultConnectionWindowSize();
+
+    private volatile int maxHeaderListSize;
     
     private volatile int localMaxConcurrentStreams = getDefaultMaxConcurrentStreams();
     private int peerMaxConcurrentStreams = getDefaultMaxConcurrentStreams();
@@ -208,7 +209,9 @@ public class Http2Connection {
                 customMaxFramePayloadSz <= getSpecMaxFramePayloadSize()
                 ? customMaxFramePayloadSz
                 : getSpecDefaultFramePayloadSize();
-        
+
+        maxHeaderListSize = handlerFilter.getMaxHeaderListSize();
+
         if (isServer) {
             lastLocalStreamId = 0;
             lastPeerStreamId = -1;
@@ -261,6 +264,23 @@ public class Http2Connection {
         return 100;
     }
 
+    /**
+     * @return the maximum size, in bytes, of header list.  If not explicitly configured, the default of
+     *  <code>8192</code> is used.
+     */
+    public int getMaxHeaderListSize() {
+        return maxHeaderListSize;
+    }
+
+    /**
+     * Set the maximum size, in bytes, of the header list.
+     *
+     * @param maxHeaderListSize size, in bytes, of the header list.
+     */
+    public void setMaxHeaderListSize(int maxHeaderListSize) {
+        this.maxHeaderListSize = maxHeaderListSize;
+    }
+
     protected boolean isFrameReady(final Buffer buffer) {
         final int frameLen = getFrameSize(buffer);
         return frameLen > 0 && buffer.remaining() >= frameLen;
@@ -270,7 +290,8 @@ public class Http2Connection {
      * Returns the total frame size (including header size), or <tt>-1</tt>
      * if the buffer doesn't contain enough bytes to read the size.
      *
-     * @param buffer
+     * @param buffer the buffer containing the frame data
+     *
      * @return the total frame size (including header size), or <tt>-1</tt>
      * if the buffer doesn't contain enough bytes to read the size
      */
@@ -435,7 +456,7 @@ public class Http2Connection {
      * Sets the max <tt>payload</tt> size to be accepted by the peer.
      * The method is called during the {@link SettingsFrame} processing.
      * 
-     * @param peerMaxFramePayloadSize
+     * @param peerMaxFramePayloadSize max payload size accepted by the peer.
      * @throws Http2ConnectionException if the peerMaxFramePayloadSize violates the limits
      */
     protected void setPeerMaxFramePayloadSize(final int peerMaxFramePayloadSize)
@@ -510,7 +531,7 @@ public class Http2Connection {
 
     /**
      * Sets the default maximum number of concurrent streams allowed for this session by our side.
-     * @param localMaxConcurrentStreams
+     * @param localMaxConcurrentStreams max number of streams locally allowed
      */
     public void setLocalMaxConcurrentStreams(int localMaxConcurrentStreams) {
         this.localMaxConcurrentStreams = localMaxConcurrentStreams;
@@ -703,7 +724,7 @@ public class Http2Connection {
     
     HeadersDecoder getHeadersDecoder() {
         if (headersDecoder == null) {
-            headersDecoder = new HeadersDecoder(getMemoryManager(), 4096, 4096);
+            headersDecoder = new HeadersDecoder(getMemoryManager(), getMaxHeaderListSize(), 4096);
         }
         
         return headersDecoder;
@@ -724,14 +745,14 @@ public class Http2Connection {
     /**
      * Encodes the {@link HttpHeader} and locks the compression lock.
      * 
-     * @param ctx
-     * @param httpHeader
-     * @param streamId
-     * @param isLast
+     * @param ctx the current {@link FilterChainContext}
+     * @param httpHeader the {@link HttpHeader} to encode
+     * @param streamId the stream associated with this request
+     * @param isLast is this the last frame?
      * @param toList the target {@link List}, to which the frames will be serialized
      * 
      * @return the HTTP2 header frames sequence
-     * @throws IOException 
+     * @throws IOException if an error occurs encoding the header
      */
     protected List<Http2Frame> encodeHttpHeaderAsHeaderFrames(
             final FilterChainContext ctx,
@@ -759,14 +780,14 @@ public class Http2Connection {
      * Encodes the {@link HttpRequestPacket} as a {@link PushPromiseFrame}
      * and locks the compression lock.
      * 
-     * @param ctx
-     * @param httpRequest
-     * @param streamId
-     * @param promisedStreamId
+     * @param ctx the current {@link FilterChainContext}
+     * @param httpRequest the  {@link HttpRequestPacket} to encode.
+     * @param streamId the stream associated with this request.
+     * @param promisedStreamId the push promise stream ID.
      * @param toList the target {@link List}, to which the frames will be serialized
      * @return the HTTP2 push promise frames sequence
      * 
-     * @throws IOException 
+     * @throws IOException if an error occurs encoding the request
      */
     protected List<Http2Frame> encodeHttpRequestAsPushPromiseFrames(
             final FilterChainContext ctx,
@@ -792,9 +813,9 @@ public class Http2Connection {
      * Encodes a compressed header buffer as a {@link HeadersFrame} and
      * a sequence of 0 or more {@link ContinuationFrame}s.
      * 
-     * @param streamId
-     * @param compressedHeaders
-     * @param isEos
+     * @param streamId the stream associated with the headers.
+     * @param compressedHeaders a {@link Buffer} containing compressed headers
+     * @param isEos will any additional data be sent after these headers?
      * @param toList the {@link List} to which {@link Http2Frame}s will be added
      * @return the result {@link List} with the frames
      */
@@ -814,9 +835,9 @@ public class Http2Connection {
      * Encodes a compressed header buffer as a {@link PushPromiseFrame} and
      * a sequence of 0 or more {@link ContinuationFrame}s.
      * 
-     * @param streamId
-     * @param promisedStreamId
-     * @param compressedHeaders
+     * @param streamId the stream associated with these headers
+     * @param promisedStreamId the stream of the push promise
+     * @param compressedHeaders the compressed headers to be sent
      * @param toList the {@link List} to which {@link Http2Frame}s will be added
      * @return the result {@link List} with the frames
      */
@@ -836,8 +857,8 @@ public class Http2Connection {
     /**
      * Completes the {@link HeaderBlockFragment} sequence serialization.
      * 
-     * @param streamId
-     * @param compressedHeaders
+     * @param streamId the stream associated with this {@link HeaderBlockFragment}
+     * @param compressedHeaders the {@link Buffer} containing the compressed headers
      * @param toList the {@link List} to which {@link Http2Frame}s will be added
      * @return the result {@link List} with the frames
      */
@@ -933,13 +954,15 @@ public class Http2Connection {
      * within {@link #getNewClientStreamLock()} lock scope.
      * The caller code is responsible for obtaining and releasing the mentioned
      * {@link #getNewClientStreamLock()} lock.
-     * @param request
-     * @param streamId
-     * @param refStreamId
-     * @param priority
-     * @param initState
-     * @return 
-     * @throws org.glassfish.grizzly.http2.Http2StreamException 
+     * @param request the request that initiated the stream
+     * @param streamId the ID of this new stream
+     * @param refStreamId the parent stream
+     * @param priority the priority of this stream
+     * @param initState the initial {@link Http2StreamState}
+     *
+     * @return a new {@link Http2Stream} for this request
+     *
+     * @throws org.glassfish.grizzly.http2.Http2StreamException if an error occurs opening the stream.
      */
     public Http2Stream openStream(final HttpRequestPacket request,
             final int streamId, final int refStreamId, 
@@ -980,11 +1003,13 @@ public class Http2Connection {
      * The method is called to create an {@link Http2Stream} initiated via
      * HTTP/1.1 Upgrade mechanism.
      * 
-     * @param request
-     * @param priority
-     * @param fin
-     * @return 
-     * @throws org.glassfish.grizzly.http2.Http2StreamException 
+     * @param request the request that initiated the upgrade
+     * @param priority the stream priority
+     * @param fin is more content expected?
+     *
+     * @return a new {@link Http2Stream} for this request
+     *
+     * @throws org.glassfish.grizzly.http2.Http2StreamException if an error occurs opening the stream.
      */
     public Http2Stream acceptUpgradeStream(final HttpRequestPacket request,
             final int priority, final boolean fin)
@@ -1012,10 +1037,12 @@ public class Http2Connection {
      * The method is called on the client side, when the server confirms
      * HTTP/1.1 -> HTTP/2.0 upgrade with '101' response.
      * 
-     * @param request
-     * @param priority
-     * @return 
-     * @throws org.glassfish.grizzly.http2.Http2StreamException 
+     * @param request the request that initiated the upgrade
+     * @param priority the priority of the stream
+     *
+     * @return a new {@link Http2Stream} for this request
+     *
+     * @throws org.glassfish.grizzly.http2.Http2StreamException if an error occurs opening the stream.
      */
     public Http2Stream openUpgradeStream(final HttpRequestPacket request,
             final int priority)
@@ -1042,12 +1069,13 @@ public class Http2Connection {
      * Initializes HTTP2 communication (if not initialized before) by forming
      * HTTP2 connection and stream {@link FilterChain}s.
      * 
-     * @param context {@link FilterChainContext}
-     * @param isUpStream 
+     * @param context the current {@link FilterChainContext}
+     * @param isUpStream flag denoting the direction of the chain
      */
     boolean setupFilterChains(final FilterChainContext context,
             final boolean isUpStream) {
-        
+
+        //noinspection Duplicates
         if (http2ConnectionChain == null) {
             synchronized(this) {
                 if (http2ConnectionChain == null) {
@@ -1172,6 +1200,7 @@ public class Http2Connection {
         sendMessageUpstream(stream, message, upstreamContext);
     }
 
+    @SuppressWarnings("Duplicates")
     private void sendMessageUpstream(final Http2Stream stream,
                                      final HttpPacket message,
                                      final FilterChainContext upstreamContext) {
@@ -1214,6 +1243,8 @@ public class Http2Connection {
         if (getLocalStreamWindowSize() != getDefaultStreamWindowSize()) {
             builder.setting(SETTINGS_INITIAL_WINDOW_SIZE, getLocalStreamWindowSize());
         }
+
+        builder.setting(SETTINGS_MAX_HEADER_LIST_SIZE, getMaxHeaderListSize());
         
         return builder;
     }
@@ -1223,11 +1254,12 @@ public class Http2Connection {
      * Depending on the total amount of un-acknowledge data the HTTP2 connection
      * can decide to send a window_update message to the peer.
      * 
-     * @param sz 
+     * @param sz size, in bytes, of the data being acknowledged
      */
     void ackConsumedData(final int sz) {
         ackConsumedData(null, sz);
     }
+
     /**
      * Acknowledge that certain amount of data has been read.
      * Depending on the total amount of un-acknowledge data the HTTP2 connection
@@ -1235,8 +1267,8 @@ public class Http2Connection {
      * Unlike the {@link #ackConsumedData(int)}, this method also requests an
      * HTTP2 stream to acknowledge consumed data to the peer.
      * 
-     * @param stream
-     * @param sz 
+     * @param stream the stream that data is being ack'd on.
+     * @param sz size, in bytes, of the data being acknowledged
      */
     void ackConsumedData(final Http2Stream stream, final int sz) {
         final int currentUnackedBytes
@@ -1342,7 +1374,7 @@ public class Http2Connection {
         /**
          * Sets the <code>fin</code> flag of a {@link Http2Stream}.
          * 
-         * @param fin
+         * @param fin the new value of the <code>fin</code> flag.
          * 
          * @return the current <code>Builder</code>
          */
@@ -1355,7 +1387,7 @@ public class Http2Connection {
          * Build the <tt>HttpRequestPacket</tt> message.
          *
          * @return <tt>HttpRequestPacket</tt>
-         * @throws org.glassfish.grizzly.http2.Http2StreamException
+         * @throws org.glassfish.grizzly.http2.Http2StreamException if an error occurs opening the stream
          */
         @SuppressWarnings("unchecked")
         public final Http2Stream open() throws Http2StreamException {
@@ -1480,7 +1512,7 @@ public class Http2Connection {
         /**
          * Sets the <code>fin</code> flag of a {@link Http2Stream}.
          * 
-         * @param fin
+         * @param fin the initial value of the <code>fin</code> flag.
          * 
          * @return the current <code>Builder</code>
          */
@@ -1493,7 +1525,7 @@ public class Http2Connection {
          * Build the <tt>HttpRequestPacket</tt> message.
          *
          * @return <tt>HttpRequestPacket</tt>
-         * @throws org.glassfish.grizzly.http2.Http2StreamException
+         * @throws org.glassfish.grizzly.http2.Http2StreamException if an error occurs opening the stream.
          */
         @SuppressWarnings("unchecked")
         public final Http2Stream open() throws Http2StreamException {
