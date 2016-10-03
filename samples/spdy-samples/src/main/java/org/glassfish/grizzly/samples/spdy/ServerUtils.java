@@ -122,12 +122,12 @@ public class ServerUtils {
     protected static SSLEngineConfigurator getServerSSLEngineConfigurator() {
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
 
-        if (sslContextConfigurator.validateConfiguration(true)) {
+        try {
             return new SSLEngineConfigurator(
                     sslContextConfigurator.createSSLContext(),
                     false, false, false);
-        } else {
-            throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to validate SSLContextConfiguration.", e);
         }
     }
     

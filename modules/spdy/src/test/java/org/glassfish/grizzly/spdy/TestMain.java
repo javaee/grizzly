@@ -68,14 +68,14 @@ public class TestMain {
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
         SSLEngineConfigurator serverSSLEngineConfigurator;
 
-        if (sslContextConfigurator.validateConfiguration(true)) {
+        try {
             serverSSLEngineConfigurator =
                     new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                     false, false, false);
             
             serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
-        } else {
-            throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to validate SSLContextConfiguration.", e);
         }
 
         HttpServer server = HttpServer.createSimpleServer("/tmp", 7070);

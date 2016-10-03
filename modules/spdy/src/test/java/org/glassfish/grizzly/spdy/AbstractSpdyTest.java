@@ -190,7 +190,7 @@ public abstract class AbstractSpdyTest {
                 if (clientSSLEngineConfigurator == null) {
                     SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
 
-                    if (sslContextConfigurator.validateConfiguration(true)) {
+                    try  {
                         serverSSLEngineConfigurator =
                                 new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                                 false, false, false);
@@ -202,8 +202,8 @@ public abstract class AbstractSpdyTest {
                                 true, false, false);
 
                         //clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
-                    } else {
-                        throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
+                    } catch (Exception e) {
+                        throw new IllegalStateException("Failed to validate SSLContextConfiguration.", e);
                     }        
                 }
             }

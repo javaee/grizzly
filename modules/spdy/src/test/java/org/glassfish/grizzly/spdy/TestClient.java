@@ -82,14 +82,14 @@ public class TestClient {
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
         SSLEngineConfigurator clientSSLEngineConfigurator;
 
-        if (sslContextConfigurator.validateConfiguration(true)) {
+        try {
             clientSSLEngineConfigurator =
                     new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                     true, false, false);
             
 //            clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"SSL_RSA_WITH_RC4_128_SHA"});
-        } else {
-            throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to validate SSLContextConfiguration.", e);
         }
 
         final ExecutorService threadPool = GrizzlyExecutorService.createInstance();

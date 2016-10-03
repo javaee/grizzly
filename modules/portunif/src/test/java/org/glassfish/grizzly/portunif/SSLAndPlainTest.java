@@ -103,13 +103,14 @@ public class SSLAndPlainTest {
         SSLEngineConfigurator clientSSLEngineConfigurator = null;
         SSLEngineConfigurator serverSSLEngineConfigurator = null;
 
-        if (sslContextConfigurator.validateConfiguration(true)) {
+        try {
             clientSSLEngineConfigurator =
                     new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
             serverSSLEngineConfigurator =
                     new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
                     false, false, false);
-        } else {
+        } catch (Exception e) {
+            e.printStackTrace();
             fail("Failed to validate SSLContextConfiguration.");
         }
 
