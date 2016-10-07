@@ -100,7 +100,6 @@
                         ${basedir}/../../http/src/main/java;
                         ${basedir}/../../http-server/src/main/java;
                         ${basedir}/../../http-ajp/src/main/java;
-                        ${basedir}/../../spdy/src/main/java;
                         ${basedir}/../../../extras/http-server-multipart/src/main/java;
                     </sourcepath>
                 </configuration>
@@ -187,10 +186,6 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-ajp</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
-            <artifactId>grizzly-spdy</artifactId>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>

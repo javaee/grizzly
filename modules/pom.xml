@@ -117,7 +117,6 @@
         <module>websockets</module>
         <module>portunif</module>
         <module>http-ajp</module>
-        <module>spdy</module>
         <module>monitoring</module>
         <module>bundles</module>
     </modules>
