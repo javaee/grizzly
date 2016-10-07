@@ -199,33 +199,6 @@ class EncoderUtils {
                     ? requestURI
                     : requestURI.substring(pathStart, pathStart + pathLen));
         
-//        encoder.encodeHeader(Constants.METHOD_HEADER_BYTES,
-//                request.getMethod().getMethodBytes(), false);
-//
-//        if (schemeLen > 0) {
-//            encoder.encodeHeader(Constants.SCHEMA_HEADER_BYTES,
-//                    Arrays.copyOfRange(requestURI, schemeStart,
-//                            schemeStart + schemeLen), false);
-//        } else {
-//            encoder.encodeHeader(Constants.SCHEMA_HEADER_BYTES,
-//                    ((SSLUtils.getSSLEngine(http2Connection.getConnection()) == null)
-//                    ? HTTP_BYTES
-//                    : HTTPS_BYTES),
-//                    false);
-//        }
-//
-//        encoder.encodeHeader(Constants.AUTHORITY_HEADER_BYTES,
-//                (hostHeaderLen == hostHeaderBytes.length)
-//                    ? hostHeaderBytes
-//                    : Arrays.copyOfRange(hostHeaderBytes, hostHeaderStart, hostHeaderStart + hostHeaderLen),
-//                false);
-//
-//        encoder.encodeHeader(Constants.PATH_HEADER_BYTES,
-//                (pathLen == requestURI.length)
-//                    ? requestURI
-//                    : Arrays.copyOfRange(requestURI, pathStart, pathStart + pathLen),
-//                false);
-
         encodeUserHeaders(headers, encoder);
 
         return encoder.flushHeaders();
@@ -256,7 +229,7 @@ class EncoderUtils {
                         headers.setSerialized(j, true);
                         final DataChunk value = headers.getValue(j);
                         if (!value.isNull()) {
-                            if (tmpList == null) {
+                            if (tmpList == null || tmpList.isEmpty()) {
                                 tmpList = new ArrayList<>(2);
                                 if (!value1.isNull()) {
                                     tmpList.add(value1);
@@ -269,28 +242,6 @@ class EncoderUtils {
                     }
                 }
                 
-////                encodeDataChunkWithLenPrefixLowerCase(encoder, headers.getName(i));
-//                final byte[] nameBytes = nameToLowerCaseByteArray(headers.getName(i));
-//                final byte[] valueBytes;
-//                if (tmpList != null && !tmpList.isEmpty()) {
-//                    final int valuesCount = tmpList.size();
-//                    
-//                    valueSize += valuesCount - 1; // 0 delims
-//                    
-//                    valueBytes = new byte[valueSize];
-//                    int offs = 0;
-//                    for (int j = 0; j < valuesCount; j++) {
-//                        offs += valueToByteArray(tmpList.get(j), valueBytes, offs);
-//                        offs++; // 0 delim
-//                    }
-//                    
-//                    tmpList.clear();
-//                } else {
-//                    valueBytes = valueToByteArray(value1);
-//                }
-//                
-//                encoder.encodeHeader(nameBytes, valueBytes, false);
-
                 final String nameStr = nameToLowerCase(name);
                 
                 String valueStr;

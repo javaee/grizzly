@@ -61,6 +61,10 @@ import org.glassfish.grizzly.http2.hpack.DecodingCallback;
 class DecoderUtils {
     private final static Logger LOGGER = Grizzly.logger(DecoderUtils.class);
 
+    private static final String COOKIE_SEP = "; ";
+    private static final String HEADER_SEP = ", ";
+    private static final String WIRE_DELIM = "\u0000";
+
     private static final String INVALID_CHARACTER_MESSAGE =
             "Invalid character 0x%02x at index '%s' found in header %s [%s: %s]";
 
@@ -74,7 +78,6 @@ class DecoderUtils {
 
                 @Override
                 public void onDecoded(CharSequence name, CharSequence value) {
-                    validateHeaderCharacters(name, value);
                     if (name.charAt(0) == ':') {
                         processServiceRequestHeader(request, name.toString(), value.toString());
                     } else {
@@ -100,7 +103,6 @@ class DecoderUtils {
 
                 @Override
                 public void onDecoded(final CharSequence name, final CharSequence value) {
-                    validateHeaderCharacters(name, value);
                     if (name.charAt(0) == ':') {
                         processServiceResponseHeader(response, name.toString(), value.toString());
                     } else {
@@ -160,7 +162,7 @@ class DecoderUtils {
     private static void processServiceResponseHeader(
             final HttpResponsePacket response,
             final String name, final String value) {
-
+        validateHeaderCharacters(name, value);
         final int valueLen = value.length();
         switch (name) {
             case Constants.STATUS_HEADER: {
@@ -184,9 +186,15 @@ class DecoderUtils {
         final DataChunk valueChunk =
                 mimeHeaders.addValue(name);
 
-        valueChunk.setString(value.replace('\u0000', ','));
-        
+        valueChunk.setString(value.replace(WIRE_DELIM, getDelimiter(name)));
+        validateHeaderCharacters(name, valueChunk.toString());
         finalizeKnownHeader(httpHeader, name, value);
+    }
+
+    private static String getDelimiter(final String name) {
+        return ((Header.Cookie.getLowerCase().equals(name) || Header.SetCookie.getLowerCase().equals(name))
+                ? COOKIE_SEP
+                : HEADER_SEP);
     }
 
     private static void finalizeKnownHeader(final HttpHeader httpHeader,

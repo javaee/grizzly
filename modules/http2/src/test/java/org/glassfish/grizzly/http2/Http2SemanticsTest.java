@@ -52,6 +52,7 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.utils.Charsets;
@@ -62,9 +63,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.Collection;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
@@ -124,7 +128,7 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
         final Connection c = getConnection("localhost", PORT, null);
         HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
         HttpRequestPacket request = builder.method(Method.GET)
-                .uri("/echo")
+                .uri("/path")
                 .protocol(Protocol.HTTP_1_1)
                 .host("localhost:" + PORT).build();
         request.setHeader(new String(temp, Charsets.ASCII_CHARSET), "value");
@@ -133,6 +137,44 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
         final Http2Stream stream = Http2Stream.getStreamFor(request);
         assertNotNull(stream);
         assertFalse(stream.isOpen());
+    }
+
+
+    @Test
+    public void testHeaderHandling() throws Throwable {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicReference<Throwable> error = new AtomicReference<>();
+        startHttpServer(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                try {
+                    assertEquals("Unexpected cookie header value", "a=b; c=d; e=f", request.getHeader(Header.Cookie));
+                    assertEquals("Unexpected test header value", "a, b", request.getHeader("test"));
+                } catch (Throwable t) {
+                    error.set(t);
+                } finally {
+                    latch.countDown();
+                }
+            }
+        }, "/path");
+
+        final Connection c = getConnection("localhost", PORT, null);
+        HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
+        HttpRequestPacket request = builder.method(Method.GET)
+                .uri("/path")
+                .protocol(Protocol.HTTP_1_1)
+                .header(Header.Cookie, "a=b")
+                .header(Header.Cookie, "c=d")
+                .header(Header.Cookie, "e=f")
+                .header("test", "a")
+                .header("test", "b")
+                .host("localhost:" + PORT).build();
+        c.write(HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build());
+        latch.await(5, TimeUnit.SECONDS);
+        final Throwable t = error.get();
+        if (t != null) {
+            throw t;
+        }
     }
 
 
