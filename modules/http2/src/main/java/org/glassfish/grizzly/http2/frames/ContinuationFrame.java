@@ -162,7 +162,7 @@ public class ContinuationFrame extends HeaderBlockFragment {
         }
 
 
-        // --------------------------------------- Methods from SpdyFrameBuilder
+        // --------------------------------------- Methods from HeaderBlockFragmentBuilder
 
 
         @Override

@@ -130,7 +130,7 @@ public class Http2Connection {
             DataStructures.getConcurrentMap();
     
     // (Optimization) We may read several DataFrames belonging to the same
-    // SpdyStream, so in order to not process every DataFrame separately -
+    // Http2Stream, so in order to not process every DataFrame separately -
     // we buffer them and only then passing for processing.
     final List<Http2Stream> streamsToFlushInput = new ArrayList<>();
     
@@ -500,7 +500,7 @@ public class Http2Connection {
                     stream.getOutputSink().onPeerWindowUpdate(delta);
                 } catch (Http2StreamException e) {
                     if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-                        LOGGER.log(LOGGER_LEVEL, "SpdyStreamException occurred on stream="
+                        LOGGER.log(LOGGER_LEVEL, "Http2StreamException occurred on stream="
                                 + stream + " during stream window update", e);
                     }
 
@@ -1140,8 +1140,8 @@ public class Http2Connection {
     /**
      * Called from {@link Http2Stream} once stream is completely closed.
      */
-    void deregisterStream(final Http2Stream spdyStream) {
-        streamsMap.remove(spdyStream.getId());
+    void deregisterStream(final Http2Stream htt2Stream) {
+        streamsMap.remove(htt2Stream.getId());
         
         final boolean isCloseSession;
         synchronized (sessionLock) {

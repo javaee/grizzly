@@ -232,7 +232,7 @@ public class GoAwayFrame extends Http2Frame {
         }
 
 
-        // --------------------------------------- Methods from SpdyFrameBuilder
+        // --------------------------------------- Methods from Http2FrameBuilder
 
 
         @Override

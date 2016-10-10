@@ -198,7 +198,7 @@ public final class CompressedHeadersBuilder {
     }
     
     /**
-     * Add the SPDY/HTTP mime header.
+     * Add the HTTP mime header.
      *
      * @param name the mime header name.
      * @param value the mime header value.
@@ -209,7 +209,7 @@ public final class CompressedHeadersBuilder {
     }
 
     /**
-     * Add the SPDY/HTTP mime header.
+     * Add the HTTP mime header.
      *
      * @param header the mime {@link Header}.
      * @param value the mime header value.

@@ -85,8 +85,8 @@ public class Constants {
             new Termination(TerminationType.RST, "Reset by peer");
 
     static final Termination UNEXPECTED_FRAME_TERMINATION =
-            new Termination(TerminationType.LOCAL_CLOSE, "Unexpected SPDY frame");
+            new Termination(TerminationType.LOCAL_CLOSE, "Unexpected HTTP/2 frame");
 
     static final Termination FRAME_TOO_LARGE_TERMINATION =
-            new Termination(TerminationType.LOCAL_CLOSE, "SpdyFrame sent by peer is too big");
+            new Termination(TerminationType.LOCAL_CLOSE, "HTTP/2 frame sent by peer is too large");
 }

@@ -51,7 +51,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
- * The {@link Filter} responsible for transforming SPDY {@link Http2Frame}s
+ * The {@link Filter} responsible for transforming {@link Http2Frame}s
  * to {@link Buffer}s and vise versa.
  * 
  * @author Grizzly team

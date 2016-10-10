@@ -47,7 +47,7 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 
 /**
  * The class represents the data to be pushed from server to client.
- * SPDY unidirectional stream will be used in order to push this data.
+ * HTTP/2 unidirectional stream will be used in order to push this data.
  * 
  * The {@link #builder()} has to be used in order to
  * create a <tt>PushResource</tt> instance.
@@ -80,7 +80,7 @@ public final class PushResource {
     }
 
     /**
-     * Returns the SPDY stream priority to be used.
+     * Returns the HTTP/2 stream priority to be used.
      */
     public int getPriority() {
         return priority;

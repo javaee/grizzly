@@ -44,7 +44,7 @@ import java.io.IOException;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 
 /**
- * SPDY Stream exception.
+ * HTTP/2 Stream exception.
  * 
  * @author Alexey Stashok
  */

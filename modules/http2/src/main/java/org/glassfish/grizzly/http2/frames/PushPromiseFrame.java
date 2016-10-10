@@ -225,7 +225,7 @@ public class PushPromiseFrame extends HeaderBlockHead {
         }
 
 
-        // --------------------------------------- Methods from SpdyFrameBuilder
+        // --------------------------------------- Methods from HeaderBlockHeaderBuilder
 
 
         @Override

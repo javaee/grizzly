@@ -44,10 +44,10 @@ import java.io.IOException;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 
 /**
- * SPDY Session exception.
+ * HTTP/2 session exception.
  * 
- * Unlike {@link SpdyStreamException}, this exception means severe problem
- * related to the entire SPDY session.
+ * Unlike {@link Http2StreamException}, this exception means severe problem
+ * related to the entire HTTP2 session.
  * 
  * @author Alexey Stashok
  */

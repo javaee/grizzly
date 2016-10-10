@@ -297,7 +297,7 @@ public class HeadersFrame extends HeaderBlockHead {
         }
 
 
-        // --------------------------------------- Methods from SpdyFrameBuilder
+        // --------------------------------------- Methods from Http2FrameBuilder
 
 
         @Override

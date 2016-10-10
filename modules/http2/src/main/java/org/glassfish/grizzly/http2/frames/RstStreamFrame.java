@@ -170,7 +170,7 @@ public class RstStreamFrame extends Http2Frame {
             return frame;
         }
 
-        // --------------------------------------- Methods from SpdyFrameBuilder
+        // --------------------------------------- Methods from Http2FrameBuilder
         @Override
         protected RstStreamFrameBuilder getThis() {
             return this;

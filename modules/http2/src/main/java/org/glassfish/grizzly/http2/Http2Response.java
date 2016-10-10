@@ -55,13 +55,13 @@ class Http2Response extends HttpResponsePacket implements Http2Header {
             ThreadCache.obtainIndex(Http2ResponseRecyclable.class, 2);
 
     public static Http2Response create() {
-        Http2Response spdyResponse =
+        Http2Response http2Response =
                 ThreadCache.takeFromCache(CACHE_IDX);
-        if (spdyResponse == null) {
-            spdyResponse = new Http2Response();
+        if (http2Response == null) {
+            http2Response = new Http2Response();
         }
         
-        return spdyResponse;
+        return http2Response;
     }
     
     /**

@@ -104,9 +104,9 @@ class DefaultOutputSink implements StreamOutputSink {
     // not null if last output frame has been sent or forcibly terminated
     private Http2Stream.Termination terminationFlag;
     
-    // associated spdy session
+    // associated HTTP/2 session
     private final Http2Connection http2Connection;
-    // associated spdy stream
+    // associated HTTP/2 stream
     private final Http2Stream stream;
 
     // counter for unflushed writes

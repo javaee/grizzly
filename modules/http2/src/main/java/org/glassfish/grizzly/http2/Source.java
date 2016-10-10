@@ -86,8 +86,8 @@ public abstract class Source {
     /**
      * Returns the {@link SourceFactory} associated with the {@link Http2Stream}.
      */
-    public static SourceFactory factory(final Http2Stream spdyStream) {
-        return new SourceFactory(spdyStream);
+    public static SourceFactory factory(final Http2Stream http2Stream) {
+        return new SourceFactory(http2Stream);
     }
     
     /**

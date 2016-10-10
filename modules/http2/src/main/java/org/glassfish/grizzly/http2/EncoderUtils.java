@@ -61,7 +61,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.ssl.SSLUtils;
 
 /**
- * HTTP Packet -> SpdyFrames encoder utils.
+ * HTTP Packet -> HTTP/2 frames encoder utils.
  * 
  * @author Grizzly team
  */

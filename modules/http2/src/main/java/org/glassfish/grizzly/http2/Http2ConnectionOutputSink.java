@@ -161,7 +161,7 @@ public class Http2ConnectionOutputSink {
         // @TODO check overflow
         final int newWindowSize = availConnectionWindowSize.addAndGet(delta);
         if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-            LOGGER.log(LOGGER_LEVEL, "SpdySession. Expand connection window size by {0} bytes. Current connection window size is: {1}",
+            LOGGER.log(LOGGER_LEVEL, "Http2Connection. Expand connection window size by {0} bytes. Current connection window size is: {1}",
                     new Object[] {delta, newWindowSize});
         }
 
@@ -321,7 +321,7 @@ public class Http2ConnectionOutputSink {
 
                 needToNotify = true;
                 if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-                    LOGGER.log(LOGGER_LEVEL, "SpdySession. Shrink connection window size by {0} bytes. Current connection window size is: {1}",
+                    LOGGER.log(LOGGER_LEVEL, "Http2Connection. Shrink connection window size by {0} bytes. Current connection window size is: {1}",
                             new Object[] {bytesToTransfer, newWindowSize});
                 }
 
