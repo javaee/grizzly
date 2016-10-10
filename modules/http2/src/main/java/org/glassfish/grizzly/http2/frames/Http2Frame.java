@@ -87,7 +87,7 @@ public abstract class Http2Frame implements Cacheable {
 
     /**
      * Sets flags for the frame.  Only the first 8 bits are relevant.
-     * @param flags
+     * @param flags the flags for this frame
      */
     protected void setFlags(final int flags) {
         this.flags = flags;
@@ -105,8 +105,7 @@ public abstract class Http2Frame implements Cacheable {
     }
 
     /**
-     * Recalculates the length
-     * @return 
+     * @return the length of this frame.
      */
     protected abstract int calcLength();
     
@@ -136,7 +135,7 @@ public abstract class Http2Frame implements Cacheable {
 
     /**
      * Sets the stream ID associated with the data frame.
-     * @param streamId 
+     * @param streamId the stream ID of this frame.
      */
     protected void setStreamId(final int streamId) {
         this.streamId = streamId;

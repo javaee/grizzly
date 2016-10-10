@@ -150,7 +150,7 @@ class DefaultOutputSink implements StreamOutputSink {
      * for this {@link Http2Stream}.
      * 
      * @param delta the delta.
-     * @throws org.glassfish.grizzly.http2.Http2StreamException
+     * @throws Http2StreamException if an error occurs processing the window update.
      */
     @Override
     public void onPeerWindowUpdate(final int delta) throws Http2StreamException {
@@ -243,7 +243,7 @@ class DefaultOutputSink implements StreamOutputSink {
      * @param messageCloner the {@link MessageCloner}, which will be able to
      *          clone the message in case it can't be completely written in the
      *          current thread.
-     * @throws IOException 
+     * @throws IOException if an error occurs with the write operation.
      */
     @Override
     public synchronized <E> void writeDownStream(final HttpPacket httpPacket,
@@ -442,7 +442,7 @@ class DefaultOutputSink implements StreamOutputSink {
      * The writeDownStream(...) methods have to be synchronized with shutdown().
      * 
      * @param source {@link Source} to send
-     * @throws IOException 
+     * @throws IOException if an error occurs with the write operation.
      */
     @Override
     public synchronized void writeDownStream(final Source source,

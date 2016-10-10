@@ -62,11 +62,12 @@ public class Http2FrameCodec {
 
     /**
      *
-     * @param http2Connection
-     * @param parsingState
-     * @param srcMessage
-     * @return
-     * @throws Http2ConnectionException
+     * @param http2Connection the {@link Http2Connection} from which the source buffer was obtained.
+     * @param parsingState the current {@link FrameParsingState}.
+     * @param srcMessage the inbound buffer.
+     * @return one or more {@link Http2Frame}s parsed from the source message.
+     *
+     * @throws Http2ConnectionException if an error occurs parsing the frame(s).
      */
     public List<Http2Frame> parse(final Http2Connection http2Connection,
             final FrameParsingState parsingState, Buffer srcMessage)
@@ -241,11 +242,6 @@ public class Http2FrameCodec {
         return false;
     }
     
-    /**
-     * Method used as a workaround for Glassfish logging issue.
-     * @param o
-     * @return 
-     */
     private static String makeString(final Object o) {
         return o == null ? null : o.toString();
     }

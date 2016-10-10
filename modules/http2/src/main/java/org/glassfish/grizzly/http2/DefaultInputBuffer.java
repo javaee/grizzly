@@ -250,7 +250,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
      * {@link Connection#getReadTimeout(java.util.concurrent.TimeUnit)}
      * wait time if necessary for payload to become available.
      * 
-     * @throws IOException
+     * @throws IOException if an error occurs with the poll operation.
      */
     @Override
     public HttpContent poll() throws IOException {
@@ -262,7 +262,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
      * {@link Connection#getReadTimeout(java.util.concurrent.TimeUnit)}
      * wait time if necessary for payload to become available.
      * 
-     * @throws IOException
+     * @throws IOException if an error occurs with the poll operation.
      */
     private Buffer poll0() throws IOException {
         if (isClosed()) {
@@ -399,7 +399,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
     
     /**
      * Checks if the passed InputElement is input buffer EOF element.
-     * @param inputElement 
+     * @param inputElement the {@link InputElement} to check EOF status against.
      */
     private void checkEOF(final InputElement inputElement) {
         // first of all it has to be the last element

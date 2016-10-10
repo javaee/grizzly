@@ -56,8 +56,8 @@ final class BundleQueue<E> {
      * add the element to a bundle, which already exists and is not the last
      * bundle in the queue.
      * 
-     * @param bundle
-     * @param element 
+     * @param bundle the bundle to which the specified <code>element</code> will be added.
+     * @param element the element to add.
      */
     public void add(final int bundle, final E element) {
         if (lastElementAbsoluteDistance > bundle) {

@@ -57,7 +57,7 @@ public final class Http2ConnectionException extends IOException {
     /**
      * Construct <tt>Http2ConnectionException</tt>.
      * 
-     * @param errorCode 
+     * @param errorCode the {@link ErrorCode} for this {@link Http2ConnectionException}
      */
     public Http2ConnectionException(final ErrorCode errorCode) {
         this(errorCode, null);
@@ -66,8 +66,8 @@ public final class Http2ConnectionException extends IOException {
     /**
      * Construct <tt>Http2ConnectionException</tt>.
      * 
-     * @param errorCode 
-     * @param message 
+     * @param errorCode the {@link ErrorCode} for this {@link Http2ConnectionException}
+     * @param message the detail message for this {@link Http2ConnectionException}
      */
     public Http2ConnectionException(final ErrorCode errorCode,
             final String message) {

@@ -66,7 +66,7 @@ interface StreamInputBuffer {
      * {@link Connection#getReadTimeout(java.util.concurrent.TimeUnit)}
      * wait time if necessary for payload to become available.
      * 
-     * @throws IOException
+     * @throws IOException if an error occurs during the poll operation.
      */
     HttpContent poll() throws IOException;
 

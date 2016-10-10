@@ -63,7 +63,7 @@ interface StreamOutputSink {
      * for this {@link Http2Stream}.
      * 
      * @param delta the delta.
-     * @throws org.glassfish.grizzly.http2.Http2StreamException
+     * @throws Http2StreamException if an error occurs processing the window update.
      */
     void onPeerWindowUpdate(int delta) throws Http2StreamException;
 

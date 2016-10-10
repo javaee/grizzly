@@ -155,12 +155,12 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     /**
      * Create HTTP2 stream.
      * 
-     * @param http2Connection
-     * @param request
-     * @param streamId
-     * @param refStreamId
-     * @param priority
-     * @param initState 
+     * @param http2Connection the {@link Http2Connection} for this {@link Http2Stream}.
+     * @param request the {@link HttpRequestPacket} initiating the stream.
+     * @param streamId this stream's ID.
+     * @param refStreamId the parent stream, if any.
+     * @param priority the priority of this stream.
+     * @param initState the intiail stream state.
      */
     protected Http2Stream(final Http2Connection http2Connection,
             final HttpRequestPacket request,
@@ -181,11 +181,11 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
 
     /**
      * Construct upgrade stream, which is half HTTP, half HTTP2
-     * 
-     * @param http2Connection
-     * @param request
-     * @param priority 
-     * @param initState 
+     *
+     * @param http2Connection the {@link Http2Connection} for this {@link Http2Stream}.
+     * @param request the {@link HttpRequestPacket} initiating the stream.
+     * @param priority the priority of this stream.
+     * @param initState the intiail stream state.
      */
     protected Http2Stream(final Http2Connection http2Connection,
             final HttpRequestPacket request,
@@ -536,8 +536,9 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      * The method is called when an inbound headers are decoded for the stream,
      * which means all the header frames arrived and we're ready to parse the headers.
      * 
-     * @param isEOS
-     * @throws Http2StreamException 
+     * @param isEOS flag indicating if the end-of-stream has been reached
+     *
+     * @throws Http2StreamException if an error occurs processing the headers frame
      */
     void onRcvHeaders(final boolean isEOS) throws Http2StreamException {
 
@@ -575,9 +576,10 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     
     /**
      * The method is called when an outbound headers are about to be sent to the peer.
-     * 
-     * @param isEOS
-     * @throws Http2StreamException 
+     *
+     * @param isEOS flag indicating if the end-of-stream has been reached
+     *
+     * @throws Http2StreamException if an error occurs processing the headers frame
      */
     void onSndHeaders(final boolean isEOS) throws Http2StreamException {
         // change the state

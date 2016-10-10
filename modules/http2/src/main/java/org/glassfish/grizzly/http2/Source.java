@@ -68,7 +68,7 @@ public abstract class Source {
      *          (could return less) to be written. <tt>null</tt> result is not
      *          permitted.
      * 
-     * @throws Http2StreamException 
+     * @throws Http2StreamException if an error occurs reading from the stream.
      */
     public abstract Buffer read(final int length) throws Http2StreamException;
     
