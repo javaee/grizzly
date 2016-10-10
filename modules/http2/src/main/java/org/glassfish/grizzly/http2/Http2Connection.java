@@ -620,7 +620,7 @@ public class Http2Connection {
     GoAwayFrame setGoAwayLocally(final ErrorCode errorCode) {
         final int lastPeerStreamIdLocal = close();
         if (lastPeerStreamIdLocal == -1) {
-            return null; // SpdySession is already in go-away state
+            return null; // Http2Connection is already in go-away state
         }
         
         return GoAwayFrame.builder()

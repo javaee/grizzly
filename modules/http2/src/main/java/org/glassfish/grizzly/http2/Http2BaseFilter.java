@@ -416,7 +416,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
     /**
      * <p>
-     * Invoked when the intial response line has been  encoded in preparation
+     * Invoked when the initial response line has been  encoded in preparation
      * to being transmitted to the user-agent.
      * </p>
      *
@@ -842,7 +842,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
     
     /**
-     * Creates {@link Http2Connection} with preconfigured initial-windows-size and
+     * Creates {@link Http2Connection} with pre-configured initial-windows-size and
      * max-concurrent-streams
      * @param connection the TCP {@link Connection}
      * @param isServer flag indicating whether this connection is server side or not.

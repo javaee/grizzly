@@ -532,7 +532,7 @@ public final class Huffman {
     }
 
     /**
-     * Calculates the number of bytes required to represent a subsequence of the
+     * Calculates the number of bytes required to represent a sub-sequence of the
      * given {@code CharSequence} with the Huffman coding.
      *
      * @param value

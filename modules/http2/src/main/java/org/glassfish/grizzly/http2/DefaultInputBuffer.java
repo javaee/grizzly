@@ -217,7 +217,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
             }
             
             if (inputElement != null) {
-                // if extra input elemenet is not null - try to append it
+                // if extra input element is not null - try to append it
                 final Buffer data = inputElement.toBuffer();
                 if (!inputElement.isService) {
                     // if this is element containing payload
@@ -292,9 +292,9 @@ class DefaultInputBuffer implements StreamInputBuffer {
                     throw new IOException("Blocking read timeout");
                 } else {
                     // Due to asynchronous inputQueueSize update - the inputQueueSizeNow may be < 0.
-                    // It means the inputQueueSize.getAndSet(0); above, may unitentionally increase the counter.
+                    // It means the inputQueueSize.getAndSet(0); above, may unintentionally increase the counter.
                     // So, once we read a Buffer - we have to properly restore the counter value.
-                    // Normally it had to be inputQueueSize.decremenetAndGet(); , but we have to
+                    // Normally it had to be inputQueueSize.decrementAndGet(); , but we have to
                     // take into account fact described above.
                     inputQueueSizeUpdater.addAndGet(this, inputQueueSizeNow - 1);
 
@@ -352,7 +352,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
     /**
      * Forcibly closes the input buffer.
      * 
-     * All the bufferred data will be discarded.
+     * All the buffered data will be discarded.
      */
     @Override
     public void terminate(final Http2Stream.Termination termination) {
@@ -441,7 +441,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
             } else if (remainingContentLength < 0) {
                 // Peer sent more bytes than specified in the content-length
                 throw new IllegalStateException("Http2Stream #" + stream.getId() +
-                        ": peer is sending data beyound specified content-length limit");
+                        ": peer is sending data beyond specified content-length limit");
             }
         }
         

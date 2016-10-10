@@ -443,7 +443,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
             if (httpHeader.isSecure()) {
                 // ALPN should've set the Http2State, but in our case it's null.
-                // It means ALPN was bypassed - SSL without ALPN shoudn't work.
+                // It means ALPN was bypassed - SSL without ALPN shouldn't work.
                 // Don't try HTTP/2 in this case.
                 Http2State.create(connection).setNeverHttp2();
                 return ctx.getInvokeAction();
@@ -546,7 +546,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
             if (header.isRequest()) {
                 //@TODO temporary not optimal solution, because we check the req here and in the handleRead()
                 if (checkRequestHeadersOnUpgrade((HttpRequestPacket) header)) {
-                    // for the HTTP/2 upgrade request we want to obbey HTTP/1.1
+                    // for the HTTP/2 upgrade request we want to obey HTTP/1.1
                     // content modifiers (transfer and content encodings)
                     header.setIgnoreContentModifiers(false);
                     
@@ -665,7 +665,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
         
         ctx.write(httpResponse);
 
-        // uncommit the response
+        // un-commit the response
         httpResponse.setCommitted(false);
         
         http2Connection.setupFilterChains(ctx, true);
@@ -821,7 +821,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
         if (!response.isCommitted()) {
             prepareOutgoingResponse(response);
-            pushAssociatedResoureses(ctx, stream);
+            pushAssociatedResourses(ctx, stream);
         }
 
         final FilterChainContext.TransportContext transportContext = ctx.getTransportContext();
@@ -832,15 +832,15 @@ public class Http2ServerFilter extends Http2BaseFilter {
                                    transportContext.getMessageCloner());
     }
         
-    private void pushAssociatedResoureses(final FilterChainContext ctx,
-            final Http2Stream stream) throws IOException {
+    private void pushAssociatedResourses(final FilterChainContext ctx,
+                                         final Http2Stream stream) throws IOException {
         final Map<String, PushResource> pushResourceMap =
                 stream.getAssociatedResourcesToPush();
         
         if (pushResourceMap != null) {           
             final int streamId = stream.getId();
             final HttpRequestPacket streamReq = stream.getRequest();
-            final String referer = composeRefererOf(stream.getRequest());
+            final String referrer = composeReferrerOf(stream.getRequest());
             
             final List<Pair<Http2Stream, Source>> pushStreams =
                     new ArrayList<>(pushResourceMap.size());
@@ -880,7 +880,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
                     
                     valueDC = reqHeaders.setValue(Header.Referer);
                     if (valueDC.isNull()) {
-                        valueDC.setString(referer);
+                        valueDC.setString(referrer);
                     }
                     
                     for (String cookie : streamReq.getHeaders().values(Header.Cookie)) {
@@ -990,7 +990,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
         }
     }
 
-    private String composeRefererOf(final HttpRequestPacket request) {
+    private String composeReferrerOf(final HttpRequestPacket request) {
         //noinspection StringBufferReplaceableByString
         return new StringBuilder(64).append(request.isSecure() ? "https" : "http")
                 .append("://")

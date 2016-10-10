@@ -265,7 +265,7 @@ class DefaultOutputSink implements StreamOutputSink {
         
         try { // try-finally block to release deflater lock if needed
             
-            // If HTTP header hasn't been commited - commit it
+            // If HTTP header hasn't been committed - commit it
             if (!httpHeader.isCommitted()) {
                 // do we expect any HTTP payload?
                 final boolean isNoPayload = !httpHeader.isExpectContent() ||
@@ -436,7 +436,7 @@ class DefaultOutputSink implements StreamOutputSink {
     /**
      * Send the data represented by the {@link Source} to the {@link Http2Stream}.
      * Unlike {@link #writeDownStream(HttpPacket, FilterChainContext, CompletionHandler, MessageCloner)} ,
-     * here we assume the resource is going to be send on non-commited header and
+     * here we assume the resource is going to be send on non-committed header and
      * it will be the only resource sent over this {@link Http2Stream} (isLast flag will be set).
      * 
      * The writeDownStream(...) methods have to be synchronized with shutdown().
@@ -457,7 +457,7 @@ class DefaultOutputSink implements StreamOutputSink {
         final HttpHeader httpHeader = stream.getOutputHttpHeader();
         
         if (httpHeader.isCommitted()) {
-            throw new IllegalStateException("Headers have been already commited");
+            throw new IllegalStateException("Headers have been already committed");
         }
         
         List<Http2Frame> headerFrames;
@@ -469,7 +469,7 @@ class DefaultOutputSink implements StreamOutputSink {
         
         try { // try-finally block to release deflater lock
             
-            // We assume HTTP header hasn't been commited
+            // We assume HTTP header hasn't been committed
             
             // do we expect any HTTP payload?
             final boolean isNoPayload =
@@ -551,7 +551,7 @@ class DefaultOutputSink implements StreamOutputSink {
         
         // check if there are pending unflushed data
         if (unflushedWritesCounter.get() > 0) {
-            // if yes - synchronize do disallow descrease counter from other thread (increasing is ok)
+            // if yes - synchronize do disallow decrease counter from other thread (increasing is ok)
             synchronized (flushHandlersSync) {
                 // double check the pending flushes counter
                 final int counterNow = unflushedWritesCounter.get();

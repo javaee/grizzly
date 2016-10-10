@@ -143,11 +143,11 @@ public final class CompressedHeadersBuilder {
     }
     
     /**
-     * Set the the hostport (See RFC1738 [RFC1738]) portion of the URL for this
+     * Set the the host/port (See RFC1738 [RFC1738]) portion of the URL for this
      * request header (e.g. "www.google.com:1234").
      * This header is the same as the HTTP 'Host' header.
      *
-     * @param host the hostport.
+     * @param host the host/port.
      */
     public final CompressedHeadersBuilder host(String host) {
         return header(":host", host);

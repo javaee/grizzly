@@ -126,8 +126,8 @@ public final class PushResource {
         }
         
         /**
-         * Sets the SPDY stream priority to be used.
-         * @param priority the SPDY stream priority to be used.
+         * Sets the stream priority to be used.
+         * @param priority the stream priority to be used.
          * 
          * @return {@link PushResourceBuilder}.
          */

@@ -431,8 +431,8 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     void resetRemotely() {
         if (closeReasonUpdater.compareAndSet(this, null,
                 new CloseReason(CloseType.REMOTELY, null))) {
-            // initiat graceful shutdown for input, so user is able to read
-            // the bufferred data
+            // initial graceful shutdown for input, so user is able to read
+            // the buffered data
             inputBuffer.terminate(RESET_TERMINATION);
             
             // forcibly terminate the output, so no more data will be sent

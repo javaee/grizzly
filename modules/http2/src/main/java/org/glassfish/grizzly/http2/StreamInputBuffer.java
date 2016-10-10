@@ -80,7 +80,7 @@ interface StreamInputBuffer {
     /**
      * Forcibly closes the input buffer.
      * 
-     * All the bufferred data will be discarded.
+     * All the buffered data will be discarded.
      */
     void terminate(final Http2Stream.Termination termination);
     
