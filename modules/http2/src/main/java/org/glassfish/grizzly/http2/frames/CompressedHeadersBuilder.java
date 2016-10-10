@@ -52,11 +52,8 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http2.HeadersEncoder;
 
 /**
- * The builder for compressed headers used by {@link SynStreamFrame},
- * {@link SynReplyFrame}, {@link HeadersFrame}.
+ * The builder for compressed headers used by {@link HeadersFrame}.
  * 
- * @see SynStreamFrame
- * @see SynReplyFrame
  * @see HeadersFrame
  * 
  * @author Alexey Stashok
@@ -159,7 +156,7 @@ public final class CompressedHeadersBuilder {
     /**
      * Set the scheme portion of the URL for this request header (e.g. "https").
      *
-     * @param path the path of this header.
+     * @param scheme the scheme of this header.
      */
     public final CompressedHeadersBuilder scheme(String scheme) {
         return header(":scheme", scheme);
@@ -168,7 +165,7 @@ public final class CompressedHeadersBuilder {
     /**
      * Set the HTTP response status code (e.g. 200 or 404).
      *
-     * @param path the path of this header.
+     * @param status the status of this header.
      */
     public final CompressedHeadersBuilder status(int status) {
         return status(String.valueOf(status));
@@ -177,7 +174,7 @@ public final class CompressedHeadersBuilder {
     /**
      * Set the HTTP response status code (e.g. "200" or "200 OK")
      *
-     * @param path the path of this header.
+     * @param status the status of this header.
      */
     public final CompressedHeadersBuilder status(HttpStatus status) {
         final StringBuilder sb = new StringBuilder();
@@ -191,7 +188,7 @@ public final class CompressedHeadersBuilder {
     /**
      * Set the HTTP response status code (e.g. "200" or "200 OK")
      *
-     * @param path the path of this header.
+     * @param status the status of this header.
      */
     public final CompressedHeadersBuilder status(final String status) {
         return header(":status", status);

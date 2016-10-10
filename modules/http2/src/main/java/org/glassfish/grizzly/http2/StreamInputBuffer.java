@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.http.HttpContent;
 
 /**
