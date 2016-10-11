@@ -142,7 +142,7 @@ public abstract class Source {
          * @return {@link Source}.
          */
         public Source createFileSource(final String filename)
-                throws FileNotFoundException, IOException {
+                throws FileNotFoundException {
             return createFileSource(new File(filename));
         }
 
@@ -153,15 +153,7 @@ public abstract class Source {
          * @return {@link Source}.
          */
         public Source createFileSource(final File file)
-                throws FileNotFoundException, IOException {
-            if (!file.exists()) {
-                throw new IOException("File does not exist");
-            }
-
-            if (!file.isFile()) {
-                throw new IOException("File is not identified as a normal file. Is it a directory?");
-            }
-
+                throws FileNotFoundException {
             return new FileSource(file, stream);
         }
 
