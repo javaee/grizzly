@@ -77,7 +77,7 @@ import static org.glassfish.grizzly.spdy.Constants.*;
  *
  */
 public class SpdyAddOn implements AddOn {
-    protected static final SpdyVersion[] ALL_SPDY_VERSIONS =
+    private static final SpdyVersion[] ALL_SPDY_VERSIONS =
             {SpdyVersion.SPDY_3_1, SpdyVersion.SPDY_3};
     
     private static final Logger LOGGER = Grizzly.logger(SpdyAddOn.class);
