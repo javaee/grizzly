@@ -45,12 +45,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 
 import org.glassfish.grizzly.PortRange;
+import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.Futures;
@@ -301,6 +304,56 @@ public class NetworkListenerTest {
                                           Charsets.UTF8_CHARSET));
             final String content = reader.readLine();
             assertNull(content);
+
+            assertNotNull(gracefulFuture.get(5, TimeUnit.SECONDS));
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            server.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testDefaultSessionCookieName() throws Exception {
+        testCookeName(null);
+    }
+    @Test
+    public void testCustomSessionCookieName() throws Exception {
+        testCookeName("CookieMonster");
+    }
+
+    private void testCookeName(final String cookieName) {
+        final AtomicBoolean passed = new AtomicBoolean(false);
+
+        final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+        if (cookieName != null) {
+            final SessionManager custom = DefaultSessionManager.instance();
+            custom.setSessionCookieName(cookieName);
+            server.getListener("grizzly").setSessionManager(custom);
+        }
+        server.getServerConfiguration().addHttpHandler(
+                new HttpHandler() {
+                    @Override
+                    public void service(Request request, Response response)
+                            throws Exception {
+                        System.out.println(request.getSessionCookieName());
+                        if (cookieName != null) {
+                            passed.compareAndSet(false, request.getSessionCookieName().equals(cookieName));
+                        } else {
+                            passed.compareAndSet(false, Globals.SESSION_COOKIE_NAME.equals(request.getSessionCookieName()));
+                        }
+                    }
+                }, "/test"
+        );
+        try {
+            server.start();
+            URL url = new URL("http://localhost:" + PORT + "/test");
+            HttpURLConnection c = (HttpURLConnection) url.openConnection();
+            assertEquals(200, c.getResponseCode());
+            assertTrue(passed.get());
+
+            Future<HttpServer> gracefulFuture =
+                    server.shutdown(1, TimeUnit.SECONDS);
 
             assertNotNull(gracefulFuture.get(5, TimeUnit.SECONDS));
         } catch (Exception e) {

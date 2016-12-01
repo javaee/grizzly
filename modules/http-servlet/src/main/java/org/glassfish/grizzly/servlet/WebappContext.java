@@ -307,6 +307,12 @@ public class WebappContext implements ServletContext {
                 webappClassLoader =
                         ClassLoaderUtil.createURLClassLoader(
                                 new File(getBasePath()).getCanonicalPath());
+                if (getSessionCookieConfig().getName() == null) {
+                    final SessionManager manager = targetServer.getServerConfiguration().getSessionManager();
+                    if (manager != null) {
+                        getSessionCookieConfig().setName(manager.getSessionCookieName());
+                    }
+                }
                 initializeListeners();
                 contextInitialized();
                 initServlets(targetServer);

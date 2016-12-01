@@ -87,4 +87,20 @@ public interface SessionManager {
      */
     void configureSessionCookie(final Request request,
                                 final Cookie cookie);
+
+    /**
+     * Set the session cookie name that will be used by sessions created by this {@link SessionManager}.
+     *
+     * @param name the session cookie name
+     *
+     * @since 2.3.29
+     */
+    void setSessionCookieName(final String name);
+
+    /**
+     * @return the session cookie name
+     *
+     * @since 2.3.29
+     */
+    String getSessionCookieName();
 }
