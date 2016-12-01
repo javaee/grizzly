@@ -45,6 +45,7 @@ import org.glassfish.grizzly.http.server.DefaultSessionManager;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Session;
 import org.glassfish.grizzly.http.server.SessionManager;
+import org.glassfish.grizzly.http.server.util.Globals;
 
 /**
  * The Servlet-aware {@link SessionManager} implementation.
@@ -63,10 +64,12 @@ public class ServletSessionManager implements SessionManager {
     }
 
     private final SessionManager defaultManager = DefaultSessionManager.instance();
-    
+
+    private String sessionCookieName = Globals.SESSION_COOKIE_NAME;
+
     private ServletSessionManager() {
     }
-    
+
     @Override
     public Session getSession(final Request request,
             final String requestedSessionId) {
@@ -77,7 +80,7 @@ public class ServletSessionManager implements SessionManager {
     public Session createSession(final Request request) {
         return defaultManager.createSession(request);
     }
-    
+
     @Override
     public String changeSessionId(final Request request, final Session session) {
         return defaultManager.changeSessionId(request, session);
@@ -86,15 +89,15 @@ public class ServletSessionManager implements SessionManager {
     @Override
     public void configureSessionCookie(final Request request, final Cookie cookie) {
         defaultManager.configureSessionCookie(request, cookie);
-        
+
         final HttpServletRequestImpl servletRequest =
                 ServletHandler.getServletRequest(request);
-        
+
         assert servletRequest != null;
-        
+
         final javax.servlet.SessionCookieConfig cookieConfig =
                 servletRequest.getContextImpl().getSessionCookieConfig();
-        
+
         if (cookieConfig.getDomain() != null) {
             cookie.setDomain(cookieConfig.getDomain());
         }
@@ -105,9 +108,21 @@ public class ServletSessionManager implements SessionManager {
             cookie.setVersion(1);
             cookie.setComment(cookieConfig.getComment());
         }
-        
+
         cookie.setSecure(cookieConfig.isSecure());
         cookie.setHttpOnly(cookieConfig.isHttpOnly());
         cookie.setMaxAge(cookieConfig.getMaxAge());
+    }
+
+    @Override
+    public void setSessionCookieName(final String name) {
+        if (name != null && !name.isEmpty()) {
+            sessionCookieName = name;
+        }
+    }
+
+    @Override
+    public String getSessionCookieName() {
+        return sessionCookieName;
     }
 }

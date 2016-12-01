@@ -48,6 +48,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.http.Cookie;
+import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.utils.DataStructures;
 
 /**
@@ -75,6 +76,8 @@ public class DefaultSessionManager implements SessionManager {
             = DataStructures.<String, Session>getConcurrentMap();
 
     private final Random rnd = new Random();
+
+    private String sessionCookieName = Globals.SESSION_COOKIE_NAME;
 
     /**
      * Scheduled Thread that clean the cache every XX seconds.
@@ -158,6 +161,18 @@ public class DefaultSessionManager implements SessionManager {
     @Override
     public void configureSessionCookie(final Request request,
             final Cookie cookie) {
+    }
+
+    @Override
+    public void setSessionCookieName(final String name) {
+        if (name != null && !name.isEmpty()) {
+            sessionCookieName = name;
+        }
+    }
+
+    @Override
+    public String getSessionCookieName() {
+        return sessionCookieName;
     }
 
     /**

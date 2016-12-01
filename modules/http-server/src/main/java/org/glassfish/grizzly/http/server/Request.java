@@ -518,7 +518,7 @@ public class Request {
      * @return session cookie name, if not set default JSESSIONID name will be used
      */
     public String getSessionCookieName() {
-        return sessionCookieName;
+        return obtainSessionCookieName();
     }
 
     /**
@@ -530,11 +530,11 @@ public class Request {
     }
     
     /**
-     * @return {@link #sessionCookieName} if set, or {@link Globals#SESSION_COOKIE_NAME} if
-     * {@link #sessionCookieName} is not set
+     * @return {@link #sessionCookieName} if set, or the value returned by {@link SessionManager#getSessionCookieName()}
+     * if {@link #sessionCookieName} is not set.
      */
     protected String obtainSessionCookieName() {
-        return sessionCookieName != null ? sessionCookieName : Globals.SESSION_COOKIE_NAME;
+        return sessionCookieName != null ? sessionCookieName : getSessionManager().getSessionCookieName();
     }
 
     /**

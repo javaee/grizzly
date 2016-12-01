@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,8 +58,8 @@ public interface SessionManager {
      * 
      * @return {@link Session}
      */
-    public Session getSession(final Request request,
-            final String requestedSessionId);
+    Session getSession(final Request request,
+                       final String requestedSessionId);
 
     /**
      * Create a new {@link Session} associated with the {@link Request}.
@@ -67,7 +67,7 @@ public interface SessionManager {
      * @param request {@link Request}
      * @return a new {@link Session} associated with the {@link Request}
      */
-    public Session createSession(final Request request);
+    Session createSession(final Request request);
     
     /**
      * Change the {@link Session} id and return the original id. 
@@ -76,8 +76,8 @@ public interface SessionManager {
      * @param session {@link Session}
      * @return the old session id
      */
-    public String changeSessionId(final Request request,
-            final Session session);
+    String changeSessionId(final Request request,
+                           final Session session);
     
     /**
      * Configure session cookie before adding it to the {@link Request#getResponse()}.
@@ -85,6 +85,22 @@ public interface SessionManager {
      * @param request
      * @param cookie 
      */
-    public void configureSessionCookie(final Request request,
-            final Cookie cookie);
+    void configureSessionCookie(final Request request,
+                                final Cookie cookie);
+
+    /**
+     * Set the session cookie name that will be used by sessions created by this {@link SessionManager}.
+     *
+     * @param name the session cookie name
+     *
+     * @since 2.3.29
+     */
+    void setSessionCookieName(final String name);
+
+    /**
+     * @return the session cookie name
+     *
+     * @since 2.3.29
+     */
+    String getSessionCookieName();
 }
