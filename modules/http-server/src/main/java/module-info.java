@@ -38,10 +38,14 @@
  * holder.
  */
 
-module org.glassfish.grizzly.http {
-    requires transitive org.glassfish.grizzly.framework;
+module org.glassfish.grizzly.http.server {
+    requires transitive org.glassfish.grizzly.http;
 
-    exports org.glassfish.grizzly.http;
-    exports org.glassfish.grizzly.http.io;
-    exports org.glassfish.grizzly.http.util;
+    exports org.glassfish.grizzly.http.server;
+    exports org.glassfish.grizzly.http.server.accesslog;
+    exports org.glassfish.grizzly.http.server.filecache;
+    exports org.glassfish.grizzly.http.server.io;
+    exports org.glassfish.grizzly.http.server.jmxbase;
+    exports org.glassfish.grizzly.http.server.naming;
+    exports org.glassfish.grizzly.http.server.util;
 }
