@@ -50,7 +50,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>grizzly-http-servlet</artifactId>
-    <packaging>bundle</packaging>
+    <packaging>jar</packaging>
     <version>2.3.29-SNAPSHOT</version>
     <name>grizzly-http-servlet</name>
     <build>
@@ -64,24 +64,55 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <version>${felix-version}</version>
-                <extensions>true</extensions>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.6.1-SNAPSHOT</version>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <configuration>
+                            <release>9</release>
+                        </configuration>
+                    </execution>
+                    <!--<execution>-->
+                    <!--<id>base-compile</id>-->
+                    <!--<goals>-->
+                    <!--<goal>compile</goal>-->
+                    <!--</goals>-->
+                    <!--<configuration>-->
+                    <!--<excludes>-->
+                    <!--<exclude>module-info.java</exclude>-->
+                    <!--</excludes>-->
+                    <!--<release>6</release>-->
+                    <!--</configuration>-->
+                    <!--</execution>-->
+                </executions>
                 <configuration>
-                    <instructions>
-                        <Import-Package>
-                            org.glassfish.grizzly*;version=${project.version},
-                            javax.servlet*;version="[3.0,3.2)",
-                            *,
-                        </Import-Package>
-                        <Export-Package>
-                            org.glassfish.grizzly.servlet.*;version=${project.version}
-                        </Export-Package>
-                    </instructions>
-                    <unpackBundle>true</unpackBundle>
+                    <!-- default for compile and testCompile, required when JAVA_HOME is JDK 9 or above -->
+                    <jdkToolchain>
+                        <version>9</version>
+                    </jdkToolchain>
                 </configuration>
             </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.apache.felix</groupId>-->
+                <!--<artifactId>maven-bundle-plugin</artifactId>-->
+                <!--<version>${felix-version}</version>-->
+                <!--<extensions>true</extensions>-->
+                <!--<configuration>-->
+                    <!--<instructions>-->
+                        <!--<Import-Package>-->
+                            <!--org.glassfish.grizzly*;version=${project.version},-->
+                            <!--javax.servlet*;version="[3.0,3.2)",-->
+                            <!--*,-->
+                        <!--</Import-Package>-->
+                        <!--<Export-Package>-->
+                            <!--org.glassfish.grizzly.servlet.*;version=${project.version}-->
+                        <!--</Export-Package>-->
+                    <!--</instructions>-->
+                    <!--<unpackBundle>true</unpackBundle>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
             <!--
             <plugin>
                 <groupId>org.jvnet.jaxb2.maven2</groupId>
