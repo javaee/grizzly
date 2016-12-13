@@ -46,6 +46,8 @@ import org.glassfish.grizzly.http.server.ErrorPageGenerator;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.http.util.HttpUtils;
+
 
 /**
  * Utility class used to generate HTML pages.
@@ -226,7 +228,7 @@ public class HtmlHelper{
         }
         
         final String exMessage = t.getMessage() != null ?
-                t.getMessage() : t.toString();
+                HttpUtils.filter(t.getMessage()) : HttpUtils.filter(t.toString());
         
         StringBuilder sb = new StringBuilder();
         sb.append("<html><head><title>");

@@ -169,6 +169,24 @@ public class ErrorPageTest {
         assertTrue(errorPage.contains("TestError"));
         assertTrue(errorPage.contains("service")); // check the stacktrace
     }
+
+    @Test
+    public void testErrorMessageXSSVulnerability() throws Exception {
+        final HttpPacket request = createRequest("/", null);
+        final HttpContent responseContent = doTest(request, 10,
+                new HttpHandler() {
+                    public void service(Request request, Response response) throws Exception
+                    { throw new RuntimeException("Accept: <script>alert(1)</script>"); }
+                });
+        final HttpResponsePacket responsePacket =
+                (HttpResponsePacket) responseContent.getHttpHeader();
+        assertEquals(500, responsePacket.getStatus());
+        assertTrue(responseContent.getContent().hasRemaining());
+        String errorPage = responseContent.getContent().toStringContent();
+        System.out.println(errorPage);
+        assertTrue(errorPage.contains("&lt;script&gt;alert(1)&lt;"));
+        assertFalse(errorPage.contains("<script>alert(1)</script>"));
+    }
     
     private HttpPacket createRequest(String uri, Map<String, String> headers) {
 
