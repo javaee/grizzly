@@ -211,6 +211,17 @@ public class DataChunk implements Chunk {
         setStringInternal(string);
     }
 
+    public void trimLeft() {
+        switch (getType()) {
+            case Bytes:
+                getByteChunk().trimLeft(); break;
+            case Buffer:
+                getBufferChunk().trimLeft(); break;
+            case Chars:
+                getCharChunk().trimLeft();
+        }
+    }
+
     /**
      *  Copy the src into this DataChunk, allocating more space if needed
      */

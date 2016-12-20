@@ -674,5 +674,16 @@ public class BufferChunk implements Chunk {
         }
 
         return true;
-    }    
+    }
+
+    public void trimLeft() {
+        boolean modified = false;
+        while (buffer.get(start) <= 0x20) {
+            modified = true;
+            start++;
+        }
+        if (modified) {
+            resetStringCache();
+        }
+    }
 }

@@ -1097,6 +1097,17 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         return -1;
     }
 
+    public void trimLeft() {
+        boolean modified = false;
+        while (buff[start] <= 0x20) {
+            modified = true;
+            start++;
+        }
+        if (modified) {
+            resetStringCache();
+        }
+    }
+
     // -------------------- utils
     private int min(int a, int b) {
         if (a < b) return a;
