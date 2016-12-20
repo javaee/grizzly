@@ -606,6 +606,17 @@ public final class ByteChunk implements Chunk, Cloneable, Serializable {
 
     // -------------------- Conversion and getters --------------------
 
+    public void trimLeft() {
+        boolean modified = false;
+        while (buff[start] <= 0x20) {
+            modified = true;
+            start++;
+        }
+        if (modified) {
+            resetStringCache();
+        }
+    }
+
     @Override
     public String toString() {
         if (null == buff || end - start == 0) {
