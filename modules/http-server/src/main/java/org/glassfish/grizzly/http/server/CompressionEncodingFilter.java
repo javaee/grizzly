@@ -83,9 +83,39 @@ public class CompressionEncodingFilter implements EncodingFilter {
             String[] noCompressionUserAgents,
             String[] aliases) {
         
+        this(compressionMode, compressionMinSize, compressibleMimeTypes,
+                noCompressionUserAgents, aliases, false);
+    }
+
+    /**
+     * Creates a new CompressionEncodingFilter based on the provided configuration
+     * details.
+     *
+     * @param compressionMode is compression on, off, or forced.
+     * @param compressionMinSize the minimum size, in bytes, the resource must
+     *  be before being considered for compression.
+     * @param compressibleMimeTypes resource mime types that may be compressed.
+     *  if null or zero-length, then there will be no type restriction.
+     * @param noCompressionUserAgents user agents for which compression will
+     *  not be performed.  If null or zero-length, the user agent will not
+     *  be considered.
+     * @param aliases aliases for the compression name as defined in the
+     *  accept-encoding header of the request.
+     * @param enableDecompression enabled decompression of incoming data
+     * according to the content-encoding header
+     *
+     * @since 2.3.29
+     */
+    public CompressionEncodingFilter(CompressionMode compressionMode,
+            int compressionMinSize,
+            String[] compressibleMimeTypes,
+            String[] noCompressionUserAgents,
+            String[] aliases,
+            boolean enableDecompression) {
+
         compressionConfig = new CompressionConfig(compressionMode, compressionMinSize,
-                null, null);
-        compressionConfig.setCompressableMimeTypes(compressibleMimeTypes);
+                null, null, enableDecompression);
+        compressionConfig.setCompressibleMimeTypes(compressibleMimeTypes);
         compressionConfig.setNoCompressionUserAgents(noCompressionUserAgents);
         
         this.aliases = Arrays.copyOf(aliases, aliases.length);
@@ -111,7 +141,7 @@ public class CompressionEncodingFilter implements EncodingFilter {
         
         assert httpPacket instanceof HttpRequestPacket;
         return canDecompressHttpRequest((HttpRequestPacket) httpPacket, 
-                aliases);
+                compressionConfig, aliases);
     }
     
     /**
@@ -174,8 +204,13 @@ public class CompressionEncodingFilter implements EncodingFilter {
      */
     protected static boolean canDecompressHttpRequest(
             final HttpRequestPacket request,
+            final CompressionConfig config,
             final String[] aliases) {
         
+        if(! config.isDecompressionEnabled()) {
+            return false;
+        }
+
         String contentEncoding = request.getHeader(Header.ContentEncoding);
         
         // If no header is present, assume request is not encoded, so don't decode

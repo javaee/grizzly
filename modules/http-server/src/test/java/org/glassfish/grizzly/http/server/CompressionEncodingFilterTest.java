@@ -165,8 +165,9 @@ public class CompressionEncodingFilterTest {
                                               1,
                                               new String[0],
                                               new String[0],
-                                              new String[] {"gzip"});
-
+                                              new String[] {"gzip"},
+                                              true);
+        
         // Valid gzip compression
         HttpRequestPacket request = setContentEncoding(
                 HttpRequestPacket.builder().method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/").build(),

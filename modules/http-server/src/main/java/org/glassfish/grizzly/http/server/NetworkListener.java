@@ -101,7 +101,7 @@ public class NetworkListener {
      * {@link HttpServer} will bind to in order to service <code>HTTP</code> requests.
      */
     private Object localEndpoint;
-    
+
     /**
      * The time, in seconds, for which a request must complete processing.
      */
@@ -133,7 +133,7 @@ public class NetworkListener {
     /**
      * TCP Server {@link Connection} responsible for accepting client connections
      */
-    private Connection serverConnection;    
+    private Connection serverConnection;
     
     /**
      * The default error page generator
@@ -227,7 +227,7 @@ public class NetworkListener {
     private final BackendConfig backendConfig = new BackendConfig();
     private int maxRequestHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
     private int maxResponseHeaders = MimeHeaders.MAX_NUM_HEADERS_DEFAULT;
-    
+
     // ------------------------------------------------------------ Constructors
 
     /**
@@ -322,10 +322,10 @@ public class NetworkListener {
         }
         this.name = name;
         this.localEndpoint = localEndpoint;
-        
+
         isBindToInherited = false;
     }
-    
+
     // ----------------------------------------------------------- Configuration
 
     /**
@@ -343,7 +343,7 @@ public class NetworkListener {
         if (!(localEndpoint instanceof InetSocketAddress)) {
             throw new IllegalStateException("Local endpoint is not a InetSocketAddress, so the host can not be returned");
         }
-        
+
         return ((InetSocketAddress) localEndpoint).getHostString();
     }
 
@@ -360,7 +360,7 @@ public class NetworkListener {
         if (!(localEndpoint instanceof InetSocketAddress)) {
             throw new IllegalStateException("Local endpoint is not a InetSocketAddress, so the port can not be returned");
         }
-        
+
         return ((InetSocketAddress) localEndpoint).getPort();
     }
 
@@ -373,12 +373,12 @@ public class NetworkListener {
     }
 
     /**
-     * @return the generic 
+     * @return the generic
      */
     public Object getEndpoint() {
         return localEndpoint;
     }
-    
+
     /**
      * @return the configuration for the keep-alive HTTP connections.
      */

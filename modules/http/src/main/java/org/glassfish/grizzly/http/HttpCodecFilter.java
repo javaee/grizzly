@@ -150,6 +150,11 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     protected long maxPayloadRemainderToSkip = -1;
     
     /**
+     * @see #setRemoveHandledContentEncodingHeaders
+     */
+    private boolean removeHandledContentEncodingHeaders = false;
+    
+    /**
      * File cache probes
      */
     protected final DefaultMonitoringConfig<HttpProbe> monitoringConfig =
@@ -499,6 +504,45 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
      */
     protected boolean isChunkingEnabled() {
         return chunkingEnabled;
+    }
+    
+    /**
+     * @return <code>true</code> if content-encoding headers that are handled
+     * by this module should be removed from the header
+     * 
+     * @see #setRemoveHandledContentEncodingHeaders
+     * 
+     * @since 2.3.39 
+     */
+    public boolean isRemoveHandledContentEncodingHeaders() {
+        return removeHandledContentEncodingHeaders;
+    }
+
+    /**
+     * <p>
+     * If enabled the content-encoding header for handled content-encodings
+     * is removed.
+     * </p>
+     * 
+     * <p>
+     * The primary usecase for this option is the use in a servlet container
+     * that enables compression handling on the server level. In this case
+     * the next level (the webapplication) has to be notified, that compression
+     * of the stream has been dealt with.<br>
+     * For this usecase it is assumed, that a servlet filter might be present
+     * that also does compression/decompression. To prevent double decompression
+     * the content-encoding header is removed, so the servlet filter can't
+     * assume it needs to decode.
+     * </p>
+     * 
+     * @param removeHandledContentEncodingHeaders <code>true</code> if 
+     * content-encoding headers that are handled by this module should be 
+     * removed from the header
+     * 
+     * @since 2.3.39 
+     */
+    public void setRemoveHandledContentEncodingHeaders(boolean removeHandledContentEncodingHeaders) {
+        this.removeHandledContentEncodingHeaders = removeHandledContentEncodingHeaders;
     }
 
     //------------------------------------------------ Parsing
@@ -1778,19 +1822,35 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
             int currentIdx = 0;
 
             int commaIdx;
+            int endMatchDecoded = -1;
             do {
                 commaIdx = bc.indexOf(',', currentIdx);
+                int endMatch = commaIdx >= 0 ? commaIdx : bc.getLength();
                 final ContentEncoding ce = lookupContentEncoding(bc, currentIdx,
-                        commaIdx >= 0 ? commaIdx : bc.getLength());
+                        endMatch);
                 if (ce != null && ce.wantDecode(httpHeader)) {
+                    endMatchDecoded = endMatch;
                     encodings.add(0, ce);
                 } else {
                     // if encoding was not found or doesn't want to decode -
                     // following could not be applied
-                    return;
+                    break;
                 }
                 currentIdx = commaIdx + 1;
             } while (commaIdx >= 0);
+
+            if(removeHandledContentEncodingHeaders) {
+                if(endMatchDecoded < bc.getLength()) {
+                    endMatchDecoded += 1;
+                }
+                bc.setStart(bc.getStart() + endMatchDecoded);
+                if (bc.getLength() != 0) {
+                    bc.trimLeft();
+                }
+                if (bc.getLength() == 0) {
+                    httpHeader.getHeaders().removeHeader(Header.ContentEncoding);
+                }
+            }
         }
     }
 
