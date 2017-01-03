@@ -974,17 +974,17 @@ public class NetworkListener {
     }
 
     /**
-     * @deprecated use <tt>getCompressionConfig().getCompressableMimeTypes()</tt>
+     * @deprecated use <tt>getCompressionConfig().getCompressibleMimeTypes()</tt>
      */
     public String getCompressibleMimeTypes() {
-        return setToString(compressionConfig.getCompressableMimeTypes());
+        return setToString(compressionConfig.getCompressibleMimeTypes());
     }
 
     /**
-     * @deprecated use <tt>getCompressionConfig().setCompressableMimeTypes(Set&lt;String&gt;)</tt>
+     * @deprecated use <tt>getCompressionConfig().setCompressibleMimeTypes(Set&lt;String&gt;)</tt>
      */
     public void setCompressibleMimeTypes(final String compressibleMimeTypes) {
-        compressionConfig.setCompressableMimeTypes(stringToSet(compressibleMimeTypes));
+        compressionConfig.setCompressibleMimeTypes(stringToSet(compressibleMimeTypes));
     }
     
     /**

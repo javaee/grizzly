@@ -64,18 +64,55 @@ public class CompressionEncodingFilter implements EncodingFilter {
     }
     
     /**
-     * 
-     * @param compressionMode
-     * @param compressionMinSize
-     * @param compressableMimeTypes
-     * @param noCompressionUserAgents
-     * @param aliases 
+     * Creates a new CompressionEncodingFilter based on the provided configuration
+     * details.
+     *
+     * @param compressionMode is compression on, off, or forced.
+     * @param compressionMinSize the minimum size, in bytes, the resource must
+     *  be before being considered for compression.
+     * @param compressibleMimeTypes resource mime types that may be compressed.
+     *  if null or zero-length, then there will be no type restriction.
+     * @param noCompressionUserAgents user agents for which compression will
+     *  not be performed.  If null or zero-length, the user agent will not
+     *  be considered.
+     * @param aliases aliases for the compression name as defined in the
+     *  accept-encoding header of the request.
      */
     public CompressionEncodingFilter(CompressionModeI compressionMode,
             int compressionMinSize,
-            String[] compressableMimeTypes,
+            String[] compressibleMimeTypes,
             String[] noCompressionUserAgents,
             String[] aliases) {
+        
+        this(compressionMode, compressionMinSize, compressibleMimeTypes,
+                noCompressionUserAgents, aliases, false);
+    }
+    
+    /**
+     * Creates a new CompressionEncodingFilter based on the provided configuration
+     * details.
+     *
+     * @param compressionMode is compression on, off, or forced.
+     * @param compressionMinSize the minimum size, in bytes, the resource must
+     *  be before being considered for compression.
+     * @param compressibleMimeTypes resource mime types that may be compressed.
+     *  if null or zero-length, then there will be no type restriction.
+     * @param noCompressionUserAgents user agents for which compression will
+     *  not be performed.  If null or zero-length, the user agent will not
+     *  be considered.
+     * @param aliases aliases for the compression name as defined in the
+     *  accept-encoding header of the request.
+     * @param enableDecompression enabled decompression of incoming data 
+     * according to the content-encoding header
+     *
+     * @since 2.3.29
+     */
+    public CompressionEncodingFilter(CompressionModeI compressionMode,
+            int compressionMinSize,
+            String[] compressibleMimeTypes,
+            String[] noCompressionUserAgents,
+            String[] aliases,
+            boolean enableDecompression) {
         
         final CompressionMode mode;
         if (compressionMode instanceof CompressionMode) {
@@ -87,8 +124,8 @@ public class CompressionEncodingFilter implements EncodingFilter {
         }
 
         compressionConfig = new CompressionConfig(mode, compressionMinSize,
-                null, null);
-        compressionConfig.setCompressableMimeTypes(compressableMimeTypes);
+                null, null, enableDecompression);
+        compressionConfig.setCompressibleMimeTypes(compressibleMimeTypes);
         compressionConfig.setNoCompressionUserAgents(noCompressionUserAgents);
         
         this.aliases = Arrays.copyOf(aliases, aliases.length);
@@ -114,7 +151,7 @@ public class CompressionEncodingFilter implements EncodingFilter {
         
         assert httpPacket instanceof HttpRequestPacket;
         return canDecompressHttpRequest((HttpRequestPacket) httpPacket, 
-                aliases);
+                compressionConfig, aliases);
     }
     
     /**
@@ -177,7 +214,12 @@ public class CompressionEncodingFilter implements EncodingFilter {
      */
     protected static boolean canDecompressHttpRequest(
             final HttpRequestPacket request,
+            final CompressionConfig config,
             final String[] aliases) {
+        
+        if(! config.isDecompressionEnabled()) {
+            return false;
+        }
         
         String contentEncoding = request.getHeader(Header.ContentEncoding);
         

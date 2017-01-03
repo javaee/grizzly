@@ -95,12 +95,14 @@ public final class CompressionConfig {
     // the min size of the entities, which will be compressed
     private int compressionMinSize;
     // mime types of the enitties, which will be compressed
-    private final ArraySet<String> compressableMimeTypes =
+    private final ArraySet<String> compressibleMimeTypes =
             new ArraySet<String>(String.class);
     // the user-agents, for which the payload will never be compressed
     private final ArraySet<String> noCompressionUserAgents =
             new ArraySet<String>(String.class);
-
+    // Allow decompression of incoming data
+    private boolean decompressionEnabled;
+    
     public CompressionConfig() {
         compressionMode = CompressionMode.OFF;
     }
@@ -111,18 +113,32 @@ public final class CompressionConfig {
      * the source one, but actual values will be independent, so changes to one
      * CompressionConfig object will not affect the other one.
      */
+    @SuppressWarnings("IncompleteCopyConstructor")
     public CompressionConfig(final CompressionConfig compression) {
         set(compression);
     }
 
     public CompressionConfig(final CompressionMode compressionMode,
             final int compressionMinSize,
-            final Set<String> compressableMimeTypes,
+            final Set<String> compressibleMimeTypes,
             final Set<String> noCompressionUserAgents) {
+        this(compressionMode,
+                compressionMinSize,
+                compressibleMimeTypes,
+                noCompressionUserAgents,
+                false);
+    }
+
+    public CompressionConfig(final CompressionMode compressionMode,
+            final int compressionMinSize,
+            final Set<String> compressibleMimeTypes,
+            final Set<String> noCompressionUserAgents,
+            final boolean decompressionEnabled) {
         setCompressionMode(compressionMode);
         setCompressionMinSize(compressionMinSize);
-        setCompressableMimeTypes(compressableMimeTypes);
+        setCompressibleMimeTypes(compressibleMimeTypes);
         setNoCompressionUserAgents(noCompressionUserAgents);
+        setDecompressionEnabled(decompressionEnabled);
     }
 
     /**
@@ -134,8 +150,9 @@ public final class CompressionConfig {
     public void set(final CompressionConfig compression) {
         compressionMode = compression.compressionMode;
         compressionMinSize = compression.compressionMinSize;
-        setCompressableMimeTypes(compression.compressableMimeTypes);
+        setCompressibleMimeTypes(compression.compressibleMimeTypes);
         setNoCompressionUserAgents(compression.noCompressionUserAgents);
+        decompressionEnabled = compression.isDecompressionEnabled();
     }
     
     /**
@@ -171,9 +188,12 @@ public final class CompressionConfig {
     /**
      * Returns the read-only set of the mime-types, which are allowed to be compressed.
      * Empty set means *all* mime-types are allowed to be compressed.
+     *
+     * @deprecated Use {@link #getCompressibleMimeTypes()}
      */
+    @Deprecated
     public Set<String> getCompressableMimeTypes() {
-        return Collections.unmodifiableSet(compressableMimeTypes);
+        return getCompressibleMimeTypes();
     }
 
     /**
@@ -183,12 +203,54 @@ public final class CompressionConfig {
      * Please note that CompressionConfig object will copy the source Set content,
      * so further changes made on the source Set will not affect CompressionConfig
      * object state.
+     *
+     * @deprecated Use {@link #setCompressibleMimeTypes(Set)}
      */
-    public void setCompressableMimeTypes(final Set<String> compressableMimeTypes) {
-        this.compressableMimeTypes.clear();
-        
-        if (compressableMimeTypes != null && !compressableMimeTypes.isEmpty()) {
-            this.compressableMimeTypes.addAll(compressableMimeTypes);
+    @Deprecated
+    public void setCompressableMimeTypes(final Set<String> compressibleMimeTypes) {
+        setCompressibleMimeTypes(compressibleMimeTypes);
+    }
+
+    /**
+     * Sets the set of the mime-types, which are allowed to be compressed.
+     * Empty set means *all* mime-types are allowed to be compressed.
+     *
+     * Please note that CompressionConfig object will copy the source Set content,
+     * so further changes made on the source Set will not affect CompressionConfig
+     * object state.
+     *
+     * @deprecated Use {@link #setCompressibleMimeTypes(String...)}
+     */
+    @Deprecated
+    public void setCompressableMimeTypes(final String... compressibleMimeTypes) {
+        setCompressibleMimeTypes(compressibleMimeTypes);
+    }
+
+    /**
+     * Returns the read-only set of the mime-types, which are allowed to be compressed.
+     * Empty set means *all* mime-types are allowed to be compressed.
+     *
+     * @since 2.3.29
+     */
+    public Set<String> getCompressibleMimeTypes() {
+        return Collections.unmodifiableSet(compressibleMimeTypes);
+    }
+
+    /**
+     * Sets the set of the mime-types, which are allowed to be compressed.
+     * Empty set means *all* mime-types are allowed to be compressed.
+     *
+     * Please note that CompressionConfig object will copy the source Set content,
+     * so further changes made on the source Set will not affect CompressionConfig
+     * object state.
+     *
+     * @since 2.3.29
+     */
+    public void setCompressibleMimeTypes(final Set<String> compressibleMimeTypes) {
+        this.compressibleMimeTypes.clear();
+
+        if (compressibleMimeTypes != null && !compressibleMimeTypes.isEmpty()) {
+            this.compressibleMimeTypes.addAll(compressibleMimeTypes);
         }
     }
 
@@ -199,12 +261,14 @@ public final class CompressionConfig {
      * Please note that CompressionConfig object will copy the source Set content,
      * so further changes made on the source Set will not affect CompressionConfig
      * object state.
+     *
+     * @since 2.3.29
      */    
-    public void setCompressableMimeTypes(final String... compressableMimeTypes) {
-        this.compressableMimeTypes.clear();
+    public void setCompressibleMimeTypes(final String... compressibleMimeTypes) {
+        this.compressibleMimeTypes.clear();
         
-        if (compressableMimeTypes.length > 0) {
-            this.compressableMimeTypes.addAll(compressableMimeTypes);
+        if (compressibleMimeTypes.length > 0) {
+            this.compressibleMimeTypes.addAll(compressibleMimeTypes);
         }
     }
 
@@ -251,7 +315,27 @@ public final class CompressionConfig {
             this.noCompressionUserAgents.addAll(noCompressionUserAgents);
         }
     }
-    
+
+    /**
+     * @return <code>true</code> if decompression of incoming data is enabled.
+     * 
+     * @since 2.3.29
+     */
+    public boolean isDecompressionEnabled() {
+        return decompressionEnabled;
+    }
+
+    /**
+     * If set to <code>true</code> content-encoding header for incoming data 
+     * will be respected and data will be decompressed and the decompressed
+     * stream will be passed on.
+     * 
+     * @since 2.3.29
+     */
+    public void setDecompressionEnabled(boolean decompressionEnabled) {
+        this.decompressionEnabled = decompressionEnabled;
+    }
+
     /**
      * Returns <tt>true</tt> if a client, based on its {@link HttpRequestPacket},
      * could be responded with compressed data, or <tt>false</tt> otherwise.
@@ -283,11 +367,8 @@ public final class CompressionConfig {
                 }
 
                 // If force mode, always compress (test purposes only)
-                if (mode == CompressionMode.FORCE) {
-                    return true;
-                }
+                return (mode == CompressionMode.FORCE || compressionConfig.checkUserAgent(request));
 
-                return compressionConfig.checkUserAgent(request);
         }
     }
     
@@ -316,12 +397,9 @@ public final class CompressionConfig {
      * could be compressed, or <tt>false</tt> otherwise.
      */
     public boolean checkMimeType(final String contentType) {
-        if (!compressableMimeTypes.isEmpty()) {
-            return indexOfStartsWith(compressableMimeTypes.getArray(),
-                    contentType) != -1;
-        }
-        
-        return true;
+        return (compressibleMimeTypes.isEmpty()
+                || indexOfStartsWith(compressibleMimeTypes.getArray(), contentType) != -1);
+
     }
     
     private static boolean isClientSupportContentEncoding(
