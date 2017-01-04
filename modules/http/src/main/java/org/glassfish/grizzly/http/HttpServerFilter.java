@@ -615,8 +615,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         // set the default chunking mode
-        request.getResponse().setChunkingAllowed(
-                !request.getUpgradeDC().isNull() || isChunkingEnabled());
+        request.getResponse().setChunkingAllowed(isChunkingEnabled());
         
         if (request.getHeaderParsingState().contentLengthsDiffer) {
             request.getProcessingState().error = true;
@@ -1078,7 +1077,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             throws IOException {
         
         // if this is upgraded HTTP connection - close it
-        if (!httpRequest.getUpgradeDC().isNull()) {
+        if (httpRequest.isUpgrade()) {
             httpRequest.getProcessingState().getHttpContext().close();
             return;
         }

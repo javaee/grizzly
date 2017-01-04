@@ -63,7 +63,7 @@ public class RequestUtils {
         Object certificates = null;
 
         if (request.getRequest().isSecure()) {
-            if (request.getRequest().getUpgradeDC().isNull()) {
+            if (!request.getRequest().isUpgrade()) {
                 // It's normal HTTP request, not upgraded one
                 try {
                     request.getInputBuffer().fillFully(
