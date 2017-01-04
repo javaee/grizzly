@@ -743,6 +743,32 @@ public class FileCacheTest {
 
     }
 
+    public void testIfModifiedSinceDateChangesByNumSeconds(Calendar cal, Date date, int numSecondsByWhichRequestIfModifiedPostDatesFile, String requestPath,
+                                                           ReusableFuture<HttpContent> responseFuture, Connection c,
+                                                           boolean responseCode200IsExpected) throws Exception {
+        cal.setTime(date);
+        cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + numSecondsByWhichRequestIfModifiedPostDatesFile);
+        String ifModifiedSinceValue = convertToDate(cal.getTime().getTime());
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .uri(requestPath)
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("If-Modified-Since", ifModifiedSinceValue)
+                .build();
+        responseFuture.reset();
+        c.write(request);
+        final HttpContent response = responseFuture.get(10, TimeUnit.SECONDS);
+        if (responseCode200IsExpected) {
+            assertEquals("200 is expected", 200, ((HttpResponsePacket) response.getHttpHeader()).getStatus());
+            assertTrue("non-empty body is expected", response.getContent().hasRemaining());
+        } else {
+            assertEquals("304 is expected", 304, ((HttpResponsePacket) response.getHttpHeader()).getStatus());
+            assertTrue("empty body is expected", !response.getContent().hasRemaining());
+            assertTrue("content-length is set", response.getHttpHeader().getContentLength() == -1);
+            assertFalse("transfer-encoding is set", response.getHttpHeader().isChunked());
+        }
+    }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
@@ -775,42 +801,11 @@ public class FileCacheTest {
                 pattern, response1.getContent().toStringContent());
         final Date date = new Date(file.lastModified());
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
-        cal.setTime(date);
-        cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + 1);
-        String ifModifiedSinceValue = convertToDate(cal.getTime().getTime());
-        final HttpRequestPacket request2 = HttpRequestPacket.builder()
-                .method("GET")
-                .uri(requestPath)
-                .protocol("HTTP/1.1")
-                .header("Host", "localhost")
-                .header("If-Modified-Since", ifModifiedSinceValue)
-                .build();
-        responseFuture.reset();
-        c.write(request2);
-        final HttpContent response2 = responseFuture.get(10, TimeUnit.SECONDS);
-
-        assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
-        assertTrue("empty body is expected", !response2.getContent().hasRemaining());
-        assertTrue("content-length is set", response2.getHttpHeader().getContentLength() == -1);
-        assertFalse("transfer-encoding is set", response2.getHttpHeader().isChunked());
-
-        cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
-        cal.setTime(date);
-        cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + 2);
-        ifModifiedSinceValue = convertToDate(cal.getTime().getTime());
-        final HttpRequestPacket request3 = HttpRequestPacket.builder()
-                .method("GET")
-                .uri(requestPath)
-                .protocol("HTTP/1.1")
-                .header("Host", "localhost")
-                .header("If-Modified-Since", ifModifiedSinceValue)
-                .build();
-        responseFuture.reset();
-        c.write(request3);
-        final HttpContent response3 = responseFuture.get(10, TimeUnit.SECONDS);
-
-        assertEquals("200 is expected", 200, ((HttpResponsePacket) response3.getHttpHeader()).getStatus());
-        assertTrue("non-empty body is expected", response3.getContent().hasRemaining());
+        testIfModifiedSinceDateChangesByNumSeconds(cal, date, 1, requestPath, responseFuture, c, false);
+        testIfModifiedSinceDateChangesByNumSeconds(cal, date, 2, requestPath, responseFuture, c, false);
+        testIfModifiedSinceDateChangesByNumSeconds(cal, date, 0, requestPath, responseFuture, c, false);
+        testIfModifiedSinceDateChangesByNumSeconds(cal, date, -1, requestPath, responseFuture, c, false);
+        testIfModifiedSinceDateChangesByNumSeconds(cal, date, -2, requestPath, responseFuture, c, true);
     }
 
 
