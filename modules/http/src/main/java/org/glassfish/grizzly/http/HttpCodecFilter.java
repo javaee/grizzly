@@ -593,7 +593,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
                 } else {
                     final int headerSizeInBytes = input.position();
 
-                    if (!httpHeader.getUpgradeDC().isNull()) {
+                    if (httpHeader.isUpgrade()) {
                         onIncomingUpgrade(ctx, httpHeader);
                     }
                     
@@ -1558,7 +1558,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         
         if (!httpHeader.isCommitted()) {
             
-            if (!httpHeader.getUpgradeDC().isNull()) {
+            if (httpHeader.isUpgrade()) {
                 onOutgoingUpgrade(ctx, httpHeader);
             }
             

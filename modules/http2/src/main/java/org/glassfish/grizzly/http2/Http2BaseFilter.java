@@ -263,7 +263,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     protected boolean checkRequestHeadersOnUpgrade(
             final HttpRequestPacket httpRequest) {
         
-        if (httpRequest.getUpgradeDC().isNull()) {
+        if (!httpRequest.isUpgrade()) {
             if (LOGGER.isLoggable(Level.FINEST)) {
                 LOGGER.finest("checkRequestHeadersOnUpgrade: failed no upgrade");
             }
@@ -325,7 +325,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             return false;
         }
         
-        if (httpResponse.getUpgradeDC().isNull()) {
+        if (!httpResponse.isUpgrade()) {
             // No Upgrade header
             return false;
         }

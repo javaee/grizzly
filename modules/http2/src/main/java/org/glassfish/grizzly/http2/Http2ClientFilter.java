@@ -551,7 +551,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
 
         final HttpHeader httpHeader = ((HttpPacket) msg).getHttpHeader();
         if (!httpHeader.isRequest() // it's a response??? don't know what to do with it
-                || !httpHeader.getUpgradeDC().isNull() // already has Upgrade header?
+                || httpHeader.isUpgrade() // already has Upgrade header?
                 || httpHeader.getProtocol() != Protocol.HTTP_1_1 // only HTTP/1.1 is considered for upgrade
                 || httpHeader.containsHeader(Header.Connection) // if there's a Connection header - skip it
                 ) {

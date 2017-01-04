@@ -359,6 +359,15 @@ public abstract class HttpHeader extends HttpPacket
     }
 
     /**
+     * @return <code>true</code> if this header represents an HTTP upgrade, otherwise <code>false</code>.
+     *
+     * @since 2.3.29
+     */
+    public boolean isUpgrade() {
+        return !getUpgradeDC().isNull();
+    }
+
+    /**
      * Propagate the "Upgrade" value to headers.
      */
     protected void makeUpgradeHeader() {
