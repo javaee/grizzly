@@ -819,7 +819,7 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
                     // If an If-None-Match header has been specified,
                     // If-Modified-Since is ignored.
                     if ((request.getHeader(Header.IfNoneMatch) == null)
-                            && (headerValue - lastModified <= 1000)) {
+                            && (lastModified - headerValue <= 1000)) {
                         // The entity has not been modified since the date
                         // specified by the client. This is not an error case.
                         return HttpStatus.NOT_MODIFIED_304;
