@@ -56,7 +56,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
  * The Filter is responsible for tracking {@link Connection} activity and closing
- * {@link Connection} ones it becomes idle for certain amount of time.
+ * {@link Connection} once it becomes idle for certain amount of time.
  * Unlike {@link ActivityCheckFilter}, this Filter assumes {@link Connection}
  * is idle, when no event is being executed on it. But if some event processing
  * was suspended - this Filter still assumes {@link Connection} is active.
