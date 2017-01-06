@@ -437,6 +437,8 @@ public final class BuffersBuffer extends CompositeBuffer {
             throw new IllegalArgumentException("Invalid splitPosition value, should be 0 <= splitPosition <= capacity");
         }
 
+        if (mark >= splitPosition) mark = -1;
+
         final int oldPosition = position;
         final int oldLimit = limit;
         

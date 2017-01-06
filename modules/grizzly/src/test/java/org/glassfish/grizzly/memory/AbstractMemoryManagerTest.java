@@ -39,10 +39,14 @@
  */
 package org.glassfish.grizzly.memory;
 
+import org.glassfish.grizzly.Buffer;
 import org.junit.runners.Parameterized;
 
+import java.nio.InvalidMarkException;
 import java.util.Arrays;
 import java.util.Collection;
+
+import static org.junit.Assert.fail;
 
 public class AbstractMemoryManagerTest {
 
@@ -83,6 +87,17 @@ public class AbstractMemoryManagerTest {
 
     protected HeapMemoryManager createHeapMemoryManager() {
         return new HeapMemoryManager();
+    }
+
+    protected static void assertMarkExceptionThrown(final Buffer bufferToTest) {
+        try {
+            bufferToTest.reset();  // mark never carried over to the split buffer.
+            fail();
+        } catch (InvalidMarkException ignored) {
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.toString());
+        }
     }
 
 }

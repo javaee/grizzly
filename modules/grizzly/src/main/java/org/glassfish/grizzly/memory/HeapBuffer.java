@@ -279,6 +279,8 @@ public class HeapBuffer implements Buffer {
         if (splitPosition < 0 || splitPosition > cap) {
             throw new IllegalArgumentException("Invalid splitPosition value, should be 0 <= splitPosition <= capacity");
         }
+
+        if (mark >= splitPosition) mark = -1;
         
         final int oldPosition = pos;
         final int oldLimit = lim;
