@@ -440,6 +440,22 @@ public class CompositeBufferTest extends AbstractMemoryManagerTest {
     }
 
     @Test
+    public void testSplitWithMark() {
+        final CompositeBuffer composite = CompositeBuffer.newBuffer(
+                mm, Buffers.wrap(mm, "hello"),
+                Buffers.wrap(mm, " world"));
+        composite.position(4);
+        composite.mark();
+        Buffer otherHalf = composite.split(6);
+        assertMarkExceptionThrown(otherHalf);
+        composite.reset();
+
+        otherHalf = composite.split(2);
+        assertMarkExceptionThrown(composite);
+        assertMarkExceptionThrown(otherHalf);
+    }
+
+    @Test
     public void testToByteBufferArray() {
 
         final byte[] bytes = new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};

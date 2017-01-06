@@ -434,6 +434,8 @@ public final class BuffersBuffer extends CompositeBuffer {
     public Buffer split(int splitPosition) {
         checkDispose();
 
+        if (mark >= splitPosition) mark = -1;
+
         final int oldPosition = position;
         final int oldLimit = limit;
         

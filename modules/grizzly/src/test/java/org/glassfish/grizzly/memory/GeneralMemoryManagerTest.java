@@ -45,9 +45,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.nio.ByteBuffer;
+import java.nio.InvalidMarkException;
+
 import org.glassfish.grizzly.Buffer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
 public class GeneralMemoryManagerTest extends AbstractMemoryManagerTest {
@@ -123,4 +126,22 @@ public class GeneralMemoryManagerTest extends AbstractMemoryManagerTest {
         b.rewind();
         assertEquals(1, b.getInt());
     }
+
+    @Test
+    public void testBufferSplitWithMark() {
+        Buffer b = mm.allocate(100);
+        b.position(10);
+        b.mark();
+        Buffer newBuffer = b.split(15);
+        assertMarkExceptionThrown(newBuffer);
+
+        b.position(12);
+        b.reset();
+        assertEquals(10, b.position());
+
+        newBuffer = b.split(5);
+        assertMarkExceptionThrown(b);
+        assertMarkExceptionThrown(newBuffer);
+    }
+
 }

@@ -84,6 +84,9 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * Split up the buffer into two parts: [0..splitPosition) and [splitPosition, capacity).
      * This <tt>Buffer</tt> will represent the first part: [0..splitPosition) and
      * returned <tt>Buffer</tt> will represent the second part: [splitPosition, capacity).
+     *
+     * Splitting a buffer will reset the mark if the mark is greater than or equal to the
+     * <code>splitPosition</code>.
      * 
      * @param splitPosition position of split.
      *
@@ -1507,7 +1510,7 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * @return Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer()}
      * and returns a {@link ByteBufferArray} containing the converted {@link ByteBuffer}.
      *
-     * @see {@link #toByteBuffer()}
+     * @see #toByteBuffer()
      */
     @SuppressWarnings("UnusedDeclaration")
     ByteBufferArray toByteBufferArray();
@@ -1524,7 +1527,7 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * @return returns the provided {@link ByteBufferArray} with the converted
      *  {@link ByteBuffer} added to provided <code>array</code>.
      *
-     * @see {@link #toByteBuffer()}
+     * @see #toByteBuffer()
      */
     ByteBufferArray toByteBufferArray(ByteBufferArray array);
 
@@ -1544,7 +1547,7 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * @return Converts this <code>Buffer</code> to a {@link ByteBuffer} per {@link #toByteBuffer(int, int)}
      *         and returns a {@link ByteBufferArray} containing the converted {@link ByteBuffer}.
      *
-     * @see {@link #toByteBuffer(int, int)}
+     * @see #toByteBuffer(int, int)
      */
     ByteBufferArray toByteBufferArray(int position, int limit);
 
@@ -1560,7 +1563,7 @@ public interface Buffer extends Comparable<Buffer>, WritableMessage {
      * @return returns the provided {@link ByteBufferArray} with the converted
      *         {@link ByteBuffer} added to provided <code>array</code>.
      *
-     * @see {@link #toByteBuffer(int, int)}
+     * @see #toByteBuffer(int, int)
      */
     ByteBufferArray toByteBufferArray(ByteBufferArray array, int position, int limit);
 

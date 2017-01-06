@@ -44,6 +44,7 @@ import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.InvalidMarkException;
 import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
 
@@ -62,6 +63,10 @@ public class ByteBufferWrapper implements Buffer {
     public static volatile boolean DEBUG_MODE = false;
 
     protected ByteBuffer visible;
+
+    // Maintain our own mark instead of allowing the ByteBuffer to maintain it.
+    // This is necessary in order to provide feature parity with other Buffer implementations.
+    protected int mark = -1;
 
     // Dispose underlying Buffer flag
     protected boolean allowBufferDispose = false;
@@ -155,6 +160,7 @@ public class ByteBufferWrapper implements Buffer {
     public final ByteBufferWrapper position(final int newPosition) {
         checkDispose();
         visible.position(newPosition);
+        if (mark > newPosition) mark = -1;
         return this;
     }
 
@@ -168,20 +174,24 @@ public class ByteBufferWrapper implements Buffer {
     public final ByteBufferWrapper limit(final int newLimit) {
         checkDispose();
         visible.limit(newLimit);
+        if (mark > newLimit) mark = -1;
         return this;
     }
 
     @Override
     public final ByteBufferWrapper mark() {
         checkDispose();
-        visible.mark();
+        mark = visible.position();
         return this;
     }
 
     @Override
     public final ByteBufferWrapper reset() {
         checkDispose();
-        visible.reset();
+        if (mark < 0) {
+            throw new InvalidMarkException();
+        }
+        visible.position(mark);
         return this;
     }
 
@@ -189,6 +199,7 @@ public class ByteBufferWrapper implements Buffer {
     public final ByteBufferWrapper clear() {
         checkDispose();
         visible.clear();
+        mark = -1;
         return this;
     }
 
@@ -196,6 +207,7 @@ public class ByteBufferWrapper implements Buffer {
     public final ByteBufferWrapper flip() {
         checkDispose();
         visible.flip();
+        mark = -1;
         return this;
     }
 
@@ -203,6 +215,7 @@ public class ByteBufferWrapper implements Buffer {
     public final ByteBufferWrapper rewind() {
         checkDispose();
         visible.rewind();
+        mark = -1;
         return this;
     }
 
@@ -230,6 +243,8 @@ public class ByteBufferWrapper implements Buffer {
         if (splitPosition == capacity()) {
             return Buffers.EMPTY_BUFFER;
         }
+
+        if (mark >= splitPosition) mark = -1;
 
         final int oldPosition = position();
         final int oldLimit = limit();
