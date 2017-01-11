@@ -115,11 +115,10 @@
                             *,
                         </Import-Package>
                         <Export-Package>
-                            javax.servlet;javax.servlet.http;version=2.5,org.osgi.service.http
+                            javax.servlet;javax.servlet.http;version=2.5,
+                            org.osgi.service.http,
+                            org.glassfish.grizzly.osgi.httpservice.*;version=${project.version}
                         </Export-Package>
-                        <Private-Package>
-                            org.glassfish.grizzly.osgi.httpservice.*
-                        </Private-Package>
                         <Export-Service>
                             org.osgi.service.http.HttpService;version=1.2
                         </Export-Service>
