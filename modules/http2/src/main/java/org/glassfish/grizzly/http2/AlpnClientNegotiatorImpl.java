@@ -67,8 +67,8 @@ class AlpnClientNegotiatorImpl implements AlpnClientNegotiator {
 
     @Override
     public String[] getProtocols(final SSLEngine sslEngine) {
-        if (LOGGER.isLoggable(Level.INFO)) {
-            LOGGER.log(Level.INFO, "Alpn getProtocols. Connection={0}, protocols={1}",
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Alpn getProtocols. Connection={0}, protocols={1}",
                     new Object[]{AlpnSupport.getConnection(sslEngine), Arrays.toString(supportedProtocolsStr)});
         }
         return supportedProtocolsStr;
@@ -76,8 +76,8 @@ class AlpnClientNegotiatorImpl implements AlpnClientNegotiator {
 
     @Override
     public void protocolSelected(final SSLEngine sslEngine, final String selectedProtocol) {
-        if (LOGGER.isLoggable(Level.INFO)) {
-            LOGGER.log(Level.INFO, "Alpn protocolSelected. Connection={0}, protocol={1}",
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Alpn protocolSelected. Connection={0}, protocol={1}",
                     new Object[]{AlpnSupport.getConnection(sslEngine), selectedProtocol});
         }
         

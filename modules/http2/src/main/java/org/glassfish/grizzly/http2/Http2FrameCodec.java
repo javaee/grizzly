@@ -59,7 +59,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
  */
 public class Http2FrameCodec {
     private static final Logger LOGGER = Grizzly.logger(Http2FrameCodec.class);
-    private static final Level LOGGER_LEVEL = Level.INFO;
 
     /**
      *
@@ -90,9 +89,9 @@ public class Http2FrameCodec {
             return null;
         }
 
-        final boolean logit = LOGGER.isLoggable(LOGGER_LEVEL);
+        final boolean logit = LOGGER.isLoggable(Level.FINE);
         if (logit) {
-            LOGGER.log(LOGGER_LEVEL, "Rx [1]: connection={0}, frame={1}",
+            LOGGER.log(Level.FINE, "Rx [1]: connection={0}, frame={1}",
                     new Object[]{makeString(http2Connection.getConnection()),
                         makeString(parsingResult.frameList().get(parsingResult.frameList().size() - 1))});
         }
@@ -109,7 +108,7 @@ public class Http2FrameCodec {
             remainder = parsingResult.remainder();
 
             if (logit) {
-                LOGGER.log(LOGGER_LEVEL, "Rx [2]: connection={0}, frame={1}",
+                LOGGER.log(Level.FINE, "Rx [2]: connection={0}, frame={1}",
                         new Object[]{makeString(http2Connection.getConnection()),
                             makeString(parsingResult.frameList().get(parsingResult.frameList().size() - 1))});
             }
@@ -135,8 +134,8 @@ public class Http2FrameCodec {
     public Buffer serializeAndRecycle(final Http2Connection http2Connection,
             final Http2Frame frame) {
 
-        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-            LOGGER.log(LOGGER_LEVEL, "Tx: connection={0}, frame={1}",
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Tx: connection={0}, frame={1}",
                     new Object[]{makeString(http2Connection.getConnection()),
                         makeString(frame)});
         }
@@ -149,8 +148,8 @@ public class Http2FrameCodec {
     public Buffer serializeAndRecycle(final Http2Connection http2Connection,
             final List<Http2Frame> frames) {
 
-        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-            LOGGER.log(LOGGER_LEVEL, "Tx: connection={0}, frames={1}",
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Tx: connection={0}, frames={1}",
                     new Object[]{makeString(http2Connection.getConnection()),
                         makeString(frames)});
         }

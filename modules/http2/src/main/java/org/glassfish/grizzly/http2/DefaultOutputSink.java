@@ -76,7 +76,6 @@ import static org.glassfish.grizzly.http2.Constants.OUT_FIN_TERMINATION;
  */
 class DefaultOutputSink implements StreamOutputSink {
     private static final Logger LOGGER = Grizzly.logger(StreamOutputSink.class);
-    private static final Level LOGGER_LEVEL = Level.INFO;
 
     private static final int MAX_OUTPUT_QUEUE_SIZE = 65536;
 

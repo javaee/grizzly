@@ -68,14 +68,14 @@ final class AlpnServerNegotiatorImpl implements AlpnServerNegotiator {
     @Override
     public String selectProtocol(SSLEngine sslEngine, String[] clientProtocols) {
         final Connection connection = AlpnSupport.getConnection(sslEngine);
-        if (LOGGER.isLoggable(Level.INFO)) {
-            LOGGER.log(Level.INFO, "Alpn selectProtocol. Connection={0} sslEngine={1} clientProtocols={2}", new Object[]{connection, sslEngine, Arrays.toString(clientProtocols)});
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Alpn selectProtocol. Connection={0} sslEngine={1} clientProtocols={2}", new Object[]{connection, sslEngine, Arrays.toString(clientProtocols)});
         }
         for (String supportedProtocol : supportedProtocols) {
             for (String clientProtocol : clientProtocols) {
                 if (supportedProtocol.equals(clientProtocol)) {
-                    if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.log(Level.INFO, "Alpn select {0}", clientProtocol);
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "Alpn select {0}", clientProtocol);
                     }
                     configureHttp2(connection, clientProtocol);
                     return clientProtocol;

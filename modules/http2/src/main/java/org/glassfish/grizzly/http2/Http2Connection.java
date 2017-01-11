@@ -105,7 +105,6 @@ import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
  */
 public class Http2Connection {
     private static final Logger LOGGER = Grizzly.logger(Http2Connection.class);
-    private static final Level LOGGER_LEVEL = Level.INFO;
 
     private final boolean isServer;
     private final Connection<?> connection;
@@ -375,8 +374,8 @@ public class Http2Connection {
         
         if (isFirstInFrame) {
             if (frameType != SettingsFrame.TYPE) {
-                if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-                    LOGGER.log(LOGGER_LEVEL, "First in frame should be a SettingsFrame (preface)", frame);
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "First in frame should be a SettingsFrame (preface)", frame);
                 }
                 
                 throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR);
@@ -394,16 +393,16 @@ public class Http2Connection {
         // 1) make sure the header frame sequence comes without interleaving
         if (isParsingHeaders()) {
             if (frameType != ContinuationFrame.TYPE) {
-                if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-                    LOGGER.log(LOGGER_LEVEL, "ContinuationFrame is expected, but {0} came", frame);
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "ContinuationFrame is expected, but {0} came", frame);
                 }
 
                 throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR);
             }
         } else if (frameType == ContinuationFrame.TYPE) {
             // isParsing == false, so no ContinuationFrame expected
-            if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-                LOGGER.log(LOGGER_LEVEL, "ContinuationFrame is not expected");
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "ContinuationFrame is not expected");
             }
 
             throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR);
@@ -499,8 +498,8 @@ public class Http2Connection {
                 try {
                     stream.getOutputSink().onPeerWindowUpdate(delta);
                 } catch (Http2StreamException e) {
-                    if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-                        LOGGER.log(LOGGER_LEVEL, "Http2StreamException occurred on stream="
+                    if (LOGGER.isLoggable(Level.SEVERE)) {
+                        LOGGER.log(Level.SEVERE, "Http2StreamException occurred on stream="
                                 + stream + " during stream window update", e);
                     }
 
@@ -667,8 +666,8 @@ public class Http2Connection {
     protected void sendServerPreface() {
         final SettingsFrame settingsFrame = prepareSettings().build();
         
-        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-            LOGGER.log(LOGGER_LEVEL, "Tx: server preface (the settings frame)."
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Tx: server preface (the settings frame)."
                     + "Connection={0}, settingsFrame={1}",
                     new Object[]{connection, settingsFrame});
         }
@@ -705,8 +704,8 @@ public class Http2Connection {
                 .content(payload)
                 .build();
         
-        if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-            LOGGER.log(LOGGER_LEVEL, "Tx: client preface including the settings "
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, "Tx: client preface including the settings "
                     + "frame. Connection={0}, settingsFrame={1}",
                     new Object[]{connection, settingsFrame});
         }
