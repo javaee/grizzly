@@ -66,6 +66,11 @@ class InternalContextImpl extends Context {
         filterChainContext.completeAndRecycle();
     }
 
+    @Override
+    protected void release() {
+        filterChainContext.completeAndRelease();
+    }
+
     void softCopyTo(final InternalContextImpl targetContext) {
         targetContext.lifeCycleListeners.copyFrom(this.lifeCycleListeners);
         targetContext.event = this.event;
