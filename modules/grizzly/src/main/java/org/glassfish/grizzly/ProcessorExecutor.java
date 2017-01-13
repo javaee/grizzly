@@ -163,8 +163,12 @@ public final class ProcessorExecutor {
             throws IOException {
         final int sz = context.lifeCycleListeners.size();
         final IOEventLifeCycleListener[] listeners = context.lifeCycleListeners.array();
-        for (int i = 0; i < sz; i++) {
-            listeners[i].onError(context, description);
+        try {
+            for (int i = 0; i < sz; i++) {
+                listeners[i].onError(context, description);
+            }
+        } finally {
+            context.release();
         }
     }
 

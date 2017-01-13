@@ -307,6 +307,19 @@ public class Context implements AttributeStorage, Cacheable {
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 
+
+    /**
+     * Alternative to {@link #recycle()} that allows cleanup actions to be
+     * performed without returning this instance to the cache.
+     *
+     * By default, this is a no-op.
+     *
+     * @since 2.3.29
+     */
+    protected void release() {
+        // no-op
+    }
+
     private final static class NullProcessor implements Processor {
 
         @Override

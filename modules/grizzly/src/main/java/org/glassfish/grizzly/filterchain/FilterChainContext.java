@@ -1062,6 +1062,10 @@ public class FilterChainContext implements AttributeStorage {
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 
+    public void completeAndRelease() {
+        notifyComplete(this, completionListeners);
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(384);
