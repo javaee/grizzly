@@ -135,7 +135,8 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         
     public static Http2Stream getStreamFor(final HttpHeader httpHeader) {
         final HttpRequestPacket request;
-        
+
+        //noinspection Duplicates
         if (httpHeader.isRequest()) {
             assert httpHeader instanceof HttpRequestPacket;
             request = (HttpRequestPacket) httpHeader;
@@ -160,7 +161,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      * @param streamId this stream's ID.
      * @param refStreamId the parent stream, if any.
      * @param priority the priority of this stream.
-     * @param initState the intiail stream state.
+     * @param initState the initial stream state.
      */
     protected Http2Stream(final Http2Connection http2Connection,
             final HttpRequestPacket request,
@@ -185,7 +186,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      * @param http2Connection the {@link Http2Connection} for this {@link Http2Stream}.
      * @param request the {@link HttpRequestPacket} initiating the stream.
      * @param priority the priority of this stream.
-     * @param initState the intiail stream state.
+     * @param initState the initial stream state.
      */
     protected Http2Stream(final Http2Connection http2Connection,
             final HttpRequestPacket request,
@@ -374,6 +375,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         close0(null, CloseType.LOCALLY, cause, false);
     }
 
+    @SuppressWarnings("Duplicates")
     void close0(
             final CompletionHandler<Closeable> completionHandler,
             final CloseType closeType,
@@ -391,7 +393,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
                     LOCAL_CLOSE_TERMINATION : 
                     PEER_CLOSE_TERMINATION;
             
-            // Terminate the input, dicard already bufferred data
+            // Terminate the input, discard already buffered data
             inputBuffer.terminate(termination);
             
             if (isCloseOutputGracefully) {
@@ -447,10 +449,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         if (closeReasonUpdater.compareAndSet(this, null,
                 new CloseReason(CloseType.LOCALLY, null))) {
             
-            final Termination termination = 
-                    LOCAL_CLOSE_TERMINATION;
-            
-            inputBuffer.terminate(termination);
+            inputBuffer.terminate(LOCAL_CLOSE_TERMINATION);
             outputSink.close();
             
             notifyCloseListeners();
@@ -488,6 +487,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         return closeListeners.remove(closeListener);
     }
 
+    @SuppressWarnings("Duplicates")
     @Override
     public GrizzlyFuture<CloseReason> closeFuture() {
         if (closeFuture == null) {
