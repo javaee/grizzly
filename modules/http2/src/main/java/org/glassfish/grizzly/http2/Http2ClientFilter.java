@@ -397,7 +397,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
             final Http2Stream stream = http2Connection.openStream(
                     request,
                     http2Connection.getNextLocalStreamId(),
-                    0, 0, Http2StreamState.IDLE);
+                    0, false, 0, Http2StreamState.IDLE);
 
             if (stream == null) {
                 throw new IOException("Http2Connection is closed");
@@ -644,7 +644,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
         }
 
         final Http2Stream stream = http2Connection.acceptStream(request,
-                pushPromiseFrame.getPromisedStreamId(), refStreamId, 0,
+                pushPromiseFrame.getPromisedStreamId(), refStreamId, false, 0,
                 Http2StreamState.RESERVED_REMOTE);
         
         if (stream == null) { // GOAWAY has been sent, so ignoring this request

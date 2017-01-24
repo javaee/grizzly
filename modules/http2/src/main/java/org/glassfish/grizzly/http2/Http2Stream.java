@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -98,6 +98,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     private final int streamId;
     private final int refStreamId;
     private final int priority;
+    private final boolean exclusive;
     
     private final Http2Connection http2Connection;
     
@@ -166,11 +167,13 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     protected Http2Stream(final Http2Connection http2Connection,
             final HttpRequestPacket request,
             final int streamId, final int refStreamId,
-            final int priority, final Http2StreamState initState) {
+            final boolean exclusive, final int priority,
+            final Http2StreamState initState) {
         this.http2Connection = http2Connection;
         this.request = request;
         this.streamId = streamId;
         this.refStreamId = refStreamId;
+        this.exclusive = exclusive;
         this.priority = priority;
         this.state = initState;
         
@@ -197,7 +200,8 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         this.refStreamId = 0;
         this.priority = priority;
         this.state = initState;
-        
+
+        exclusive = false;
         inputBuffer = http2Connection.isServer()
                 ? new UpgradeInputBuffer()
                 : new DefaultInputBuffer(this);

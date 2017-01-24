@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,7 +67,8 @@ public class HeadersFrame extends HeaderBlockHead {
         FLAG_NAMES_MAP.put((int) END_STREAM, "END_STREAM");
         FLAG_NAMES_MAP.put((int) PRIORITIZED, "PRIORITIZED");
     }
-    
+
+    private boolean exclusive;
     private int streamDependency;
     private int weight;
     
@@ -90,7 +91,9 @@ public class HeadersFrame extends HeaderBlockHead {
         }
         
         if (frame.isFlagSet(PRIORITIZED)) {
-            frame.streamDependency = buffer.getInt();
+            final int dependency = buffer.getInt();
+            frame.exclusive = (dependency & 1L << 31) != 0;
+            frame.streamDependency = dependency & 0x7FFFFFFF;
             frame.weight = buffer.get() & 0xff;
         }
         
@@ -134,6 +137,10 @@ public class HeadersFrame extends HeaderBlockHead {
         return streamDependency;
     }
 
+    public boolean isExclusive() {
+        return exclusive;
+    }
+
     public int getWeight() {
         return weight;
     }
@@ -152,6 +159,7 @@ public class HeadersFrame extends HeaderBlockHead {
         sb.append("HeadersFrame {")
                 .append(headerToString())
                 .append(", streamDependency=").append(streamDependency)
+                .append(", exclusive=").append(exclusive)
                 .append(", weight=").append(weight)
                 .append(", padLength=").append(padLength)
                 .append(", compressedHeaders=").append(compressedHeaders)

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -746,7 +746,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
         final Http2Stream stream = http2Connection.acceptStream(request,
                                                                 headersFrame.getStreamId(),
-                                                                0,
+                                                                headersFrame.getStreamDependency(),
+                                                                headersFrame.isExclusive(),
                                                                 0,
                                                                 Http2StreamState.IDLE);
         if (stream == null) { // GOAWAY has been sent, so ignoring this request
@@ -913,6 +914,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
                         final Http2Stream pushStream = http2Connection.openStream(
                                 request,
                                 http2Connection.getNextLocalStreamId(), streamId,
+                                false,
                                 pushResource.getPriority(),
                                 Http2StreamState.RESERVED_LOCAL);
                         pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);

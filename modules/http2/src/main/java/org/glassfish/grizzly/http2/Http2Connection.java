@@ -355,10 +355,11 @@ public class Http2Connection {
     
     protected Http2Stream newStream(final HttpRequestPacket request,
             final int streamId, final int refStreamId,
-            final int priority, final Http2StreamState initialState) {
+            final boolean exclusive, final int priority,
+            final Http2StreamState initialState) {
         
         return new Http2Stream(this, request, streamId, refStreamId,
-                priority, initialState);
+                               exclusive, priority, initialState);
     }
 
     protected Http2Stream newUpgradeStream(final HttpRequestPacket request,
@@ -923,12 +924,13 @@ public class Http2Connection {
     }
 
     Http2Stream acceptStream(final HttpRequestPacket request,
-            final int streamId, final int refStreamId, 
-            final int priority, final Http2StreamState initState)
-            throws Http2ConnectionException {
+            final int streamId, final int refStreamId,
+            final boolean exclusive, final int priority,
+            final Http2StreamState initState)
+    throws Http2ConnectionException {
         
         final Http2Stream stream = newStream(request,
-                streamId, refStreamId, priority, initState);
+                streamId, refStreamId, exclusive, priority, initState);
         
         synchronized(sessionLock) {
             if (isClosed()) {
@@ -964,13 +966,14 @@ public class Http2Connection {
      * @throws org.glassfish.grizzly.http2.Http2StreamException if an error occurs opening the stream.
      */
     public Http2Stream openStream(final HttpRequestPacket request,
-            final int streamId, final int refStreamId, 
+            final int streamId, final int refStreamId,
+            final boolean exclusive,
             final int priority,
             final Http2StreamState initState)
             throws Http2StreamException {
         
         final Http2Stream stream = newStream(request,
-                streamId, refStreamId,
+                streamId, refStreamId, exclusive,
                 priority, initState);
         
         synchronized(sessionLock) {
@@ -1396,7 +1399,7 @@ public class Http2Connection {
                 final Http2Stream stream = openStream(
                         request,
                         getNextLocalStreamId(),
-                        associatedToStreamId, priority,
+                        associatedToStreamId, false, priority,
                         Http2StreamState.IDLE);
                 
                 
@@ -1534,7 +1537,7 @@ public class Http2Connection {
                 final Http2Stream stream = openStream(
                         request,
                         getNextLocalStreamId(),
-                        0, priority, Http2StreamState.IDLE);
+                        0, false, priority, Http2StreamState.IDLE);
                 
                 
                 connection.write(request);
