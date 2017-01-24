@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -85,6 +85,7 @@ import org.junit.Test;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 
 /**
@@ -122,7 +123,7 @@ public class TCPNIOTransportTest {
             future = transport.connect("localhost", PORT);
             try {
                 future.get(10, TimeUnit.SECONDS);
-                assertTrue("Server connection should be closed!", false);
+                fail("Server connection should be closed!");
             } catch (ExecutionException e) {
                 assertTrue(e.getCause() instanceof IOException);
             }
@@ -169,7 +170,7 @@ public class TCPNIOTransportTest {
             future = transport.connect("localhost", PORT);
             try {
                 connection = future.get(10, TimeUnit.SECONDS);
-                assertTrue("Server connection should be closed!", false);
+                fail("Server connection should be closed!");
             } catch (ExecutionException e) {
                 assertTrue(e.getCause() instanceof IOException);
             }
@@ -178,7 +179,7 @@ public class TCPNIOTransportTest {
             future = transport.connect("localhost", PORT + 1);
             try {
                 connection = future.get(10, TimeUnit.SECONDS);
-                assertTrue("Server connection should be closed!", false);
+                fail("Server connection should be closed!");
             } catch (ExecutionException e) {
                 assertTrue(e.getCause() instanceof IOException);
             }
@@ -307,7 +308,10 @@ public class TCPNIOTransportTest {
 
                         @Override
                         public void completed(final Connection connection) {
-                            connection.configureStandalone(true);
+                            synchronized (this) {
+                                connection.setProcessor(StandaloneProcessor.INSTANCE);
+                                connection.setProcessorSelector(StandaloneProcessorSelector.INSTANCE);
+                            }
                         }
                     }));
             connection = connectFuture.get(10, TimeUnit.SECONDS);
@@ -462,19 +466,19 @@ public class TCPNIOTransportTest {
         } finally {
             try {
                 executorService.shutdownNow();
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
 
             if (connection != null) {
                 try {
                     connection.close();
-                } catch (Exception e) {
+                } catch (Exception ignored) {
                 }
             }
 
             try {
                 transport.shutdownNow();
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
 
         }
