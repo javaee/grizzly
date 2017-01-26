@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,6 +46,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -506,6 +507,18 @@ public final class TCPNIOTransport extends NIOTransport implements
         if (ioEvent == IOEvent.SERVER_ACCEPT) {
             try {
                 ((TCPNIOServerConnection) connection).onAccept();
+            } catch (ClosedByInterruptException cbie) {
+                failProcessingHandler(ioEvent, connection,
+                        listener, cbie);
+                try {
+                    rebindAddress(connection);
+                } catch (IOException ioe) {
+                    if (LOGGER.isLoggable(Level.SEVERE)) {
+                        LOGGER.log(Level.SEVERE,
+                                   LogMessages.SEVERE_GRIZZLY_TRANSPORT_LISTEN_INTERRUPTED_REBIND_EXCEPTION(connection.getLocalAddress()),
+                                   ioe);
+                    }
+                }
             } catch (IOException e) {
                 failProcessingHandler(ioEvent, connection,
                         listener, e);
@@ -824,6 +837,23 @@ public final class TCPNIOTransport extends NIOTransport implements
                             LogMessages.WARNING_GRIZZLY_SOCKET_TIMEOUT_EXCEPTION(tcpNioTransport.getServerSocketSoTimeout()), e);
                 }
             }
+        }
+    }
+
+    private void rebindAddress(final Connection connection) throws IOException {
+        final Lock lock = state.getStateLocker().writeLock();
+        lock.lock();
+        try {
+            if (Thread.currentThread().isInterrupted()) {
+                Thread.interrupted();
+            }
+            //noinspection SuspiciousMethodCalls
+            if (serverConnections.remove(connection)) {
+                final SocketAddress address = (SocketAddress) connection.getLocalAddress();
+                bind(address);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 }

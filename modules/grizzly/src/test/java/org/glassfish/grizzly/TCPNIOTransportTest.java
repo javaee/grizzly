@@ -41,11 +41,13 @@
 package org.glassfish.grizzly;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -68,10 +70,13 @@ import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectorRunner;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.ClientCheckFilter;
 import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.EchoFilter;
@@ -309,8 +314,8 @@ public class TCPNIOTransportTest {
                         @Override
                         public void completed(final Connection connection) {
                             synchronized (this) {
-                                connection.setProcessor(StandaloneProcessor.INSTANCE);
-                                connection.setProcessorSelector(StandaloneProcessorSelector.INSTANCE);
+                                //noinspection deprecation
+                                connection.configureStandalone(true);
                             }
                         }
                     }));
@@ -408,6 +413,105 @@ public class TCPNIOTransportTest {
         doTestParallelWrites(100, 100000, true);
     }
 
+    @Test
+    public void testThreadInterruptionDuringAcceptDoesNotMakeServerDeaf() throws Exception {
+        final Field interruptField = TCPNIOServerConnection.class.getDeclaredField("DISABLE_INTERRUPT_CLEAR");
+        interruptField.setAccessible(true);
+        interruptField.setBoolean(null, true);
+
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setSelectorRunnersCount(1);
+        transport.setKernelThreadPoolConfig(ThreadPoolConfig.defaultConfig().setCorePoolSize(1).setMaxPoolSize(1));
+        transport.setIOStrategy(new SameThreadIOStrategyInterruptWrapper(true));
+        transport.bind(PORT);
+        transport.start();
+
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setIOStrategy(SameThreadIOStrategy.getInstance());
+
+        try {
+            clientTransport.start();
+            SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler
+                    .builder(clientTransport)
+                    .processor(FilterChainBuilder.stateless().add(new TransportFilter()).build())
+                    .build();
+            try {
+                final Future<Connection> f1 = connectorHandler.connect("localhost", PORT);
+                final Connection c = f1.get(5, TimeUnit.SECONDS);
+                Thread.sleep(500); // Give a little time for the remote RST to be acknowledged.
+                if (c.isOpen()) {
+                    System.out.println("Shouldn't have received an open connection.");
+                    fail();
+                }
+            } catch (Exception e1) {
+                System.out.println(e1.toString() + ".  This is expected.");
+            }
+
+            int successfulAttempts = 0;
+
+            for (int i = 0; i < 10; i++) {
+                try {
+                    final Future f2 = connectorHandler.connect("localhost", PORT);
+                    f2.get(5, TimeUnit.SECONDS);
+                    System.out.println("Successful connection in " + ++successfulAttempts + " attempts.");
+                    break;
+                } catch (Exception e2) {
+                    System.out.println(e2.toString() + ": not recovered yet...");
+                }
+            }
+
+        } catch (Exception e) {
+            fail("Unexpected Error: " + e.toString());
+            e.printStackTrace();
+        } finally {
+            interruptField.setBoolean(null, false);
+            clientTransport.shutdownNow();
+            transport.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testThreadInterruptionElsewhereDoesNotMakeServerDeaf() throws Exception {
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setSelectorRunnersCount(1);
+        transport.setKernelThreadPoolConfig(ThreadPoolConfig.defaultConfig().setCorePoolSize(1).setMaxPoolSize(1));
+        transport.setIOStrategy(new SameThreadIOStrategyInterruptWrapper(false));
+        transport.bind(PORT);
+        transport.start();
+
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setIOStrategy(SameThreadIOStrategy.getInstance());
+
+        try {
+
+            clientTransport.start();
+            SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler
+                    .builder(clientTransport)
+                    .processor(FilterChainBuilder.stateless().add(new TransportFilter()).build())
+                    .build();
+
+            int successfulAttempts = 0;
+
+            for (int i = 0; i < 10; i++) {
+                try {
+                    final Future f2 = connectorHandler.connect("localhost", PORT);
+                    f2.get(5, TimeUnit.SECONDS);
+                    System.out.println("Successful connection (" + ++successfulAttempts + ").");
+                } catch (Exception e2) {
+                    e2.printStackTrace();
+                    fail();
+                }
+            }
+
+        } catch (Exception e) {
+            fail("Unexpected Error: " + e.toString());
+            e.printStackTrace();
+        } finally {
+            clientTransport.shutdownNow();
+            transport.shutdownNow();
+        }
+    }
+
 
     // --------------------------------------------------------- Private Methods
 
@@ -486,6 +590,48 @@ public class TCPNIOTransportTest {
     
     
     // ---------------------------------------------------------- Nested Classes
+
+    static class SameThreadIOStrategyInterruptWrapper implements IOStrategy {
+        private final IOStrategy delegate = SameThreadIOStrategy.getInstance();
+        private volatile boolean interruptedOnce = false;
+        private final boolean interruptBefore;
+
+        SameThreadIOStrategyInterruptWrapper(boolean interruptBefore) {
+            this.interruptBefore = interruptBefore;
+        }
+
+        @Override
+        public boolean executeIoEvent(final Connection connection, final IOEvent ioEvent) throws IOException {
+            if (interruptBefore) {
+                if(!interruptedOnce && ioEvent.equals(IOEvent.SERVER_ACCEPT)) {
+                    Thread.currentThread().interrupt();
+                    interruptedOnce = true;
+                }
+                return delegate.executeIoEvent(connection, ioEvent);
+            } else {
+                boolean result = delegate.executeIoEvent(connection, ioEvent);
+                if(ioEvent.equals(IOEvent.SERVER_ACCEPT)) {
+                    Thread.currentThread().interrupt();
+                }
+                return result;
+            }
+        }
+
+        @Override
+        public boolean executeIoEvent(final Connection connection, final IOEvent ioEvent, final boolean isIoEventEnabled) throws IOException {
+            return delegate.executeIoEvent(connection, ioEvent, isIoEventEnabled);
+        }
+
+        @Override
+        public Executor getThreadPoolFor(final Connection connection, final IOEvent ioEvent) {
+            return delegate.getThreadPoolFor(connection, ioEvent);
+        }
+
+        @Override
+        public ThreadPoolConfig createDefaultWorkerPoolConfig(final Transport transport) {
+            return delegate.createDefaultWorkerPoolConfig(transport);
+        }
+    }
 
     public static class CustomChannelDistributor extends AbstractNIOConnectionDistributor {
 
