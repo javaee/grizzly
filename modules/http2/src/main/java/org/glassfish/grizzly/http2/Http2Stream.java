@@ -248,24 +248,33 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     public HttpResponsePacket getResponse() {
         return request.getResponse();
     }
+
+    public boolean isPushEnabled() {
+        return http2Connection.isPushEnabled();
+    }
     
     public PushResource addPushResource(final String url,
             final PushResource pushResource) {
-        
-        if (associatedResourcesToPush == null) {
-            associatedResourcesToPush = new HashMap<>();
+        if (isPushEnabled()) {
+            if (associatedResourcesToPush == null) {
+                associatedResourcesToPush = new HashMap<>();
+            }
+
+            return associatedResourcesToPush.put(url, pushResource);
         }
-        
-        return associatedResourcesToPush.put(url, pushResource);
+        return null;
     }
 
     public PushResource removePushResource(final String url) {
-        
-        if (associatedResourcesToPush == null) {
-            return null;
+
+        if (isPushEnabled()) {
+            if (associatedResourcesToPush == null) {
+                return null;
+            }
+
+            return associatedResourcesToPush.remove(url);
         }
-        
-        return associatedResourcesToPush.remove(url);
+        return null;
     }
     
     public int getId() {

@@ -117,6 +117,7 @@ public class Http2Connection {
     
     private int lastPeerStreamId;
     private int lastLocalStreamId;
+    private boolean pushEnabled = true;
 
     private final ReentrantLock newClientStreamLock = new ReentrantLock();
     
@@ -549,6 +550,23 @@ public class Http2Connection {
      */
     void setPeerMaxConcurrentStreams(int peerMaxConcurrentStreams) {
         this.peerMaxConcurrentStreams = peerMaxConcurrentStreams;
+    }
+
+    /**
+     * @return <code>true</code> if push is enabled for this {@link Http2Connection}, otherwise
+     *  returns <code>false</code>.  Push is enabled by default.
+     */
+    public boolean isPushEnabled() {
+        return pushEnabled;
+    }
+
+    /**
+     * Configure whether or not push is enabled on this {@link Http2Connection}.
+     *
+     * @param pushEnabled flag toggling push support.
+     */
+    public void setPushEnabled(final boolean pushEnabled) {
+        this.pushEnabled = pushEnabled;
     }
 
     

@@ -645,6 +645,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 case SettingsFrame.SETTINGS_HEADER_TABLE_SIZE:
                     break;
                 case SettingsFrame.SETTINGS_ENABLE_PUSH:
+                    http2Connection.setPushEnabled(setting.getValue() == 1);
                     break;
                 case SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS:
                     http2Connection.setPeerMaxConcurrentStreams(setting.getValue());
