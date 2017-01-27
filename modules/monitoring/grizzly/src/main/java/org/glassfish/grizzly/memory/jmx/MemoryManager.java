@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,8 @@ package org.glassfish.grizzly.memory.jmx;
 
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.memory.MemoryProbe;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.glassfish.gmbal.Description;
 import org.glassfish.gmbal.GmbalMBean;
@@ -66,7 +68,9 @@ public class MemoryManager extends JmxObject {
     private final AtomicLong realAllocatedBytes = new AtomicLong();
     private final AtomicLong poolAllocatedBytes = new AtomicLong();
     private final AtomicLong poolReleasedBytes = new AtomicLong();
-    
+    private final AtomicLong poolDepletedEventCount = new AtomicLong();
+    private final AtomicLong poolRestoredToFullEventCount = new AtomicLong();
+
     public MemoryManager(org.glassfish.grizzly.memory.MemoryManager memoryManager) {
         this.memoryManager = memoryManager;
         probe = new JmxMemoryProbe();
@@ -118,6 +122,18 @@ public class MemoryManager extends JmxObject {
         return poolReleasedBytes.get();
     }
 
+    @ManagedAttribute(id="pool-depleted-event-count")
+    @Description("Total number of times the pool has been depleted of all its managed buffers.")
+    public long getPoolDepletedEventCount() {
+        return poolDepletedEventCount.get();
+    }
+
+    @ManagedAttribute(id="pool-restored-to-full-event-count")
+    @Description("Total number of times that every buffer in a buffer pool has become available for allocation.")
+    public long getPoolRestoredToFullEventCount() {
+        return poolRestoredToFullEventCount.get();
+    }
+
     private class JmxMemoryProbe implements MemoryProbe {
 
         @Override
@@ -135,6 +151,16 @@ public class MemoryManager extends JmxObject {
         @Override
         public void onBufferReleaseToPoolEvent(int size) {
             poolReleasedBytes.addAndGet(size);
+        }
+
+        @Override
+        public void onPoolDepletedEvent() {
+            poolDepletedEventCount.incrementAndGet();
+        }
+
+        @Override
+        public void onPoolRestoredToFullEvent() {
+            poolRestoredToFullEventCount.incrementAndGet();
         }
 
     }
