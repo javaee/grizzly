@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,6 +66,16 @@ import org.glassfish.grizzly.http.util.DataChunk;
  * @author Remy Maucherat
  */
 public class MappingData {
+
+    public static final byte CONTEXT_ROOT = 0x1;
+    public static final byte DEFAULT      = 0x2;
+    public static final byte EXACT        = 0x4;
+    public static final byte EXTENSION    = 0x8;
+    public static final byte IMPLICIT     = 0x10;
+    public static final byte PATH         = 0x20;
+    public static final byte UNKNOWN      = 0x40;
+
+    public byte mappingType = UNKNOWN;
     public Object host = null;
     public Object context = null;
     public Object wrapper = null;
@@ -83,6 +93,7 @@ public class MappingData {
     public final DataChunk tmpMapperDC = DataChunk.newInstance();
     
     public void recycle() {
+        mappingType = UNKNOWN;
         host = null;
         context = null;
         wrapper = null;
@@ -110,6 +121,24 @@ public class MappingData {
         sb.append("\nwrapperPath: ").append(wrapperPath);
         sb.append("\npathInfo: ").append(pathInfo);
         sb.append("\nredirectPath: ").append(redirectPath);
+        sb.append("\nmappingType: ").append(getMappingDescription());
         return sb.toString();
     }
+
+
+    // -------------------------------------------------------- Private Methods
+
+
+    private String getMappingDescription() {
+        switch (mappingType) {
+            case CONTEXT_ROOT: return "context";
+            case DEFAULT: return "default";
+            case EXACT: return "exact";
+            case EXTENSION: return "extension";
+            case IMPLICIT: return "implicit";
+            case PATH: return "path";
+            default: return "unknown";
+        }
+    }
+
 }

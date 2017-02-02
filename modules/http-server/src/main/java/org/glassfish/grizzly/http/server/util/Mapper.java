@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -457,7 +457,7 @@ public class Mapper {
      * @param contextPath Context path this wrapper belongs to
      * @param path Wrapper mapping
      * @param wrapper Wrapper object
-     * @param jspWildCard
+     * @param jspWildCard jsp wildcard
      */
     public void addWrapper(String hostName, String contextPath, String path,
                            Object wrapper, boolean jspWildCard) {
@@ -471,7 +471,7 @@ public class Mapper {
      * @param contextPath Context path this wrapper belongs to
      * @param path Wrapper mapping
      * @param wrapper Wrapper object
-     * @param jspWildCard
+     * @param jspWildCard jsp wildcard
      * @param servletName servlet name or null if unknown
      */
     public void addWrapper(String hostName, String contextPath, String path,
@@ -1042,7 +1042,7 @@ public class Mapper {
                 boolean found = false;
                 */
                 while (pos >= 0) {
-                    if (uri.startsWith(contexts[pos].name)) {
+                    if (contexts != null && uri.startsWith(contexts[pos].name)) {
                         length = contexts[pos].name.length();
                         if (uri.getLength() == length) {
                             found = true;
@@ -1063,7 +1063,7 @@ public class Mapper {
                 uri.setEnd(uriEnd);
 
                 if (!found) {
-                    if ("".equals(contexts[0].name)) {
+                    if (contexts != null && "".equals(contexts[0].name)) {
                         ctx = contexts[0];
                     // START GlassFish 1024
                     } else if (hosts[hostPos].defaultContexts[0] != null) {
@@ -1129,6 +1129,7 @@ public class Mapper {
                 mappingData.requestPath.setString("");
                 mappingData.wrapperPath.setString("");
                 mappingData.pathInfo.setString("/");
+                mappingData.mappingType = MappingData.CONTEXT_ROOT;
             }
         }
 
@@ -1272,6 +1273,7 @@ public class Mapper {
                                      path.getEnd());
                                 mappingData.requestPath.setString(pathStr);
                                 mappingData.wrapperPath.setString(pathStr);
+                                mappingData.mappingType = MappingData.DEFAULT;
                             }
                         }
                     }
@@ -1326,6 +1328,7 @@ public class Mapper {
                     (path.getBuffer(), path.getStart(), path.getEnd());
                 mappingData.wrapperPath.setChars
                     (path.getBuffer(), path.getStart(), path.getEnd());
+                mappingData.mappingType = MappingData.DEFAULT;
             }
             // Redirection to a folder
             char[] buf = path.getBuffer();
@@ -1392,6 +1395,7 @@ public class Mapper {
             mappingData.wrapperPath.setString(wrappers[pos].name);
             mappingData.wrapper = wrappers[pos].object;
             mappingData.servletName = wrappers[pos].servletName;
+            mappingData.mappingType = MappingData.EXACT;
         }
     }
 
@@ -1443,6 +1447,7 @@ public class Mapper {
                 mappingData.wrapper = wrappers[pos].object;
                 mappingData.servletName = wrappers[pos].servletName;
                 mappingData.jspWildCard = wrappers[pos].jspWildCard;
+                mappingData.mappingType = MappingData.PATH;
             }
         }
     }
@@ -1483,6 +1488,7 @@ public class Mapper {
                         (buf, servletPath, pathEnd);
                     mappingData.wrapper = wrappers[pos].object;
                     mappingData.servletName = wrappers[pos].servletName;
+                    mappingData.mappingType = MappingData.EXTENSION;
                 }
                 path.setStart(servletPath);
                 path.setEnd(pathEnd);
@@ -1492,7 +1498,7 @@ public class Mapper {
 
 
     /**
-     * Find a map elemnt given its name in a sorted array of map elements.
+     * Find a map element given its name in a sorted array of map elements.
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
@@ -1502,7 +1508,7 @@ public class Mapper {
 
 
     /**
-     * Find a map elemnt given its name in a sorted array of map elements.
+     * Find a map element given its name in a sorted array of map elements.
      * This will return the index for the closest inferior or equal item in the
      * given array.
      */
@@ -1547,11 +1553,11 @@ public class Mapper {
     }
 
 
-    /**
-     * Find a map element given its name in a sorted array of map elements.
-     * This will return the index for the closest inferior or equal item in the
-     * given array.
-     */
+//    /**
+//     * Find a map element given its name in a sorted array of map elements.
+//     * This will return the index for the closest inferior or equal item in the
+//     * given array.
+//     */
 //    private static int findIgnoreCase(MapElement[] map, String name) {
 //        CharChunk cc = new CharChunk();
 //        char[] chars = name.toCharArray();
