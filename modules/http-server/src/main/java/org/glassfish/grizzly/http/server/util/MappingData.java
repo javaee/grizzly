@@ -71,9 +71,8 @@ public class MappingData {
     public static final byte DEFAULT      = 0x2;
     public static final byte EXACT        = 0x4;
     public static final byte EXTENSION    = 0x8;
-    public static final byte IMPLICIT     = 0x10;
-    public static final byte PATH         = 0x20;
-    public static final byte UNKNOWN      = 0x40;
+    public static final byte PATH         = 0x10;
+    public static final byte UNKNOWN      = 0x20;
 
     public byte mappingType = UNKNOWN;
     public Object host = null;
@@ -135,7 +134,6 @@ public class MappingData {
             case DEFAULT: return "default";
             case EXACT: return "exact";
             case EXTENSION: return "extension";
-            case IMPLICIT: return "implicit";
             case PATH: return "path";
             default: return "unknown";
         }
