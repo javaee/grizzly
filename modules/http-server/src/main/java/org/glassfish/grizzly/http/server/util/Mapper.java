@@ -546,6 +546,7 @@ public class Mapper {
             newWrapper.object = wrapper;
             newWrapper.jspWildCard = jspWildCard;
             newWrapper.servletName = servletName;
+            newWrapper.path = path;
             if (path.endsWith("/*")) {
                 // Wildcard wrapper
                 newWrapper.name = path.substring(0, path.length() - 2);
@@ -1130,6 +1131,7 @@ public class Mapper {
                 mappingData.wrapperPath.setString("");
                 mappingData.pathInfo.setString("/");
                 mappingData.mappingType = MappingData.CONTEXT_ROOT;
+                mappingData.descriptorPath = "/";
             }
         }
 
@@ -1274,6 +1276,7 @@ public class Mapper {
                                 mappingData.requestPath.setString(pathStr);
                                 mappingData.wrapperPath.setString(pathStr);
                                 mappingData.mappingType = MappingData.DEFAULT;
+                                mappingData.descriptorPath = "/";
                             }
                         }
                     }
@@ -1329,6 +1332,7 @@ public class Mapper {
                 mappingData.wrapperPath.setChars
                     (path.getBuffer(), path.getStart(), path.getEnd());
                 mappingData.mappingType = MappingData.DEFAULT;
+                mappingData.descriptorPath = "/";
             }
             // Redirection to a folder
             char[] buf = path.getBuffer();
@@ -1396,6 +1400,7 @@ public class Mapper {
             mappingData.wrapper = wrappers[pos].object;
             mappingData.servletName = wrappers[pos].servletName;
             mappingData.mappingType = MappingData.EXACT;
+            mappingData.descriptorPath = wrappers[pos].path;
         }
     }
 
@@ -1448,6 +1453,7 @@ public class Mapper {
                 mappingData.servletName = wrappers[pos].servletName;
                 mappingData.jspWildCard = wrappers[pos].jspWildCard;
                 mappingData.mappingType = MappingData.PATH;
+                mappingData.descriptorPath = wrappers[pos].path;
             }
         }
     }
@@ -1489,6 +1495,7 @@ public class Mapper {
                     mappingData.wrapper = wrappers[pos].object;
                     mappingData.servletName = wrappers[pos].servletName;
                     mappingData.mappingType = MappingData.EXTENSION;
+                    mappingData.descriptorPath = wrappers[pos].path;
                 }
                 path.setStart(servletPath);
                 path.setEnd(pathEnd);
@@ -2007,7 +2014,7 @@ public class Mapper {
     protected static class Wrapper
         extends MapElement {
 
-        public final String path = null;
+        public String path = null;
         public boolean jspWildCard = false;
         public String servletName = null;
     }
