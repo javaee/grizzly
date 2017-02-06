@@ -103,7 +103,7 @@ import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
  * 
  * @author Alexey Stashok
  */
-public class Http2Connection {
+public class Http2Connection extends Node {
     private static final Logger LOGGER = Grizzly.logger(Http2Connection.class);
 
     private final boolean isServer;
@@ -189,6 +189,7 @@ public class Http2Connection {
     public Http2Connection(final Connection<?> connection,
                        final boolean isServer,
                        final Http2BaseFilter handlerFilter) {
+        super(0);
         this.connection = connection;
         final FilterChain chain = (FilterChain) connection.getProcessor();
         final int sslIdx = chain.indexOfType(SSLBaseFilter.class);
