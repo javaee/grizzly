@@ -1132,6 +1132,7 @@ public class Mapper {
                 mappingData.pathInfo.setString("/");
                 mappingData.mappingType = MappingData.CONTEXT_ROOT;
                 mappingData.descriptorPath = "/";
+                mappingData.matchedPath = "/";
             }
         }
 
@@ -1277,6 +1278,7 @@ public class Mapper {
                                 mappingData.wrapperPath.setString(pathStr);
                                 mappingData.mappingType = MappingData.DEFAULT;
                                 mappingData.descriptorPath = "/";
+                                mappingData.matchedPath = "/";
                             }
                         }
                     }
@@ -1331,8 +1333,9 @@ public class Mapper {
                     (path.getBuffer(), path.getStart(), path.getEnd());
                 mappingData.wrapperPath.setChars
                     (path.getBuffer(), path.getStart(), path.getEnd());
-                mappingData.mappingType = MappingData.DEFAULT;
+                mappingData.mappingType = MappingData.CONTEXT_ROOT;
                 mappingData.descriptorPath = "/";
+                mappingData.matchedPath = "/";
             }
             // Redirection to a folder
             char[] buf = path.getBuffer();
@@ -1399,8 +1402,12 @@ public class Mapper {
             mappingData.wrapperPath.setString(wrappers[pos].name);
             mappingData.wrapper = wrappers[pos].object;
             mappingData.servletName = wrappers[pos].servletName;
-            mappingData.mappingType = MappingData.EXACT;
             mappingData.descriptorPath = wrappers[pos].path;
+            mappingData.matchedPath = path.toString();
+            mappingData.mappingType =
+                    (("/".equals(mappingData.matchedPath))
+                            ? MappingData.DEFAULT
+                            : MappingData.EXACT);
         }
     }
 
@@ -1454,6 +1461,7 @@ public class Mapper {
                 mappingData.jspWildCard = wrappers[pos].jspWildCard;
                 mappingData.mappingType = MappingData.PATH;
                 mappingData.descriptorPath = wrappers[pos].path;
+                mappingData.matchedPath = path.toString();
             }
         }
     }
@@ -1499,6 +1507,7 @@ public class Mapper {
                 }
                 path.setStart(servletPath);
                 path.setEnd(pathEnd);
+                mappingData.matchedPath = path.toString();
             }
         }
     }

@@ -80,6 +80,7 @@ public class MappingData {
     public Object wrapper = null;
     public String servletName = null;
     public String descriptorPath = null;
+    public String matchedPath = null;
     public boolean jspWildCard = false;
     // START GlassFish 1024
     public boolean isDefaultContext = false;
@@ -108,6 +109,7 @@ public class MappingData {
         isDefaultContext = false;
     // END GlassFish 1024
         descriptorPath = null;
+        matchedPath = null;
     }
 
     @Override
@@ -124,6 +126,7 @@ public class MappingData {
         sb.append("\nredirectPath: ").append(redirectPath);
         sb.append("\nmappingType: ").append(getMappingDescription());
         sb.append("\ndescriptorPath: ").append(descriptorPath);
+        sb.append("\nmatchedPath: ").append(matchedPath);
         return sb.toString();
     }
 
