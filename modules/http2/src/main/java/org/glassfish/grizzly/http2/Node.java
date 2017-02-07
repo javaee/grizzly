@@ -110,37 +110,39 @@ public abstract class Node {
     }
 
     /**
-     * Add a new exclusive child.  Any other children will be moved to
-     * children of this exclusive child.
+     * Add a new child. If the child is marked as exclusive, any
+     * other children will be moved to become the children of this
+     * exclusive child.
      */
-    protected void addChild(final Node n, final boolean exclusive) {
+    protected void addChild(final Node nodeBeingAddedAsChild, final boolean exclusive) {
         writeLock.lock();
         try {
             if (exclusive) {
-                n.exclusive = true;
-                if (n.firstChild != null && firstChild != null) {
+                nodeBeingAddedAsChild.exclusive = true;
+                if (nodeBeingAddedAsChild.firstChild != null && firstChild != null) {
                     Node tail = firstChild;
                     while (tail.next != null) {
                         tail = tail.next;
                     }
-                    tail.next = n.firstChild;
-                    n.firstChild.prev = tail;
-
+                    tail.next = nodeBeingAddedAsChild.firstChild;
+                    nodeBeingAddedAsChild.firstChild.prev = tail;
+                    nodeBeingAddedAsChild.firstChild = firstChild;
+                } else if (nodeBeingAddedAsChild.firstChild == null && firstChild != null) {
+                    nodeBeingAddedAsChild.firstChild = firstChild;
                 }
-                n.firstChild = firstChild;
                 firstChild = null;
-                if (n.firstChild != null) {
-                    Node t = n.firstChild;
+                if (nodeBeingAddedAsChild.firstChild != null) {
+                    Node t = nodeBeingAddedAsChild.firstChild;
                     do {
-                        t.parent = n;
+                        t.parent = nodeBeingAddedAsChild;
                     } while ((t = t.next) != null);
                 }
             }
             if (firstChild == null) {
-                firstChild = n;
+                firstChild = nodeBeingAddedAsChild;
                 firstChild.parent = this;
             } else {
-                firstChild.addSibling(n);
+                firstChild.addSibling(nodeBeingAddedAsChild);
             }
         } finally {
             writeLock.unlock();

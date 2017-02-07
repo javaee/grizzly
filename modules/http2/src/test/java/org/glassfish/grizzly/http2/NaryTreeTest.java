@@ -116,6 +116,61 @@ public class NaryTreeTest {
     }
 
     @Test
+    public void addExclusiveChild3() {
+        final Node root = new TestNode(0);
+        final Node childToAdd = new TestNode(1);
+        childToAdd.addChild(new TestNode(2));
+        root.addChild(childToAdd, true);
+        assertEquals(1, root.firstChild.id);
+        assertTrue(root.firstChild.exclusive);
+        assertEquals(0, root.firstChild.parent.id);
+        assertEquals(2, root.firstChild.firstChild.id);
+        assertEquals(1, root.firstChild.firstChild.parent.id);
+        assertNull(root.firstChild.next);
+        assertNull(root.firstChild.prev);
+    }
+
+    @Test
+    public void addExclusiveChild4() {
+        final Node root = new TestNode(0);
+        root.addChild(new TestNode(1));
+        final Node childToAdd = new TestNode(2);
+        root.addChild(childToAdd, true);
+        assertEquals(2, root.firstChild.id);
+        assertTrue(root.firstChild.exclusive);
+        assertEquals(0, root.firstChild.parent.id);
+        assertEquals(1, root.firstChild.firstChild.id);
+        assertEquals(2, root.firstChild.firstChild.parent.id);
+        assertNull(root.firstChild.next);
+        assertNull(root.firstChild.prev);
+    }
+
+    @Test
+    public void addExclusiveChild5() {
+        final Node root = new TestNode(0);
+        root.addChild(new TestNode(1));
+        root.addChild(new TestNode(2));
+        final Node childToAdd = new TestNode(3);
+        childToAdd.addChild(new TestNode(4));
+        childToAdd.addChild(new TestNode(5));
+        root.addChild(childToAdd, true);
+
+        assertEquals(0, root.id);
+        assertEquals(3, root.firstChild.id);
+        assertEquals(2, root.firstChild.firstChild.id);
+        assertEquals(1, root.firstChild.firstChild.next.id);
+        assertEquals(5, root.firstChild.firstChild.next.next.id);
+        assertEquals(4, root.firstChild.firstChild.next.next.next.id);
+
+        assertTrue(root.firstChild.exclusive);
+        assertEquals(0, root.firstChild.parent.id);
+        assertEquals(3, root.firstChild.firstChild.parent.id);
+        assertEquals(3, root.firstChild.firstChild.next.next.parent.id);
+        assertNull(root.firstChild.next);
+        assertNull(root.firstChild.prev);
+    }
+
+    @Test
     public void find() {
         createAndValidate(); // No Exception thrown, find works.
     }
