@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,10 +40,9 @@
 
 package org.glassfish.grizzly.http2;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 
 /**
  * The class represents the data to be pushed from server to client.
@@ -55,16 +54,14 @@ import org.glassfish.grizzly.http.util.HttpStatus;
  * @author Alexey Stashok.
  */
 public final class PushResource {
-    private Source resource;
-    
-    private int priority;
-    
-    private HttpStatus statusCode = HttpStatus.OK_200;
-    
-    private String contentType;
 
-    private Map<String, String> headers;
-    
+    private Source resource;
+    private int priority;
+    private HttpStatus statusCode = HttpStatus.OK_200;
+    private String contentType;
+    private MimeHeaders pushPromise;
+    private MimeHeaders pushResponse;
+
     public static PushResourceBuilder builder() {
         return new PushResourceBuilder();
     }
@@ -101,13 +98,25 @@ public final class PushResource {
     }
 
     /**
-     * Returns additional headers to be pushed.
-     * <tt>null</tt> value means no additional headers to push.
+     * Returns additional headers to be included with the PUSH_PROMISE or <code>null</code>
+     * if not headers have been added or set.
      */
-    public Map<String, String> getHeaders() {
-        return headers;
+    public MimeHeaders getRequestHeaders() {
+        return pushPromise;
     }
-    
+
+    /**
+     * Returns additional headers to be included with the push response or <code>null</code>
+     * if not headers have been added or set.
+     */
+    public MimeHeaders getResponseHeaders() {
+        return pushResponse;
+    }
+
+
+    // --------------------------------------------------------- Nested Classes
+
+
     /**
      * PushResource builder to be used to create {@link PushResource} instance.
      */
@@ -184,34 +193,108 @@ public final class PushResource {
         }
 
         /**
-         * Adds additional header to be pushed.
+         * Adds an additional header to be included in the PUSH_PROMISE sent to the client.
          * @param name the header name.
          * @param value the header value.
          * 
          * @return {@link PushResourceBuilder}.
          */
-        public PushResourceBuilder header(final String name, final String value) {
-            if (pushResource.headers == null) {
-                pushResource.headers = new HashMap<>(4);
-            }
-            
-            pushResource.headers.put(name, value);
+        @SuppressWarnings("UnusedReturnValue")
+        public PushResourceBuilder addRequestHeader(final String name, final String value) {
+            initializePushPromiseHeaders();
+            pushResource.pushPromise.addValue(name).setString(value);
             return this;
         }
         
         /**
-         * Adds additional header to be pushed.
+         * Adds an additional header to be included in the PUSH_PROMISE sent to the client.
          * @param name the header name.
          * @param value the header value.
          * 
          * @return {@link PushResourceBuilder}.
          */
-        public PushResourceBuilder header(final Header name, final String value) {
-            if (pushResource.headers == null) {
-                pushResource.headers = new HashMap<>(4);
-            }
-            
-            pushResource.headers.put(name.toString(), value);
+        public PushResourceBuilder addRequestHeader(final Header name, final String value) {
+            initializePushPromiseHeaders();
+            pushResource.pushPromise.addValue(name).setString(value);
+            return this;
+        }
+
+        /**
+         * Sets an additional header to be included in the PUSH_PROMISE sent to the client.
+         * @param name the header name.
+         * @param value the header value.
+         *
+         * @return {@link PushResourceBuilder}.
+         */
+        public PushResourceBuilder setRequestHeader(final String name, final String value) {
+            initializePushPromiseHeaders();
+            pushResource.pushPromise.setValue(name).setString(value);
+            return this;
+        }
+
+        /**
+         * Sets an additional header to be included in the PUSH_PROMISE sent to the client.
+         * @param name the header name.
+         * @param value the header value.
+         *
+         * @return {@link PushResourceBuilder}.
+         */
+        public PushResourceBuilder setRequestHeader(final Header name, final String value) {
+            initializePushPromiseHeaders();
+            pushResource.pushPromise.setValue(name).setString(value);
+            return this;
+        }
+
+        /**
+         * Adds an additional header to be included in the response sent to the client.
+         * @param name the header name.
+         * @param value the header value.
+         *
+         * @return {@link PushResourceBuilder}.
+         */
+        @SuppressWarnings("UnusedReturnValue")
+        public PushResourceBuilder addResponseHeader(final String name, final String value) {
+            initializePushResponseHeaders();
+            pushResource.pushResponse.addValue(name).setString(value);
+            return this;
+        }
+
+        /**
+         * Adds an additional header to be included in the response sent to the client.
+         * @param name the header name.
+         * @param value the header value.
+         *
+         * @return {@link PushResourceBuilder}.
+         */
+        public PushResourceBuilder addResponseHeader(final Header name, final String value) {
+            initializePushResponseHeaders();
+            pushResource.pushResponse.addValue(name).setString(value);
+            return this;
+        }
+
+        /**
+         * Sets an additional header to be included in the response sent to the client.
+         * @param name the header name.
+         * @param value the header value.
+         *
+         * @return {@link PushResourceBuilder}.
+         */
+        public PushResourceBuilder setResponseHeader(final String name, final String value) {
+            initializePushResponseHeaders();
+            pushResource.pushResponse.setValue(name).setString(value);
+            return this;
+        }
+
+        /**
+         * Sets an additional header to be included in the response sent to the client.
+         * @param name the header name.
+         * @param value the header value.
+         *
+         * @return {@link PushResourceBuilder}.
+         */
+        public PushResourceBuilder setResponseHeader(final Header name, final String value) {
+            initializePushResponseHeaders();
+            pushResource.pushResponse.setValue(name).setString(value);
             return this;
         }
         
@@ -220,6 +303,22 @@ public final class PushResource {
          */
         public PushResource build() {
             return pushResource;
+        }
+
+
+        // ---------------------------------------------------- Private Methods
+
+
+        private void initializePushPromiseHeaders() {
+            if (pushResource.pushPromise == null) {
+                pushResource.pushPromise = new MimeHeaders();
+            }
+        }
+
+        private void initializePushResponseHeaders() {
+            if (pushResource.pushResponse == null) {
+                pushResource.pushResponse = new MimeHeaders();
+            }
         }
     }
 }

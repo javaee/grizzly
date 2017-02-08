@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -104,7 +104,8 @@ public class ServerPushTest extends AbstractHttp2Test {
                 
         final InputStream fis = new FileInputStream(tmpFile);
         byte[] data = new byte[(int) tmpFile.length()];
-        fis.read(data);
+        int len = fis.read(data);
+        assertEquals(len, tmpFile.length());
         fis.close();
         
         doTestPushResource(new TestResourceFactory() {
@@ -189,7 +190,8 @@ public class ServerPushTest extends AbstractHttp2Test {
                         .source(resourceFactory.create(http2Stream));
 
                 if (hasExtraHeader) {
-                    pushResourceBuilder.header(extraHeaderName, extraHeaderValue);
+                    pushResourceBuilder.addRequestHeader(extraHeaderName, extraHeaderValue);
+                    pushResourceBuilder.addResponseHeader(extraHeaderName, extraHeaderValue);
                 }
 
                 http2Stream.addPushResource(
@@ -231,15 +233,20 @@ public class ServerPushTest extends AbstractHttp2Test {
                 final HttpHeader header2 = content2.getHttpHeader();
 
                 final HttpResponsePacket pushedResponse;
+                final HttpRequestPacket pushedRequest;
                 final HttpContent pushedContent;
                 final HttpResponsePacket mainResponse;
-                
-                if (Http2Stream.getStreamFor(header1).isPushStream()) {
+
+                final Http2Stream stream = Http2Stream.getStreamFor(header1);
+                assertNotNull(stream);
+                if (stream.isPushStream()) {
                     pushedResponse = (HttpResponsePacket) header1;
+                    pushedRequest = pushedResponse.getRequest();
                     pushedContent = content1;
                     mainResponse = (HttpResponsePacket) header2;
                 } else {
                     pushedResponse = (HttpResponsePacket) header2;
+                    pushedRequest = pushedResponse.getRequest();
                     pushedContent = content2;
                     mainResponse = (HttpResponsePacket) header1;
                 }
@@ -250,6 +257,7 @@ public class ServerPushTest extends AbstractHttp2Test {
                 assertEquals(resourceAsciiPayloadToCheck.length, pushedContent.getContent().remaining());
                 if (hasExtraHeader) {
                     assertEquals(extraHeaderValue, pushedResponse.getHeader(extraHeaderName));
+                    assertEquals(extraHeaderValue, pushedRequest.getHeader(extraHeaderName));
                 }
                 
                 assertEquals(200, mainResponse.getStatus());

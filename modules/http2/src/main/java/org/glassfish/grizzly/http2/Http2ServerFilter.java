@@ -822,7 +822,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
         if (!response.isCommitted()) {
             prepareOutgoingResponse(response);
-            pushAssociatedResourses(ctx, stream);
+            pushAssociatedResources(ctx, stream);
         }
 
         final FilterChainContext.TransportContext transportContext = ctx.getTransportContext();
@@ -833,7 +833,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
                                    transportContext.getMessageCloner());
     }
         
-    private void pushAssociatedResourses(final FilterChainContext ctx,
+    private void pushAssociatedResources(final FilterChainContext ctx,
                                          final Http2Stream stream) throws IOException {
         final Map<String, PushResource> pushResourceMap =
                 stream.getAssociatedResourcesToPush();
@@ -899,14 +899,10 @@ public class Http2ServerFilter extends Http2BaseFilter {
                         response.setContentLengthLong(source.remaining());
                     }
                     
-                    // Add extra headers if any
-                    final Map<String, String> extraHeaders = pushResource.getHeaders();
-                    if (extraHeaders != null) {
-                        for (Map.Entry<String, String> headerEntry : extraHeaders.entrySet()) {
-                            response.addHeader(headerEntry.getKey(), headerEntry.getValue());
-                        }
-                    }
-                    
+                    // Add any extra push promise and push response headers
+                    request.getHeaders().copyFrom(pushResource.getRequestHeaders());
+                    response.getHeaders().copyFrom(pushResource.getResponseHeaders());
+
                     prepareOutgoingRequest(request);
                     prepareOutgoingResponse(response);
                     
