@@ -89,6 +89,7 @@ import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.PriorityFrame;
 
 import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
+import static org.glassfish.grizzly.http2.Node.writeLock;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter} serves as a bridge
@@ -660,6 +661,43 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                     break;
             }
         }
+    }
+
+    private void processPriorityFrame(final Http2Connection http2Connection,
+                                      final Http2Frame frame) {
+        final PriorityFrame priorityFrame = (PriorityFrame) frame;
+
+        final int streamId = priorityFrame.getStreamId();
+        final int newParentStreamId = priorityFrame.getStreamDependency();
+        final boolean exclusive = priorityFrame.isExclusive();
+        final int weight = priorityFrame.getWeight();
+        frame.recycle();
+
+        final Http2Stream stream = http2Connection.getStream(streamId);
+        final int parentOfCurrentStream = stream.getParentStreamId();
+        if (stream.getParentStreamId() == newParentStreamId) {
+            stream.setPriority(weight);
+            if (!stream.exclusive && exclusive) {
+                writeLock.lock();
+                try {
+                    stream.exclusive();
+                } finally {
+                    writeLock.unlock();
+                }
+            }
+        } else {
+            // shift the dependencies
+            writeLock.lock();
+            try {
+                final Node current = http2Connection.detach(streamId);
+                final Node newParent = http2Connection.detach(newParentStreamId);
+                http2Connection.getStream(parentOfCurrentStream).addChild(newParent);
+                newParent.addChild(current, exclusive);
+            } finally {
+                writeLock.unlock();
+            }
+        }
+
     }
 
     private void processPingFrame(final Http2Connection http2Connection,
