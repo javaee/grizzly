@@ -1333,9 +1333,9 @@ public class Mapper {
                     (path.getBuffer(), path.getStart(), path.getEnd());
                 mappingData.wrapperPath.setChars
                     (path.getBuffer(), path.getStart(), path.getEnd());
-                mappingData.mappingType = MappingData.CONTEXT_ROOT;
+                mappingData.mappingType = MappingData.DEFAULT;
                 mappingData.descriptorPath = "/";
-                mappingData.matchedPath = "/";
+                mappingData.matchedPath = mappingData.requestPath.toString();
             }
             // Redirection to a folder
             char[] buf = path.getBuffer();
