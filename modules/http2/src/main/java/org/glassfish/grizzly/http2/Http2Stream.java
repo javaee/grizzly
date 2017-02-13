@@ -179,7 +179,7 @@ public class Http2Stream extends Node implements AttributeStorage, OutputSink, C
         this.state = initState;
 
         final Node parent = http2Connection.find(refStreamId);
-        parent.addChild(this);
+        parent.addChild(this, exclusive);
         
         inputBuffer = new DefaultInputBuffer(this);
         outputSink = new DefaultOutputSink(this);
@@ -206,8 +206,8 @@ public class Http2Stream extends Node implements AttributeStorage, OutputSink, C
         this.priority = priority;
         this.state = initState;
 
-        http2Connection.addChild(this);
-        exclusive = false;
+        this.exclusive = false;
+        http2Connection.addChild(this, false);
         inputBuffer = http2Connection.isServer()
                 ? new UpgradeInputBuffer()
                 : new DefaultInputBuffer(this);
