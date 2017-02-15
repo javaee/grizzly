@@ -1292,25 +1292,32 @@ public class SingleEndpointPool<E> {
 
         @SuppressWarnings("unchecked")
         private void onFailedToConnect(final Throwable t) {
-            synchronized (poolSync) {
-                pendingConnections--;
+            boolean notifyAsyncPollers = false;
+            try {
+                synchronized (poolSync) {
+                    pendingConnections--;
 
-                onFailedConnection();
+                    onFailedConnection();
 
-                // check if there is still a thread(s) waiting for a connection
-                // and reconnect mechanism is enabled
-                if (reconnectQueue != null && !asyncWaitingList.isEmpty()) {
-                    if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST, "Pool connect operation failed, schedule reconnect");
-                    }
-                    if (++failedConnectAttempts > maxReconnectAttempts) {
-                        notifyAsyncPollersOfFailure(t);
+                    // check if there is still a thread(s) waiting for a connection
+                    // and reconnect mechanism is enabled
+                    if (reconnectQueue != null && !asyncWaitingList.isEmpty()) {
+                        if (LOGGER.isLoggable(Level.FINEST)) {
+                            LOGGER.log(Level.FINEST, "Pool connect operation failed, schedule reconnect");
+                        }
+                        if (++failedConnectAttempts > maxReconnectAttempts) {
+                            notifyAsyncPollers = true;
+                        } else {
+                            reconnectQueue.add(
+                                    new ReconnectTask(SingleEndpointPool.this),
+                                    reconnectDelayMillis, TimeUnit.MILLISECONDS);
+                        }
                     } else {
-                        reconnectQueue.add(
-                                new ReconnectTask(SingleEndpointPool.this),
-                                reconnectDelayMillis, TimeUnit.MILLISECONDS);
+                        notifyAsyncPollers = true;
                     }
-                } else {
+                }
+            } finally {
+                if (notifyAsyncPollers) {
                     notifyAsyncPollersOfFailure(t);
                 }
             }
