@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -188,7 +188,7 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
             throw new IllegalArgumentException("numberOfPools must be greater than zero");
         }
         if (growthFactor == 0 && numberOfPools > 1) {
-            throw new IllegalArgumentException("if numberOfPools is greater than 0 - growthFactor must be greater than zero");
+            throw new IllegalArgumentException("if numberOfPools is greater than one - growthFactor must be greater than zero");
         }
         if (growthFactor < 0) {
             throw new IllegalArgumentException("growthFactor must be greater or equal to zero");
@@ -689,6 +689,11 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 if (pb != null) {
                     ProbeNotifier.notifyBufferAllocatedFromPool(monitoringConfig,
                                                                 bufferSize);
+                    pollIdx = this.pollIdx.get();
+                    final int offerIdx = this.offerIdx.get();
+                    if (isEmpty(pollIdx, offerIdx)) {
+                        ProbeNotifier.notifyPoolDepleted(monitoringConfig);
+                    }
                     return pb;
                 }
                 
@@ -722,7 +727,11 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                 if (pool.compareAndSet(unmaskedOfferIdx, null, b)) {
                     ProbeNotifier.notifyBufferReleasedToPool(monitoringConfig,
                                                              bufferSize);
-
+                    final int pollIdx = this.pollIdx.get();
+                    offerIdx = this.offerIdx.get();
+                    if (isFull(pollIdx, offerIdx)) {
+                        ProbeNotifier.notifyPoolRestoredToFull(monitoringConfig);
+                    }
                     return true;
                 }
                 // give poll at this index time to complete...
@@ -783,7 +792,6 @@ public class PooledMemoryManager implements MemoryManager<Buffer>, WrapperAware 
                     
                     // otherwise use HeapBuffer
                     new PoolHeapBuffer(new byte[bufferSize], this);
-                    
             
             ProbeNotifier.notifyBufferAllocated(monitoringConfig, bufferSize);
             return buffer;

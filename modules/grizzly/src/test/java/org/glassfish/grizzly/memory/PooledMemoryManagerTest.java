@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -290,6 +290,8 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
 
         // dispose the buffer and validate the pool has returned to it's
         // original size
@@ -298,6 +300,8 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
     }
 
     @Test
@@ -324,6 +328,8 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(2, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
 
         // dispose the buffer and validate the pool has returned to it's
         // original elements count
@@ -332,6 +338,8 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(2, probe.bufferReleasedToPool.get());
         assertEquals(2, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
 
         // validate all buffers at this stage are of the expected capacity
         final PooledMemoryManager.PoolSlice slice = mm.getPools()[0].getSlices()[0];
@@ -420,29 +428,41 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(2, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         b.position(1000);
         b.trim();
         assertEquals(4096, b.capacity());
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
         assertEquals(2, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         b.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(2, probe.bufferReleasedToPool.get());
         assertEquals(2, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
 
         b = mm.allocate(1023);
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(2, probe.bufferReleasedToPool.get());
         assertEquals(3, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
         b.trim();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(2, probe.bufferReleasedToPool.get());
         assertEquals(3, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
         b.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(3, probe.bufferReleasedToPool.get());
         assertEquals(3, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(2, probe.poolRestoredToFull.get());
 
     }
 
@@ -464,6 +484,8 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(4, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         b.position(6666);
         b.limit(7000);
         b.shrink();
@@ -471,10 +493,14 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(3, probe.bufferReleasedToPool.get());
         assertEquals(4, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         b.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(4, probe.bufferReleasedToPool.get());
         assertEquals(4, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
 
     }
 
@@ -532,11 +558,17 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
+
         Buffer duplicate = b.duplicate();
         // pool size remains constant after duplicate
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
+
 
         // dispose the original buffer.  It shouldn't be returned to the pool
         // as the duplicate buffer still holds a reference.
@@ -544,12 +576,16 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
 
         // now dispose the duplicate, pool should return to original elements count
         duplicate.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
 
         // === read-only ================
         probe.bufferReleasedToPool.set(0);
@@ -558,11 +594,15 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
         Buffer readOnlyBuffer = b.asReadOnlyBuffer();
         // pool size remains constant after duplicate
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
 
         // dispose the original buffer.  It shouldn't be returned to the pool
         // as the duplicate buffer still holds a reference.
@@ -570,26 +610,35 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
 
         // now dispose the duplicate, pool should return to original elements count
         readOnlyBuffer.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(2, probe.poolRestoredToFull.get());
 
         // === slice ====================
         probe.bufferReleasedToPool.set(0);
         probe.bufferAllocatedFromPool.set(0);
+        probe.poolRestoredToFull.set(0);
         b = (PooledMemoryManager.PoolBuffer) mm.allocate(4096);
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         b.position(10);
         Buffer slicedBuffer = b.asReadOnlyBuffer();
         // pool size remains constant after duplicate
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
 
         // dispose the original buffer.  It shouldn't be returned to the pool
         // as the duplicate buffer still holds a reference.
@@ -597,25 +646,34 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
 
         // now dispose the duplicate, pool should return to original elements count
         slicedBuffer.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
 
         // === split ====================
         probe.bufferReleasedToPool.set(0);
         probe.bufferAllocatedFromPool.set(0);
+        probe.poolRestoredToFull.set(0);
         b = (PooledMemoryManager.PoolBuffer) mm.allocate(4096);
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         Buffer splitBuffer = b.split(2048);
         // pool size remains constant after duplicate
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
 
         // dispose the original buffer.  It shouldn't be returned to the pool
         // as the duplicate buffer still holds a reference.
@@ -623,12 +681,16 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
 
         // now dispose the duplicate, pool should return to original elements count
         splitBuffer.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
 
         // split is a special case in that the visible portion of the original
         // buffer is replaced by the first half of the split result.  We need
@@ -651,10 +713,13 @@ public class PooledMemoryManagerTest {
         // = time to mix it up a bit ====
         probe.bufferReleasedToPool.set(0);
         probe.bufferAllocatedFromPool.set(0);
+        probe.poolRestoredToFull.set(0);
         b = (PooledMemoryManager.PoolBuffer) mm.allocate(4096);
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         duplicate = b.duplicate();
         splitBuffer = duplicate.split(2048);
         readOnlyBuffer = splitBuffer.asReadOnlyBuffer();
@@ -665,22 +730,32 @@ public class PooledMemoryManagerTest {
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         slicedBuffer.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         b.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         splitBuffer.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(0, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         duplicate.tryDispose();
         assertEquals(0, probe.bufferAllocated.get());
         assertEquals(1, probe.bufferReleasedToPool.get());
         assertEquals(1, probe.bufferAllocatedFromPool.get());
+        assertEquals(0, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
 
         // split was performed at some point, make sure all buffers have
         // the expected capacities within the pool
@@ -722,10 +797,14 @@ public class PooledMemoryManagerTest {
         assertNull(slice0.poll());
         assertEquals(0, slice0.elementsCount());
         assertEquals(elementCount, probe.bufferAllocatedFromPool.get());
+        assertEquals(1, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         assertTrue(slice0.offer(tempStorage.get(0)));
         assertTrue(slice0.offer(tempStorage.get(1)));
         assertEquals(2, probe.bufferReleasedToPool.get());
         assertEquals(2, slice0.elementsCount());
+        assertEquals(1, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         PooledMemoryManager.PoolBuffer b = slice0.poll();
         assertNotNull(b);
         tempStorage.add(b);
@@ -733,6 +812,8 @@ public class PooledMemoryManagerTest {
         assertNotNull(b);
         tempStorage.add(b);
         assertEquals(elementCount + 2, probe.bufferAllocatedFromPool.get());
+        assertEquals(2, probe.poolDepleted.get());
+        assertEquals(0, probe.poolRestoredToFull.get());
         assertNull(slice0.poll());
 
         for (int i = 0; i < elementCount; i++) {
@@ -741,6 +822,8 @@ public class PooledMemoryManagerTest {
         assertEquals(elementCount + 2, probe.bufferReleasedToPool.get());
         assertEquals(elementCount, slice0.elementsCount());
         assertFalse(slice0.offer(slice0.allocate()));
+        assertEquals(2, probe.poolDepleted.get());
+        assertEquals(1, probe.poolRestoredToFull.get());
     }
 
     @Test
@@ -838,6 +921,8 @@ public class PooledMemoryManagerTest {
         AtomicInteger bufferAllocated = new AtomicInteger();
         AtomicInteger bufferAllocatedFromPool = new AtomicInteger();
         AtomicInteger bufferReleasedToPool = new AtomicInteger();
+        AtomicInteger poolDepleted = new AtomicInteger();
+        AtomicInteger poolRestoredToFull = new AtomicInteger();
 
         @Override
         public void onBufferAllocateEvent(int size) {
@@ -852,6 +937,16 @@ public class PooledMemoryManagerTest {
         @Override
         public void onBufferReleaseToPoolEvent(int size) {
             bufferReleasedToPool.incrementAndGet();
+        }
+
+        @Override
+        public void onPoolDepletedEvent() {
+            poolDepleted.incrementAndGet();
+        }
+
+        @Override
+        public void onPoolRestoredToFullEvent() {
+            poolRestoredToFull.incrementAndGet();
         }
     }
 }

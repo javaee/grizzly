@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -67,6 +67,19 @@ public interface MemoryProbe {
      */
     public void onBufferReleaseToPoolEvent(int size);
 
+    /**
+     * Called by {@link MemoryManager}, when this pool has been depleted of all its managed buffers.
+     * Note: These events are currently only implemented for PooledMemoryManager probes.
+     */
+    public void onPoolDepletedEvent();
+
+    /**
+     * Called by {@link MemoryManager}, when every buffer in a buffer pool has become available
+     * for allocation. Note: These events are currently only implemented for PooledMemoryManager
+     * probes.
+     */
+    public void onPoolRestoredToFullEvent();
+
 
     // ---------------------------------------------------------- Nested Classes
 
@@ -99,6 +112,17 @@ public interface MemoryProbe {
          */
         @Override
         public void onBufferReleaseToPoolEvent(int size) {}
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onPoolDepletedEvent() {}
+
+        /**
+         * {@inheritDoc}
+         */
+        public void onPoolRestoredToFullEvent() {}
 
     } // END Adapter
 }
