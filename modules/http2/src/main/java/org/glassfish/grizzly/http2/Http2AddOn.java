@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,12 +46,15 @@ import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.ssl.SSLFilter;
 
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 
 import org.glassfish.grizzly.ssl.SSLBaseFilter;
+import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
  * FilterChain after being processed by {@link Http2AddOn}:
@@ -71,6 +74,7 @@ public class Http2AddOn implements AddOn {
     private int maxFramePayloadSize = -1;
     private int maxHeaderListSize = Constants.DEFAULT_MAX_HEADER_LIST_SIZE;
     private boolean disableCipherCheck;
+    private ThreadPoolConfig threadPoolConfig;
     
 
     // ------------------------------------------------------ Methods From AddOn
@@ -174,6 +178,21 @@ public class Http2AddOn implements AddOn {
         this.maxHeaderListSize = maxHeaderListSize;
     }
 
+    /**
+     * @return the thread pool configuration for servicing HTTP/2 streams, if any.
+     */
+    public ThreadPoolConfig getThreadPoolConfig() {
+        return threadPoolConfig;
+    }
+
+    /**
+     * @param threadPoolConfig the thread pool configuration that will be used for the
+     *                         {@link ExecutorService} handling HTTP/2 streams.  If not
+     *                         set, then HTTP/2 streams will be executed on the current thread.
+     */
+    public void setThreadPoolConfig(final ThreadPoolConfig threadPoolConfig) {
+        this.threadPoolConfig = threadPoolConfig;
+    }
 
     // ----------------------------------------------------- Private Methods
 
@@ -182,9 +201,14 @@ public class Http2AddOn implements AddOn {
         
         final int codecFilterIdx = builder.indexOfType(
                 org.glassfish.grizzly.http.HttpServerFilter.class);
+
+        ExecutorService executorService = null;
+        if (threadPoolConfig != null) {
+            executorService = GrizzlyExecutorService.createInstance(threadPoolConfig);
+        }
                 
         final Http2ServerFilter http2HandlerFilter =
-                new Http2ServerFilter(null, disableCipherCheck);
+                new Http2ServerFilter(executorService, disableCipherCheck);
         
         http2HandlerFilter.setLocalMaxFramePayloadSize(getMaxFramePayloadSize());
         http2HandlerFilter.setInitialWindowSize(getInitialWindowSize());
