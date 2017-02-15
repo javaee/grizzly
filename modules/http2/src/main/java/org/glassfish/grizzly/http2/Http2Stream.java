@@ -74,7 +74,7 @@ import static org.glassfish.grizzly.http2.Constants.*;
  * 
  * @author Grizzly team
  */
-public class Http2Stream extends Node implements AttributeStorage, OutputSink, Closeable {
+public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
 
     private static final Logger LOGGER = Grizzly.logger(Http2Stream.class);
 
@@ -99,7 +99,7 @@ public class Http2Stream extends Node implements AttributeStorage, OutputSink, C
     private final int refStreamId;
     private final int priority;
     private final boolean exclusive;
-    
+
     private final Http2Connection http2Connection;
     
     private final AttributeHolder attributes =
@@ -169,7 +169,6 @@ public class Http2Stream extends Node implements AttributeStorage, OutputSink, C
             final int streamId, final int refStreamId,
             final boolean exclusive, final int priority,
             final Http2StreamState initState) {
-        super(streamId);
         this.http2Connection = http2Connection;
         this.request = request;
         this.streamId = streamId;
@@ -178,9 +177,6 @@ public class Http2Stream extends Node implements AttributeStorage, OutputSink, C
         this.priority = priority;
         this.state = initState;
 
-        final Node parent = http2Connection.find(refStreamId);
-        parent.addChild(this, exclusive);
-        
         inputBuffer = new DefaultInputBuffer(this);
         outputSink = new DefaultOutputSink(this);
         
@@ -198,7 +194,6 @@ public class Http2Stream extends Node implements AttributeStorage, OutputSink, C
     protected Http2Stream(final Http2Connection http2Connection,
             final HttpRequestPacket request,
             final int priority, final Http2StreamState initState) {
-        super(UPGRADE_STREAM_ID);
         this.http2Connection = http2Connection;
         this.request = request;
         this.streamId = UPGRADE_STREAM_ID;
@@ -207,7 +202,6 @@ public class Http2Stream extends Node implements AttributeStorage, OutputSink, C
         this.state = initState;
 
         this.exclusive = false;
-        http2Connection.addChild(this, false);
         inputBuffer = http2Connection.isServer()
                 ? new UpgradeInputBuffer()
                 : new DefaultInputBuffer(this);
