@@ -136,8 +136,8 @@ public class AnnotationParser {
 	 * 
 	 * @EJB private ShoppingCart myCart;
 	 * 
-	 * In the case above a reference to the EJB component “myCart” is injected
-	 * as the value of the private field “myCart” prior to the classs declaring
+	 * In the case above a reference to the EJB component 'myCart' is injected
+	 * as the value of the private field 'myCart' prior to the classs declaring
 	 * the injection being made available. The behavior the @EJB annotation is
 	 * further detailed in section 15.5 of the EJB 3.0 specification (JSR220).
 	 */
@@ -455,9 +455,9 @@ public class AnnotationParser {
 	 * 
 	 * @Resources ({
 	 * 
-	 * @Resource(name=”myDB” type=javax.sql.DataSource),
+	 * @Resource(name='myDB' type=javax.sql.DataSource),
 	 * 
-	 * @Resource(name=”myMQ” type=javax.jms.ConnectionFactory) }) public class
+	 * @Resource(name='myMQ' type=javax.jms.ConnectionFactory) }) public class
 	 * CalculatorServlet { //... } In the example above a JMS connection factory
 	 * and a data source are made available to the CalculatorServlet by means of
 	 * an @Resources annotation. The semantics of the @Resources annotation are
@@ -511,11 +511,11 @@ public class AnnotationParser {
 	 * classes implementing the javax.servlet.Servlet interface or a subclass
 	 * thereof. An example:
 	 * 
-	 * @RunAs(“Admin”) public class CalculatorServlet {
+	 * @RunAs('Admin') public class CalculatorServlet {
 	 * 
 	 * @EJB private ShoppingCart myCart; public void doGet(HttpServletRequest,
 	 * req, HttpServletResponse res) { //.... myCart.getTotal(); //.... } }
-	 * //.... } The @RunAs(“Admin”) statement would be equivalent to defining
+	 * //.... } The @RunAs('Admin') statement would be equivalent to defining
 	 * the following in the web.xml. <servlet>
 	 * 
 	 * <servlet-name>CalculatorServlet</servlet-name>
@@ -523,7 +523,7 @@ public class AnnotationParser {
 	 * </servlet>
 	 * 
 	 * The example above shows how a servlet uses the @RunAs annotation to
-	 * propagate the security identity “Admin” to an EJB component when the
+	 * propagate the security identity 'Admin' to an EJB component when the
 	 * myCart.getTotal() method is called. For further details on propagating
 	 * identities see SRV.14.3.1. For further details on the @RunAs annotation
 	 * refer to the Common Annotations for the JavaTM PlatformTM specifcation
@@ -562,7 +562,7 @@ public class AnnotationParser {
 	 * @WebServiceRef private MyService service; 
 	 * 
 	 * In this example a reference to
-	 * the web service “MyService” will be injected to the class declaring the
+	 * the web service 'MyService' will be injected to the class declaring the
 	 * annotation. This annotation and behavior are further detailed in the
 	 * JAX-WS Specification (JSR 224) section 7.
 	 */
