@@ -46,11 +46,11 @@
     <parent>
         <artifactId>grizzly-contribs</artifactId>
         <groupId>com.sun.grizzly</groupId>
-        <version>1.9.65-SNAPSHOT</version>
+        <version>1.9.65</version>
     </parent>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>jsp-support</artifactId>
-    <version>1.9.65-SNAPSHOT</version>
+    <version>1.9.65</version>
     <name>jsp-support</name>
     <dependencies>
         <dependency>

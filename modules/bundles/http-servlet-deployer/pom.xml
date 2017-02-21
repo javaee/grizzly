@@ -45,14 +45,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.65-SNAPSHOT</version>
+        <version>1.9.65</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-http-servlet-deployer</artifactId>
     <packaging>jar</packaging>
-    <version>1.9.65-SNAPSHOT</version>
+    <version>1.9.65</version>
     <name>grizzly-http-servlet-deployer</name>
     <url>https://grizzly.dev.java.net</url>
     <build>

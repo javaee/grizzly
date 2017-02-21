@@ -45,14 +45,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.65-SNAPSHOT</version>
+        <version>1.9.65</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>documentation</artifactId>
     <packaging>pom</packaging>
-    <version>1.9.65-SNAPSHOT</version>
+    <version>1.9.65</version>
     <name>grizzly-documentation</name>
     <build>
         <plugins>
