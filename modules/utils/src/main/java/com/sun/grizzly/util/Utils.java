@@ -50,6 +50,7 @@ import java.nio.channels.Selector;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -61,6 +62,8 @@ import java.util.regex.Pattern;
  */
 public class Utils {
     public static boolean VERBOSE_TESTS = false;
+    
+    private static final int MAX_SPIN_RECOVER_CYCLES = 10;
 
     /**
      * Lookup a {@link Charset} by name.
@@ -146,32 +149,60 @@ public class Utils {
             }
 
             if (byteRead >= 0 && byteBuffer.position() == preReadInputBBPos) {
-                readSelector = SelectorFactory.getSelector();
+                int recoveringAfterSelectorSpinCounter = 0;
+                boolean recoveringAfterSelectorSpin;
+                
+                do {
+                    recoveringAfterSelectorSpin = false;
+                    
+                    readSelector = SelectorFactory.getSelector();
 
-                if (readSelector == null) {
-                    return r;
+                    if (readSelector == null) {
+                        return r;
 
-                }
-                count = 1;
-
-                tmpKey = channel.register(readSelector, SelectionKey.OP_READ);
-                tmpKey.interestOps(tmpKey.interestOps() | SelectionKey.OP_READ);
-                int code = readSelector.select(readTimeout);
-                tmpKey.interestOps(
-                        tmpKey.interestOps() & ~SelectionKey.OP_READ);
-
-                if (code == 0) {
-                    return r;
-                }
-
-                while (count > 0) {
-                    count = readableChannel.read(byteBuffer);
-                    if (count > -1) {
-                        byteRead += count;
-                    } else if (count == -1 && byteRead == 0) {
-                        byteRead = -1;
                     }
-                }
+                    count = 1;
+
+                    tmpKey = channel.register(readSelector, SelectionKey.OP_READ);
+                    tmpKey.interestOps(tmpKey.interestOps() | SelectionKey.OP_READ);
+                    long t1 = System.currentTimeMillis();
+                    int code = readSelector.select(readTimeout);
+                    long diff = System.currentTimeMillis() - t1;
+
+                    tmpKey.interestOps(
+                            tmpKey.interestOps() & ~SelectionKey.OP_READ);
+
+                    if (code == 0) {
+                        return r;
+                    }
+
+                    while (count > 0) {
+                        count = readableChannel.read(byteBuffer);
+                        if (count == 0 && byteRead == 0) {
+                            recoveringAfterSelectorSpin = true;
+                            recoveringAfterSelectorSpinCounter++;
+                            
+                            LoggerUtils.getLogger().log(Level.WARNING,
+                                    "Selector spin encountered. Even though selector reported that an NIO channel is ready for read - the read operation returned 0 bytes. "
+                                    + "selector:{0}, select-waited:{1}millis, select-returned:{2}, keys:{3}, selectedKeys:{4}, key:{5}, isValid:{6}."
+                                    + "Now recovering, attempt #{7}...",
+                                    new Object[] {readSelector, diff, code, readSelector.keys(), readSelector.selectedKeys(), tmpKey, tmpKey.isValid(), recoveringAfterSelectorSpinCounter});
+
+                            tmpKey.cancel();
+                            try {
+                                readSelector.close();
+                            } catch (IOException e) {
+                                // ignoring
+                            }
+                        }
+                        if (count > -1) {
+                            byteRead += count;
+                        } else if (count == -1 && byteRead == 0) {
+                            byteRead = -1;
+                        }
+                    }
+                } while (recoveringAfterSelectorSpin && recoveringAfterSelectorSpinCounter < MAX_SPIN_RECOVER_CYCLES);
+                
             } else if (byteRead == 0 && byteBuffer.position() != preReadInputBBPos) {
                 byteRead += byteBuffer.position() - preReadInputBBPos;
             }
