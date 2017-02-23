@@ -69,7 +69,7 @@
                 <configuration>
                     <executable>java</executable>
                     <arguments>
-                        <argument>-Xbootclasspath/p:${settings.localRepository}/org/glassfish/grizzly/grizzly-npn-bootstrap/1.0/grizzly-npn-bootstrap-1.0.jar</argument>
+                        <argument>-Xbootclasspath/p:${settings.localRepository}/org/glassfish/grizzly/grizzly-npn-bootstrap/1.7/grizzly-npn-bootstrap-1.7.jar</argument>
                         <argument>-classpath</argument>
                         <!-- automatically creates the classpath using all project dependencies,
                         also adding the project build directory -->
@@ -108,13 +108,13 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-npn-api</artifactId>
-            <version>1.0</version>
+            <version>1.7</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-npn-bootstrap</artifactId>
             <scope>compile</scope>
-            <version>1.0</version>
+            <version>1.7</version>
         </dependency>
     </dependencies>
 </project>
