@@ -42,7 +42,6 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
@@ -92,16 +91,11 @@ public class Http2ClientFilter extends Http2BaseFilter {
     
     private boolean isNeverForceUpgrade;
     private boolean sendPushRequestUpstream;
-    private boolean priorKnowledge;
     private final HeaderValue defaultHttp2Upgrade;
     private final HeaderValue connectionUpgradeHeaderValue;
     
-    public Http2ClientFilter() {
-        this(null);
-    }
-
-    public Http2ClientFilter(final ExecutorService threadPool) {
-        super(threadPool);
+    public Http2ClientFilter(final Http2Configuration configuration) {
+        super(configuration);
         defaultClientAlpnNegotiator =
                 new AlpnClientNegotiatorImpl(this);
         
@@ -135,25 +129,6 @@ public class Http2ClientFilter extends Http2BaseFilter {
     @SuppressWarnings("unused")
     public boolean isSendPushRequestUpstream() {
         return sendPushRequestUpstream;
-    }
-
-    /**
-     * @return <code>true</code> if this filter will bypass using the HTTP/1.1 upgrade mechanism and send the
-     *  client preface immediately with the knowledge that the remote endpoint supports HTTP/2.
-     */
-    @SuppressWarnings("unused")
-    public boolean isPriorKnowledge() {
-        return priorKnowledge;
-    }
-
-    /**
-     * Control how the HTTP/2 connection is established with the remote peer.
-     * @param priorKnowledge <code>true</code> if it's known that the remote peer supports HTTP/2.  By default no
-     *                       prior knowledge is assumed.
-     */
-    @SuppressWarnings("unused")
-    public void setPriorKnowledge(boolean priorKnowledge) {
-        this.priorKnowledge = priorKnowledge;
     }
 
     /**
@@ -198,7 +173,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
 
             connection.enableIOEvent(IOEvent.READ);
             return suspendAction;
-        } else if (priorKnowledge) {
+        } else if (getConfiguration().isPriorKnowledge()) {
             final Http2Connection http2Connection = createClientHttp2Connection(connection);
             final Http2State state = http2Connection.getHttp2State();
             state.setDirectUpgradePhase();
@@ -677,14 +652,14 @@ public class Http2ClientFilter extends Http2BaseFilter {
             builder = SettingsFrame.builder();
         }
         
-        final int maxConcStreams = getMaxConcurrentStreams();
+        final int maxConcStreams = getConfiguration().getMaxConcurrentStreams();
         
         if (maxConcStreams != -1 &&
                 maxConcStreams != http2Connection.getDefaultMaxConcurrentStreams()) {
             builder.setting(SETTINGS_MAX_CONCURRENT_STREAMS, maxConcStreams);
         }
 
-        final int initWindSize = getInitialWindowSize();
+        final int initWindSize = getConfiguration().getInitialWindowSize();
         if (initWindSize != -1
                 && http2Connection != null
                 && initWindSize != http2Connection.getDefaultStreamWindowSize()) {

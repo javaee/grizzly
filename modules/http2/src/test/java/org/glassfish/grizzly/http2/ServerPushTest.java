@@ -287,7 +287,7 @@ public class ServerPushTest extends AbstractHttp2Test {
         final int http2FilterIdx = filterChain.indexOfType(Http2BaseFilter.class);
         final Http2BaseFilter http2Filter =
                 (Http2BaseFilter) filterChain.get(http2FilterIdx);
-        http2Filter.setInitialWindowSize(initialWindowSize);
+        http2Filter.getConfiguration().setInitialWindowSize(initialWindowSize);
     }
     
     private static File createTempFile(final int size) throws IOException {

@@ -1327,7 +1327,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         final int http2FilterIdx = filterChain.indexOfType(Http2BaseFilter.class);
         final Http2BaseFilter http2Filter =
                 (Http2BaseFilter) filterChain.get(http2FilterIdx);
-        http2Filter.setInitialWindowSize(windowSize);
+        http2Filter.getConfiguration().setInitialWindowSize(windowSize);
     }
 
     private static final class CustomIOException extends IOException {

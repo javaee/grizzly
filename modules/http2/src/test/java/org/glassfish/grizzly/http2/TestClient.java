@@ -116,7 +116,7 @@ public class TestClient {
                 .add(new TransportFilter())
                 .add(new SSLFilter(null, clientSSLEngineConfigurator))
                 .add(new HttpClientFilter())
-                .add(new Http2ClientFilter())
+                .add(new Http2ClientFilter(Http2Configuration.builder().build()))
                 .add(new MyHttpFilter(httpResponseQueue))
                 .build();
         

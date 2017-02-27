@@ -210,7 +210,7 @@ public class Http2Connection {
                 ? customMaxFramePayloadSz
                 : getSpecDefaultFramePayloadSize();
 
-        maxHeaderListSize = handlerFilter.getMaxHeaderListSize();
+        maxHeaderListSize = handlerFilter.getConfiguration().getMaxHeaderListSize();
 
         if (isServer) {
             lastLocalStreamId = 0;

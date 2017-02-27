@@ -45,7 +45,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -91,7 +90,7 @@ import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
 public class Http2ServerFilter extends Http2BaseFilter {
     private final static Logger LOGGER = Grizzly.logger(Http2ServerFilter.class);
 
-    protected static final String[] CIPHER_SUITE_BLACK_LIST = {
+    private static final String[] CIPHER_SUITE_BLACK_LIST = {
             "TLS_NULL_WITH_NULL_NULL",
             "TLS_RSA_WITH_NULL_MD5",
             "TLS_RSA_WITH_NULL_SHA",
@@ -382,15 +381,12 @@ public class Http2ServerFilter extends Http2BaseFilter {
     private final Attribute<Connection> CIPHER_CHECKED =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("BLACK_LIST_CIPHER_SUITE_CHEKCED");
 
-    private final boolean disableCipherCheck;
-
-    public Http2ServerFilter() {
-        this(null, false);
-    }
-
-    public Http2ServerFilter(final ExecutorService threadPool, final boolean disableCipherCheck) {
-        super(threadPool);
-        this.disableCipherCheck = disableCipherCheck;
+    /**
+     * TODO: Documentation
+     * @param configuration
+     */
+    public Http2ServerFilter(final Http2Configuration configuration) {
+        super(configuration);
     }
 
 
@@ -469,7 +465,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
         final Http2Connection http2Connection =
                 obtainHttp2Connection(http2State, ctx, true);
 
-        if (!disableCipherCheck && !CIPHER_CHECKED.isSet(connection)) {
+        if (!getConfiguration().isDisableCipherCheck() && !CIPHER_CHECKED.isSet(connection)) {
             CIPHER_CHECKED.set(connection, connection);
             final SSLEngine engine = SSLUtils.getSSLEngine(connection);
             if (engine != null) {

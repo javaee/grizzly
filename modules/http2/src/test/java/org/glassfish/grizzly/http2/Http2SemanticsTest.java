@@ -197,7 +197,7 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
             throws Exception {
 
         final FilterChain clientChain =
-                createClientFilterChainAsBuilder(isSecure).build();
+                createClientFilterChainAsBuilder(isSecure, true).build();
 
         if (filter != null) {
             clientChain.add(filter);
@@ -206,7 +206,7 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
         final int idx = clientChain.indexOfType(Http2ClientFilter.class);
         assert (idx != -1);
         final Http2ClientFilter clientFilter = (Http2ClientFilter) clientChain.get(idx);
-        clientFilter.setPriorKnowledge(true);
+        clientFilter.getConfiguration().setPriorKnowledge(true);
 
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(

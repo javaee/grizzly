@@ -44,6 +44,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.http2.Http2Configuration.Http2ConfigurationBuilder;
 import org.glassfish.grizzly.ssl.SSLFilter;
 
 import java.util.concurrent.ExecutorService;
@@ -202,18 +203,19 @@ public class Http2AddOn implements AddOn {
         final int codecFilterIdx = builder.indexOfType(
                 org.glassfish.grizzly.http.HttpServerFilter.class);
 
-        ExecutorService executorService = null;
-        if (threadPoolConfig != null) {
-            executorService = GrizzlyExecutorService.createInstance(threadPoolConfig);
-        }
+        final Http2ConfigurationBuilder config = Http2Configuration.builder()
+                .threadPoolConfig(threadPoolConfig)
+                .disableCipherCheck(disableCipherCheck)
+                .maxFramePayloadSize(maxFramePayloadSize)
+                .initialWindowSize(initialWindowSize)
+                .maxConcurrentStreams(maxConcurrentStreams)
+                .maxHeaderListSize(maxHeaderListSize);
+
                 
         final Http2ServerFilter http2HandlerFilter =
-                new Http2ServerFilter(executorService, disableCipherCheck);
+                new Http2ServerFilter(config.build());
         
-        http2HandlerFilter.setLocalMaxFramePayloadSize(getMaxFramePayloadSize());
-        http2HandlerFilter.setInitialWindowSize(getInitialWindowSize());
-        http2HandlerFilter.setMaxConcurrentStreams(getMaxConcurrentStreams());
-        http2HandlerFilter.setMaxHeaderListSize(getMaxHeadersListSize());
+        http2HandlerFilter.setLocalMaxFramePayloadSize(maxFramePayloadSize);
         builder.add(codecFilterIdx + 1, http2HandlerFilter);
         
         return http2HandlerFilter;

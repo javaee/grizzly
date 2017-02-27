@@ -132,13 +132,20 @@ public abstract class AbstractHttp2Test {
             final boolean isSecure,
             final Filter... clientFilters) {
         
-        return createClientFilterChainAsBuilder(isSecure,
+        return createClientFilterChainAsBuilder(isSecure, false,
                 clientFilters).build();
+    }
+
+    protected static FilterChainBuilder createClientFilterChainAsBuilder(
+            final boolean isSecure,
+            final Filter... clientFilters) {
+        return createClientFilterChainAsBuilder(isSecure, false, clientFilters);
     }
     
 
     protected static FilterChainBuilder createClientFilterChainAsBuilder(
             final boolean isSecure,
+            final boolean priorKnowledge,
             final Filter... clientFilters) {
         
         final FilterChainBuilder builder = FilterChainBuilder.stateless()
@@ -149,7 +156,7 @@ public abstract class AbstractHttp2Test {
         
         
         builder.add(new HttpClientFilter());
-        builder.add(new Http2ClientFilter());
+        builder.add(new Http2ClientFilter(Http2Configuration.builder().priorKnowledge(priorKnowledge).build()));
         
         if (clientFilters != null) {
             for (Filter clientFilter : clientFilters) {

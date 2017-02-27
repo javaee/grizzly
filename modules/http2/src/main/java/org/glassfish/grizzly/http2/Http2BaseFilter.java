@@ -81,6 +81,8 @@ import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
 import org.glassfish.grizzly.http2.frames.RstStreamFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
+import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.Threads;
 import org.glassfish.grizzly.utils.Charsets;
 
@@ -111,32 +113,24 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             new FixedLengthTransferEncoding();
 
     final Http2FrameCodec frameCodec = new Http2FrameCodec();
+
+    private final Http2Configuration configuration;
     
     private final ExecutorService threadPool;
     
-    private volatile int maxConcurrentStreams = -1;
-    private volatile int initialWindowSize = -1;
-
     private int localMaxFramePayloadSize;
-    private int maxHeaderListSize = Constants.DEFAULT_MAX_HEADER_LIST_SIZE;
-    
-    /**
-     * Constructs Http2HandlerFilter.
-     */
-    public Http2BaseFilter() {
-        this(null);
-    }
 
     /**
      * Constructs Http2HandlerFilter.
-     * 
-     * @param threadPool the {@link ExecutorService} to be used to process streams.
      */
-    public Http2BaseFilter(final ExecutorService threadPool) {
-        this.threadPool = threadPool;
+    public Http2BaseFilter(final Http2Configuration configuration) {
+        this.configuration = configuration;
+        final ThreadPoolConfig tpConfig = configuration.getThreadPoolConfig();
+        threadPool = ((tpConfig != null)
+                ? GrizzlyExecutorService.createInstance(tpConfig)
+                : null);
     }
 
-    
     /**
      * @return the maximum allowed HTTP2 frame payload size
      */
@@ -151,54 +145,12 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     public void setLocalMaxFramePayloadSize(final int localMaxFramePayloadSize) {
         this.localMaxFramePayloadSize = localMaxFramePayloadSize;
     }
-    
-    /**
-     * Sets the default maximum number of concurrent streams allowed for one session.
-     * Negative value means "unlimited".
-     * @param maxConcurrentStreams the default maximum number of streams.
-     */
-    public void setMaxConcurrentStreams(final int maxConcurrentStreams) {
-        this.maxConcurrentStreams = maxConcurrentStreams;
-    }
 
     /**
-     * @return the default maximum number of concurrent streams allowed for one session.
-     * Negative value means "unlimited".
+     * @return the {@link Http2Configuration} backing this filter.
      */
-    public int getMaxConcurrentStreams() {
-        return maxConcurrentStreams;
-    }
-
-    /**
-     * Sets the default initial stream window size (in bytes) for new HTTP2 connections.
-     * @param initialWindowSize the default initial window size.
-     */
-    public void setInitialWindowSize(final int initialWindowSize) {
-        this.initialWindowSize = initialWindowSize;
-    }
-
-    /**
-     * @return the default initial stream window size (in bytes) for new HTTP2 connections.
-     */
-    public int getInitialWindowSize() {
-        return initialWindowSize;
-    }
-
-    /**
-     * @return the maximum size, in bytes, of header list. If not explicitly configured, the default of
-     *  {@link Constants#DEFAULT_MAX_HEADER_LIST_SIZE} is used.
-     */
-    public int getMaxHeaderListSize() {
-        return maxHeaderListSize;
-    }
-
-    /**
-     * Set the maximum size, in bytes, of the header list.
-     *
-     * @param maxHeaderListSize size, in bytes, of the header list.
-     */
-    public void setMaxHeaderListSize(int maxHeaderListSize) {
-        this.maxHeaderListSize = maxHeaderListSize;
+    public Http2Configuration getConfiguration() {
+        return configuration;
     }
 
     protected boolean processFrames(final FilterChainContext ctx,
@@ -855,10 +807,12 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         final Http2Connection http2Connection =
             new Http2Connection(connection, isServer, this);
 
+        final int initialWindowSize = configuration.getInitialWindowSize();
         if (initialWindowSize != -1) {
             http2Connection.setLocalStreamWindowSize(initialWindowSize);
         }
-    
+
+        final int maxConcurrentStreams = configuration.getMaxConcurrentStreams();
         if (maxConcurrentStreams != -1) {
             http2Connection.setLocalMaxConcurrentStreams(maxConcurrentStreams);
         }

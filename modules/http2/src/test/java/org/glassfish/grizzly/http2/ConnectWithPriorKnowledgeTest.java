@@ -64,6 +64,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ConnectWithPriorKnowledgeTest extends AbstractHttp2Test {
 
@@ -84,10 +85,10 @@ public class ConnectWithPriorKnowledgeTest extends AbstractHttp2Test {
         HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
         HttpRequestPacket request = builder.method(Method.GET)
                 .uri("/echo")
-                .protocol(Protocol.HTTP_1_1)
+                .protocol(Protocol.HTTP_2_0)
                 .host("localhost:" + PORT).build();
         c.write(HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build());
-        latch.await(5, TimeUnit.SECONDS);
+        assertTrue(latch.await(100, TimeUnit.SECONDS));
     }
 
 
@@ -114,25 +115,17 @@ public class ConnectWithPriorKnowledgeTest extends AbstractHttp2Test {
             throws Exception {
 
         final FilterChain clientChain =
-                createClientFilterChainAsBuilder(false).build();
-
-        clientChain.add(new BaseFilter() {
-            @Override
-            public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                final HttpContent httpContent = ctx.getMessage();
-                if (httpContent.isLast()) {
-                    assertEquals(MESSAGE, httpContent.getContent().toStringContent());
-                    latch.countDown();
-                }
-                return ctx.getStopAction();
-            }
-        });
-
-        final int idx = clientChain.indexOfType(Http2ClientFilter.class);
-        assert (idx != -1);
-        final Http2ClientFilter clientFilter = (Http2ClientFilter) clientChain.get(idx);
-        clientFilter.setPriorKnowledge(true);
-
+                createClientFilterChainAsBuilder(false, true, new BaseFilter() {
+                    @Override
+                    public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                        final HttpContent httpContent = ctx.getMessage();
+                        if (httpContent.isLast()) {
+                            assertEquals(MESSAGE, httpContent.getContent().toStringContent());
+                            latch.countDown();
+                        }
+                        return ctx.getStopAction();
+                    }
+                }).build();
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
                 httpServer.getListener("grizzly").getTransport())
