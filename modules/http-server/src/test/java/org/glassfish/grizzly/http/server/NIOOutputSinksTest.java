@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import junit.framework.TestCase;
+
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -80,14 +80,19 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.Futures;
+import org.junit.Test;
 
 import static org.glassfish.grizzly.Writer.Reentrant;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @SuppressWarnings("Duplicates")
-public class NIOOutputSinksTest extends TestCase {
+public class NIOOutputSinksTest {
     private static final Logger LOGGER = Grizzly.logger(NIOOutputSinksTest.class);
     private static final int PORT = 9339;
 
+    @Test
     public void testBinaryOutputSink() throws Exception {
 
         final HttpServer server = new HttpServer();
@@ -243,8 +248,8 @@ public class NIOOutputSinksTest extends TestCase {
             server.shutdownNow();
         }
     }
-    
-    
+
+    @Test
     public void testCharacterOutputSink() throws Exception {
 
         final HttpServer server = new HttpServer();
@@ -403,7 +408,7 @@ public class NIOOutputSinksTest extends TestCase {
     }
 
 
-    
+    @Test
     public void testWriteExceptionPropagation() throws Exception {
         final int LENGTH = 1024;
         
@@ -529,7 +534,8 @@ public class NIOOutputSinksTest extends TestCase {
             server.shutdownNow();
         }
     }
-    
+
+    @Test
     public void testOutputBufferDirectWrite() throws Exception {
 
         final HttpServer server = new HttpServer();
@@ -646,6 +652,7 @@ public class NIOOutputSinksTest extends TestCase {
     /*
      * Added for GRIZZLY-1839.
      */
+    @Test
     public void testBufferBinaryCharInterleave() throws Exception {
 
         final HttpServer server = new HttpServer();
@@ -754,7 +761,8 @@ public class NIOOutputSinksTest extends TestCase {
             server.shutdownNow();
         }
     }
-    
+
+    @Test
     public void testWritePossibleReentrants() throws Exception {
 
         final HttpServer server = new HttpServer();
@@ -894,7 +902,8 @@ public class NIOOutputSinksTest extends TestCase {
             server.shutdownNow();
         }
     }
-    
+
+    @Test
     public void testWritePossibleNotification() throws Exception {
         final int NOTIFICATIONS_NUM = 5;
         final int LENGTH = 8192;
@@ -1044,6 +1053,7 @@ public class NIOOutputSinksTest extends TestCase {
      * 
      * http://java.net/jira/browse/GRIZZLY-1309
      */
+    @Test
     public void testProvocativeWrite() throws Exception {
         final int LENGTH = 8192;
 
@@ -1228,6 +1238,7 @@ public class NIOOutputSinksTest extends TestCase {
      * https://java.net/jira/browse/GRIZZLY-1536
      */
     @SuppressWarnings("unchecked")
+    @Test
     public void testPostponedAsyncFailure() throws Exception {
         final HttpServer server = new HttpServer();
         final NetworkListener listener =

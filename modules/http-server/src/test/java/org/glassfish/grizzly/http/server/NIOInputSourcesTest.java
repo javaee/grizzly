@@ -66,7 +66,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.ChunkingFilter;
-import junit.framework.TestCase;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -86,18 +85,23 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Test case to exercise <code>AsyncStreamReader</code>.
  */
-public class NIOInputSourcesTest extends TestCase {
+@SuppressWarnings("Duplicates")
+public class NIOInputSourcesTest {
 
     private static final char[] ALPHA = "abcdefghijklmnopqrstuvwxyz".toCharArray();
     private static final int PORT = 8030;
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    @Before
+    public void setUp() throws Exception {
         ByteBufferWrapper.DEBUG_MODE = true;
     }
 
@@ -107,6 +111,7 @@ public class NIOInputSourcesTest extends TestCase {
     /*
      * <em>POST</em> a message body with a length of 5000 bytes.
      */
+    @Test
     public void testBasicAsyncRead() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -122,6 +127,7 @@ public class NIOInputSourcesTest extends TestCase {
      * <em>POST</em> a message body with a length of 5000 bytes.
      * HttpHandler calls {@link AsyncStreamReader#
      */
+    @Test
     public void testBasicAsyncReadSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -132,7 +138,7 @@ public class NIOInputSourcesTest extends TestCase {
 
     }
 
-
+    @Test
     public void testBasicAsyncReadSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -179,6 +185,7 @@ public class NIOInputSourcesTest extends TestCase {
         
     }
 
+    @Test
     public void testBasicAsyncReadSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -225,6 +232,7 @@ public class NIOInputSourcesTest extends TestCase {
 
     }
 
+    @Test
     public void testDirectAsyncReadSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -277,7 +285,8 @@ public class NIOInputSourcesTest extends TestCase {
         transport.setMemoryManager(memoryManager);
         doTest(httpServer, httpHandler, request, expected, testResult, strategy, 30);
     }
-    
+
+    @Test
     public void testAsyncReadStartedOutsideHttpHandler() throws Throwable {
 
         final ExecutorService threadPool = GrizzlyExecutorService.createInstance();
@@ -332,6 +341,7 @@ public class NIOInputSourcesTest extends TestCase {
     /*
      * <em>POST</em> a message body with a length of 5000 bytes.
      */
+    @Test
     public void testBasicAsyncReadChar() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -346,6 +356,7 @@ public class NIOInputSourcesTest extends TestCase {
     /*
      * <em>POST</em> a message body with a length of 5000 bytes.
      */
+    @Test
     public void testBasicAsyncReadMultiByteChar() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -363,6 +374,7 @@ public class NIOInputSourcesTest extends TestCase {
      * <em>POST</em> a message body with a length of 5000 bytes.
      * HttpHandler calls {@link AsyncStreamReader#
      */
+    @Test
     public void testBasicAsyncReadCharSpecifiedSize() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -373,7 +385,7 @@ public class NIOInputSourcesTest extends TestCase {
 
     }
 
-
+    @Test
     public void testBasicAsyncReadCharSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -421,6 +433,7 @@ public class NIOInputSourcesTest extends TestCase {
 
     }
 
+    @Test
     public void testBasicAsyncReadCharSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
@@ -472,6 +485,7 @@ public class NIOInputSourcesTest extends TestCase {
      * terminates the connection
      */
     @SuppressWarnings({"unchecked"})
+    @Test
     public void testDisconnect() throws Throwable {
 
         final AtomicInteger bytesRead = new AtomicInteger();
