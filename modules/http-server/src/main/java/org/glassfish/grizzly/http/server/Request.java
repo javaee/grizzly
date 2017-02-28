@@ -127,6 +127,9 @@ public class Request {
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
 
+    // Duplicated in http2 Constants.  Keep values in sync.
+    private static final String HTTP2_PUSH_ENABLED = "http2-push-enabled";
+
     private static final LocaleParser localeParser;
     static {
         LocaleParser lp;
@@ -542,6 +545,13 @@ public class Request {
      */
     public void setSessionCookieName(String sessionCookieName) {
         this.sessionCookieName = sessionCookieName;
+    }
+
+    /**
+     * @return <code>true</code> if HTTP/2 push is enabled, otherwise, <code>false</code>.
+     */
+    public boolean isPushEnabled() {
+        return ((Boolean) getContext().getConnection().getAttributes().getAttribute(HTTP2_PUSH_ENABLED));
     }
     
     /**

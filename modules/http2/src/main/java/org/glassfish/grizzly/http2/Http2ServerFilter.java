@@ -522,7 +522,12 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 frameCodec.parse(http2Connection,
                         http2State.getFrameParsingState(),
                         framePayload);
-        
+
+        // Prime the initial value of push.  Will be overridden if the settings contain a
+        // new value.
+        if (connection.getAttributes().getAttribute(Constants.HTTP2_PUSH_ENABLED) == null) {
+            connection.getAttributes().setAttribute(Constants.HTTP2_PUSH_ENABLED, Boolean.TRUE);
+        }
         if (!processFrames(ctx, http2Connection, framesList)) {
             return ctx.getSuspendAction();
         }

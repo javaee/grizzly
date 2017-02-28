@@ -89,4 +89,6 @@ public class Constants {
 
     static final Termination FRAME_TOO_LARGE_TERMINATION =
             new Termination(TerminationType.LOCAL_CLOSE, "HTTP/2 frame sent by peer is too large");
+
+    static final String HTTP2_PUSH_ENABLED = "http2-push-enabled";
 }
