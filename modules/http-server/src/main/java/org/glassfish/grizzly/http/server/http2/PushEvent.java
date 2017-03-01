@@ -40,8 +40,149 @@
 
 package org.glassfish.grizzly.http.server.http2;
 
+import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
+import org.glassfish.grizzly.http.HttpHeader;
+import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.MimeHeaders;
+
 /**
  * TODO: Documentation
  */
-public class PushEvent {
+public class PushEvent implements FilterChainEvent {
+
+    private static final ThreadCache.CachedTypeIndex<PushEvent> CACHE_IDX =
+            ThreadCache.obtainIndex(PushEvent.class, 8);
+
+    public static final Object TYPE = PushEvent.class.getName();
+
+    private Method method;
+    private String queryString;
+    private String sessionId;
+    private boolean conditional;
+    private boolean secure;
+    private MimeHeaders headers;
+    private String path;
+    private String eTag;
+    private String lastModified;
+    private String referrer;
+    private HttpHeader originalHeader;
+
+    // ----------------------------------------------------------- Constructors
+
+
+    private PushEvent() {
+    }
+
+
+    // ------------------------------------------ Methods from FilterChainEvent
+
+
+    @Override
+    public Object type() {
+        return TYPE;
+    }
+
+
+    // --------------------------------------------------------- Public Methods
+
+
+    public static PushEvent create(final PushBuilder builder) {
+        PushEvent pushEvent =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (pushEvent == null) {
+            pushEvent = new PushEvent();
+        }
+
+        return pushEvent.init(builder);
+    }
+
+    public Method getMethod() {
+        return method;
+    }
+
+    public String getQueryString() {
+        return queryString;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public boolean isConditional() {
+        return conditional;
+    }
+
+    public MimeHeaders getHeaders() {
+        return headers;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public String getETag() {
+        return eTag;
+    }
+
+    public String getLastModified() {
+        return lastModified;
+    }
+
+    public boolean isSecure() {
+        return secure;
+    }
+
+    public String getReferrer() {
+        return referrer;
+    }
+
+    public HttpHeader getOriginalHeader() {
+        return originalHeader;
+    }
+
+    public void recycle() {
+        method = null;
+        queryString = null;
+        sessionId = null;
+        conditional = false;
+        secure = false;
+        headers.recycle();
+        path = null;
+        eTag = null;
+        lastModified = null;
+        referrer = null;
+        originalHeader = null;
+    }
+
+
+    // -------------------------------------------------------- Private Methods
+
+
+    private PushEvent init(final PushBuilder builder) {
+        method = builder.method;
+        queryString = builder.queryString;
+        sessionId = builder.sessionId;
+        conditional = builder.conditional;
+        headers = new MimeHeaders();
+        headers.copyFrom(builder.headers);
+        path = builder.path;
+        eTag = builder.eTag;
+        lastModified = builder.lastModified;
+        secure = builder.request.isSecure();
+        referrer = composeReferrerHeader(builder.request);
+        originalHeader = builder.request.getRequest();
+        return this;
+    }
+
+    private String composeReferrerHeader(final Request request) {
+        return new StringBuilder(64).append(request.isSecure() ? "https" : "http")
+                .append("://")
+                .append(request.getHeader(Header.Host))
+                .append(request.getRequestURI())
+                .toString();
+    }
+
 }

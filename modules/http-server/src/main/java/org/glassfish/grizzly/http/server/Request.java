@@ -91,6 +91,7 @@ import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.io.NIOReader;
+import org.glassfish.grizzly.http.server.http2.PushBuilder;
 import org.glassfish.grizzly.http.server.io.ServerInputBuffer;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.MappingData;
@@ -706,6 +707,11 @@ public class Request {
     }
 
     // ------------------------------------------------- Request Public Methods
+
+
+    public PushBuilder getPushBuilder() {
+        return ((isPushEnabled()) ? new PushBuilder(this) : null);
+    }
 
 
     /**

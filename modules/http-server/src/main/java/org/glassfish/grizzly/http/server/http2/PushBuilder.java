@@ -41,254 +41,365 @@
 package org.glassfish.grizzly.http.server.http2;
 
 import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.MimeHeaders;
+
 
 /**
  * TODO: Documentation
  */
 public class PushBuilder {
 
-        /**
-         * <p>Set the method to be used for the push.</p>
-         *
-         * @throws NullPointerException if the argument is {@code null}
-         *
-         * @throws IllegalArgumentException if the argument is the empty String,
-         *         or any non-cacheable or unsafe methods defined in RFC 7231,
-         *         which are POST, PUT, DELETE, CONNECT, OPTIONS and TRACE.
-         *
-         * @param method the method to be used for the push.
-         * @return this builder.
-         */
-        public PushBuilder method(Method method) {
-            return this;
+    private static final Header[] REMOVE_HEADERS = {
+            Header.ETag,
+            Header.IfModifiedSince,
+            Header.IfNoneMatch,
+            Header.IfRange,
+            Header.LastModified,
+            Header.Referer,
+            Header.AcceptRanges,
+            Header.Range,
+            Header.AcceptRanges,
+            Header.ContentRange,
+            Header.Authorization,
+            Header.ProxyAuthenticate,
+            Header.ProxyAuthorization,
+            Header.WWWAuthenticate
+    };
+
+    Method method = Method.GET;
+    String queryString;
+    String sessionId;
+    boolean conditional;
+    MimeHeaders headers;
+    String path;
+    String eTag;
+    String lastModified;
+    Request request;
+
+    public PushBuilder(final Request request) {
+        headers = new MimeHeaders();
+        headers.copyFrom(request.getRequest().getHeaders());
+        for (int i = 0, len = REMOVE_HEADERS.length; i < len; i++) {
+            headers.removeHeader(REMOVE_HEADERS[i]);
+        }
+        this.request = request;
+    }
+
+    /**
+     * <p>Set the method to be used for the push.</p>
+     *
+     * @param method the method to be used for the push.
+     *
+     * @return this builder.
+     *
+     * @throws NullPointerException     if the argument is {@code null}
+     * @throws IllegalArgumentException if the argument is the empty String,
+     *                                  or any non-cacheable or unsafe methods defined in RFC 7231,
+     *                                  which are POST, PUT, DELETE, CONNECT, OPTIONS and TRACE.
+     */
+    public PushBuilder method(Method method) {
+        if (method == null) {
+            throw new NullPointerException();
+        }
+        if (Method.GET.equals(method) || Method.HEAD.equals(method)) {
+            this.method = method;
+        } else {
+            throw new IllegalArgumentException();
+        }
+        return this;
+    }
+
+    /**
+     * Set the query string to be used for the push.
+     * <p>
+     * Will be appended to any query String included in a call to {@link
+     * #path(String)}.  Any duplicate parameters must be preserved. This
+     * method should be used instead of a query in {@link #path(String)}
+     * when multiple {@link #push()} calls are to be made with the same
+     * query string.
+     *
+     * @param queryString the query string to be used for the push.
+     *
+     * @return this builder.
+     */
+    public PushBuilder queryString(String queryString) {
+        this.queryString = queryString;
+        return this;
+    }
+
+    /**
+     * Set the SessionID to be used for the push.
+     * The session ID will be set in the same way it was on the associated request (ie
+     * as a cookie if the associated request used a cookie, or as a url parameter if
+     * the associated request used a url parameter).
+     * Defaults to the requested session ID or any newly assigned session id from
+     * a newly created session.
+     *
+     * @param sessionId the SessionID to be used for the push.
+     *
+     * @return this builder.
+     */
+    public PushBuilder sessionId(String sessionId) {
+        this.sessionId = sessionId;
+        return this;
+    }
+
+    /**
+     * Set if the request is to be conditional.
+     * If the request is conditional, any available values from {@link #eTag(String)} or
+     * {@link #lastModified(String)} will be set in the appropriate headers. If the request
+     * is not conditional, then eTag and lastModified values are ignored.
+     * Defaults to true if the associated request was conditional.
+     *
+     * @param conditional true if the push request is conditional
+     *
+     * @return this builder.
+     */
+    public PushBuilder conditional(boolean conditional) {
+        this.conditional = conditional;
+        return this;
+    }
+
+    /**
+     * <p>Set a request header to be used for the push.  If the builder has an
+     * existing header with the same name, its value is overwritten.</p>
+     *
+     * @param name  The header name to set
+     * @param value The header value to set
+     *
+     * @return this builder.
+     */
+    public PushBuilder setHeader(String name, String value) {
+        if (nameAndValueValid(name, value)) {
+            headers.setValue(name).setString(value);
+        }
+        return this;
+    }
+
+    /**
+     * <p>Add a request header to be used for the push.</p>
+     *
+     * @param name  The header name to add
+     * @param value The header value to add
+     *
+     * @return this builder.
+     */
+    public PushBuilder addHeader(String name, String value) {
+        if (nameAndValueValid(name, value)) {
+            headers.addValue(name).setString(value);
+        }
+        return this;
+    }
+
+
+
+    /**
+     * <p>Remove the named request header.  If the header does not exist, take
+     * no action.</p>
+     *
+     * @param name The name of the header to remove
+     *
+     * @return this builder.
+     */
+    public PushBuilder removeHeader(String name) {
+        if (nameValid(name)) {
+            headers.removeHeader(name);
+        }
+        return this;
+    }
+
+    /**
+     * Set the URI path to be used for the push.  The path may start
+     * with "/" in which case it is treated as an absolute path,
+     * otherwise it is relative to the context path of the associated
+     * request.  There is no path default and {@link #path(String)} must
+     * be called before every call to {@link #push()}.  If a query
+     * string is present in the argument {@code path}, its contents must
+     * be merged with the contents previously passed to {@link
+     * #queryString}, preserving duplicates.
+     *
+     * @param path the URI path to be used for the push, which may include a
+     *             query string.
+     *
+     * @return this builder.
+     */
+    public PushBuilder path(String path) {
+        this.path = path;
+        return this;
+    }
+
+    /**
+     * Set the eTag to be used for conditional pushes.
+     * The eTag will be used only if {@link #isConditional()} is true.
+     * Defaults to no eTag.  The value is nulled after every call to
+     * {@link #push()}
+     *
+     * @param eTag the eTag to be used for the push.
+     *
+     * @return this builder.
+     */
+    public PushBuilder eTag(String eTag) {
+        this.eTag = eTag;
+        return this;
+    }
+
+    /**
+     * Set the last modified date to be used for conditional pushes.
+     * The last modified date will be used only if {@link
+     * #isConditional()} is true.  Defaults to no date.  The value is
+     * nulled after every call to {@link #push()}
+     *
+     * @param lastModified the last modified date to be used for the push.
+     *
+     * @return this builder.
+     */
+    public PushBuilder lastModified(String lastModified) {
+        this.lastModified = lastModified;
+        return this;
+    }
+
+    /**
+     * Push a resource given the current state of the builder,
+     * returning immediately without blocking.
+     * <p>
+     * <p>Push a resource based on the current state of the PushBuilder.
+     * Calling this method does not guarantee the resource will actually
+     * be pushed, since it is possible the client can decline acceptance
+     * of the pushed resource using the underlying HTTP/2 protocol.</p>
+     * <p>
+     * <p>If {@link #isConditional()} is true and an eTag or
+     * lastModified value is provided, then an appropriate conditional
+     * header will be generated. If both an eTag and lastModified value
+     * are provided only an If-None-Match header will be generated. If
+     * the builder has a session ID, then the pushed request will
+     * include the session ID either as a Cookie or as a URI parameter
+     * as appropriate. The builders query string is merged with any
+     * passed query string.</p>
+     * <p>
+     * <p>Before returning from this method, the builder has its path,
+     * eTag and lastModified fields nulled. All other fields are left as
+     * is for possible reuse in another push.</p>
+     *
+     * @throws IllegalArgumentException if the method set expects a
+     *                                  request body (eg POST)
+     * @throws IllegalStateException    if there was no call to {@link
+     *                                  #path} on this instance either between its instantiation or the
+     *                                  last call to {@code push()} that did not throw an
+     *                                  IllegalStateException.
+     */
+    public void push() {
+        if (path == null) {
+            throw new IllegalStateException();
+        }
+        String pathLocal;
+        if (path.charAt(0) == '/') {
+            pathLocal = path;
+        } else {
+            pathLocal = request.getContextPath() + '/' + path;
+        }
+        if (queryString != null) {
+            pathLocal += '?' + queryString;
         }
 
-        /** Set the query string to be used for the push.
-         *
-         * Will be appended to any query String included in a call to {@link
-         * #path(String)}.  Any duplicate parameters must be preserved. This
-         * method should be used instead of a query in {@link #path(String)}
-         * when multiple {@link #push()} calls are to be made with the same
-         * query string.
-         * @param  queryString the query string to be used for the push.
-         * @return this builder.
-         */
-        public PushBuilder queryString(String queryString) {
-            return this;
-        }
+        request.getContext().notifyDownstream(PushEvent.create(this));
+        eTag = null;
+        lastModified = null;
+        path = null;
+    }
 
-        /** Set the SessionID to be used for the push.
-         * The session ID will be set in the same way it was on the associated request (ie
-         * as a cookie if the associated request used a cookie, or as a url parameter if
-         * the associated request used a url parameter).
-         * Defaults to the requested session ID or any newly assigned session id from
-         * a newly created session.
-         * @param sessionId the SessionID to be used for the push.
-         * @return this builder.
-         */
-        public PushBuilder sessionId(String sessionId) {
-            return this;
-        }
+    /**
+     * Return the method to be used for the push.
+     *
+     * @return the method to be used for the push.
+     */
+    public Method getMethod() {
+        return method;
+    }
 
-        /** Set if the request is to be conditional.
-         * If the request is conditional, any available values from {@link #eTag(String)} or
-         * {@link #lastModified(String)} will be set in the appropriate headers. If the request
-         * is not conditional, then eTag and lastModified values are ignored.
-         * Defaults to true if the associated request was conditional.
-         * @param  conditional true if the push request is conditional
-         * @return this builder.
-         */
-        public PushBuilder conditional(boolean conditional) {
-            return this;
-        }
+    /**
+     * Return the query string to be used for the push.
+     *
+     * @return the query string to be used for the push.
+     */
+    public String getQueryString() {
+        return queryString;
+    }
 
-        /**
-         * <p>Set a request header to be used for the push.  If the builder has an
-         * existing header with the same name, its value is overwritten.</p>
-         *
-         * @param name The header name to set
-         * @param value The header value to set
-         * @return this builder.
-         */
-        public PushBuilder setHeader(String name, String value) {
-            return this;
-        }
+    /**
+     * Return the SessionID to be used for the push.
+     *
+     * @return the SessionID to be used for the push.
+     */
+    public String getSessionId() {
+        return sessionId;
+    }
 
-        /**
-         * <p>Add a request header to be used for the push.</p>
-         * @param name The header name to add
-         * @param value The header value to add
-         * @return this builder.
-         */
-        public PushBuilder addHeader(String name, String value) {
-            return this;
-        }
+    /**
+     * Return if the request is to be conditional.
+     *
+     * @return if the request is to be conditional.
+     */
+    public boolean isConditional() {
+        return conditional;
+    }
 
-        /**
-         * <p>Remove the named request header.  If the header does not exist, take
-         * no action.</p>
-         *
-         * @param name The name of the header to remove
-         * @return this builder.
-         */
-        public PushBuilder removeHeader(String name) {
-            return this;
-        }
+    /**
+     * Return the set of header to be used for the push.
+     *
+     * @return the set of header to be used for the push.
+     */
+    public Iterable<String> getHeaderNames() {
+        return headers.names();
+    }
 
-        /**
-         * Set the URI path to be used for the push.  The path may start
-         * with "/" in which case it is treated as an absolute path,
-         * otherwise it is relative to the context path of the associated
-         * request.  There is no path default and {@link #path(String)} must
-         * be called before every call to {@link #push()}.  If a query
-         * string is present in the argument {@code path}, its contents must
-         * be merged with the contents previously passed to {@link
-         * #queryString}, preserving duplicates.
-         *
-         * @param path the URI path to be used for the push, which may include a
-         * query string.
-         * @return this builder.
-         */
-        public PushBuilder path(String path) {
-            return this;
-        }
+    /**
+     * Return the header of the given name to be used for the push.
+     *
+     * @return the header of the given name to be used for the push.
+     */
+    public String getHeader(String name) {
+        return headers.getHeader(name);
+    }
 
-        /**
-         * Set the eTag to be used for conditional pushes.
-         * The eTag will be used only if {@link #isConditional()} is true.
-         * Defaults to no eTag.  The value is nulled after every call to
-         * {@link #push()}
-         * @param eTag the eTag to be used for the push.
-         * @return this builder.
-         */
-        public PushBuilder eTag(String eTag) {
-            return this;
-        }
+    /**
+     * Return the URI path to be used for the push.
+     *
+     * @return the URI path to be used for the push.
+     */
+    public String getPath() {
+        return path;
+    }
 
-        /**
-         * Set the last modified date to be used for conditional pushes.
-         * The last modified date will be used only if {@link
-         * #isConditional()} is true.  Defaults to no date.  The value is
-         * nulled after every call to {@link #push()}
-         * @param lastModified the last modified date to be used for the push.
-         * @return this builder.
-         * */
-        public PushBuilder lastModified(String lastModified) {
-            return this;
-        }
+    /**
+     * Return the eTag to be used for conditional pushes.
+     *
+     * @return the eTag to be used for conditional pushes.
+     */
+    public String getETag() {
+        return eTag;
+    }
 
-        /** Push a resource given the current state of the builder,
-         * returning immediately without blocking.
-         *
-         * <p>Push a resource based on the current state of the PushBuilder.
-         * Calling this method does not guarantee the resource will actually
-         * be pushed, since it is possible the client can decline acceptance
-         * of the pushed resource using the underlying HTTP/2 protocol.</p>
+    /**
+     * Return the last modified date to be used for conditional pushes.
+     *
+     * @return the last modified date to be used for conditional pushes.
+     */
+    public String getLastModified() {
+        return lastModified;
+    }
 
-         * <p>If {@link #isConditional()} is true and an eTag or
-         * lastModified value is provided, then an appropriate conditional
-         * header will be generated. If both an eTag and lastModified value
-         * are provided only an If-None-Match header will be generated. If
-         * the builder has a session ID, then the pushed request will
-         * include the session ID either as a Cookie or as a URI parameter
-         * as appropriate. The builders query string is merged with any
-         * passed query string.</p>
 
-         * <p>Before returning from this method, the builder has its path,
-         * eTag and lastModified fields nulled. All other fields are left as
-         * is for possible reuse in another push.</p>
-         *
-         * @throws IllegalArgumentException if the method set expects a
-         * request body (eg POST)
-         *
-         * @throws IllegalStateException if there was no call to {@link
-         * #path} on this instance either between its instantiation or the
-         * last call to {@code push()} that did not throw an
-         * IllegalStateException.
-         */
-        public void push() {
+    // -------------------------------------------------------- Private Methods
 
-        }
 
-        /**
-         * Return the method to be used for the push.
-         *
-         * @return the method to be used for the push.
-         */
-        public String getMethod() {
-            return null;
-        }
+    private static boolean nameAndValueValid(final String name, final String value) {
+        return nameValid(name) && value != null && !value.isEmpty();
+    }
 
-        /**
-         * Return the query string to be used for the push.
-         *
-         * @return the query string to be used for the push.
-         */
-        public String getQueryString() {
-            return null;
-        }
-
-        /**
-         * Return the SessionID to be used for the push.
-         *
-         * @return the SessionID to be used for the push.
-         */
-        public String getSessionId() {
-            return null;
-        }
-
-        /**
-         * Return if the request is to be conditional.
-         *
-         * @return if the request is to be conditional.
-         */
-        public boolean isConditional() {
-            return false;
-        }
-
-        /**
-         * Return the set of header to be used for the push.
-         *
-         * @return the set of header to be used for the push.
-         */
-        public Iterable<String> getHeaderNames() {
-            return null;
-        }
-
-        /**
-         * Return the header of the given name to be used for the push.
-         *
-         * @return the header of the given name to be used for the push.
-         */
-        public String getHeader(String name) {
-            return null;
-        }
-
-        /**
-         * Return the URI path to be used for the push.
-         *
-         * @return the URI path to be used for the push.
-         */
-        public String getPath() {
-            return null;
-        }
-
-        /**
-         * Return the eTag to be used for conditional pushes.
-         *
-         * @return the eTag to be used for conditional pushes.
-         */
-        public String getETag() {
-            return null;
-        }
-
-        /**
-         * Return the last modified date to be used for conditional pushes.
-         *
-         * @return the last modified date to be used for conditional pushes.
-         */
-        public String getLastModified() {
-            return null;
-        }
+    private static boolean nameValid(final String name) {
+        return (name != null && !name.isEmpty());
+    }
 
 }

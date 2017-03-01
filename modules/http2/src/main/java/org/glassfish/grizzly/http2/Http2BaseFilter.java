@@ -116,7 +116,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
     private final Http2Configuration configuration;
     
-    private final ExecutorService threadPool;
+    protected final ExecutorService threadPool;
     
     private int localMaxFramePayloadSize;
 

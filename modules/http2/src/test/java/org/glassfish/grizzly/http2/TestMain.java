@@ -53,10 +53,12 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.http.io.NIOInputStream;
+import org.glassfish.grizzly.http.server.http2.PushBuilder;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
  *
@@ -99,6 +101,7 @@ public class TestMain {
         
         final Http2AddOn http2AddOn = new Http2AddOn();
         http2AddOn.setMaxConcurrentStreams(1024);
+        http2AddOn.setThreadPoolConfig(ThreadPoolConfig.defaultConfig().setMaxPoolSize(10).setCorePoolSize(10));
         listener.registerAddOn(http2AddOn);
         
         server.getServerConfiguration().addHttpHandler(
@@ -236,24 +239,17 @@ public class TestMain {
 
                     @Override
                     public void service(final Request request, final Response response) throws Exception {
-                        final Http2Stream stream =
-                                (Http2Stream) request.getAttribute(
-                                        Http2Stream.HTTP2_STREAM_ATTRIBUTE);
+
+                        final PushBuilder builder = request.getPushBuilder();
+                        if (builder != null) {
+                            builder.addHeader("custom", "value").path("/test.jpg").push();
+                        }
                         
-                        final PushResource.PushResourceBuilder pushResourceBuilder = PushResource.builder()
-                        .contentType("image/jpeg")
-                        .statusCode(200, "PUSH")
-                        .source(Source.factory(stream).createFileSource("/Users/oleksiys/Downloads/Navcore.bak/helpme/medical/images/image002.jpg"));
-
-                        stream.addPushResource(
-                                "/my.jpg",
-                                pushResourceBuilder.build());
-
                         response.setStatus(200, "DONE");
                         final Writer w = response.getWriter();
                         StringBuilder sb = new StringBuilder(128);
                         sb.append("<html><head><title>HTTP2 Test</title></head><body>");
-                        sb.append("<img src=\"my.jpg\" />");
+                        sb.append("<img src=\"/test.jpg\" />");
 //                sb.append("Hello!<br />");
 ////                for (int i = 1; i <= 1000; i++) {
 ////                    sb.append("<img src=\"/").append(i).append(".jpg\" />");

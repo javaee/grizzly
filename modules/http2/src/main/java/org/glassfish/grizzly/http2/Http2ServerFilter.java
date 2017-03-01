@@ -49,7 +49,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -65,6 +68,7 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
+import org.glassfish.grizzly.http.server.http2.PushEvent;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
@@ -563,6 +567,16 @@ public class Http2ServerFilter extends Http2BaseFilter {
         if (state == null || state.isNeverHttp2()) {
             return ctx.getInvokeAction();
         }
+
+        if (type == PushEvent.TYPE) {
+            threadPool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    doPush(ctx, (PushEvent) event);
+                }
+            });
+            return ctx.getStopAction();
+        }
         
         if (type == HttpEvents.ResponseCompleteEvent.TYPE) {
             final HttpContext httpContext = HttpContext.get(ctx);
@@ -832,6 +846,71 @@ public class Http2ServerFilter extends Http2BaseFilter {
                                    ctx,
                                    transportContext.getCompletionHandler(),
                                    transportContext.getMessageCloner());
+    }
+
+    private void doPush(final FilterChainContext ctx, final PushEvent pushEvent) {
+        final Http2Connection h2c = Http2Connection.get(ctx.getConnection());
+        boolean isNewClientStreamLocked = true;
+        boolean isDeflaterLocked = true;
+        assert (h2c != null);
+        h2c.getNewClientStreamLock().lock();
+        try {
+            final Http2Stream parentStream = Http2Stream.getStreamFor(pushEvent.getOriginalHeader());
+            assert (parentStream != null);
+            final Http2Request request = Http2Request.create();
+            request.setRequestURI(pushEvent.getPath());
+            request.setProtocol(Protocol.HTTP_2_0);
+            request.setMethod(pushEvent.getMethod());
+            request.setSecure(pushEvent.isSecure());
+            request.getHeaders().copyFrom(pushEvent.getHeaders());
+            request.addHeader(Header.Referer, pushEvent.getReferrer());
+            request.setExpectContent(false);
+
+            prepareOutgoingRequest(request);
+            prepareOutgoingResponse(request.getResponse());
+
+            try {
+                final Http2Stream pushStream = h2c.openStream(
+                        request,
+                        h2c.getNextLocalStreamId(), parentStream.getId(),
+                        false, 0,
+                        Http2StreamState.RESERVED_LOCAL);
+                pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
+
+                h2c.getDeflaterLock().lock();
+                h2c.getNewClientStreamLock().unlock();
+                isDeflaterLocked = true;
+                isNewClientStreamLocked = false;
+
+                List<Http2Frame> pushPromiseFrames = null;
+
+                pushPromiseFrames =
+                        h2c.encodeHttpRequestAsPushPromiseFrames(
+                                ctx, pushStream.getRequest(), parentStream.getId(),
+                                pushStream.getId(), pushPromiseFrames);
+
+                h2c.getOutputSink().writeDownStream(
+                        pushPromiseFrames);
+
+                h2c.getDeflaterLock().unlock();
+                isDeflaterLocked = false;
+
+                // now send the request upstream...
+                h2c.sendMessageUpstream(pushStream, request);
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE,
+                        "Can not push: " + pushEvent.getPath(), e);
+            }
+        } finally {
+            if (isDeflaterLocked) {
+                h2c.getDeflaterLock().unlock();
+            }
+
+            if (isNewClientStreamLocked) {
+                h2c.getNewClientStreamLock().unlock();
+            }
+            pushEvent.recycle();
+        }
     }
         
     private void pushAssociatedResources(final FilterChainContext ctx,
