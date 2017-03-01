@@ -44,18 +44,14 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.http.server.AddOn;
 import org.glassfish.grizzly.http.server.NetworkListener;
-import org.glassfish.grizzly.http2.Http2Configuration.Http2ConfigurationBuilder;
 import org.glassfish.grizzly.ssl.SSLFilter;
 
-import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 
 import org.glassfish.grizzly.ssl.SSLBaseFilter;
-import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
-import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 
 /**
  * FilterChain after being processed by {@link Http2AddOn}:
@@ -70,15 +66,18 @@ public class Http2AddOn implements AddOn {
 
     private static final Logger LOGGER = Grizzly.logger(Http2AddOn.class);
     
-    private int maxConcurrentStreams = -1;
-    private int initialWindowSize = -1;
-    private int maxFramePayloadSize = -1;
-    private int maxHeaderListSize = Constants.DEFAULT_MAX_HEADER_LIST_SIZE;
-    private boolean disableCipherCheck;
-    private ThreadPoolConfig threadPoolConfig;
-    
+    private Http2Configuration http2Configuration;
 
-    // ------------------------------------------------------ Methods From AddOn
+
+    // ----------------------------------------------------------- Constructors
+
+
+    public Http2AddOn(final Http2Configuration http2Configuration) {
+        this.http2Configuration = http2Configuration;
+    }
+
+
+    // ----------------------------------------------------- Methods From AddOn
 
 
     @Override
@@ -97,105 +96,20 @@ public class Http2AddOn implements AddOn {
         }
     }
 
-    // ------------------------------------------------------ Getters / Setters
-    
-    /**
-     * Returns the default maximum number of concurrent streams allowed for one session.
-     * Negative value means "unlimited".
-     */
-    public int getMaxConcurrentStreams() {
-        return maxConcurrentStreams;
-    }
-    
-    /**
-     * Sets the default maximum number of concurrent streams allowed for one session.
-     * Negative value means "unlimited".
-     */
-    public void setMaxConcurrentStreams(final int maxConcurrentStreams) {
-        this.maxConcurrentStreams = maxConcurrentStreams;
-    }
+
+    // --------------------------------------------------------- Public Methods
+
 
     /**
-     * Returns the default initial stream window size (in bytes) for new HTTP2 connections.
+     * @return the configuration backing this {@link AddOn} and ultimately the
+     *  {@link Http2ServerFilter}.
      */
-    public int getInitialWindowSize() {
-        return initialWindowSize;
-    }
-    
-    /**
-     * Sets the default initial stream window size (in bytes) for new HTTP2 connections.
-     */
-    public void setInitialWindowSize(final int initialWindowSize) {
-        this.initialWindowSize = initialWindowSize;
-    }
-  
-    /**
-     * @return the maximum allowed HTTP2 frame payload size.
-     */
-    public int getMaxFramePayloadSize() {
-        return maxFramePayloadSize;
+    public Http2Configuration getConfiguration() {
+        return http2Configuration;
     }
 
-    /**
-     * Sets the maximum allowed HTTP2 frame payload size.
-     * @param maxFramePayloadSize the maximum allowed HTTP2 frame size.
-     */
-    @SuppressWarnings("unused")
-    public void setMaxFramePayloadSize(final int maxFramePayloadSize) {
-        this.maxFramePayloadSize = maxFramePayloadSize;
-    }
 
-    /**
-     * @return whether or not strict cipher suite checking against RFC 7540's blacklist is performed or not.
-     *  If not explicitly configured, checking will be performed.
-     */
-    public boolean isDisableCipherCheck() {
-        return disableCipherCheck;
-    }
-
-    /**
-     * Allows the developer to disable strict cipher suite checking of the connection against RFC 7540's blacklist.
-     *
-     * @param disableCipherCheck pass <code>true</code> to disable the checking.
-     */
-    public void setDisableCipherCheck(boolean disableCipherCheck) {
-        this.disableCipherCheck = disableCipherCheck;
-    }
-
-    /**
-     * @return the maximum size, in bytes, of header list.  If not explicitly configured, the default of
-     *  {@link Constants#DEFAULT_MAX_HEADER_LIST_SIZE} is used.
-     */
-    public int getMaxHeadersListSize() {
-        return maxHeaderListSize;
-    }
-
-    /**
-     * Set the maximum size, in bytes, of the header list.
-     *
-     * @param maxHeaderListSize size, in bytes, of the header list.
-     */
-    public void setMaxHeadersListSize(int maxHeaderListSize) {
-        this.maxHeaderListSize = maxHeaderListSize;
-    }
-
-    /**
-     * @return the thread pool configuration for servicing HTTP/2 streams, if any.
-     */
-    public ThreadPoolConfig getThreadPoolConfig() {
-        return threadPoolConfig;
-    }
-
-    /**
-     * @param threadPoolConfig the thread pool configuration that will be used for the
-     *                         {@link ExecutorService} handling HTTP/2 streams.  If not
-     *                         set, then HTTP/2 streams will be executed on the current thread.
-     */
-    public void setThreadPoolConfig(final ThreadPoolConfig threadPoolConfig) {
-        this.threadPoolConfig = threadPoolConfig;
-    }
-
-    // ----------------------------------------------------- Private Methods
+    // -------------------------------------------------------- Private Methods
 
 
     private Http2ServerFilter updateFilterChain(final FilterChainBuilder builder) {
@@ -203,19 +117,10 @@ public class Http2AddOn implements AddOn {
         final int codecFilterIdx = builder.indexOfType(
                 org.glassfish.grizzly.http.HttpServerFilter.class);
 
-        final Http2ConfigurationBuilder config = Http2Configuration.builder()
-                .threadPoolConfig(threadPoolConfig)
-                .disableCipherCheck(disableCipherCheck)
-                .maxFramePayloadSize(maxFramePayloadSize)
-                .initialWindowSize(initialWindowSize)
-                .maxConcurrentStreams(maxConcurrentStreams)
-                .maxHeaderListSize(maxHeaderListSize);
-
-                
         final Http2ServerFilter http2HandlerFilter =
-                new Http2ServerFilter(config.build());
+                new Http2ServerFilter(http2Configuration);
         
-        http2HandlerFilter.setLocalMaxFramePayloadSize(maxFramePayloadSize);
+        http2HandlerFilter.setLocalMaxFramePayloadSize(http2Configuration.getMaxFramePayloadSize());
         builder.add(codecFilterIdx + 1, http2HandlerFilter);
         
         return http2HandlerFilter;

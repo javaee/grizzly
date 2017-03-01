@@ -41,11 +41,6 @@
 package org.glassfish.grizzly.http2;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.channels.FileChannel;
-import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.memory.Buffers;
@@ -55,7 +50,7 @@ import org.glassfish.grizzly.memory.Buffers;
  * 
  * @author Alexey Stashok
  */
-public abstract class Source {
+abstract class Source {
     /**
      * Returns the number of bytes remaining to be written.
      */
@@ -103,32 +98,10 @@ public abstract class Source {
         }
 
         /**
-         * Create {@link Source} based on byte array.
-         * @param array byte[] to be written.
-         * 
-         * @return {@link Source}.
-         */
-        public Source createByteArraySource(final byte[] array) {
-            return createByteArraySource(array, 0, array.length);
-        }
-        
-        /**
-         * Create {@link Source} based on byte array.
-         * @param array byte[] to be written.
-         * @param offs the source offset in the byte array.
-         * @param len the source length.
-         * 
-         * @return {@link Source}.
-         */
-        public Source createByteArraySource(final byte[] array,
-                final int offs, final int len) {
-            return new ByteArraySource(array, offs, len, stream);
-        }
-
-        /**
          * Create {@link Source} based on {@link Buffer}.
+         *
          * @param buffer {@link Buffer} to be written.
-         * 
+         *
          * @return {@link Source}.
          */
         public Source createBufferSource(final Buffer buffer) {
@@ -136,246 +109,59 @@ public abstract class Source {
         }
 
         /**
-         * Create {@link Source} based on file.
-         * @param filename the filename.
-         * 
-         * @return {@link Source}.
+         * {@link Source} implementation based on {@link Buffer}.
          */
-        public Source createFileSource(final String filename)
-                throws FileNotFoundException {
-            return createFileSource(new File(filename));
-        }
+        private static class BufferSource extends Source {
+            private boolean isClosed;
 
-        /**
-         * Create {@link Source} based on {@link File}.
-         * @param file the {@link File}.
-         * 
-         * @return {@link Source}.
-         */
-        public Source createFileSource(final File file)
-                throws FileNotFoundException {
-            return new FileSource(file, stream);
-        }
+            private Buffer buffer;
 
-        /**
-         * Create {@link Source} based on {@link String}.
-         * The default "ISO-8859-1" encoding will be used.
-         * 
-         * @param string the {@link String}.
-         * 
-         * @return {@link Source}.
-         */
-        public Source createStringSource(final String string) {
-            return createStringSource(string,
-                    org.glassfish.grizzly.http.util.Constants.DEFAULT_HTTP_CHARSET);
-        }
-        
-        /**
-         * Create {@link Source} based on {@link String}.
-         * @param string the {@link String}.
-         * @param charset the string character encoding {@link Charset}.
-         * 
-         * @return {@link Source}.
-         */
-        public Source createStringSource(final String string,
-                final Charset charset) {
-            return new BufferSource(
-                    Buffers.wrap(stream.getHttp2Connection().getMemoryManager(),
-                    string, charset), stream);
-        }
-    }
-    
-    /**
-     * {@link Source} implementation based on {@link File}.
-     */
-    private static class FileSource extends Source {
+            private final Http2Stream stream;
 
-        private boolean isClosed;
-        private final FileInputStream fis;
-        private final FileChannel fileChannel;
-        private final Http2Stream stream;
-        
-        private long fileLengthRemaining;
-        
-        protected FileSource(final File file,
-                final Http2Stream stream)
-                throws FileNotFoundException {
-            fileLengthRemaining = file.length();
-            this.fis = new FileInputStream(file);
-            this.fileChannel = fis.getChannel();
-            this.stream = stream;
-        }
+            protected BufferSource(final Buffer buffer,
+                                   final Http2Stream stream) {
 
-        @Override
-        public long remaining() {
-            return fileLengthRemaining;
-        }
-
-        @Override
-        public Buffer read(int length) throws Http2StreamException {
-            if (isClosed) {
-                throw new Http2StreamException(stream.getId(),
-                        ErrorCode.INTERNAL_ERROR, "The source was closed");
-            }
-            
-            if (fileLengthRemaining == 0) {
-                return Buffers.EMPTY_BUFFER;
-            }
-            
-            final Buffer buffer = stream.getHttp2Connection()
-                    .getMemoryManager().allocate(length);
-            
-            final int bytesRead;
-            try {
-                bytesRead = (int) Buffers.readFromFileChannel(fileChannel, buffer);
-            } catch (IOException e) {
-                throw new Http2StreamException(stream.getId(),
-                        ErrorCode.INTERNAL_ERROR, e);
-            }
-            
-            if (bytesRead == -1) {
-                throw new Http2StreamException(stream.getId(),
-                        ErrorCode.INTERNAL_ERROR, "Unexpected end of file");
+                this.buffer = buffer;
+                this.stream = stream;
             }
 
-            fileLengthRemaining -= bytesRead;
-            buffer.trim();
+            @Override
+            public long remaining() {
+                return buffer.remaining();
+            }
 
-            return buffer;
-        }
+            @Override
+            public Buffer read(final int length) throws Http2StreamException {
+                if (isClosed) {
+                    throw new Http2StreamException(stream.getId(),
+                            ErrorCode.INTERNAL_ERROR, "The source was closed");
+                }
 
-        @Override
-        public boolean hasRemaining() {
-            return !isClosed && fileLengthRemaining > 0;
-        }
+                final int remaining = buffer.remaining();
+                if (length == 0 || remaining == 0) {
+                    return Buffers.EMPTY_BUFFER;
+                }
 
-        @Override
-        public void release() {
-            if (!isClosed) {
-                isClosed = true;
-                try {
-                    fis.close();
-                } catch (IOException ignored) {
+                final int bytesToSplit = Math.min(remaining, length);
+                final Buffer newBuf = buffer.split(buffer.position() + bytesToSplit);
+                final Buffer bufferToReturn = buffer;
+                buffer = newBuf;
+
+                return bufferToReturn;
+            }
+
+            @Override
+            public boolean hasRemaining() {
+                return !isClosed && buffer.hasRemaining();
+            }
+
+            @Override
+            public void release() {
+                if (!isClosed) {
+                    isClosed = true;
+                    buffer.tryDispose();
                 }
             }
         }
-    }
-    
-    /**
-     * {@link Source} implementation based on {@link Buffer}.
-     */
-    private static class BufferSource extends Source {
-        private boolean isClosed;
-        
-        private Buffer buffer;
-
-        private final Http2Stream stream;
-        
-        protected BufferSource(final Buffer buffer,
-                final Http2Stream stream) {
-            
-            this.buffer = buffer;
-            this.stream = stream;
-        }
-        
-        @Override
-        public long remaining() {
-            return buffer.remaining();
-        }
-
-        @Override
-        public Buffer read(final int length) throws Http2StreamException {
-            if (isClosed) {
-                throw new Http2StreamException(stream.getId(),
-                        ErrorCode.INTERNAL_ERROR, "The source was closed");
-            }
-            
-            final int remaining = buffer.remaining();
-            if (length == 0 || remaining == 0) {
-                return Buffers.EMPTY_BUFFER;
-            }
-            
-            final int bytesToSplit = Math.min(remaining, length);
-            final Buffer newBuf = buffer.split(buffer.position() + bytesToSplit);
-            final Buffer bufferToReturn = buffer;
-            buffer = newBuf;
-            
-            return bufferToReturn;
-        }
-
-        @Override
-        public boolean hasRemaining() {
-            return !isClosed && buffer.hasRemaining();
-        }
-
-        @Override
-        public void release() {
-            if (!isClosed) {
-                isClosed = true;
-                buffer.tryDispose();
-            }
-        }        
-    }
-    
-    /**
-     * {@link Source} implementation based on byte array.
-     */
-    private static class ByteArraySource extends Source {
-        private boolean isClosed;
-        
-        private final byte[] array;
-        private int offs;
-        private int remaining;
-        
-        private final Http2Stream stream;
-        
-        protected ByteArraySource(final byte[] array,
-                final int offs, final int len, final Http2Stream stream) {
-            
-            this.array = array;
-            this.offs = offs;
-            remaining = len;
-            
-            this.stream = stream;
-        }
-        
-        @Override
-        public long remaining() {
-            return remaining;
-        }
-
-        @Override
-        public Buffer read(final int length) throws Http2StreamException {
-            if (isClosed) {
-                throw new Http2StreamException(stream.getId(),
-                        ErrorCode.INTERNAL_ERROR, "The source was closed");
-            }
-            
-            if (length == 0 || remaining == 0) {
-                return Buffers.EMPTY_BUFFER;
-            }
-            
-            final int bytesToReturn = Math.min(remaining, length);
-            
-            final Buffer buffer = Buffers.wrap(stream.getHttp2Connection()
-                    .getMemoryManager(), array, offs, bytesToReturn);
-            
-            offs += bytesToReturn;
-            remaining -= bytesToReturn;
-            
-            return buffer;
-        }
-
-        @Override
-        public boolean hasRemaining() {
-            return !isClosed && remaining > 0;
-        }
-
-        @Override
-        public void release() {
-            if (!isClosed) {
-                isClosed = true;
-            }
-        }        
     }
 }

@@ -41,18 +41,13 @@
 package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -69,23 +64,20 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.http2.PushEvent;
-import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.ssl.SSLUtils;
-import org.glassfish.grizzly.utils.Pair;
 
 import javax.net.ssl.SSLEngine;
 
 import static org.glassfish.grizzly.http2.Constants.IN_FIN_TERMINATION;
-import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
+import static org.glassfish.grizzly.http2.Constants.HTTP2_CLEAR;
 
 /**
  *
@@ -386,8 +378,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("BLACK_LIST_CIPHER_SUITE_CHEKCED");
 
     /**
-     * TODO: Documentation
-     * @param configuration
+     * Create a new {@link Http2ServerFilter} using the specified {@link Http2Configuration}.
+     * Configuration may be changed post-construction by calling {@link #getConfiguration()}.
      */
     public Http2ServerFilter(final Http2Configuration configuration) {
         super(configuration);
@@ -401,6 +393,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
      * 
      * @return <tt>true</tt> if "undefined" methods support payload, or <tt>false</tt> otherwise
      */
+    @SuppressWarnings("unused")
     public boolean isAllowPayloadForUndefinedHttpMethods() {
         return allowPayloadForUndefinedHttpMethods;
     }
@@ -412,6 +405,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
      * 
      * @param allowPayloadForUndefinedHttpMethods <tt>true</tt> if "undefined" methods support payload, or <tt>false</tt> otherwise
      */
+    @SuppressWarnings("unused")
     public void setAllowPayloadForUndefinedHttpMethods(boolean allowPayloadForUndefinedHttpMethods) {
         this.allowPayloadForUndefinedHttpMethods = allowPayloadForUndefinedHttpMethods;
     }
@@ -498,7 +492,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
              
            // PRI message hasn't been checked
             try {
-                if (!checkPRI(ctx, httpRequest, httpContent)) {
+                if (!checkPRI(httpRequest, httpContent)) {
                     // Not enough PRI content read
                     return ctx.getStopAction(httpContent);
                 }
@@ -718,9 +712,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
         return httpRequest.getMethod() != Method.CONNECT;
     }
     
-    private boolean checkPRI(final FilterChainContext ctx,
-            final HttpRequestPacket httpRequest,
-            final HttpContent httpContent) {
+    private boolean checkPRI(final HttpRequestPacket httpRequest,
+                             final HttpContent httpContent) {
         if (!Method.PRI.equals(httpRequest.getMethod())) {
             // If it's not PRI after upgrade is completed - it must be an error
             throw new HttpBrokenContentException();
@@ -837,7 +830,6 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
         if (!response.isCommitted()) {
             prepareOutgoingResponse(response);
-            pushAssociatedResources(ctx, stream);
         }
 
         final FilterChainContext.TransportContext transportContext = ctx.getTransportContext();
@@ -882,12 +874,10 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 isDeflaterLocked = true;
                 isNewClientStreamLocked = false;
 
-                List<Http2Frame> pushPromiseFrames = null;
-
-                pushPromiseFrames =
+                List<Http2Frame> pushPromiseFrames =
                         h2c.encodeHttpRequestAsPushPromiseFrames(
                                 ctx, pushStream.getRequest(), parentStream.getId(),
-                                pushStream.getId(), pushPromiseFrames);
+                                pushStream.getId(), null);
 
                 h2c.getOutputSink().writeDownStream(
                         pushPromiseFrames);
@@ -912,142 +902,6 @@ public class Http2ServerFilter extends Http2BaseFilter {
             pushEvent.recycle();
         }
     }
-        
-    private void pushAssociatedResources(final FilterChainContext ctx,
-                                         final Http2Stream stream) throws IOException {
-        final Map<String, PushResource> pushResourceMap =
-                stream.getAssociatedResourcesToPush();
-        
-        if (pushResourceMap != null) {           
-            final int streamId = stream.getId();
-            final HttpRequestPacket streamReq = stream.getRequest();
-            final String referrer = composeReferrerOf(stream.getRequest());
-            
-            final List<Pair<Http2Stream, Source>> pushStreams =
-                    new ArrayList<>(pushResourceMap.size());
-            
-            final Http2Connection http2Connection = stream.getHttp2Connection();
-            
-            boolean isNewClientStreamLocked = true;
-            boolean isDeflaterLocked = true;
-            http2Connection.getNewClientStreamLock().lock();
-            
-            try {
-                for (Map.Entry<String, PushResource> entry : pushResourceMap.entrySet()) {
-                    final PushResource pushResource = entry.getValue();
-                    final Source source = pushResource.getSource();
-                    
-                    final Http2Request request = Http2Request.create();
-                    final HttpResponsePacket response = request.getResponse();
-                    
-                    request.setRequestURI(entry.getKey());
-                    request.setProtocol(Protocol.HTTP_2_0);
-                    request.setMethod(Method.GET);
-                    
-                    final MimeHeaders reqHeaders = request.getHeaders();
-                    
-                    DataChunk valueDC = reqHeaders.setValue(Header.Host);
-                    if (valueDC.isNull()) {
-                        valueDC.setString(streamReq.getHeader(Header.Host));
-                    }
-                    
-                    final String userAgent = streamReq.getHeader(Header.UserAgent);
-                    if (userAgent != null) {
-                        valueDC = reqHeaders.setValue(Header.UserAgent);
-                        if (valueDC.isNull()) {
-                            valueDC.setString(userAgent);
-                        }
-                    }
-                    
-                    valueDC = reqHeaders.setValue(Header.Referer);
-                    if (valueDC.isNull()) {
-                        valueDC.setString(referrer);
-                    }
-                    
-                    for (String cookie : streamReq.getHeaders().values(Header.Cookie)) {
-                        request.addHeader(Header.Cookie, cookie);
-                    }
-                    
-                    request.setSecure(streamReq.isSecure());
-                    request.setExpectContent(false);
-                    
-                    response.setStatus(pushResource.getStatusCode());
-                    response.setProtocol(Protocol.HTTP_2_0);
-                    response.setContentType(pushResource.getContentType());
-                    
-                    if (source != null) {
-                        response.setContentLengthLong(source.remaining());
-                    }
-                    
-                    // Add any extra push promise and push response headers
-                    request.getHeaders().copyFrom(pushResource.getRequestHeaders());
-                    response.getHeaders().copyFrom(pushResource.getResponseHeaders());
-
-                    prepareOutgoingRequest(request);
-                    prepareOutgoingResponse(response);
-                    
-                    try {
-                        final Http2Stream pushStream = http2Connection.openStream(
-                                request,
-                                http2Connection.getNextLocalStreamId(), streamId,
-                                false,
-                                pushResource.getPriority(),
-                                Http2StreamState.RESERVED_LOCAL);
-                        pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
-                        
-                        pushStreams.add(new Pair<>(
-                                pushStream, source));
-                    } catch (Exception e) {
-                        LOGGER.log(Level.FINE,
-                                "Can not push: " + entry.getKey(), e);
-                    }
-                }
-                
-                // Push streams are created - now we're ready to to serialize
-                // push promises.
-                // Lock deflater, unlock newClientStreamLock.
-                // This order guarantees that nobody can create a new stream
-                // and serialize its headers asynchronously before we finish
-                // the push promises serialization.
-                http2Connection.getDeflaterLock().lock();
-                http2Connection.getNewClientStreamLock().unlock();
-                isDeflaterLocked = true;
-                isNewClientStreamLocked = false;
-
-                List<Http2Frame> pushPromiseFrames = null;
-                
-                for (Pair<Http2Stream, Source> pair : pushStreams) {
-                    final Http2Stream pushStream = pair.getFirst();
-                    pushPromiseFrames =
-                            http2Connection.encodeHttpRequestAsPushPromiseFrames(
-                                    ctx, pushStream.getRequest(), streamId,
-                                    pushStream.getId(), pushPromiseFrames);
-                }
-                
-                http2Connection.getOutputSink().writeDownStream(
-                        pushPromiseFrames);
-                
-                // release the deflater lock
-                http2Connection.getDeflaterLock().unlock();
-                isDeflaterLocked = false;
-                
-                // now we're ready to initiate payload push
-                for (Pair<Http2Stream, Source> pair : pushStreams) {
-                    final Http2Stream pushStream = pair.getFirst();
-                    pushStream.getOutputSink().writeDownStream(
-                            pair.getSecond(), ctx);
-                }
-            } finally {
-                if (isDeflaterLocked) {
-                    http2Connection.getDeflaterLock().unlock();
-                }
-                
-                if (isNewClientStreamLocked) {
-                    http2Connection.getNewClientStreamLock().unlock();
-                }
-            }
-        }
-    }
 
     private void prepareOutgoingResponse(final HttpResponsePacket response) {
         response.setProtocol(Protocol.HTTP_2_0);
@@ -1068,15 +922,6 @@ public class Http2ServerFilter extends Http2BaseFilter {
         }
     }
 
-    private String composeReferrerOf(final HttpRequestPacket request) {
-        //noinspection StringBufferReplaceableByString
-        return new StringBuilder(64).append(request.isSecure() ? "https" : "http")
-                .append("://")
-                .append(request.getHeader(Header.Host))
-                .append(request.getRequestURI())
-                .toString();
-    }
-    
     private void enableOpReadNow(final FilterChainContext ctx) {
         // make sure we won't enable OP_READ once upper layer complete HTTP request processing
         final FilterChainContext newContext = ctx.copy();

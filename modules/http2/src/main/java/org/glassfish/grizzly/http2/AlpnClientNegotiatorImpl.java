@@ -48,8 +48,8 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.npn.AlpnClientNegotiator;
 
-import static org.glassfish.grizzly.http2.Http2Constants.HTTP11;
-import static org.glassfish.grizzly.http2.Http2Constants.HTTP2;
+import static org.glassfish.grizzly.http2.Constants.HTTP11;
+import static org.glassfish.grizzly.http2.Constants.HTTP2;
 
 /**
  *

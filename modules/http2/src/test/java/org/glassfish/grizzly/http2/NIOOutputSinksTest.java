@@ -237,7 +237,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         };
 
         final HttpServer server = createWebServer(httpHandler);
-        http2Addon.setInitialWindowSize(maxWindowSize);
+        http2Addon.getConfiguration().setInitialWindowSize(maxWindowSize);
 
         try {
             server.start();
@@ -372,7 +372,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         };
 
         final HttpServer server = createWebServer(httpHandler);
-        http2Addon.setInitialWindowSize(maxWindowSize);
+        http2Addon.getConfiguration().setInitialWindowSize(maxWindowSize);
 
         try {
             server.start();
@@ -489,7 +489,6 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
 
                 response.setContentType("text/plain");
                 final NIOWriter out = response.getNIOWriter();
-                Connection c = request.getContext().getConnection();
 
                 while (out.canWrite()) {
                     char[] data = new char[singleMessageSize];
@@ -540,7 +539,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         };
 
         final HttpServer server = createWebServer(httpHandler);
-        http2Addon.setInitialWindowSize(maxWindowSize);
+        http2Addon.getConfiguration().setInitialWindowSize(maxWindowSize);
 
         try {
             server.start();
@@ -671,7 +670,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
 
 
         final HttpServer server = createWebServer(httpHandler);
-        http2Addon.setInitialWindowSize(maxWindowSize);
+        http2Addon.getConfiguration().setInitialWindowSize(maxWindowSize);
 
         try {
             server.start();
@@ -938,7 +937,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         };
 
         final HttpServer server = createWebServer(httpHandler);
-        http2Addon.setInitialWindowSize(maxWindowSize);
+        http2Addon.getConfiguration().setInitialWindowSize(maxWindowSize);
 
         try {
             server.start();

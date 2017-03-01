@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http2;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -432,112 +431,6 @@ class DefaultOutputSink implements StreamOutputSink {
         addOutputQueueRecord(outputQueueRecord);
     }
 
-    /**
-     * Send the data represented by the {@link Source} to the {@link Http2Stream}.
-     * Unlike {@link #writeDownStream(HttpPacket, FilterChainContext, CompletionHandler, MessageCloner)} ,
-     * here we assume the resource is going to be send on non-committed header and
-     * it will be the only resource sent over this {@link Http2Stream} (isLast flag will be set).
-     * 
-     * The writeDownStream(...) methods have to be synchronized with shutdown().
-     * 
-     * @param source {@link Source} to send
-     * @throws IOException if an error occurs with the write operation.
-     */
-    @Override
-    public synchronized void writeDownStream(final Source source,
-            final FilterChainContext ctx) throws IOException {
-        
-        assert ctx != null;
-        
-        assertReady();
-
-        isLastFrameQueued = true;
-        
-        final HttpHeader httpHeader = stream.getOutputHttpHeader();
-        
-        if (httpHeader.isCommitted()) {
-            throw new IllegalStateException("Headers have been already committed");
-        }
-        
-        List<Http2Frame> headerFrames;
-        OutputQueueRecord outputQueueRecord = null;
-        
-        // !!!!! LOCK the deflater
-        final Lock deflaterLock = http2Connection.getDeflaterLock();
-        deflaterLock.lock();
-        
-        try { // try-finally block to release deflater lock
-            
-            // We assume HTTP header hasn't been committed
-            
-            // do we expect any HTTP payload?
-            final boolean isNoPayload =
-                    !httpHeader.isExpectContent() ||
-                    source == null || !source.hasRemaining();
-
-            headerFrames = http2Connection.encodeHttpHeaderAsHeaderFrames(
-                    ctx, httpHeader, stream.getId(), isNoPayload, null);
-            stream.onSndHeaders(isNoPayload);
-            
-            httpHeader.setCommitted(true);
-
-            if (isNoPayload) {
-                unflushedWritesCounter.incrementAndGet();
-                // if we don't expect any HTTP payload, mark this frame as
-                // last and return
-                flushToConnectionOutputSink(headerFrames, null, new FlushCompletionHandler(null),
-                        null, isNoPayload);
-                return;
-            }
-
-            final long dataSize = source.remaining();
-
-            if (dataSize == 0) {
-                close();
-                return;
-            }
-
-            // our element is first in the output queue
-            reserveWriteQueueSpace(ZERO_QUEUE_RECORD_SIZE);
-
-            boolean isLast = true;
-
-            // check if output record's buffer is fitting into window size
-            // if not - split it into 2 parts: part to send, part to keep in the queue
-            final int fitWindowLen = checkOutputWindow(dataSize);
-
-            // if there is a chunk to store
-            if (fitWindowLen < dataSize) {
-                // Create output record for the chunk to be stored
-                outputQueueRecord = new OutputQueueRecord(
-                        source, null, true, true);
-                isLast = false;
-            }
-
-            final Buffer bufferToSend = source.read(fitWindowLen);
-            
-            final int dataChunkToSendSize = bufferToSend.remaining();
-
-            // update the available window size bytes counter
-            availStreamWindowSize.addAndGet(-dataChunkToSendSize);
-            releaseWriteQueueSpace(dataChunkToSendSize, true,
-                    outputQueueRecord == null);
-
-            unflushedWritesCounter.incrementAndGet();
-            flushToConnectionOutputSink(headerFrames, bufferToSend,
-                    new FlushCompletionHandler(null), null, isLast);
-        
-        } finally {
-            deflaterLock.unlock();
-        }
-        
-        if (outputQueueRecord == null) {
-            return;
-        }
-        
-        addOutputQueueRecord(outputQueueRecord);
-    }
-    
     /**
      * Flush {@link Http2Stream} output and notify {@link CompletionHandler} once
      * all output data has been flushed.

@@ -82,11 +82,6 @@ public class UpgradeOutputSink implements StreamOutputSink {
     }
 
     @Override
-    public void writeDownStream(Source source, FilterChainContext ctx) throws IOException {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
     public void flush(CompletionHandler<Http2Stream> completionHandler) {
         throw new UnsupportedOperationException("Not supported");
     }

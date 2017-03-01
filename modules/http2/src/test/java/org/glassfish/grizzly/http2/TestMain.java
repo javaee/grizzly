@@ -99,9 +99,11 @@ public class TestMain {
         listener.setSecure(true);
         listener.setSSLEngineConfig(serverSSLEngineConfigurator);
         
-        final Http2AddOn http2AddOn = new Http2AddOn();
-        http2AddOn.setMaxConcurrentStreams(1024);
-        http2AddOn.setThreadPoolConfig(ThreadPoolConfig.defaultConfig().setMaxPoolSize(10).setCorePoolSize(10));
+        final Http2AddOn http2AddOn = new Http2AddOn(
+                Http2Configuration.builder()
+                        .maxConcurrentStreams(1024)
+                        .threadPoolConfig(ThreadPoolConfig.defaultConfig().setMaxPoolSize(10).setCorePoolSize(10))
+                    .build());
         listener.registerAddOn(http2AddOn);
         
         server.getServerConfiguration().addHttpHandler(

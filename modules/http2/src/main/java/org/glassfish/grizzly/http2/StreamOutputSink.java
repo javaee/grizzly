@@ -72,9 +72,6 @@ interface StreamOutputSink {
                              CompletionHandler<WriteResult> completionHandler,
                              MessageCloner<Buffer> messageCloner)throws IOException;
 
-    void writeDownStream(Source source, FilterChainContext ctx)
-            throws IOException;
-    
     /**
      * Flush {@link Http2Stream} output and notify {@link CompletionHandler} once
      * all output data has been flushed.

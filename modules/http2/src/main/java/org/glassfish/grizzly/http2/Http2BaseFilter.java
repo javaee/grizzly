@@ -90,7 +90,7 @@ import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.PriorityFrame;
 
-import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
+import static org.glassfish.grizzly.http2.Constants.HTTP2_CLEAR;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter} serves as a bridge
@@ -106,7 +106,6 @@ import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
 public abstract class Http2BaseFilter extends HttpBaseFilter {
     private final static Logger LOGGER = Grizzly.logger(Http2BaseFilter.class);
     
-    static final byte[] PRI_MSG = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".getBytes(Charsets.ASCII_CHARSET);
     static final byte[] PRI_PAYLOAD = "SM\r\n\r\n".getBytes(Charsets.ASCII_CHARSET);
     
     protected static final TransferEncoding FIXED_LENGTH_ENCODING =
@@ -326,6 +325,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *
      * @since 2.3.3
      */
+    @SuppressWarnings({"UnusedReturnValue", "unused"})
     protected boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
         return false;
     }
@@ -343,6 +343,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *
      * @since 2.3.3
      */
+    @SuppressWarnings({"UnusedReturnValue", "unused"})
     protected boolean onHttpHeaderParsed(HttpHeader httpHeader,
                                          Buffer buffer,
                                          FilterChainContext ctx) {
@@ -361,6 +362,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *
      * @since 2.3.3
      */
+    @SuppressWarnings("unused")
     protected void onInitialLineParsed(final HttpHeader httpHeader,
                                        final FilterChainContext ctx) {
     }
@@ -377,6 +379,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *
      * @since 2.3.3
      */
+    @SuppressWarnings("unused")
     protected void onInitialLineEncoded(final HttpHeader httpHeader,
                                         final FilterChainContext ctx) {
     }
@@ -394,6 +397,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *
      * @since 2.3.3
      */
+    @SuppressWarnings("unused")
     protected void onHttpHeadersParsed(final HttpHeader httpHeader,
                                        final FilterChainContext ctx) {
     }
@@ -410,6 +414,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *
      * @since 2.3.3
      */
+    @SuppressWarnings("unused")
     protected void onHttpHeadersEncoded(final HttpHeader httpHeader,
                                         final FilterChainContext ctx) {
     }
@@ -426,6 +431,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *
      * @since 2.3.3
      */
+    @SuppressWarnings("unused")
     protected void onHttpContentParsed(final HttpContent content,
                                        final FilterChainContext ctx) {
     }
@@ -441,6 +447,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *
      * @since 2.3.3
      */
+    @SuppressWarnings("unused")
     protected void onHttpContentEncoded(final HttpContent content,
                                         final FilterChainContext ctx) {
     }
@@ -460,6 +467,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *
      * @since 2.3.3
      */
+    @SuppressWarnings("unused")
     protected void onHttpHeaderError(final HttpHeader httpHeader,
                                      final FilterChainContext ctx,
                                      final Throwable t) throws IOException {
@@ -479,6 +487,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *
      * @since 2.3.3
      */
+    @SuppressWarnings("unused")
     protected void onHttpContentError(HttpHeader httpHeader,
                                       FilterChainContext ctx,
                                       Throwable t) throws IOException {
@@ -937,6 +946,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      * @return {@link Http2Connection} associated with the {@link Connection}
      *          and prepare it for use
      */
+    @SuppressWarnings("SameParameterValue")
     protected final Http2Connection obtainHttp2Connection(
             final FilterChainContext context,
             final boolean isUpStream) {
@@ -978,15 +988,6 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         return http2Connection;
     }
 
-    protected void sendSettings(final Http2Connection http2Connection,
-            final FilterChainContext context) {
-
-        context.write(
-                frameCodec.serializeAndRecycle(
-                        http2Connection,
-                        http2Connection.prepareSettings().build()));
-    }
-    
     private void sendSettingsAck(final Http2Connection http2Connection,
             final FilterChainContext context) {
 

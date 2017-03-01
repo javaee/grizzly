@@ -53,20 +53,15 @@ public class Constants {
     public static final int DEFAULT_MAX_HEADER_LIST_SIZE = 4096;
 
     static final String AUTHORITY_HEADER = ":authority";
-    static final byte[] AUTHORITY_HEADER_BYTES = AUTHORITY_HEADER.getBytes(Charsets.ASCII_CHARSET);
 
     static final String METHOD_HEADER = ":method";
-    static final byte[] METHOD_HEADER_BYTES = METHOD_HEADER.getBytes(Charsets.ASCII_CHARSET);
 
     static final String PATH_HEADER = ":path";
-    static final byte[] PATH_HEADER_BYTES = PATH_HEADER.getBytes(Charsets.ASCII_CHARSET);
 
     static final String SCHEMA_HEADER = ":scheme";
-    static final byte[] SCHEMA_HEADER_BYTES = SCHEMA_HEADER.getBytes(Charsets.ASCII_CHARSET);
-    
+
     static final String STATUS_HEADER = ":status";
-    static final byte[] STATUS_HEADER_BYTES = STATUS_HEADER.getBytes(Charsets.ASCII_CHARSET);
-    
+
     static final Termination IN_FIN_TERMINATION =
             new Termination(TerminationType.FIN, "End of input");
     
@@ -91,4 +86,19 @@ public class Constants {
             new Termination(TerminationType.LOCAL_CLOSE, "HTTP/2 frame sent by peer is too large");
 
     static final String HTTP2_PUSH_ENABLED = "http2-push-enabled";
+
+    /**
+     * ALPN token for HTTP/1.1.
+     */
+    public static final String HTTP11 = "http/1.1";
+
+    /**
+     * ALPN token for HTTP/2.0.
+     */
+    public static final String HTTP2 = "h2";
+
+    /**
+     * Token for clear-text HTTP/2.0.
+     */
+    public static final String HTTP2_CLEAR = "h2c";
 }

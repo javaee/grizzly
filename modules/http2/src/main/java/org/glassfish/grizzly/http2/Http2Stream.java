@@ -41,8 +41,6 @@
 package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
@@ -50,7 +48,17 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.glassfish.grizzly.*;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
+import org.glassfish.grizzly.CloseReason;
+import org.glassfish.grizzly.CloseType;
+import org.glassfish.grizzly.Closeable;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.ICloseType;
+import org.glassfish.grizzly.OutputSink;
+import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -82,10 +90,6 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
             HttpRequestPacket.READ_ONLY_ATTR_PREFIX + Http2Stream.class.getName();
 
     static final int UPGRADE_STREAM_ID = 1;
-    
-    private enum CompletionUnit {
-        Input, Output, Complete
-    }
     
     private static final Attribute<Http2Stream> HTTP_RQST_HTTP2_STREAM_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("http2.request.stream");
@@ -132,8 +136,6 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     // the counter for inbound HeaderFrames
     private int inboundHeaderFramesCounter;
     
-    private Map<String, PushResource> associatedResourcesToPush;
-        
     public static Http2Stream getStreamFor(final HttpHeader httpHeader) {
         final HttpRequestPacket request;
 
@@ -251,30 +253,6 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
 
     public boolean isPushEnabled() {
         return http2Connection.isPushEnabled();
-    }
-    
-    public PushResource addPushResource(final String url,
-            final PushResource pushResource) {
-        if (isPushEnabled()) {
-            if (associatedResourcesToPush == null) {
-                associatedResourcesToPush = new HashMap<>();
-            }
-
-            return associatedResourcesToPush.put(url, pushResource);
-        }
-        return null;
-    }
-
-    public PushResource removePushResource(final String url) {
-
-        if (isPushEnabled()) {
-            if (associatedResourcesToPush == null) {
-                return null;
-            }
-
-            return associatedResourcesToPush.remove(url);
-        }
-        return null;
     }
     
     public int getId() {
@@ -689,10 +667,6 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         return (!isLocallyInitiatedStream() ^ isPushStream()) ?
                 request.getResponse() :
                 request;
-    }
-    
-    final Map<String, PushResource> getAssociatedResourcesToPush() {
-        return associatedResourcesToPush;
     }
     
     /**

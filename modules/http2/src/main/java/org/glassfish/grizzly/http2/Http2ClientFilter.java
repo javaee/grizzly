@@ -78,7 +78,7 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 
 import static org.glassfish.grizzly.http2.Constants.IN_FIN_TERMINATION;
 import static org.glassfish.grizzly.http2.Constants.OUT_FIN_TERMINATION;
-import static org.glassfish.grizzly.http2.Http2Constants.HTTP2_CLEAR;
+import static org.glassfish.grizzly.http2.Constants.HTTP2_CLEAR;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
 
@@ -445,14 +445,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
         if (!checkResponseHeadersOnUpgrade(httpResponse)) {
             return false;
         }
-        
-        final boolean requestVersion = isHttp2UpgradingVersion(httpRequest);
-        final boolean responseVersion = isHttp2UpgradingVersion(httpResponse);
-        
-        if (!requestVersion || (requestVersion != responseVersion)) {
-            throw new IOException("HTTP2 handshake failed: HTTP2 versions mismatch");
-        }
-        
+
         final Connection connection = ctx.getConnection();
         
         // Create HTTP/2.0 connection for the given Grizzly Connection
@@ -640,18 +633,11 @@ public class Http2ClientFilter extends Http2BaseFilter {
         }
     }
 
-    protected SettingsFrame.SettingsFrameBuilder prepareSettings(final Http2Connection http2Connection) {
-        return prepareSettings(http2Connection, null);
-    }
-
     protected SettingsFrame.SettingsFrameBuilder prepareSettings(
-            final Http2Connection http2Connection,
-            SettingsFrame.SettingsFrameBuilder builder) {
+            final Http2Connection http2Connection) {
         
-        if (builder == null) {
-            builder = SettingsFrame.builder();
-        }
-        
+        SettingsFrame.SettingsFrameBuilder builder = SettingsFrame.builder();
+
         final int maxConcStreams = getConfiguration().getMaxConcurrentStreams();
         
         if (maxConcStreams != -1 &&

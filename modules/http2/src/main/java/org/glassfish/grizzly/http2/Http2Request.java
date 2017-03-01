@@ -40,8 +40,6 @@
 
 package org.glassfish.grizzly.http2;
 
-import java.util.logging.Logger;
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.ProcessingState;
@@ -53,8 +51,7 @@ import org.glassfish.grizzly.http.util.Header;
  * @author oleksiys
  */
 class Http2Request extends HttpRequestPacket implements Http2Header {
-    private static final Logger LOGGER = Grizzly.logger(Http2Request.class);
-    
+
     private static final ThreadCache.CachedTypeIndex<Http2Request> CACHE_IDX =
             ThreadCache.obtainIndex(Http2Request.class, 2);
 
