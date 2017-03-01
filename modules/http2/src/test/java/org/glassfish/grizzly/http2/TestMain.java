@@ -244,7 +244,7 @@ public class TestMain {
 
                         final PushBuilder builder = request.getPushBuilder();
                         if (builder != null) {
-                            builder.addHeader("custom", "value").path("/test.jpg").push();
+                            builder.addHeader("custom", "value").path("/test.jpg").setHeader("custom", "value").push();
                         }
                         
                         response.setStatus(200, "DONE");

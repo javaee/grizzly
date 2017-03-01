@@ -72,6 +72,7 @@ import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.ssl.SSLUtils;
 
 import javax.net.ssl.SSLEngine;
@@ -563,13 +564,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
         }
 
         if (type == PushEvent.TYPE) {
-            threadPool.submit(new Runnable() {
-                @Override
-                public void run() {
-                    doPush(ctx, (PushEvent) event);
-                }
-            });
-            return ctx.getStopAction();
+            doPush(ctx, (PushEvent) event);
+            return ctx.getSuspendAction();
         }
         
         if (type == HttpEvents.ResponseCompleteEvent.TYPE) {
@@ -842,13 +838,14 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
     private void doPush(final FilterChainContext ctx, final PushEvent pushEvent) {
         final Http2Connection h2c = Http2Connection.get(ctx.getConnection());
+        if (h2c == null) {
+            throw new IllegalStateException("Unable to find valid Http2Connection");
+        }
         boolean isNewClientStreamLocked = true;
         boolean isDeflaterLocked = true;
-        assert (h2c != null);
         h2c.getNewClientStreamLock().lock();
         try {
             final Http2Stream parentStream = Http2Stream.getStreamFor(pushEvent.getOriginalHeader());
-            assert (parentStream != null);
             final Http2Request request = Http2Request.create();
             request.setRequestURI(pushEvent.getPath());
             request.setProtocol(Protocol.HTTP_2_0);
@@ -861,7 +858,6 @@ public class Http2ServerFilter extends Http2BaseFilter {
             prepareOutgoingRequest(request);
             prepareOutgoingResponse(request.getResponse());
 
-            try {
                 final Http2Stream pushStream = h2c.openStream(
                         request,
                         h2c.getNextLocalStreamId(), parentStream.getId(),
@@ -885,12 +881,19 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 h2c.getDeflaterLock().unlock();
                 isDeflaterLocked = false;
 
+                request.getProcessingState().setHttpContext(
+                        HttpContext.newInstance(pushStream, pushStream, pushStream, request));
                 // now send the request upstream...
-                h2c.sendMessageUpstream(pushStream, request);
-            } catch (Exception e) {
-                LOGGER.log(Level.FINE,
-                        "Can not push: " + pushEvent.getPath(), e);
-            }
+                threadPool.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        h2c.sendMessageUpstream(pushStream, HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).build());
+                    }
+                });
+
+        } catch (Throwable e) {
+            LOGGER.log(Level.SEVERE,
+                    "Can not push: " + pushEvent.getPath(), e);
         } finally {
             if (isDeflaterLocked) {
                 h2c.getDeflaterLock().unlock();
@@ -900,6 +903,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 h2c.getNewClientStreamLock().unlock();
             }
             pushEvent.recycle();
+            ctx.resume(ctx.getStopAction());
         }
     }
 
