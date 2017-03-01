@@ -56,6 +56,8 @@ public class PushBuilder {
             Header.IfModifiedSince,
             Header.IfNoneMatch,
             Header.IfRange,
+            Header.IfUnmodifiedSince,
+            Header.IfMatch,
             Header.LastModified,
             Header.Referer,
             Header.AcceptRanges,
@@ -66,6 +68,14 @@ public class PushBuilder {
             Header.ProxyAuthenticate,
             Header.ProxyAuthorization,
             Header.WWWAuthenticate
+    };
+
+    private static final Header[] CONDITIONAL_HEADERS = {
+            Header.IfModifiedSince,
+            Header.IfNoneMatch,
+            Header.IfRange,
+            Header.IfUnmodifiedSince,
+            Header.IfMatch,
     };
 
     Method method = Method.GET;
@@ -81,6 +91,12 @@ public class PushBuilder {
     public PushBuilder(final Request request) {
         headers = new MimeHeaders();
         headers.copyFrom(request.getRequest().getHeaders());
+        for (int i = 0, len = CONDITIONAL_HEADERS.length; i < len; i++) {
+            if (headers.contains(CONDITIONAL_HEADERS[i])) {
+                conditional = true;
+                break;
+            }
+        }
         for (int i = 0, len = REMOVE_HEADERS.length; i < len; i++) {
             headers.removeHeader(REMOVE_HEADERS[i]);
         }
