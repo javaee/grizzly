@@ -304,8 +304,8 @@ public class PushEvent implements FilterChainEvent {
             if (method == null) {
                 throw new NullPointerException();
             }
-            if (Method.GET.equals(method) || Method.HEAD.equals(method)) {
-                this.method = method;
+            if (Method.GET.equals(val) || Method.HEAD.equals(val)) {
+                this.method = val;
             } else {
                 throw new IllegalArgumentException();
             }
