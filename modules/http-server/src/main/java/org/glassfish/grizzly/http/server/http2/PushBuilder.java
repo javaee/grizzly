@@ -40,14 +40,84 @@
 
 package org.glassfish.grizzly.http.server.http2;
 
+import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.Session;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
 
 /**
- * TODO: Documentation
+ * Build a request to be pushed.  This is based on Servlet 4.0's PushBuilder.
+ *
+ * According section 8.2 of RFC 7540, a promised request must be cacheable and
+ * safe without a request body.
+ *
+ * <p>A PushBuilder is obtained by calling {@link
+ * Request#getPushBuilder()}.  Each call to this method will
+ * return a new instance of a PushBuilder based off the current {@code
+ * HttpServletRequest}.  Any mutations to the returned PushBuilder are
+ * not reflected on future returns.</p>
+ *
+ * <p>The instance is initialized as follows:</p>
+ *
+ * <ul>
+ *
+ * <li>The method is initialized to "GET"</li>
+ *
+ * <li>The existing request headers of the current {@link Request}
+ * are added to the builder, except for:
+ *
+ * <ul>
+ *   <li>Conditional headers (eg. If-Modified-Since)
+ *   <li>Range headers
+ *   <li>Expect headers
+ *   <li>Authorization headers
+ *   <li>Referrer headers
+ * </ul>
+ *
+ * </li>
+ *
+ * <li>The {@link Request#getRequestedSessionId()} value,
+ * unless at the time of the call {@link
+ * Request#getSession(boolean)} has previously been called to
+ * create a new {@link Session}, in which case the new session ID
+ * will be used as the PushBuilder's requested session ID. The source of
+ * the requested session id will be the same as for the request</li>
+ *
+ * <li>The Referer(sic) header will be set to {@link
+ * Request#getRequestURL()} plus any {@link
+ * Request#getQueryString()} </li>
+ *
+ * <li>If {@link Response#addCookie(Cookie)} has been called
+ * on the associated response, then a corresponding Cookie header will be added
+ * to the PushBuilder, unless the {@link Cookie#getMaxAge()} is &lt;=0, in which
+ * case the Cookie will be removed from the builder.</li>
+ *
+ * <li>If this request has has the conditional headers If-Modified-Since
+ * or If-None-Match, then the {@link #isConditional()} header is set to
+ * true.</li>
+ *
+ * </ul>
+ *
+ * <p>The {@link #path} method must be called on the {@code PushBuilder}
+ * instance before the call to {@link #push}.  Failure to do so must
+ * cause an exception to be thrown from {@link
+ * #push}, as specified in that method.</p>
+ *
+ * <p>A PushBuilder can be customized by chained calls to mutator
+ * methods before the {@link #push()} method is called to initiate an
+ * asynchronous push request with the current state of the builder.
+ * After the call to {@link #push()}, the builder may be reused for
+ * another push, however the implementation must make it so the {@link
+ * #path(String)}, {@link #eTag(String)} and {@link
+ * #lastModified(String)} values are cleared before returning from
+ * {@link #push}.  All other values are retained over calls to {@link
+ * #push()}.
+ *
+ * @since 2.3.30
  */
 public class PushBuilder {
 
@@ -277,8 +347,7 @@ public class PushBuilder {
     }
 
     /**
-     * Push a resource given the current state of the builder,
-     * returning immediately without blocking.
+     * Push a resource given the current state of the builder without blocking.
      * <p>
      * <p>Push a resource based on the current state of the PushBuilder.
      * Calling this method does not guarantee the resource will actually
@@ -298,8 +367,6 @@ public class PushBuilder {
      * eTag and lastModified fields nulled. All other fields are left as
      * is for possible reuse in another push.</p>
      *
-     * @throws IllegalArgumentException if the method set expects a
-     *                                  request body (eg POST)
      * @throws IllegalStateException    if there was no call to {@link
      *                                  #path} on this instance either between its instantiation or the
      *                                  last call to {@code push()} that did not throw an
@@ -309,20 +376,35 @@ public class PushBuilder {
         if (path == null) {
             throw new IllegalStateException();
         }
-        String pathLocal;
-        if (path.charAt(0) == '/') {
-            pathLocal = path;
-        } else {
-            pathLocal = request.getContextPath() + '/' + path;
+
+        if (!request.isPushEnabled()) { // push support may have been disabled...
+            return;
         }
+
+        String pathLocal = ((path.charAt(0) == '/') ? path : request.getContextPath() + '/' + path);
         if (queryString != null) {
-            pathLocal += '?' + queryString;
+            pathLocal += ((pathLocal.indexOf('?') != -1)
+                    ? '&' + queryString
+                    : '?' + queryString);
+        }
+
+        path = pathLocal;
+
+        if (conditional) {
+            if (eTag != null) {
+                headers.addValue(Header.IfNoneMatch).setString(eTag);
+            } else if (lastModified != null) {
+                headers.addValue(Header.IfModifiedSince).setString(lastModified);
+            }
         }
 
         request.getContext().notifyDownstream(PushEvent.create(this));
         eTag = null;
         lastModified = null;
         path = null;
+        headers.removeHeader(Header.IfNoneMatch);
+        headers.removeHeader(Header.IfModifiedSince);
+
     }
 
     /**

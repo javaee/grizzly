@@ -45,7 +45,6 @@ import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
 /**
@@ -69,6 +68,7 @@ public class PushEvent implements FilterChainEvent {
     private String lastModified;
     private String referrer;
     private HttpHeader originalHeader;
+    private StringBuilder referrerBuilder = new StringBuilder(64);
 
     // ----------------------------------------------------------- Constructors
 
@@ -178,11 +178,16 @@ public class PushEvent implements FilterChainEvent {
     }
 
     private String composeReferrerHeader(final Request request) {
-        return new StringBuilder(64).append(request.isSecure() ? "https" : "http")
-                .append("://")
-                .append(request.getHeader(Header.Host))
-                .append(request.getRequestURI())
-                .toString();
+        try {
+            final String queryString = request.getQueryString();
+            referrerBuilder.append(request.getRequestURL());
+            if (queryString != null) {
+                referrerBuilder.append('?').append(queryString);
+            }
+            return referrerBuilder.toString();
+        } finally {
+            referrerBuilder.setLength(0);
+        }
     }
 
 }
