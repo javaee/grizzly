@@ -72,6 +72,12 @@ public class Http2AddOn implements AddOn {
     // ----------------------------------------------------------- Constructors
 
 
+    @SuppressWarnings("unused")
+    public Http2AddOn() {
+        this(Http2Configuration.builder().build());
+    }
+
+
     public Http2AddOn(final Http2Configuration http2Configuration) {
         this.http2Configuration = http2Configuration;
     }
