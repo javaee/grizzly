@@ -845,7 +845,10 @@ public class Http2ServerFilter extends Http2BaseFilter {
         boolean isDeflaterLocked = true;
         h2c.getNewClientStreamLock().lock();
         try {
-            final Http2Stream parentStream = Http2Stream.getStreamFor(pushEvent.getOriginalHeader());
+            final Http2Stream parentStream = Http2Stream.getStreamFor(pushEvent.getHttpRequest());
+            if (parentStream == null) {
+                return;
+            }
             final Http2Request request = Http2Request.create();
             request.setRequestURI(pushEvent.getPath());
             request.setProtocol(Protocol.HTTP_2_0);
