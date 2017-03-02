@@ -61,6 +61,7 @@ public class Http2Configuration {
     private volatile int maxHeaderListSize;
     private volatile boolean disableCipherCheck;
     private volatile boolean priorKnowledge;
+    private final ExecutorService executorService;
     private final ThreadPoolConfig threadPoolConfig;
 
 
@@ -75,6 +76,7 @@ public class Http2Configuration {
         disableCipherCheck = builder.disableCipherCheck;
         priorKnowledge = builder.priorKnowledge;
         threadPoolConfig = builder.threadPoolConfig;
+        executorService = builder.executorService;
     }
 
 
@@ -188,6 +190,13 @@ public class Http2Configuration {
         return threadPoolConfig;
     }
 
+    /**
+     * @return a pre-existing {@link ExecutorService}, if any.
+     */
+    public ExecutorService getExecutorService() {
+        return executorService;
+    }
+
     // --------------------------------------------------------- Nested Classes
 
 
@@ -199,6 +208,7 @@ public class Http2Configuration {
         private boolean disableCipherCheck;
         private boolean priorKnowledge;
         private ThreadPoolConfig threadPoolConfig;
+        private ExecutorService executorService;
 
         private Http2ConfigurationBuilder() {
         }
@@ -244,12 +254,21 @@ public class Http2Configuration {
         }
 
         /**
-         * @param val the thread pool configuration that will be used for the
-         *  {@link ExecutorService} handling HTTP/2 streams.  If not
-         *  set, then HTTP/2 streams will be executed on the current thread.
+         * Specifies a thread pool configuration that will be used to create a new
+         *  {@link ExecutorService} handling HTTP/2 streams.
          */
         public Http2ConfigurationBuilder threadPoolConfig(final ThreadPoolConfig val) {
             threadPoolConfig = val;
+            return this;
+        }
+
+        /**
+         * Specifies a pre-existing {@link ExecutorService} for handling HTTP/2 streams.
+         * If called, it will clear any value set previously by {@link #threadPoolConfig(ThreadPoolConfig)}.
+         */
+        public Http2ConfigurationBuilder executorService(final ExecutorService val) {
+            threadPoolConfig = null;
+            executorService = val;
             return this;
         }
 

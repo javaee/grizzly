@@ -43,11 +43,13 @@ package org.glassfish.grizzly.http2;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -861,38 +863,39 @@ public class Http2ServerFilter extends Http2BaseFilter {
             prepareOutgoingRequest(request);
             prepareOutgoingResponse(request.getResponse());
 
-                final Http2Stream pushStream = h2c.openStream(
-                        request,
-                        h2c.getNextLocalStreamId(), parentStream.getId(),
-                        false, 0,
-                        Http2StreamState.RESERVED_LOCAL);
-                pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
+            final Http2Stream pushStream = h2c.openStream(
+                    request,
+                    h2c.getNextLocalStreamId(), parentStream.getId(),
+                    false, 0,
+                    Http2StreamState.RESERVED_LOCAL);
+            pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
 
-                h2c.getDeflaterLock().lock();
-                h2c.getNewClientStreamLock().unlock();
-                isDeflaterLocked = true;
-                isNewClientStreamLocked = false;
+            h2c.getDeflaterLock().lock();
+            h2c.getNewClientStreamLock().unlock();
+            isDeflaterLocked = true;
+            isNewClientStreamLocked = false;
 
-                List<Http2Frame> pushPromiseFrames =
-                        h2c.encodeHttpRequestAsPushPromiseFrames(
-                                ctx, pushStream.getRequest(), parentStream.getId(),
-                                pushStream.getId(), null);
+            List<Http2Frame> pushPromiseFrames =
+                    h2c.encodeHttpRequestAsPushPromiseFrames(
+                            ctx, pushStream.getRequest(), parentStream.getId(),
+                            pushStream.getId(), null);
 
-                h2c.getOutputSink().writeDownStream(
-                        pushPromiseFrames);
+            h2c.getOutputSink().writeDownStream(
+                    pushPromiseFrames);
 
-                h2c.getDeflaterLock().unlock();
-                isDeflaterLocked = false;
+            h2c.getDeflaterLock().unlock();
+            isDeflaterLocked = false;
 
-                request.getProcessingState().setHttpContext(
-                        HttpContext.newInstance(pushStream, pushStream, pushStream, request));
-                // now send the request upstream...
-                threadPool.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        h2c.sendMessageUpstream(pushStream, HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).build());
-                    }
-                });
+            request.getProcessingState().setHttpContext(
+                    HttpContext.newInstance(pushStream, pushStream, pushStream, request));
+            // now send the request upstream...
+            submit(ctx.getConnection(), new Runnable() {
+                @Override
+                public void run() {
+                    h2c.sendMessageUpstream(pushStream, HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).build());
+                }
+            });
+
 
         } catch (Throwable e) {
             LOGGER.log(Level.SEVERE,
@@ -907,6 +910,20 @@ public class Http2ServerFilter extends Http2BaseFilter {
             }
             pushEvent.recycle();
             ctx.resume(ctx.getStopAction());
+        }
+    }
+
+    private void submit(final Connection c, final Runnable runnable) {
+        if (threadPool != null) {
+            threadPool.submit(runnable);
+        } else {
+            final Transport t = c.getTransport();
+            final ExecutorService workerThreadPool = t.getWorkerThreadPool();
+            if (workerThreadPool != null) {
+                workerThreadPool.submit(runnable);
+            } else {
+                t.getKernelThreadPool().submit(runnable);
+            }
         }
     }
 

@@ -115,7 +115,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
     private final Http2Configuration configuration;
     
-    protected final ExecutorService threadPool;
+    protected ExecutorService threadPool;
     
     private int localMaxFramePayloadSize;
 
@@ -127,7 +127,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         final ThreadPoolConfig tpConfig = configuration.getThreadPoolConfig();
         threadPool = ((tpConfig != null)
                 ? GrizzlyExecutorService.createInstance(tpConfig)
-                : null);
+                : configuration.getExecutorService());
     }
 
     /**
