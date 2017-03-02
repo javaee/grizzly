@@ -38,12 +38,8 @@
  * holder.
  */
 
-/**
- * NOTE:  This test.
- */
 package org.glassfish.grizzly.http2;
 
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.filterchain.Filter;
@@ -140,20 +136,7 @@ public class PushTest extends AbstractHttp2Test {
         try {
             server.start();
 
-            HttpRequestPacket request = HttpRequestPacket.builder()
-                    .method("GET")
-                    .header("Host", "localhost:" + PORT)
-                    .uri("/test")
-                    .protocol("HTTP/2.0")
-                    .build();
-
-            final Connection c =
-                    getConnection(null,
-                            server.getListener("grizzly").getTransport());
-            final HttpContent content =
-                    HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build();
-            final Future f = c.write(content);
-            f.get(5, TimeUnit.SECONDS); // don't care about the response.
+            sendTestRequest(server);
             assertTrue(latch.await(5, TimeUnit.SECONDS));
             assertTrue("No NullPointerException or unexpected Exception thrown when providing null to PushBuilder.method()",
                        npeThrown.get());
@@ -206,20 +189,7 @@ public class PushTest extends AbstractHttp2Test {
         try {
             server.start();
 
-            HttpRequestPacket request = HttpRequestPacket.builder()
-                    .method("GET")
-                    .header("Host", "localhost:" + PORT)
-                    .uri("/test")
-                    .protocol("HTTP/2.0")
-                    .build();
-
-            final Connection c =
-                    getConnection(null,
-                                  server.getListener("grizzly").getTransport());
-            final HttpContent content =
-                    HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build();
-            final Future f = c.write(content);
-            f.get(5, TimeUnit.SECONDS); // don't care about the response.
+            sendTestRequest(server);
             assertTrue(latch.await(5, TimeUnit.SECONDS));
             // validate the AtomicBooleans in the map.  They should all be true.
             for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
@@ -232,6 +202,22 @@ public class PushTest extends AbstractHttp2Test {
         } finally {
             server.shutdownNow();
         }
+    }
+
+    private void sendTestRequest(final HttpServer server) throws Exception {
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .header("Host", "localhost:" + PORT)
+                .uri("/test")
+                .protocol("HTTP/2.0")
+                .build();
+
+        final Connection c =
+                getConnection(null,
+                              server.getListener("grizzly").getTransport());
+        final HttpContent content =
+                HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build();
+        c.write(content);
     }
 
 
