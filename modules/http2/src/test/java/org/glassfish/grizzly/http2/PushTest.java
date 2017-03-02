@@ -111,7 +111,7 @@ public class PushTest extends AbstractHttp2Test {
 
 
     /**
-     * Ensure IllegalStateException is thrown for invalid Methods
+     * Ensure NullPointerException is thrown if null is
      * passed to PushBuilder.method().
      */
     @Test
