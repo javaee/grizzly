@@ -64,7 +64,7 @@ public class PushEvent implements FilterChainEvent {
     private String sessionId;
     private boolean conditional;
     private boolean secure;
-    private MimeHeaders headers;
+    private MimeHeaders headers = new MimeHeaders();
     private String path;
     private String eTag;
     private String lastModified;
@@ -230,7 +230,6 @@ public class PushEvent implements FilterChainEvent {
         queryString = builder.queryString;
         sessionId = builder.sessionId;
         conditional = builder.conditional;
-        headers = new MimeHeaders();
         headers.copyFrom(builder.headers);
         path = builder.path;
         eTag = builder.eTag;
@@ -246,7 +245,6 @@ public class PushEvent implements FilterChainEvent {
         queryString = builder.queryString;
         sessionId = builder.sessionId;
         conditional = builder.conditional;
-        headers = new MimeHeaders();
         headers.copyFrom(builder.headers);
         path = builder.path;
         eTag = builder.eTag;
