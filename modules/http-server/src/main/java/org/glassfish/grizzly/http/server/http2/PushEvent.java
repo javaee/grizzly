@@ -60,14 +60,9 @@ public class PushEvent implements FilterChainEvent {
     public static final Object TYPE = PushEvent.class.getName();
 
     private Method method;
-    private String queryString;
-    private String sessionId;
-    private boolean conditional;
     private boolean secure;
     private MimeHeaders headers = new MimeHeaders();
     private String path;
-    private String eTag;
-    private String lastModified;
     private String referrer;
     private HttpRequestPacket httpRequest;
     private StringBuilder referrerBuilder = new StringBuilder(64);
@@ -113,27 +108,6 @@ public class PushEvent implements FilterChainEvent {
     }
 
     /**
-     * @return the query string, if any, of the push request.
-     */
-    public String getQueryString() {
-        return queryString;
-    }
-
-    /**
-     * @return the session ID, if any, of the push request.
-     */
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    /**
-     * @return <code>true</code> if the push request is conditional, otherwise, <code>false</code>.
-     */
-    public boolean isConditional() {
-        return conditional;
-    }
-
-    /**
      * @return the headers of the push request.
      */
     public MimeHeaders getHeaders() {
@@ -145,20 +119,6 @@ public class PushEvent implements FilterChainEvent {
      */
     public String getPath() {
         return path;
-    }
-
-    /**
-     * @return the value for an <code>etag</code> header, if any, of the push request.
-     */
-    public String getETag() {
-        return eTag;
-    }
-
-    /**
-     * @return the value for an <code>if-modified-since</code> header, if any, of the push request.
-     */
-    public String getLastModified() {
-        return lastModified;
     }
 
     /**
@@ -189,14 +149,9 @@ public class PushEvent implements FilterChainEvent {
      */
     public void recycle() {
         method = null;
-        queryString = null;
-        sessionId = null;
-        conditional = false;
         secure = false;
         headers.recycle();
         path = null;
-        eTag = null;
-        lastModified = null;
         referrer = null;
         httpRequest = null;
         ThreadCache.putToCache(CACHE_IDX, this);
@@ -227,13 +182,8 @@ public class PushEvent implements FilterChainEvent {
 
     private PushEvent init(final PushBuilder builder) {
         method = builder.method;
-        queryString = builder.queryString;
-        sessionId = builder.sessionId;
-        conditional = builder.conditional;
         headers.copyFrom(builder.headers);
         path = builder.path;
-        eTag = builder.eTag;
-        lastModified = builder.lastModified;
         secure = builder.request.isSecure();
         referrer = composeReferrerHeader(builder.request);
         httpRequest = builder.request.getRequest();
@@ -242,13 +192,8 @@ public class PushEvent implements FilterChainEvent {
 
     private PushEvent init(final PushEventBuilder builder) {
         method = builder.method;
-        queryString = builder.queryString;
-        sessionId = builder.sessionId;
-        conditional = builder.conditional;
         headers.copyFrom(builder.headers);
         path = builder.path;
-        eTag = builder.eTag;
-        lastModified = builder.lastModified;
         secure = builder.httpRequest.isSecure();
         referrer = builder.referrer;
         httpRequest = builder.httpRequest;
@@ -278,13 +223,8 @@ public class PushEvent implements FilterChainEvent {
      */
     public static final class PushEventBuilder {
         private Method method = Method.GET;
-        private String queryString;
-        private String sessionId;
-        private boolean conditional;
         private MimeHeaders headers = new MimeHeaders();
         private String path;
-        private String eTag;
-        private String lastModified;
         private String referrer;
         private HttpRequestPacket httpRequest;
 
@@ -313,36 +253,6 @@ public class PushEvent implements FilterChainEvent {
         }
 
         /**
-         * The query string, if any, of the push request.
-         *
-         * @return this
-         */
-        public PushEventBuilder queryString(final String val) {
-            queryString = validate(val);
-            return this;
-        }
-
-        /**
-         * The session ID, if any, of the push request.
-         *
-         * @return this
-         */
-        public PushEventBuilder sessionId(final String val) {
-            sessionId = validate(val);
-            return this;
-        }
-
-        /**
-         * <code>true</code> if the push request is conditional, otherwise, <code>false</code>.
-         *
-         * @return this
-         */
-        public PushEventBuilder conditional(final boolean val) {
-            conditional = val;
-            return this;
-        }
-
-        /**
          * The headers of the push request.
          *
          * @return this
@@ -364,26 +274,6 @@ public class PushEvent implements FilterChainEvent {
          */
         public PushEventBuilder path(final String val) {
             path = validate(val);
-            return this;
-        }
-
-        /**
-         * The value for an <code>etag</code> header, if any, of the push request.
-         *
-         * @return this
-         */
-        public PushEventBuilder eTag(final String val) {
-            eTag = validate(val);
-            return this;
-        }
-
-        /**
-         * The value for an <code>if-modified-since</code> header, if any, of the push request.
-         *
-         * @return this
-         */
-        public PushEventBuilder lastModified(final String val) {
-            lastModified = validate(val);
             return this;
         }
 
