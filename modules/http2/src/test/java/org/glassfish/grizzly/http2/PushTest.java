@@ -118,10 +118,6 @@ public class PushTest extends AbstractHttp2Test {
     // ----------------------------------------------------------- Test Methods
 
 
-    /**
-     * Ensure NullPointerException is thrown if null is
-     * passed to PushBuilder.method().
-     */
     @Test
     public void pushBuilderNullMethod() {
 
@@ -162,11 +158,6 @@ public class PushTest extends AbstractHttp2Test {
         doApiTest(handler, result, latch);
     }
 
-
-    /**
-     * Ensure IllegalStateException is thrown for invalid Methods
-     * passed to PushBuilder.method().
-     */
     @Test
     public void pushBuilderInvalidMethod() {
 
@@ -218,11 +209,6 @@ public class PushTest extends AbstractHttp2Test {
         doApiTest(handler, result, latch);
     }
 
-
-    /**
-     * Ensure no exception is thrown for valid value passed to
-     * PushBuilder.method().
-     */
     @Test
     public void pushBuilderValidMethod() {
 
