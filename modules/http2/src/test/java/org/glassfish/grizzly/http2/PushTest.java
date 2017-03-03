@@ -42,11 +42,17 @@ package org.glassfish.grizzly.http2;
 
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.SocketConnectorHandler;
+import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
+import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
+import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
@@ -63,18 +69,22 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -951,6 +961,117 @@ public class PushTest extends AbstractHttp2Test {
         doApiTest(handler, result, latch);
     }
 
+    @Test
+    public void doBasicPush() {
+        final BlockingQueue<HttpContent> resultQueue =
+                new LinkedTransferQueue<>();
+
+        final HttpHandler mainHandler = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                final PushBuilder builder = request.getPushBuilder();
+                builder.path("/resource1");
+                builder.push();
+                builder.path("/resource2");
+                builder.push();
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("main");
+            }
+        };
+
+        final HttpHandler resource1 = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("resource1");
+            }
+        };
+
+        final HttpHandler resource2 = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("resource2");
+            }
+        };
+
+        final HttpServer server = createServer(null, PORT, isSecure,
+                HttpHandlerRegistration.of(mainHandler, "/main"),
+                HttpHandlerRegistration.of(resource1, "/resource1"),
+                HttpHandlerRegistration.of(resource2, "/resource2"));
+
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET").protocol(Protocol.HTTP_2_0).uri("/main")
+                .header("Host", "localhost:" + PORT)
+                .build();
+
+        try {
+            server.start();
+            Connection connection = null;
+            try {
+                connection = getConnection(new ClientAggregatorFilter(resultQueue), server.getListener("grizzly").getTransport());
+
+                connection.write(HttpContent.builder(request)
+                        .content(Buffers.EMPTY_BUFFER)
+                        .last(true)
+                        .build());
+
+                final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                final HttpContent content3 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("Third HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                final HttpContent[] contents = new HttpContent[] {
+                    content1, content2, content3
+                };
+
+                for (int i = 0, len = contents.length; i < len; i++) {
+                    final HttpContent content = contents[i];
+                    final HttpResponsePacket res = (HttpResponsePacket) contents[i].getHttpHeader();
+                    final HttpRequestPacket req = res.getRequest();
+                    final Http2Stream stream = Http2Stream.getStreamFor(res);
+                    assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                    assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                    switch (req.getRequestURI()) {
+                        case "/main":
+                            assertThat(stream.isPushStream(), is(false));
+                            assertThat(content.getContent().toStringContent(), is("main"));
+                            break;
+                        case "/resource1":
+                            assertThat(stream.isPushStream(), is(true));
+                            assertThat(content.getContent().toStringContent(), is("resource1"));
+                            break;
+                        case "/resource2":
+                            assertThat(stream.isPushStream(), is(true));
+                            assertThat(content.getContent().toStringContent(), is("resource2"));
+                            break;
+                        default:
+                            fail("Unexpected URI: " + req.getRequestURI());
+                    }
+                }
+            } finally {
+                // Close the client connection
+                if (connection != null) {
+                    connection.closeSilently();
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        } finally {
+            server.shutdownNow();
+        }
+    }
+
 
     // -------------------------------------------------------- Private Methods
 
@@ -1013,6 +1134,39 @@ public class PushTest extends AbstractHttp2Test {
 
         Future<Connection> connectFuture = connectorHandler.connect("localhost", PORT);
         return connectFuture.get(10, TimeUnit.SECONDS);
+    }
+
+
+    // --------------------------------------------------------- Nested Classes
+
+
+    private static class ClientAggregatorFilter extends BaseFilter {
+        private final BlockingQueue<HttpContent> resultQueue;
+        private final Map<Http2Stream, HttpContent> remaindersMap =
+                new HashMap<>();
+
+        public ClientAggregatorFilter(BlockingQueue<HttpContent> resultQueue) {
+            this.resultQueue = resultQueue;
+        }
+
+        @Override
+        public NextAction handleRead(FilterChainContext ctx) throws IOException {
+            final HttpContent message = ctx.getMessage();
+            final Http2Stream http2Stream = Http2Stream.getStreamFor(message.getHttpHeader());
+
+            final HttpContent remainder = remaindersMap.get(http2Stream);
+            final HttpContent sum = remainder != null
+                    ? remainder.append(message) : message;
+
+            if (!sum.isLast()) {
+                remaindersMap.put(http2Stream, sum);
+                return ctx.getStopAction();
+            }
+
+            resultQueue.add(sum);
+
+            return ctx.getStopAction();
+        }
     }
 
 }
