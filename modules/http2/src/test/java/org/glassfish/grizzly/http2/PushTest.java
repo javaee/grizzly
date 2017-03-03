@@ -56,6 +56,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.hamcrest.core.IsNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,12 +65,14 @@ import org.junit.runners.Parameterized;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -133,21 +136,21 @@ public class PushTest extends AbstractHttp2Test {
             }
         };
 
-        final HttpServer server = createServer(HttpHandlerRegistration.of(handler, "/test"));
-        try {
-            server.start();
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    assertThat("No NullPointerException or unexpected Exception thrown when providing null to PushBuilder.method()",
+                               npeThrown.get(),
+                               is(true));
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
 
-            sendTestRequest(server);
-            assertThat(latch.await(5, TimeUnit.SECONDS), is(true));
-            assertThat("No NullPointerException or unexpected Exception thrown when providing null to PushBuilder.method()",
-                       npeThrown.get(),
-                       is(true));
-        } catch (Exception e) {
-            e.printStackTrace();
-            fail(e.getMessage());
-        } finally {
-            server.shutdownNow();
-        }
+        doSimpleTest(handler, result, latch);
     }
 
 
@@ -187,23 +190,23 @@ public class PushTest extends AbstractHttp2Test {
             }
         };
 
-        final HttpServer server = createServer(HttpHandlerRegistration.of(handler, "/test"));
-        try {
-            server.start();
-
-            sendTestRequest(server);
-            assertThat(latch.await(5, TimeUnit.SECONDS), is(true));
-            // validate the AtomicBooleans in the map.  They should all be true.
-            for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
-                assertThat(String.format("No IllegalStateException or unexpected Exception thrown when providing %s to PushBuilder.method()",
-                           entry.getKey().getMethodString()), entry.getValue().get(), is(true));
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    // validate the AtomicBooleans in the map.  They should all be true.
+                    for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("No IllegalStateException or unexpected Exception thrown when providing %s to PushBuilder.method()",
+                                entry.getKey().getMethodString()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            fail(e.getMessage());
-        } finally {
-            server.shutdownNow();
-        }
+        };
+
+        doSimpleTest(handler, result, latch);
     }
 
 
@@ -237,17 +240,36 @@ public class PushTest extends AbstractHttp2Test {
             }
         };
 
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected Exception thrown when providing %s to PushBuilder.method()",
+                                entry.getKey().getMethodString()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doSimpleTest(handler, result, latch);
+
+    }
+
+
+    // -------------------------------------------------------- Private Methods
+
+    private void doSimpleTest(final HttpHandler handler, final Callable<Throwable> validator, final CountDownLatch latch) {
         final HttpServer server = createServer(HttpHandlerRegistration.of(handler, "/test"));
         try {
             server.start();
 
             sendTestRequest(server);
             assertThat(latch.await(5, TimeUnit.SECONDS), is(true));
-            // validate the AtomicBooleans in the map.  They should all be true.
-            for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
-                assertThat(String.format("Unexpected Exception thrown when providing %s to PushBuilder.method()",
-                        entry.getKey().getMethodString()), entry.getValue().get(), is(true));
-            }
+            assertThat(validator.call(), IsNull.<Throwable>nullValue());
         } catch (Exception e) {
             e.printStackTrace();
             fail(e.getMessage());
@@ -255,9 +277,6 @@ public class PushTest extends AbstractHttp2Test {
             server.shutdownNow();
         }
     }
-
-
-    // -------------------------------------------------------- Private Methods
 
 
     private void sendTestRequest(final HttpServer server) throws Exception {
