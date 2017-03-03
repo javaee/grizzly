@@ -119,7 +119,8 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
  *
  * @since 2.3.30
  */
-public class PushBuilder {
+@SuppressWarnings("UnusedReturnValue")
+public final class PushBuilder {
 
     private static final Header[] REMOVE_HEADERS = {
             Header.ETag,
@@ -300,7 +301,7 @@ public class PushBuilder {
      * Set the URI path to be used for the push.  The path may start
      * with "/" in which case it is treated as an absolute path,
      * otherwise it is relative to the context path of the associated
-     * request.  There is no path default and {@link #path(String)} must
+     * request.  There is no path default and path(String) must
      * be called before every call to {@link #push()}.  If a query
      * string is present in the argument {@code path}, its contents must
      * be merged with the contents previously passed to {@link

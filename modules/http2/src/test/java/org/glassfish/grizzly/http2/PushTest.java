@@ -56,6 +56,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.utils.Pair;
 import org.hamcrest.core.IsNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,7 +65,9 @@ import org.junit.runners.Parameterized;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
@@ -75,6 +78,12 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+/**
+ * This is an odd test case due to how the modules are currently
+ * organized.  The http-server module currently can't depend on http2
+ * as http2 relies on http-server.  So we have to do some of the http2
+ * server-related tests here.  We'll eventually fix this when time permits.
+ */
 @RunWith(Parameterized.class)
 public class PushTest extends AbstractHttp2Test {
 
@@ -125,6 +134,7 @@ public class PushTest extends AbstractHttp2Test {
 
                 final PushBuilder builder = request.getPushBuilder();
                 try {
+                    //noinspection ConstantConditions
                     builder.method(null);
                 } catch (NullPointerException npe) {
                     npeThrown.compareAndSet(false, true);
@@ -256,6 +266,703 @@ public class PushTest extends AbstractHttp2Test {
 
         doApiTest(handler, result, latch);
 
+    }
+
+    @Test
+    public void pushBuilderNullOrEmptyQueryString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
+        methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
+
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.queryString(entry.getKey().getSecond());
+                        if (builder.getQueryString() == null) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.queryString()",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderValidQueryString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("valid query string", "a=1&b=2"), new AtomicBoolean());
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.queryString(entry.getKey().getSecond());
+                        if (Objects.equals(builder.getQueryString(), entry.getKey().getSecond())) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.queryString()",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderNullOrEmptySessionIdString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
+        methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
+
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.sessionId(entry.getKey().getSecond());
+                        if (builder.getSessionId() == null) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.sessionId()",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderValidSessionIdString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("valid session string", "somesortofsessionid"), new AtomicBoolean());
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.sessionId(entry.getKey().getSecond());
+                        if (Objects.equals(builder.getSessionId(), entry.getKey().getSecond())) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.sessionId()",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderNullOrEmptyPathString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
+        methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
+
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.path(entry.getKey().getSecond());
+                        if (builder.getPath() == null) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.path()",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderValidPathString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("valid path string", "/path"), new AtomicBoolean());
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.path(entry.getKey().getSecond());
+                        if (Objects.equals(builder.getPath(), entry.getKey().getSecond())) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.path()",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderNullOrEmptyETagString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
+        methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
+
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.eTag(entry.getKey().getSecond());
+                        if (builder.getETag() == null) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.eTag()",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderValidETagString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("valid etag string", "/w1112312322"), new AtomicBoolean());
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.eTag(entry.getKey().getSecond());
+                        if (Objects.equals(builder.getETag(), entry.getKey().getSecond())) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.eTag()",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderNullOrEmptyLastModifiedString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
+        methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
+
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.lastModified(entry.getKey().getSecond());
+                        if (builder.getLastModified() == null) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.lastModified()",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderValidLastModifiedString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("valid last modified string", "someISOdate"), new AtomicBoolean());
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.lastModified(entry.getKey().getSecond());
+                        if (Objects.equals(builder.getLastModified(), entry.getKey().getSecond())) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.lastModified()",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderNullOrEmptyHeaderAddNameOrValueString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
+        methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
+
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+
+                // clear all headers first
+                final Iterator<String> existingHeaders = builder.getHeaderNames().iterator();
+                while (existingHeaders.hasNext()) {
+                    existingHeaders.remove();
+                }
+
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.addHeader(entry.getKey().getSecond(), "value");
+                        if (!builder.getHeaderNames().iterator().hasNext()) {
+                            builder.addHeader("name", entry.getKey().getSecond());
+                            if (!builder.getHeaderNames().iterator().hasNext()) {
+                                entry.getValue().compareAndSet(false, true);
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected header returned or exception thrown when providing %s to PushBuilder.addHeader() (either name or value)",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderValidHeaderSetNameAndValueString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("header-name", "header-value"), new AtomicBoolean());
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.addHeader(entry.getKey().getFirst(), entry.getKey().getSecond());
+                        if (Objects.equals(builder.getHeader(entry.getKey().getFirst()), entry.getKey().getSecond())) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat("Unexpected value returned or exception thrown when providing a valid name/value to PushBuilder.addHeader()",
+                                entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderNullOrEmptyHeaderSetNameOrValueString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
+        methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
+
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+
+                // clear all headers first
+                final Iterator<String> existingHeaders = builder.getHeaderNames().iterator();
+                while (existingHeaders.hasNext()) {
+                    existingHeaders.remove();
+                }
+
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.setHeader(entry.getKey().getSecond(), "value");
+                        if (!builder.getHeaderNames().iterator().hasNext()) {
+                            builder.setHeader("name", entry.getKey().getSecond());
+                            if (!builder.getHeaderNames().iterator().hasNext()) {
+                                entry.getValue().compareAndSet(false, true);
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat(String.format("Unexpected header returned or exception thrown when providing %s to PushBuilder.setHeader() (either name or value)",
+                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderValidHeaderAddNameAndValueString() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("header-name", "header-value"), new AtomicBoolean());
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.setHeader(entry.getKey().getFirst(), entry.getKey().getSecond());
+                        if (Objects.equals(builder.getHeader(entry.getKey().getFirst()), entry.getKey().getSecond())) {
+                            entry.getValue().compareAndSet(false, true);
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat("Unexpected value returned or exception thrown when providing a valid name/value to PushBuilder.setHeader()",
+                                entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderRemoveHeader() {
+        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(new Pair<>("header-name", "header-value"), new AtomicBoolean());
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    try {
+                        builder.setHeader(entry.getKey().getFirst(), entry.getKey().getSecond());
+                        if (Objects.equals(builder.getHeader(entry.getKey().getFirst()), entry.getKey().getSecond())) {
+                            builder.removeHeader(entry.getKey().getFirst());
+                            if (builder.getHeader(entry.getKey().getFirst()) == null) {
+                                entry.getValue().compareAndSet(false, true);
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.out.println('[' + entry.getKey().getFirst() + "] Unexpected exception: " + e);
+                    }
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                        assertThat("Unexpected result or exception thrown when validating PushBuilder.removeHeader()",
+                                entry.getValue().get(), is(true));
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
     }
 
 
