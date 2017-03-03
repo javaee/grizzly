@@ -122,7 +122,7 @@ public class NetworkListenerTest extends AbstractHttp2Test {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
                 final HttpRequestPacket requestPacket =
                         (HttpRequestPacket) createRequest(PORT, "GET",
-                        null, null, null);
+                        null, null);
                 connection.write(requestPacket);
                 
                 HttpContent response = clientInQueue.poll(10,

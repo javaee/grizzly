@@ -44,7 +44,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
@@ -183,22 +182,17 @@ public abstract class AbstractHttp2Test {
             synchronized (AbstractHttp2Test.class) {
                 if (clientSSLEngineConfigurator == null) {
                     SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
+                    serverSSLEngineConfigurator =
+                            new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true),
+                                    false, false, false);
 
-                    if (sslContextConfigurator.validateConfiguration(true)) {
-                        serverSSLEngineConfigurator =
-                                new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
-                                false, false, false);
+                    serverSSLEngineConfigurator.setEnabledCipherSuites(new String[]{"TLS_RSA_WITH_AES_256_CBC_SHA"});
 
-                        serverSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"TLS_RSA_WITH_AES_256_CBC_SHA"});
+                    clientSSLEngineConfigurator =
+                            new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(true),
+                                    true, false, false);
 
-                        clientSSLEngineConfigurator =
-                                new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
-                                true, false, false);
-
-                        clientSSLEngineConfigurator.setEnabledCipherSuites(new String[] {"TLS_RSA_WITH_AES_256_CBC_SHA"});
-                    } else {
-                        throw new IllegalStateException("Failed to validate SSLContextConfiguration.");
-                    }        
+                    clientSSLEngineConfigurator.setEnabledCipherSuites(new String[]{"TLS_RSA_WITH_AES_256_CBC_SHA"});
                 }
             }
         }
@@ -230,24 +224,10 @@ public abstract class AbstractHttp2Test {
             final String method,
             final String content,
             String encoding) {
-        return createRequest(port, method, content, encoding, null);
-    }
-    
-    @SuppressWarnings({"unchecked"})
-    protected HttpPacket createRequest(final int port,
-            final String method,
-            final String content,
-            String encoding,
-            final Map<String, String> headers) {
 
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
         b.method(method).protocol(Protocol.HTTP_1_1).uri("/path").header("Host", "localhost:" + port);
 
-        if (headers != null) {
-            for (Map.Entry<String, String> entry : headers.entrySet()) {
-                b.header(entry.getKey(), entry.getValue());
-            }
-        }
         HttpRequestPacket request = b.build();
 
         if (content != null) {
