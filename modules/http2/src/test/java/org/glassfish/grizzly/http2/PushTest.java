@@ -72,7 +72,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -150,7 +149,7 @@ public class PushTest extends AbstractHttp2Test {
             }
         };
 
-        doSimpleTest(handler, result, latch);
+        doApiTest(handler, result, latch);
     }
 
 
@@ -206,7 +205,7 @@ public class PushTest extends AbstractHttp2Test {
             }
         };
 
-        doSimpleTest(handler, result, latch);
+        doApiTest(handler, result, latch);
     }
 
 
@@ -255,14 +254,15 @@ public class PushTest extends AbstractHttp2Test {
             }
         };
 
-        doSimpleTest(handler, result, latch);
+        doApiTest(handler, result, latch);
 
     }
 
 
     // -------------------------------------------------------- Private Methods
 
-    private void doSimpleTest(final HttpHandler handler, final Callable<Throwable> validator, final CountDownLatch latch) {
+
+    private void doApiTest(final HttpHandler handler, final Callable<Throwable> validator, final CountDownLatch latch) {
         final HttpServer server = createServer(HttpHandlerRegistration.of(handler, "/test"));
         try {
             server.start();
@@ -288,8 +288,7 @@ public class PushTest extends AbstractHttp2Test {
                 .build();
 
         final Connection c =
-                getConnection(null,
-                        server.getListener("grizzly").getTransport());
+                getConnection(server.getListener("grizzly").getTransport());
         final HttpContent content =
                 HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build();
         c.write(content);
@@ -297,6 +296,10 @@ public class PushTest extends AbstractHttp2Test {
 
     private HttpServer createServer(HttpHandlerRegistration... registrations) {
         return createServer(TEMP_DIR, PORT, isSecure, registrations);
+    }
+
+    private Connection getConnection(final TCPNIOTransport transport) throws Exception {
+        return getConnection(null, transport);
     }
 
     private Connection getConnection(final Filter filter,

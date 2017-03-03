@@ -211,7 +211,7 @@ public class PushBuilder {
      * @return this builder.
      */
     public PushBuilder queryString(String queryString) {
-        this.queryString = queryString;
+        this.queryString = validate(queryString);
         return this;
     }
 
@@ -228,7 +228,7 @@ public class PushBuilder {
      * @return this builder.
      */
     public PushBuilder sessionId(String sessionId) {
-        this.sessionId = sessionId;
+        this.sessionId = validate(sessionId);
         return this;
     }
 
@@ -290,7 +290,7 @@ public class PushBuilder {
      * @return this builder.
      */
     public PushBuilder removeHeader(String name) {
-        if (nameValid(name)) {
+        if (validValue(name)) {
             headers.removeHeader(name);
         }
         return this;
@@ -312,7 +312,7 @@ public class PushBuilder {
      * @return this builder.
      */
     public PushBuilder path(String path) {
-        this.path = path;
+        this.path = validate(path);
         return this;
     }
 
@@ -327,7 +327,7 @@ public class PushBuilder {
      * @return this builder.
      */
     public PushBuilder eTag(String eTag) {
-        this.eTag = eTag;
+        this.eTag = validate(eTag);
         return this;
     }
 
@@ -342,7 +342,7 @@ public class PushBuilder {
      * @return this builder.
      */
     public PushBuilder lastModified(String lastModified) {
-        this.lastModified = lastModified;
+        this.lastModified = validate(lastModified);
         return this;
     }
 
@@ -493,11 +493,15 @@ public class PushBuilder {
 
 
     private static boolean nameAndValueValid(final String name, final String value) {
-        return nameValid(name) && value != null && !value.isEmpty();
+        return validValue(name) && validValue(value);
     }
 
-    private static boolean nameValid(final String name) {
-        return (name != null && !name.isEmpty());
+    private static boolean validValue(final String value) {
+        return (value != null && !value.isEmpty());
+    }
+
+    private static String validate(final String value) {
+        return ((validValue(value)) ? value : null);
     }
 
 }
