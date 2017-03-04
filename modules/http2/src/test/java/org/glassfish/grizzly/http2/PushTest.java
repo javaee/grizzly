@@ -57,7 +57,9 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.http2.PushBuilder;
+import org.glassfish.grizzly.http.server.http2.PushEvent;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
@@ -1468,6 +1470,86 @@ public class PushTest extends AbstractHttp2Test {
                                 assertThat(req.getHeader(Header.IfNoneMatch), is("if-none-match"));
                                 // both values set, but eTag takes precedence.
                                 assertThat(req.getHeader(Header.LastModified), IsNull.nullValue());
+                                break;
+                            default:
+                                fail("Unexpected URI: " + req.getRequestURI());
+                        }
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doPushTest(request, validator, resultQueue,
+                HttpHandlerRegistration.of(mainHandler, "/main"),
+                HttpHandlerRegistration.of(resource1, "/resource1"));
+    }
+
+    @Test
+    public void pushValidateManualPushUsingEvent() throws Exception {
+        final BlockingQueue<HttpContent> resultQueue =
+                new LinkedTransferQueue<>();
+
+        final HttpHandler mainHandler = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                final MimeHeaders headers = new MimeHeaders();
+                headers.copyFrom(request.getRequest().getHeaders());
+                headers.setValue(Header.Referer).setString("http://locahost:" + PORT + "/main");
+                PushEvent pushEvent = PushEvent.builder()
+                        .path("/resource1")
+                        .headers(headers)
+                        .httpRequest(request.getRequest()).build();
+                request.getContext().notifyDownstream(pushEvent);
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("main");
+            }
+        };
+
+        final HttpHandler resource1 = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("resource1");
+            }
+        };
+
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/main")
+                .header(Header.Host, "localhost:" + PORT).build();
+
+        final Callable<Throwable> validator = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                    final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                    final HttpContent[] contents = new HttpContent[]{
+                            content1, content2
+                    };
+
+                    for (int i = 0, len = contents.length; i < len; i++) {
+                        final HttpContent content = contents[i];
+                        final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
+                        final HttpRequestPacket req = res.getRequest();
+                        final Http2Stream stream = Http2Stream.getStreamFor(res);
+                        assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                        assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                        switch (req.getRequestURI()) {
+                            case "/main":
+                                assertThat(content.getContent().toStringContent(), is("main"));
+                                break;
+                            case "/resource1":
+                                assertThat(content.getContent().toStringContent(), is("resource1"));
                                 break;
                             default:
                                 fail("Unexpected URI: " + req.getRequestURI());
