@@ -57,6 +57,7 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.http2.PushBuilder;
+import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
@@ -960,6 +961,172 @@ public class PushTest extends AbstractHttp2Test {
     }
 
     @Test
+    public void pushBuilderConditionalTrueByDefaultIfModifiedSince() {
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicBoolean conditionalStatus = new AtomicBoolean();
+
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET").protocol(Protocol.HTTP_2_0).uri("/test")
+                .header("Host", "localhost:" + PORT)
+                .header(Header.IfModifiedSince, "adsfasdfafdasfd")
+                .build();
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                try {
+                    if (builder.isConditional()) {
+                        conditionalStatus.compareAndSet(false, true);
+                    }
+                } catch (Exception e) {
+                    System.out.println("Unexpected exception: " + e);
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    assertThat("PushBuilder.isConditional() didn't return true.",
+                               conditionalStatus.get(), is(true));
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(request, handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderConditionalTrueByDefaultIfNoneMatchSince() {
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicBoolean conditionalStatus = new AtomicBoolean();
+
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET").protocol(Protocol.HTTP_2_0).uri("/test")
+                .header("Host", "localhost:" + PORT)
+                .header(Header.IfNoneMatch, "adsfasdfafdasfd")
+                .build();
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                try {
+                    if (builder.isConditional()) {
+                        conditionalStatus.compareAndSet(false, true);
+                    }
+                } catch (Exception e) {
+                    System.out.println("Unexpected exception: " + e);
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    assertThat("PushBuilder.isConditional() didn't return true.",
+                            conditionalStatus.get(), is(true));
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(request, handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderConditionalFalseByDefaultNonConditional() {
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicBoolean conditionalStatus = new AtomicBoolean();
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                try {
+                    if (!builder.isConditional()) {
+                        conditionalStatus.compareAndSet(false, true);
+                    }
+                } catch (Exception e) {
+                    System.out.println("Unexpected exception: " + e);
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    assertThat("PushBuilder.isConditional() didn't return false.",
+                            conditionalStatus.get(), is(true));
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderPushNoPath() {
+
+        final AtomicBoolean iseException = new AtomicBoolean();
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                try {
+                    //noinspection ConstantConditions
+                    builder.push();
+                } catch (IllegalStateException ise) {
+                    iseException.compareAndSet(false, true);
+                } catch (Exception e) {
+                    System.out.println("Unexpected exception thrown: " + e);
+                }
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    assertThat("No IllegalStateException not thrown or unexpected Exception thrown when PushBuilder.push() without setting a path.",
+                            iseException.get(),
+                            is(true));
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
     public void doBasicPush() {
         final BlockingQueue<HttpContent> resultQueue =
                 new LinkedTransferQueue<>();
@@ -997,84 +1164,89 @@ public class PushTest extends AbstractHttp2Test {
             }
         };
 
-        final HttpServer server = createServer(null, PORT, isSecure,
-                HttpHandlerRegistration.of(mainHandler, "/main"),
-                HttpHandlerRegistration.of(resource1, "/resource1"),
-                HttpHandlerRegistration.of(resource2, "/resource2"));
-
         final HttpRequestPacket request = HttpRequestPacket.builder()
                 .method("GET").protocol(Protocol.HTTP_2_0).uri("/main")
                 .header("Host", "localhost:" + PORT)
                 .build();
 
-        try {
-            server.start();
-            Connection connection = null;
-            try {
-                connection = getConnection(new ClientAggregatorFilter(resultQueue), server.getListener("grizzly").getTransport());
+        final Callable<Throwable> validator = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                connection.write(HttpContent.builder(request)
-                        .content(Buffers.EMPTY_BUFFER)
-                        .last(true)
-                        .build());
+                    final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
-                assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                    final HttpContent content3 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("Third HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
-                assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                    final HttpContent[] contents = new HttpContent[]{
+                            content1, content2, content3
+                    };
 
-                final HttpContent content3 = resultQueue.poll(5, TimeUnit.SECONDS);
-                assertThat("Third HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
-
-                final HttpContent[] contents = new HttpContent[] {
-                    content1, content2, content3
-                };
-
-                for (int i = 0, len = contents.length; i < len; i++) {
-                    final HttpContent content = contents[i];
-                    final HttpResponsePacket res = (HttpResponsePacket) contents[i].getHttpHeader();
-                    final HttpRequestPacket req = res.getRequest();
-                    final Http2Stream stream = Http2Stream.getStreamFor(res);
-                    assertThat(stream, IsNull.<Http2Stream>notNullValue());
-                    assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
-                    switch (req.getRequestURI()) {
-                        case "/main":
-                            assertThat(stream.isPushStream(), is(false));
-                            assertThat(content.getContent().toStringContent(), is("main"));
-                            break;
-                        case "/resource1":
-                            assertThat(stream.isPushStream(), is(true));
-                            assertThat(content.getContent().toStringContent(), is("resource1"));
-                            break;
-                        case "/resource2":
-                            assertThat(stream.isPushStream(), is(true));
-                            assertThat(content.getContent().toStringContent(), is("resource2"));
-                            break;
-                        default:
-                            fail("Unexpected URI: " + req.getRequestURI());
+                    for (int i = 0, len = contents.length; i < len; i++) {
+                        final HttpContent content = contents[i];
+                        final HttpResponsePacket res = (HttpResponsePacket) contents[i].getHttpHeader();
+                        final HttpRequestPacket req = res.getRequest();
+                        final Http2Stream stream = Http2Stream.getStreamFor(res);
+                        assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                        assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                        switch (req.getRequestURI()) {
+                            case "/main":
+                                assertThat(stream.isPushStream(), is(false));
+                                assertThat(content.getContent().toStringContent(), is("main"));
+                                break;
+                            case "/resource1":
+                                assertThat(stream.isPushStream(), is(true));
+                                assertThat(content.getContent().toStringContent(), is("resource1"));
+                                break;
+                            case "/resource2":
+                                assertThat(stream.isPushStream(), is(true));
+                                assertThat(content.getContent().toStringContent(), is("resource2"));
+                                break;
+                            default:
+                                fail("Unexpected URI: " + req.getRequestURI());
+                        }
                     }
-                }
-            } finally {
-                // Close the client connection
-                if (connection != null) {
-                    connection.closeSilently();
+                    return null;
+                } catch (Throwable t) {
+                    return t;
                 }
             }
+        };
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            fail();
-        } finally {
-            server.shutdownNow();
-        }
+        doPushTest(request, validator, resultQueue,
+                HttpHandlerRegistration.of(mainHandler, "/main"),
+                HttpHandlerRegistration.of(resource1, "/resource1"),
+                HttpHandlerRegistration.of(resource2, "/resource2"));
     }
 
 
     // -------------------------------------------------------- Private Methods
 
 
-    private void doApiTest(final HttpHandler handler, final Callable<Throwable> validator, final CountDownLatch latch) {
+    private void doPushTest(final HttpRequestPacket request,
+                            final Callable<Throwable> validator,
+                            final BlockingQueue<HttpContent> queue,
+                            final HttpHandlerRegistration... registrations) {
+        final HttpServer server = createServer(registrations);
+        try {
+            server.start();
+            sendRequest(server, request, queue);
+            assertThat(validator.call(), IsNull.<Throwable>nullValue());
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            server.shutdownNow();
+        }
+    }
+
+    private void doApiTest(final HttpHandler handler,
+                           final Callable<Throwable> validator,
+                           final CountDownLatch latch) {
         final HttpServer server = createServer(HttpHandlerRegistration.of(handler, "/test"));
         try {
             server.start();
@@ -1091,6 +1263,25 @@ public class PushTest extends AbstractHttp2Test {
     }
 
 
+    private void doApiTest(final HttpRequestPacket request,
+                           final HttpHandler handler,
+                           final Callable<Throwable> validator,
+                           final CountDownLatch latch) {
+        final HttpServer server = createServer(HttpHandlerRegistration.of(handler, "/test"));
+        try {
+            server.start();
+
+            sendRequest(server, request);
+            assertThat(latch.await(5, TimeUnit.SECONDS), is(true));
+            assertThat(validator.call(), IsNull.<Throwable>nullValue());
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        } finally {
+            server.shutdownNow();
+        }
+    }
+
     private void sendTestRequest(final HttpServer server) throws Exception {
         HttpRequestPacket request = HttpRequestPacket.builder()
                 .method("GET")
@@ -1099,19 +1290,24 @@ public class PushTest extends AbstractHttp2Test {
                 .protocol("HTTP/2.0")
                 .build();
 
+        sendRequest(server, request);
+    }
+
+    private void sendRequest(final HttpServer server, final HttpRequestPacket request, final BlockingQueue<HttpContent> queue)
+    throws Exception {
         final Connection c =
-                getConnection(server.getListener("grizzly").getTransport());
+                getConnection(new ClientAggregatorFilter(queue), server.getListener("grizzly").getTransport());
         final HttpContent content =
                 HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build();
         c.write(content);
     }
 
-    private HttpServer createServer(HttpHandlerRegistration... registrations) {
-        return createServer(TEMP_DIR, PORT, isSecure, registrations);
+    private void sendRequest(final HttpServer server, final HttpRequestPacket request) throws Exception {
+        sendRequest(server, request, null);
     }
 
-    private Connection getConnection(final TCPNIOTransport transport) throws Exception {
-        return getConnection(null, transport);
+    private HttpServer createServer(HttpHandlerRegistration... registrations) {
+        return createServer(TEMP_DIR, PORT, isSecure, registrations);
     }
 
     private Connection getConnection(final Filter filter,
