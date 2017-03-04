@@ -70,6 +70,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -967,8 +968,8 @@ public class PushTest extends AbstractHttp2Test {
         final AtomicBoolean conditionalStatus = new AtomicBoolean();
 
         final HttpRequestPacket request = HttpRequestPacket.builder()
-                .method("GET").protocol(Protocol.HTTP_2_0).uri("/test")
-                .header("Host", "localhost:" + PORT)
+                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/test")
+                .header(Header.Host, "localhost:" + PORT)
                 .header(Header.IfModifiedSince, "adsfasdfafdasfd")
                 .build();
 
@@ -1011,8 +1012,8 @@ public class PushTest extends AbstractHttp2Test {
         final AtomicBoolean conditionalStatus = new AtomicBoolean();
 
         final HttpRequestPacket request = HttpRequestPacket.builder()
-                .method("GET").protocol(Protocol.HTTP_2_0).uri("/test")
-                .header("Host", "localhost:" + PORT)
+                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/test")
+                .header(Header.Host, "localhost:" + PORT)
                 .header(Header.IfNoneMatch, "adsfasdfafdasfd")
                 .build();
 
@@ -1127,7 +1128,7 @@ public class PushTest extends AbstractHttp2Test {
     }
 
     @Test
-    public void doBasicPush() {
+    public void basicPush() {
         final BlockingQueue<HttpContent> resultQueue =
                 new LinkedTransferQueue<>();
 
@@ -1165,8 +1166,8 @@ public class PushTest extends AbstractHttp2Test {
         };
 
         final HttpRequestPacket request = HttpRequestPacket.builder()
-                .method("GET").protocol(Protocol.HTTP_2_0).uri("/main")
-                .header("Host", "localhost:" + PORT)
+                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/main")
+                .header(Header.Host, "localhost:" + PORT)
                 .build();
 
         final Callable<Throwable> validator = new Callable<Throwable>() {
@@ -1188,7 +1189,7 @@ public class PushTest extends AbstractHttp2Test {
 
                     for (int i = 0, len = contents.length; i < len; i++) {
                         final HttpContent content = contents[i];
-                        final HttpResponsePacket res = (HttpResponsePacket) contents[i].getHttpHeader();
+                        final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
                         final HttpRequestPacket req = res.getRequest();
                         final Http2Stream stream = Http2Stream.getStreamFor(res);
                         assertThat(stream, IsNull.<Http2Stream>notNullValue());
@@ -1221,6 +1222,267 @@ public class PushTest extends AbstractHttp2Test {
                 HttpHandlerRegistration.of(mainHandler, "/main"),
                 HttpHandlerRegistration.of(resource1, "/resource1"),
                 HttpHandlerRegistration.of(resource2, "/resource2"));
+    }
+
+    @Test
+    public void pushValidateRemovedHeaders() throws Exception {
+        final BlockingQueue<HttpContent> resultQueue =
+                new LinkedTransferQueue<>();
+
+        final HttpHandler mainHandler = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                final PushBuilder builder = request.getPushBuilder();
+                builder.path("/resource1");
+                builder.push();
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("main");
+            }
+        };
+
+        final HttpHandler resource1 = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("resource1");
+            }
+        };
+
+        final Field removeHeadersField =
+                PushBuilder.class.getDeclaredField("REMOVE_HEADERS");
+        removeHeadersField.setAccessible(true);
+        final Field conditionalHeadersField =
+                PushBuilder.class.getDeclaredField("CONDITIONAL_HEADERS");
+        conditionalHeadersField.setAccessible(true);
+
+        final Header[] removeHeaders = (Header[]) removeHeadersField.get(null);
+        final Header[] conditionalHeaders = (Header[]) conditionalHeadersField.get(null);
+
+        final HttpRequestPacket.Builder requestBuilder = HttpRequestPacket.builder()
+                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/main")
+                .header(Header.Host, "localhost:" + PORT);
+
+        for (int i = 0, len = removeHeaders.length; i < len; i++) {
+            requestBuilder.header(removeHeaders[i], removeHeaders[i].getLowerCase());
+        }
+        for (int i = 0, len = conditionalHeaders.length; i < len; i++) {
+            requestBuilder.header(conditionalHeaders[i], conditionalHeaders[i].getLowerCase());
+        }
+
+        final HttpRequestPacket request = requestBuilder.build();
+
+
+        final Callable<Throwable> validator = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                    final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                    final HttpContent[] contents = new HttpContent[]{
+                            content1, content2
+                    };
+
+                    for (int i = 0, len = contents.length; i < len; i++) {
+                        final HttpContent content = contents[i];
+                        final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
+                        final HttpRequestPacket req = res.getRequest();
+                        final Http2Stream stream = Http2Stream.getStreamFor(res);
+                        assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                        assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                        switch (req.getRequestURI()) {
+                            case "/main":
+                                continue;
+                            case "/resource1":
+                                for (int j = 0, jlen = removeHeaders.length; j < jlen; j++) {
+                                    // special case, 'referer' is added back to request with a new value
+                                    if (removeHeaders[j] == Header.Referer) {
+                                        continue;
+                                    }
+                                    assertThat(req.getHeader(removeHeaders[j]), IsNull.nullValue());
+                                }
+                                for (int j = 0, jlen = conditionalHeaders.length; j < jlen; j++) {
+                                    assertThat(req.getHeader(conditionalHeaders[j]), IsNull.nullValue());
+                                }
+                                break;
+                            default:
+                                fail("Unexpected URI: " + req.getRequestURI());
+                        }
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doPushTest(request, validator, resultQueue,
+                HttpHandlerRegistration.of(mainHandler, "/main"),
+                HttpHandlerRegistration.of(resource1, "/resource1"));
+    }
+
+    @Test
+    public void pushValidateConditionalLastModified() throws Exception {
+        final BlockingQueue<HttpContent> resultQueue =
+                new LinkedTransferQueue<>();
+
+        final HttpHandler mainHandler = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                final PushBuilder builder = request.getPushBuilder();
+                builder.path("/resource1")
+                        .conditional(true)
+                        .lastModified("if-modified-since")
+                        .push();
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("main");
+            }
+        };
+
+        final HttpHandler resource1 = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("resource1");
+            }
+        };
+
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/main")
+                .header(Header.Host, "localhost:" + PORT).build();
+
+        final Callable<Throwable> validator = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                    final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                    final HttpContent[] contents = new HttpContent[]{
+                            content1, content2
+                    };
+
+                    for (int i = 0, len = contents.length; i < len; i++) {
+                        final HttpContent content = contents[i];
+                        final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
+                        final HttpRequestPacket req = res.getRequest();
+                        final Http2Stream stream = Http2Stream.getStreamFor(res);
+                        assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                        assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                        switch (req.getRequestURI()) {
+                            case "/main":
+                                assertThat(req.getHeader(Header.IfModifiedSince), IsNull.nullValue());
+                                break;
+                            case "/resource1":
+                                assertThat(req.getHeader(Header.IfModifiedSince), is("if-modified-since"));
+                                break;
+                            default:
+                                fail("Unexpected URI: " + req.getRequestURI());
+                        }
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doPushTest(request, validator, resultQueue,
+                HttpHandlerRegistration.of(mainHandler, "/main"),
+                HttpHandlerRegistration.of(resource1, "/resource1"));
+    }
+
+    @Test
+    public void pushValidateConditionalETag() throws Exception {
+        final BlockingQueue<HttpContent> resultQueue =
+                new LinkedTransferQueue<>();
+
+        final HttpHandler mainHandler = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                final PushBuilder builder = request.getPushBuilder();
+                builder.path("/resource1")
+                        .conditional(true)
+                        .eTag("if-none-match")
+                        .lastModified("if-modified-since")
+                        .push();
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("main");
+            }
+        };
+
+        final HttpHandler resource1 = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("resource1");
+            }
+        };
+
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/main")
+                .header(Header.Host, "localhost:" + PORT).build();
+
+        final Callable<Throwable> validator = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                try {
+                    final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                    final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                    assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                    final HttpContent[] contents = new HttpContent[]{
+                            content1, content2
+                    };
+
+                    for (int i = 0, len = contents.length; i < len; i++) {
+                        final HttpContent content = contents[i];
+                        final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
+                        final HttpRequestPacket req = res.getRequest();
+                        final Http2Stream stream = Http2Stream.getStreamFor(res);
+                        assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                        assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                        switch (req.getRequestURI()) {
+                            case "/main":
+                                assertThat(req.getHeader(Header.IfNoneMatch), IsNull.nullValue());
+                                assertThat(req.getHeader(Header.LastModified), IsNull.nullValue());
+                                break;
+                            case "/resource1":
+                                assertThat(req.getHeader(Header.IfNoneMatch), is("if-none-match"));
+                                // both values set, but eTag takes precedence.
+                                assertThat(req.getHeader(Header.LastModified), IsNull.nullValue());
+                                break;
+                            default:
+                                fail("Unexpected URI: " + req.getRequestURI());
+                        }
+                    }
+                    return null;
+                } catch (Throwable t) {
+                    return t;
+                }
+            }
+        };
+
+        doPushTest(request, validator, resultQueue,
+                HttpHandlerRegistration.of(mainHandler, "/main"),
+                HttpHandlerRegistration.of(resource1, "/resource1"));
     }
 
 
@@ -1284,10 +1546,10 @@ public class PushTest extends AbstractHttp2Test {
 
     private void sendTestRequest(final HttpServer server) throws Exception {
         HttpRequestPacket request = HttpRequestPacket.builder()
-                .method("GET")
-                .header("Host", "localhost:" + PORT)
+                .method(Method.GET)
+                .header(Header.Host, "localhost:" + PORT)
                 .uri("/test")
-                .protocol("HTTP/2.0")
+                .protocol(Protocol.HTTP_2_0)
                 .build();
 
         sendRequest(server, request);
@@ -1296,7 +1558,10 @@ public class PushTest extends AbstractHttp2Test {
     private void sendRequest(final HttpServer server, final HttpRequestPacket request, final BlockingQueue<HttpContent> queue)
     throws Exception {
         final Connection c =
-                getConnection(new ClientAggregatorFilter(queue), server.getListener("grizzly").getTransport());
+                getConnection(((queue != null)
+                                   ? new ClientAggregatorFilter(queue)
+                                   : null),
+                                server.getListener("grizzly").getTransport());
         final HttpContent content =
                 HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build();
         c.write(content);
