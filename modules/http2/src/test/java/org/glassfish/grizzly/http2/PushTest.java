@@ -1330,7 +1330,7 @@ public class PushTest extends AbstractHttp2Test {
     }
 
     @Test
-    public void pushValidateConditionalLastModified() throws Exception {
+    public void pushValidateConditionalLastModified() {
         final BlockingQueue<HttpContent> resultQueue =
                 new LinkedTransferQueue<>();
 
@@ -1407,7 +1407,7 @@ public class PushTest extends AbstractHttp2Test {
     }
 
     @Test
-    public void pushValidateConditionalETag() throws Exception {
+    public void pushValidateConditionalETag() {
         final BlockingQueue<HttpContent> resultQueue =
                 new LinkedTransferQueue<>();
 
@@ -1488,7 +1488,7 @@ public class PushTest extends AbstractHttp2Test {
     }
 
     @Test
-    public void pushValidateManualPushUsingEvent() throws Exception {
+    public void pushValidateManualPushUsingEvent() {
         final BlockingQueue<HttpContent> resultQueue =
                 new LinkedTransferQueue<>();
 
