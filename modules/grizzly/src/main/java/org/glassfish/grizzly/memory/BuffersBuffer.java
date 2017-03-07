@@ -732,6 +732,9 @@ public final class BuffersBuffer extends CompositeBuffer {
 
     @Override
     public byte get() {
+       if (!hasRemaining()) {
+           throw new BufferUnderflowException();
+       }
        return get(position++);
     }
 
