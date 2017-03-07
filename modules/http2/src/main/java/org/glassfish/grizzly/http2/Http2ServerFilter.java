@@ -852,6 +852,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 return;
             }
             final Http2Request request = Http2Request.create();
+            request.setConnection(ctx.getConnection());
             request.setRequestURI(pushEvent.getPath());
             request.setProtocol(Protocol.HTTP_2_0);
             request.setMethod(pushEvent.getMethod());
