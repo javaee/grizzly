@@ -855,9 +855,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
             request.setRequestURI(pushEvent.getPath());
             request.setProtocol(Protocol.HTTP_2_0);
             request.setMethod(pushEvent.getMethod());
-            request.setSecure(pushEvent.isSecure());
+            request.setSecure(pushEvent.getHttpRequest().isSecure());
             request.getHeaders().copyFrom(pushEvent.getHeaders());
-            request.addHeader(Header.Referer, pushEvent.getReferrer());
             request.setExpectContent(false);
 
             prepareOutgoingRequest(request);

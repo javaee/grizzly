@@ -45,8 +45,8 @@ import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.Method;
-import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+
 
 /**
  * A {@link FilterChainEvent} to trigger an HTTP/2 push promise and trigger a new request
@@ -60,12 +60,10 @@ public class PushEvent implements FilterChainEvent {
     public static final Object TYPE = PushEvent.class.getName();
 
     private Method method;
-    private boolean secure;
     private MimeHeaders headers = new MimeHeaders();
     private String path;
-    private String referrer;
     private HttpRequestPacket httpRequest;
-    private StringBuilder referrerBuilder = new StringBuilder(64);
+
 
     // ----------------------------------------------------------- Constructors
 
@@ -122,20 +120,6 @@ public class PushEvent implements FilterChainEvent {
     }
 
     /**
-     * @return <code>true</code> if the request is secure, otherwise <code>false</code>.
-     */
-    public boolean isSecure() {
-        return secure;
-    }
-
-    /**
-     * @return the 'referer' of the push request.
-     */
-    public String getReferrer() {
-        return referrer;
-    }
-
-    /**
      * @return the {@link HttpRequestPacket} of the original request.  This is necessary in order to lookup
      *  the parent stream.
      */
@@ -149,10 +133,8 @@ public class PushEvent implements FilterChainEvent {
      */
     public void recycle() {
         method = null;
-        secure = false;
         headers.recycle();
         path = null;
-        referrer = null;
         httpRequest = null;
         ThreadCache.putToCache(CACHE_IDX, this);
     }
@@ -184,8 +166,6 @@ public class PushEvent implements FilterChainEvent {
         method = builder.method;
         headers.copyFrom(builder.headers);
         path = builder.path;
-        secure = builder.request.isSecure();
-        referrer = composeReferrerHeader(builder.request);
         httpRequest = builder.request.getRequest();
         return this;
     }
@@ -194,25 +174,9 @@ public class PushEvent implements FilterChainEvent {
         method = builder.method;
         headers.copyFrom(builder.headers);
         path = builder.path;
-        secure = builder.httpRequest.isSecure();
-        referrer = builder.referrer;
         httpRequest = builder.httpRequest;
         return this;
     }
-
-    private String composeReferrerHeader(final Request request) {
-        try {
-            final String queryString = request.getQueryString();
-            referrerBuilder.append(request.getRequestURL());
-            if (queryString != null) {
-                referrerBuilder.append('?').append(queryString);
-            }
-            return referrerBuilder.toString();
-        } finally {
-            referrerBuilder.setLength(0);
-        }
-    }
-
 
     // --------------------------------------------------------- Nested Classes
 
@@ -225,7 +189,6 @@ public class PushEvent implements FilterChainEvent {
         private Method method = Method.GET;
         private MimeHeaders headers = new MimeHeaders();
         private String path;
-        private String referrer;
         private HttpRequestPacket httpRequest;
 
         private PushEventBuilder() {
@@ -274,16 +237,6 @@ public class PushEvent implements FilterChainEvent {
          */
         public PushEventBuilder path(final String val) {
             path = validate(val);
-            return this;
-        }
-
-        /**
-         * The 'referer' of the push request.
-         *
-         * @return this
-         */
-        public PushEventBuilder referrer(final String val) {
-            referrer = validate(val);
             return this;
         }
 

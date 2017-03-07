@@ -48,6 +48,10 @@ import org.glassfish.grizzly.http.server.Session;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 
 /**
  * Build a request to be pushed.  This is based on Servlet 4.0's PushBuilder.
@@ -123,6 +127,7 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 public final class PushBuilder {
 
     private static final Header[] REMOVE_HEADERS = {
+            Header.Cookie,
             Header.ETag,
             Header.IfModifiedSince,
             Header.IfNoneMatch,
@@ -158,8 +163,11 @@ public final class PushBuilder {
     String eTag;
     String lastModified;
     Request request;
+    boolean sessionFromURL;
+    List<Cookie> cookies;
 
     public PushBuilder(final Request request) {
+        this.request = request;
         headers = new MimeHeaders();
         headers.copyFrom(request.getRequest().getHeaders());
         for (int i = 0, len = CONDITIONAL_HEADERS.length; i < len; i++) {
@@ -171,7 +179,46 @@ public final class PushBuilder {
         for (int i = 0, len = REMOVE_HEADERS.length; i < len; i++) {
             headers.removeHeader(REMOVE_HEADERS[i]);
         }
-        this.request = request;
+        headers.setValue(Header.Referer).setString(composeReferrerHeader(request));
+        final Session session = request.getSession(false);
+        if (session != null) {
+            sessionId = session.getIdInternal();
+        }
+        if (sessionId == null) {
+            sessionId = request.getRequestedSessionId();
+        }
+        sessionFromURL = request.isRequestedSessionIdFromURL();
+
+        final Cookie[] requestCookies = request.getCookies();
+        if (requestCookies != null) {
+            cookies = new ArrayList<Cookie>(Arrays.asList(requestCookies));
+        }
+
+        final Cookie[] responseCookies = request.getResponse().getCookies();
+        if (responseCookies != null) {
+            if (cookies == null) {
+                cookies = new ArrayList<Cookie>(responseCookies.length);
+            }
+            for (int i = 0, len = responseCookies.length; i < len; i++) {
+                final Cookie c = responseCookies[i];
+                if (c.getMaxAge() > 0) {
+                    cookies.add(new Cookie(c.getName(), c.getValue()));
+                } else {
+                    for (int j = 0, jlen = cookies.size(); j < jlen; j++) {
+                        if (cookies.get(j).getName().equals(c.getName())) {
+                            cookies.remove(j);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (cookies != null && !cookies.isEmpty()) {
+            for (int i = 0, len = cookies.size(); i < len; i++) {
+                final Cookie c = cookies.get(i);
+                headers.addValue(Header.Cookie).setString(c.asClientCookieString());
+            }
+        }
     }
 
     /**
@@ -292,7 +339,9 @@ public final class PushBuilder {
      */
     public PushBuilder removeHeader(String name) {
         if (validValue(name)) {
-            headers.removeHeader(name);
+            if (!Header.Referer.getLowerCase().equals(name.toLowerCase())) {
+                headers.removeHeader(name);
+            }
         }
         return this;
     }
@@ -387,6 +436,16 @@ public final class PushBuilder {
             pathLocal += ((pathLocal.indexOf('?') != -1)
                     ? '&' + queryString
                     : '?' + queryString);
+        }
+
+        if (sessionId != null) {
+            if (sessionFromURL){
+                pathLocal += ';' + request.getSessionCookieName() + '=' + sessionId;
+            } else {
+                headers.addValue(Header.Cookie)
+                        .setString(new Cookie(
+                                request.getSessionCookieName(), sessionId).asClientCookieString());
+            }
         }
 
         path = pathLocal;
@@ -503,6 +562,16 @@ public final class PushBuilder {
 
     private static String validate(final String value) {
         return ((validValue(value)) ? value : null);
+    }
+
+    private String composeReferrerHeader(final Request request) {
+        final StringBuilder sb = new StringBuilder(64);
+        final String queryString = request.getQueryString();
+        sb.append(request.getRequestURL());
+        if (queryString != null) {
+            sb.append('?').append(queryString);
+        }
+        return sb.toString();
     }
 
 }

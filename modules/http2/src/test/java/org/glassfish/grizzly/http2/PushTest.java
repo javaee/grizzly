@@ -47,17 +47,18 @@ import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.http.Cookie;
+import org.glassfish.grizzly.http.Cookies;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.http.server.HttpHandler;
-import org.glassfish.grizzly.http.server.HttpServer;
-import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.Response;
+import org.glassfish.grizzly.http.server.*;
 import org.glassfish.grizzly.http.server.http2.PushBuilder;
 import org.glassfish.grizzly.http.server.http2.PushEvent;
+import org.glassfish.grizzly.http.server.util.Globals;
+import org.glassfish.grizzly.http.util.CookieParserUtils;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
@@ -156,14 +157,10 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    assertThat("No NullPointerException or unexpected Exception thrown when providing null to PushBuilder.method()",
-                               npeThrown.get(),
-                               is(true));
-                    return null;
-                } catch (Throwable t) {
-                    return t;
-                }
+                assertThat("No NullPointerException or unexpected Exception thrown when providing null to PushBuilder.method()",
+                        npeThrown.get(),
+                        is(true));
+                return null;
             }
         };
 
@@ -173,7 +170,7 @@ public class PushTest extends AbstractHttp2Test {
     @Test
     public void pushBuilderInvalidMethod() {
 
-        final HashMap<Method,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Method, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(Method.OPTIONS, new AtomicBoolean());
         methodsMap.put(Method.POST, new AtomicBoolean());
         methodsMap.put(Method.PUT, new AtomicBoolean());
@@ -205,16 +202,12 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    // validate the AtomicBooleans in the map.  They should all be true.
-                    for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("No IllegalStateException or unexpected Exception thrown when providing %s to PushBuilder.method()",
-                                entry.getKey().getMethodString()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                // validate the AtomicBooleans in the map.  They should all be true.
+                for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("No IllegalStateException or unexpected Exception thrown when providing %s to PushBuilder.method()",
+                            entry.getKey().getMethodString()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -224,7 +217,7 @@ public class PushTest extends AbstractHttp2Test {
     @Test
     public void pushBuilderValidMethod() {
 
-        final HashMap<Method,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Method, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(Method.GET, new AtomicBoolean());
         methodsMap.put(Method.HEAD, new AtomicBoolean());
 
@@ -250,15 +243,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected Exception thrown when providing %s to PushBuilder.method()",
-                                entry.getKey().getMethodString()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected Exception thrown when providing %s to PushBuilder.method()",
+                            entry.getKey().getMethodString()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -268,7 +257,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderNullOrEmptyQueryString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
         methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
 
@@ -280,7 +269,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.queryString(entry.getKey().getSecond());
                         if (builder.getQueryString() == null) {
@@ -297,15 +286,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.queryString()",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.queryString()",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -314,7 +299,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderValidQueryString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("valid query string", "a=1&b=2"), new AtomicBoolean());
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -324,7 +309,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.queryString(entry.getKey().getSecond());
                         if (Objects.equals(builder.getQueryString(), entry.getKey().getSecond())) {
@@ -341,15 +326,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.queryString()",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.queryString()",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -358,7 +339,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderNullOrEmptySessionIdString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
         methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
 
@@ -370,7 +351,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.sessionId(entry.getKey().getSecond());
                         if (builder.getSessionId() == null) {
@@ -387,15 +368,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.sessionId()",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.sessionId()",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -404,7 +381,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderValidSessionIdString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("valid session string", "somesortofsessionid"), new AtomicBoolean());
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -414,7 +391,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.sessionId(entry.getKey().getSecond());
                         if (Objects.equals(builder.getSessionId(), entry.getKey().getSecond())) {
@@ -431,15 +408,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.sessionId()",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.sessionId()",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -448,7 +421,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderNullOrEmptyPathString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
         methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
 
@@ -460,7 +433,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.path(entry.getKey().getSecond());
                         if (builder.getPath() == null) {
@@ -477,15 +450,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.path()",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.path()",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -494,7 +463,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderValidPathString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("valid path string", "/path"), new AtomicBoolean());
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -504,7 +473,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.path(entry.getKey().getSecond());
                         if (Objects.equals(builder.getPath(), entry.getKey().getSecond())) {
@@ -521,15 +490,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.path()",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.path()",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -538,7 +503,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderNullOrEmptyETagString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
         methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
 
@@ -550,7 +515,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.eTag(entry.getKey().getSecond());
                         if (builder.getETag() == null) {
@@ -567,15 +532,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.eTag()",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.eTag()",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -584,7 +545,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderValidETagString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("valid etag string", "/w1112312322"), new AtomicBoolean());
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -594,7 +555,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.eTag(entry.getKey().getSecond());
                         if (Objects.equals(builder.getETag(), entry.getKey().getSecond())) {
@@ -611,15 +572,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.eTag()",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.eTag()",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -628,7 +585,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderNullOrEmptyLastModifiedString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
         methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
 
@@ -640,7 +597,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.lastModified(entry.getKey().getSecond());
                         if (builder.getLastModified() == null) {
@@ -657,15 +614,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.lastModified()",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.lastModified()",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -674,7 +627,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderValidLastModifiedString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("valid last modified string", "someISOdate"), new AtomicBoolean());
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -684,7 +637,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.lastModified(entry.getKey().getSecond());
                         if (Objects.equals(builder.getLastModified(), entry.getKey().getSecond())) {
@@ -701,15 +654,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.lastModified()",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected value returned or exception thrown when providing %s to PushBuilder.lastModified()",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -718,7 +667,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderNullOrEmptyHeaderAddNameOrValueString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
         methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
 
@@ -734,10 +683,11 @@ public class PushTest extends AbstractHttp2Test {
                 // clear all headers first
                 final Iterator<String> existingHeaders = builder.getHeaderNames().iterator();
                 while (existingHeaders.hasNext()) {
+                    existingHeaders.next();
                     existingHeaders.remove();
                 }
 
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.addHeader(entry.getKey().getSecond(), "value");
                         if (!builder.getHeaderNames().iterator().hasNext()) {
@@ -757,15 +707,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected header returned or exception thrown when providing %s to PushBuilder.addHeader() (either name or value)",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected header returned or exception thrown when providing %s to PushBuilder.addHeader() (either name or value)",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -774,7 +720,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderValidHeaderSetNameAndValueString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("header-name", "header-value"), new AtomicBoolean());
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -784,7 +730,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.addHeader(entry.getKey().getFirst(), entry.getKey().getSecond());
                         if (Objects.equals(builder.getHeader(entry.getKey().getFirst()), entry.getKey().getSecond())) {
@@ -801,15 +747,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat("Unexpected value returned or exception thrown when providing a valid name/value to PushBuilder.addHeader()",
-                                entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat("Unexpected value returned or exception thrown when providing a valid name/value to PushBuilder.addHeader()",
+                            entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -818,7 +760,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderNullOrEmptyHeaderSetNameOrValueString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("null", (String) null), new AtomicBoolean());
         methodsMap.put(new Pair<>("empty", ""), new AtomicBoolean());
 
@@ -834,10 +776,11 @@ public class PushTest extends AbstractHttp2Test {
                 // clear all headers first
                 final Iterator<String> existingHeaders = builder.getHeaderNames().iterator();
                 while (existingHeaders.hasNext()) {
+                    existingHeaders.next();
                     existingHeaders.remove();
                 }
 
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.setHeader(entry.getKey().getSecond(), "value");
                         if (!builder.getHeaderNames().iterator().hasNext()) {
@@ -857,15 +800,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat(String.format("Unexpected header returned or exception thrown when providing %s to PushBuilder.setHeader() (either name or value)",
-                                entry.getKey().getFirst()), entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat(String.format("Unexpected header returned or exception thrown when providing %s to PushBuilder.setHeader() (either name or value)",
+                            entry.getKey().getFirst()), entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -874,7 +813,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderValidHeaderAddNameAndValueString() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("header-name", "header-value"), new AtomicBoolean());
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -884,7 +823,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.setHeader(entry.getKey().getFirst(), entry.getKey().getSecond());
                         if (Objects.equals(builder.getHeader(entry.getKey().getFirst()), entry.getKey().getSecond())) {
@@ -901,15 +840,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat("Unexpected value returned or exception thrown when providing a valid name/value to PushBuilder.setHeader()",
-                                entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat("Unexpected value returned or exception thrown when providing a valid name/value to PushBuilder.setHeader()",
+                            entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -918,7 +853,7 @@ public class PushTest extends AbstractHttp2Test {
 
     @Test
     public void pushBuilderRemoveHeader() {
-        final HashMap<Pair<String,String>,AtomicBoolean> methodsMap = new HashMap<>();
+        final HashMap<Pair<String, String>, AtomicBoolean> methodsMap = new HashMap<>();
         methodsMap.put(new Pair<>("header-name", "header-value"), new AtomicBoolean());
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -928,7 +863,7 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.getPushBuilder();
-                for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.setHeader(entry.getKey().getFirst(), entry.getKey().getSecond());
                         if (Objects.equals(builder.getHeader(entry.getKey().getFirst()), entry.getKey().getSecond())) {
@@ -948,15 +883,11 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    for (Map.Entry<Pair<String,String>, AtomicBoolean> entry : methodsMap.entrySet()) {
-                        assertThat("Unexpected result or exception thrown when validating PushBuilder.removeHeader()",
-                                entry.getValue().get(), is(true));
-                    }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
+                for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
+                    assertThat("Unexpected result or exception thrown when validating PushBuilder.removeHeader()",
+                            entry.getValue().get(), is(true));
                 }
+                return null;
             }
         };
 
@@ -994,13 +925,9 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    assertThat("PushBuilder.isConditional() didn't return true.",
-                               conditionalStatus.get(), is(true));
-                    return null;
-                } catch (Throwable t) {
-                    return t;
-                }
+                assertThat("PushBuilder.isConditional() didn't return true.",
+                        conditionalStatus.get(), is(true));
+                return null;
             }
         };
 
@@ -1038,13 +965,9 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    assertThat("PushBuilder.isConditional() didn't return true.",
-                            conditionalStatus.get(), is(true));
-                    return null;
-                } catch (Throwable t) {
-                    return t;
-                }
+                assertThat("PushBuilder.isConditional() didn't return true.",
+                        conditionalStatus.get(), is(true));
+                return null;
             }
         };
 
@@ -1076,13 +999,9 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    assertThat("PushBuilder.isConditional() didn't return false.",
-                            conditionalStatus.get(), is(true));
-                    return null;
-                } catch (Throwable t) {
-                    return t;
-                }
+                assertThat("PushBuilder.isConditional() didn't return false.",
+                        conditionalStatus.get(), is(true));
+                return null;
             }
         };
 
@@ -1115,18 +1034,106 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    assertThat("No IllegalStateException not thrown or unexpected Exception thrown when PushBuilder.push() without setting a path.",
-                            iseException.get(),
-                            is(true));
-                    return null;
-                } catch (Throwable t) {
-                    return t;
-                }
+                assertThat("No IllegalStateException not thrown or unexpected Exception thrown when PushBuilder.push() without setting a path.",
+                        iseException.get(),
+                        is(true));
+                return null;
             }
         };
 
         doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderValidateNoSessionId() {
+        final AtomicBoolean sessionIdNull = new AtomicBoolean();
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+
+                final PushBuilder builder = request.getPushBuilder();
+                sessionIdNull.compareAndSet(false, builder.getSessionId() == null);
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                assertThat("Non-null value returned by PushBuilder.getSessionId() when no session or requested session ID was present.",
+                        sessionIdNull.get(), is(true));
+                return null;
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderValidateSessionIdFromSession() {
+        final AtomicBoolean sessionIdBySession = new AtomicBoolean();
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                final Session session = request.getSession(true);
+                final PushBuilder builder = request.getPushBuilder();
+                sessionIdBySession.compareAndSet(false, builder.getSessionId().equals(session.getIdInternal()));
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                assertThat("Unexpected value returned by PushBuilder.getSessionId().  Value returned did not match the ID of the current session.",
+                        sessionIdBySession.get(), is(true));
+                return null;
+            }
+        };
+
+        doApiTest(handler, result, latch);
+    }
+
+    @Test
+    public void pushBuilderValidateSessionIdFromRequestedSessionId() {
+        final AtomicBoolean sessionIdBySession = new AtomicBoolean();
+        final String expectedId = "some-value";
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        final HttpHandler handler = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                final PushBuilder builder = request.getPushBuilder();
+                sessionIdBySession.compareAndSet(false, builder.getSessionId().equals(expectedId));
+                latch.countDown();
+            }
+        };
+
+        final Callable<Throwable> result = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                assertThat("Unexpected value returned by PushBuilder.getSessionId().  Value returned did not match the ID of the current session.",
+                        sessionIdBySession.get(), is(true));
+                return null;
+            }
+        };
+
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method(Method.GET)
+                .header(Header.Host, "localhost:" + PORT)
+                .header(Header.Cookie, Globals.SESSION_COOKIE_NAME + '=' + expectedId)
+                .uri("/test")
+                .protocol(Protocol.HTTP_2_0)
+                .build();
+
+        doApiTest(request, handler, result, latch);
     }
 
     @Test
@@ -1175,48 +1182,45 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> validator = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent content3 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("Third HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content3 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("Third HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent[] contents = new HttpContent[]{
-                            content1, content2, content3
-                    };
+                final HttpContent[] contents = new HttpContent[]{
+                        content1, content2, content3
+                };
 
-                    for (int i = 0, len = contents.length; i < len; i++) {
-                        final HttpContent content = contents[i];
-                        final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
-                        final HttpRequestPacket req = res.getRequest();
-                        final Http2Stream stream = Http2Stream.getStreamFor(res);
-                        assertThat(stream, IsNull.<Http2Stream>notNullValue());
-                        assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
-                        switch (req.getRequestURI()) {
-                            case "/main":
-                                assertThat(stream.isPushStream(), is(false));
-                                assertThat(content.getContent().toStringContent(), is("main"));
-                                break;
-                            case "/resource1":
-                                assertThat(stream.isPushStream(), is(true));
-                                assertThat(content.getContent().toStringContent(), is("resource1"));
-                                break;
-                            case "/resource2":
-                                assertThat(stream.isPushStream(), is(true));
-                                assertThat(content.getContent().toStringContent(), is("resource2"));
-                                break;
-                            default:
-                                fail("Unexpected URI: " + req.getRequestURI());
-                        }
+                for (int i = 0, len = contents.length; i < len; i++) {
+                    final HttpContent content = contents[i];
+                    final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
+                    final HttpRequestPacket req = res.getRequest();
+                    final Http2Stream stream = Http2Stream.getStreamFor(res);
+                    assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                    assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                    switch (req.getRequestURI()) {
+                        case "/main":
+                            assertThat(stream.isPushStream(), is(false));
+                            assertThat(content.getContent().toStringContent(), is("main"));
+                            break;
+                        case "/resource1":
+                            assertThat(stream.isPushStream(), is(true));
+                            assertThat(content.getContent().toStringContent(), is("resource1"));
+                            break;
+                        case "/resource2":
+                            assertThat(stream.isPushStream(), is(true));
+                            assertThat(content.getContent().toStringContent(), is("resource2"));
+                            break;
+                        default:
+                            fail("Unexpected URI: " + req.getRequestURI());
                     }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
                 }
+                return null;
+
             }
         };
 
@@ -1268,7 +1272,7 @@ public class PushTest extends AbstractHttp2Test {
                 .header(Header.Host, "localhost:" + PORT);
 
         for (int i = 0, len = removeHeaders.length; i < len; i++) {
-            requestBuilder.header(removeHeaders[i], removeHeaders[i].getLowerCase());
+            requestBuilder.header(removeHeaders[i], removeHeaders[i].getLowerCase() + '=' + removeHeaders[i].getLowerCase());
         }
         for (int i = 0, len = conditionalHeaders.length; i < len; i++) {
             requestBuilder.header(conditionalHeaders[i], conditionalHeaders[i].getLowerCase());
@@ -1280,47 +1284,45 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> validator = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent[] contents = new HttpContent[]{
-                            content1, content2
-                    };
+                final HttpContent[] contents = new HttpContent[]{
+                        content1, content2
+                };
 
-                    for (int i = 0, len = contents.length; i < len; i++) {
-                        final HttpContent content = contents[i];
-                        final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
-                        final HttpRequestPacket req = res.getRequest();
-                        final Http2Stream stream = Http2Stream.getStreamFor(res);
-                        assertThat(stream, IsNull.<Http2Stream>notNullValue());
-                        assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
-                        switch (req.getRequestURI()) {
-                            case "/main":
-                                continue;
-                            case "/resource1":
-                                for (int j = 0, jlen = removeHeaders.length; j < jlen; j++) {
-                                    // special case, 'referer' is added back to request with a new value
-                                    if (removeHeaders[j] == Header.Referer) {
-                                        continue;
-                                    }
-                                    assertThat(req.getHeader(removeHeaders[j]), IsNull.nullValue());
+                for (int i = 0, len = contents.length; i < len; i++) {
+                    final HttpContent content = contents[i];
+                    final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
+                    final HttpRequestPacket req = res.getRequest();
+                    final Http2Stream stream = Http2Stream.getStreamFor(res);
+                    assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                    assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                    System.out.println(content.getContent().toStringContent());
+                    switch (req.getRequestURI()) {
+                        case "/main":
+                            continue;
+                        case "/resource1":
+                            for (int j = 0, jlen = removeHeaders.length; j < jlen; j++) {
+                                // special case, 'referer' is added back to request with a new value
+                                if (removeHeaders[j] == Header.Referer || removeHeaders[j] == Header.Cookie) {
+                                    continue;
                                 }
-                                for (int j = 0, jlen = conditionalHeaders.length; j < jlen; j++) {
-                                    assertThat(req.getHeader(conditionalHeaders[j]), IsNull.nullValue());
-                                }
-                                break;
-                            default:
-                                fail("Unexpected URI: " + req.getRequestURI());
-                        }
+                                assertThat(req.getHeader(removeHeaders[j]), IsNull.nullValue());
+                            }
+                            for (int j = 0, jlen = conditionalHeaders.length; j < jlen; j++) {
+                                assertThat(req.getHeader(conditionalHeaders[j]), IsNull.nullValue());
+                            }
+                            break;
+                        default:
+                            fail("Unexpected URI: " + req.getRequestURI());
                     }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
                 }
+                return null;
+
             }
         };
 
@@ -1365,39 +1367,35 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> validator = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent[] contents = new HttpContent[]{
-                            content1, content2
-                    };
+                final HttpContent[] contents = new HttpContent[]{
+                        content1, content2
+                };
 
-                    for (int i = 0, len = contents.length; i < len; i++) {
-                        final HttpContent content = contents[i];
-                        final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
-                        final HttpRequestPacket req = res.getRequest();
-                        final Http2Stream stream = Http2Stream.getStreamFor(res);
-                        assertThat(stream, IsNull.<Http2Stream>notNullValue());
-                        assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
-                        switch (req.getRequestURI()) {
-                            case "/main":
-                                assertThat(req.getHeader(Header.IfModifiedSince), IsNull.nullValue());
-                                break;
-                            case "/resource1":
-                                assertThat(req.getHeader(Header.IfModifiedSince), is("if-modified-since"));
-                                break;
-                            default:
-                                fail("Unexpected URI: " + req.getRequestURI());
-                        }
+                for (int i = 0, len = contents.length; i < len; i++) {
+                    final HttpContent content = contents[i];
+                    final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
+                    final HttpRequestPacket req = res.getRequest();
+                    final Http2Stream stream = Http2Stream.getStreamFor(res);
+                    assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                    assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                    switch (req.getRequestURI()) {
+                        case "/main":
+                            assertThat(req.getHeader(Header.IfModifiedSince), IsNull.nullValue());
+                            break;
+                        case "/resource1":
+                            assertThat(req.getHeader(Header.IfModifiedSince), is("if-modified-since"));
+                            break;
+                        default:
+                            fail("Unexpected URI: " + req.getRequestURI());
                     }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
                 }
+                return null;
             }
         };
 
@@ -1443,42 +1441,38 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> validator = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent[] contents = new HttpContent[]{
-                            content1, content2
-                    };
+                final HttpContent[] contents = new HttpContent[]{
+                        content1, content2
+                };
 
-                    for (int i = 0, len = contents.length; i < len; i++) {
-                        final HttpContent content = contents[i];
-                        final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
-                        final HttpRequestPacket req = res.getRequest();
-                        final Http2Stream stream = Http2Stream.getStreamFor(res);
-                        assertThat(stream, IsNull.<Http2Stream>notNullValue());
-                        assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
-                        switch (req.getRequestURI()) {
-                            case "/main":
-                                assertThat(req.getHeader(Header.IfNoneMatch), IsNull.nullValue());
-                                assertThat(req.getHeader(Header.LastModified), IsNull.nullValue());
-                                break;
-                            case "/resource1":
-                                assertThat(req.getHeader(Header.IfNoneMatch), is("if-none-match"));
-                                // both values set, but eTag takes precedence.
-                                assertThat(req.getHeader(Header.LastModified), IsNull.nullValue());
-                                break;
-                            default:
-                                fail("Unexpected URI: " + req.getRequestURI());
-                        }
+                for (int i = 0, len = contents.length; i < len; i++) {
+                    final HttpContent content = contents[i];
+                    final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
+                    final HttpRequestPacket req = res.getRequest();
+                    final Http2Stream stream = Http2Stream.getStreamFor(res);
+                    assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                    assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                    switch (req.getRequestURI()) {
+                        case "/main":
+                            assertThat(req.getHeader(Header.IfNoneMatch), IsNull.nullValue());
+                            assertThat(req.getHeader(Header.LastModified), IsNull.nullValue());
+                            break;
+                        case "/resource1":
+                            assertThat(req.getHeader(Header.IfNoneMatch), is("if-none-match"));
+                            // both values set, but eTag takes precedence.
+                            assertThat(req.getHeader(Header.LastModified), IsNull.nullValue());
+                            break;
+                        default:
+                            fail("Unexpected URI: " + req.getRequestURI());
                     }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
                 }
+                return null;
             }
         };
 
@@ -1526,39 +1520,138 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> validator = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                try {
-                    final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
-                    assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+                final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
 
-                    final HttpContent[] contents = new HttpContent[]{
-                            content1, content2
-                    };
+                final HttpContent[] contents = new HttpContent[]{
+                        content1, content2
+                };
 
-                    for (int i = 0, len = contents.length; i < len; i++) {
-                        final HttpContent content = contents[i];
-                        final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
-                        final HttpRequestPacket req = res.getRequest();
-                        final Http2Stream stream = Http2Stream.getStreamFor(res);
-                        assertThat(stream, IsNull.<Http2Stream>notNullValue());
-                        assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
-                        switch (req.getRequestURI()) {
-                            case "/main":
-                                assertThat(content.getContent().toStringContent(), is("main"));
-                                break;
-                            case "/resource1":
-                                assertThat(content.getContent().toStringContent(), is("resource1"));
-                                break;
-                            default:
-                                fail("Unexpected URI: " + req.getRequestURI());
-                        }
+                for (int i = 0, len = contents.length; i < len; i++) {
+                    final HttpContent content = contents[i];
+                    final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
+                    final HttpRequestPacket req = res.getRequest();
+                    final Http2Stream stream = Http2Stream.getStreamFor(res);
+                    assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                    assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                    switch (req.getRequestURI()) {
+                        case "/main":
+                            assertThat(content.getContent().toStringContent(), is("main"));
+                            break;
+                        case "/resource1":
+                            assertThat(content.getContent().toStringContent(), is("resource1"));
+                            break;
+                        default:
+                            fail("Unexpected URI: " + req.getRequestURI());
                     }
-                    return null;
-                } catch (Throwable t) {
-                    return t;
                 }
+                return null;
+            }
+        };
+
+        doPushTest(request, validator, resultQueue,
+                HttpHandlerRegistration.of(mainHandler, "/main"),
+                HttpHandlerRegistration.of(resource1, "/resource1"));
+    }
+
+    @Test
+    public void pushValidateCookies() {
+        final BlockingQueue<HttpContent> resultQueue =
+                new LinkedTransferQueue<>();
+
+        final HttpHandler mainHandler = new HttpHandler() {
+
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                request.getSession(true);
+                final Cookie resCookie = new Cookie("chocolate", "chip");
+                resCookie.setMaxAge(Integer.MAX_VALUE);
+                response.addCookie(resCookie);
+                final PushBuilder builder = request.getPushBuilder();
+                builder.path("/resource1")
+                        .conditional(false)
+                        .push();
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("main");
+            }
+        };
+
+        final HttpHandler resource1 = new HttpHandler() {
+            @Override
+            public void service(final Request request, final Response response) throws Exception {
+                response.setCharacterEncoding("UTF-8");
+                response.setContentType("text/plain");
+                response.getWriter().write("resource1");
+            }
+        };
+
+        final HttpRequestPacket request = HttpRequestPacket.builder()
+                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/main")
+                .header(Header.Cookie, "ginger=snap")
+                .header(Header.Host, "localhost:" + PORT).build();
+
+        final Callable<Throwable> validator = new Callable<Throwable>() {
+            @Override
+            public Throwable call() throws Exception {
+                final HttpContent content1 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("First HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                final HttpContent content2 = resultQueue.poll(5, TimeUnit.SECONDS);
+                assertThat("Second HttpContent is null", content1, IsNull.<HttpContent>notNullValue());
+
+                final HttpContent[] contents = new HttpContent[]{
+                        content1, content2
+                };
+
+                for (int i = 0, len = contents.length; i < len; i++) {
+                    final HttpContent content = contents[i];
+                    final HttpResponsePacket res = (HttpResponsePacket) content.getHttpHeader();
+                    final HttpRequestPacket req = res.getRequest();
+                    final Http2Stream stream = Http2Stream.getStreamFor(res);
+                    assertThat(stream, IsNull.<Http2Stream>notNullValue());
+                    assertThat(res.getContentType(), is("text/plain;charset=UTF-8"));
+                    switch (req.getRequestURI()) {
+                        case "/main":
+                            break;
+                        case "/resource1":
+                            final Cookies cookies = new Cookies();
+                            CookieParserUtils.parseServerCookies(cookies, req.getHeader(Header.Cookie), true, true);
+                            final Cookie[] cookies1 = cookies.get();
+                            assertThat(cookies1.length, is(3));
+                            boolean sessionFound = false;
+                            boolean gingerFound = false;
+                            boolean chocolateFound = false;
+                            for (int j = 0, jlen = cookies1.length; j < jlen; j++) {
+                                final Cookie c = cookies1[j];
+                                switch (c.getName()) {
+                                    case Globals.SESSION_COOKIE_NAME:
+                                        sessionFound = true;
+                                        break;
+                                    case "ginger":
+                                        assertThat(c.getValue(), is("snap"));
+                                        gingerFound = true;
+                                        break;
+                                    case "chocolate":
+                                        assertThat(c.getValue(), is("chip"));
+                                        chocolateFound = true;
+                                        break;
+                                    default:
+                                        fail("Unexpected cookie found:" + c.getName());
+                                }
+                            }
+                            assertThat(sessionFound, is(true));
+                            assertThat(gingerFound, is(true));
+                            assertThat(chocolateFound, is(true));
+                            break;
+                        default:
+                            fail("Unexpected URI: " + req.getRequestURI());
+                    }
+                }
+                return null;
             }
         };
 
@@ -1638,12 +1731,12 @@ public class PushTest extends AbstractHttp2Test {
     }
 
     private void sendRequest(final HttpServer server, final HttpRequestPacket request, final BlockingQueue<HttpContent> queue)
-    throws Exception {
+            throws Exception {
         final Connection c =
                 getConnection(((queue != null)
-                                   ? new ClientAggregatorFilter(queue)
-                                   : null),
-                                server.getListener("grizzly").getTransport());
+                                ? new ClientAggregatorFilter(queue)
+                                : null),
+                        server.getListener("grizzly").getTransport());
         final HttpContent content =
                 HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build();
         c.write(content);
@@ -1671,7 +1764,7 @@ public class PushTest extends AbstractHttp2Test {
         SocketConnectorHandler connectorHandler =
                 TCPNIOConnectorHandler.builder(transport)
                         .processor(clientChain)
-                .build();
+                        .build();
 
         Future<Connection> connectFuture = connectorHandler.connect("localhost", PORT);
         return connectFuture.get(10, TimeUnit.SECONDS);
