@@ -67,10 +67,10 @@ interface StreamOutputSink {
      */
     void onPeerWindowUpdate(int delta) throws Http2StreamException;
 
-    <E> void writeDownStream(HttpPacket httpPacket,
-                             FilterChainContext ctx,
-                             CompletionHandler<WriteResult> completionHandler,
-                             MessageCloner<Buffer> messageCloner)throws IOException;
+    void writeDownStream(HttpPacket httpPacket,
+                         FilterChainContext ctx,
+                         CompletionHandler<WriteResult> completionHandler,
+                         MessageCloner<Buffer> messageCloner)throws IOException;
 
     /**
      * Flush {@link Http2Stream} output and notify {@link CompletionHandler} once

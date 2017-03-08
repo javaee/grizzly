@@ -245,10 +245,10 @@ class DefaultOutputSink implements StreamOutputSink {
      * @throws IOException if an error occurs with the write operation.
      */
     @Override
-    public synchronized <E> void writeDownStream(final HttpPacket httpPacket,
-                                          final FilterChainContext ctx,
-                                          final CompletionHandler<WriteResult> completionHandler,
-                                          final MessageCloner<Buffer> messageCloner)
+    public synchronized void writeDownStream(final HttpPacket httpPacket,
+                                             final FilterChainContext ctx,
+                                             final CompletionHandler<WriteResult> completionHandler,
+                                             final MessageCloner<Buffer> messageCloner)
     throws IOException {
         assert ctx != null;
 
