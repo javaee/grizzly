@@ -62,7 +62,8 @@ import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
 import org.glassfish.grizzly.memory.Buffers;
 
-import static org.glassfish.grizzly.http2.Constants.OUT_FIN_TERMINATION;
+import static org.glassfish.grizzly.http2.Termination.OUT_FIN_TERMINATION;
+
 
 /**
  * Default implementation of an output sink, which is associated
@@ -100,7 +101,7 @@ class DefaultOutputSink implements StreamOutputSink {
     // true, if last output frame has been queued
     private volatile boolean isLastFrameQueued;
     // not null if last output frame has been sent or forcibly terminated
-    private Http2Stream.Termination terminationFlag;
+    private Termination terminationFlag;
     
     // associated HTTP/2 session
     private final Http2Connection http2Connection;
@@ -536,7 +537,7 @@ class DefaultOutputSink implements StreamOutputSink {
      * by setting termination flag and canceling all the pending writes.
      */
     @Override
-    public synchronized void terminate(final Http2Stream.Termination terminationFlag) {
+    public synchronized void terminate(final Termination terminationFlag) {
         if (!isTerminated()) {
             this.terminationFlag = terminationFlag;
             outputQueue.onClose();

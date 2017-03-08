@@ -76,9 +76,8 @@ import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.npn.AlpnClientNegotiator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 
-import static org.glassfish.grizzly.http2.Constants.IN_FIN_TERMINATION;
-import static org.glassfish.grizzly.http2.Constants.OUT_FIN_TERMINATION;
-import static org.glassfish.grizzly.http2.Constants.HTTP2_CLEAR;
+import static org.glassfish.grizzly.http2.Termination.IN_FIN_TERMINATION;
+import static org.glassfish.grizzly.http2.Termination.OUT_FIN_TERMINATION;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
 

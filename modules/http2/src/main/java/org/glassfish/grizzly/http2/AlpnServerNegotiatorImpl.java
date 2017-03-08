@@ -48,15 +48,10 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.npn.AlpnServerNegotiator;
 
-import static org.glassfish.grizzly.http2.Constants.HTTP2;
-import static org.glassfish.grizzly.http2.Constants.HTTP11;
 
-// ---------------------------------------------------------- Nested Classes
-
-final class AlpnServerNegotiatorImpl implements AlpnServerNegotiator {
+final class AlpnServerNegotiatorImpl extends AlpnNegotiatorBase implements AlpnServerNegotiator {
     private final static Logger LOGGER = Grizzly.logger(AlpnServerNegotiatorImpl.class);
 
-    private final String[] supportedProtocols = new String[] { HTTP2, HTTP11 };
     private final Http2BaseFilter filter;
     // ---------------------------------------------------- Constructors
 
@@ -71,7 +66,7 @@ final class AlpnServerNegotiatorImpl implements AlpnServerNegotiator {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "Alpn selectProtocol. Connection={0} sslEngine={1} clientProtocols={2}", new Object[]{connection, sslEngine, Arrays.toString(clientProtocols)});
         }
-        for (String supportedProtocol : supportedProtocols) {
+        for (String supportedProtocol : SUPPORTED_PROTOCOLS) {
             for (String clientProtocol : clientProtocols) {
                 if (supportedProtocol.equals(clientProtocol)) {
                     if (LOGGER.isLoggable(Level.FINE)) {

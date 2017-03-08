@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,7 +59,8 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.utils.DataStructures;
 
-import static org.glassfish.grizzly.http2.Constants.IN_FIN_TERMINATION;
+import static org.glassfish.grizzly.http2.Termination.IN_FIN_TERMINATION;
+
 /**
  *
  * @author oleksiys
@@ -81,9 +82,9 @@ class DefaultInputBuffer implements StreamInputBuffer {
     
     // the termination flag. When is not null contains the reason why input was terminated.
     // when the flag is not null - poll0() will return -1.
-    private static final AtomicReferenceFieldUpdater<DefaultInputBuffer, Http2Stream.Termination> closeFlagUpdater =
-            AtomicReferenceFieldUpdater.newUpdater(DefaultInputBuffer.class, Http2Stream.Termination.class, "closeFlag");
-    private volatile Http2Stream.Termination closeFlag;
+    private static final AtomicReferenceFieldUpdater<DefaultInputBuffer, Termination> closeFlagUpdater =
+            AtomicReferenceFieldUpdater.newUpdater(DefaultInputBuffer.class, Termination.class, "closeFlag");
+    private volatile Termination closeFlag;
     
     private final Object terminateSync = new Object();
     
@@ -344,7 +345,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
      * Marks the input buffer as closed by adding Termination input element to the input queue.
      */
     @Override
-    public void close(final Http2Stream.Termination termination) {
+    public void close(final Termination termination) {
         if (inputClosed.compareAndSet(false, true)) {
             offer0(new InputElement(termination, true, true));
         }
@@ -356,7 +357,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
      * All the buffered data will be discarded.
      */
     @Override
-    public void terminate(final Http2Stream.Termination termination) {
+    public void terminate(final Termination termination) {
         final boolean isSet = closeFlagUpdater.compareAndSet(this, null, termination);
         
         if (inputClosed.compareAndSet(false, true)) {
@@ -406,9 +407,9 @@ class DefaultInputBuffer implements StreamInputBuffer {
         // first of all it has to be the last element
         if (inputElement.isLast) {
             
-            final Http2Stream.Termination termination = !inputElement.isService
+            final Termination termination = !inputElement.isService
                                       ? IN_FIN_TERMINATION
-                                      : (Http2Stream.Termination) inputElement.content;
+                                      : (Termination) inputElement.content;
             
             if (closeFlagUpdater.compareAndSet(this, null, termination)) {
 
@@ -484,7 +485,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
      * return {@link HttpBrokenContent}.
      */
     private HttpContent buildHttpContent(final Buffer payload) {
-        final Http2Stream.Termination localTermination = closeFlag;
+        final Termination localTermination = closeFlag;
         final boolean isFin = localTermination == IN_FIN_TERMINATION;
         
         final HttpContent httpContent;

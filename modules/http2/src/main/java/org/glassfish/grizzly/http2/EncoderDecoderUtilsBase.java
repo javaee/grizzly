@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015-2017 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,58 +37,19 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.http2;
 
-import java.io.IOException;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http.HttpContent;
+class EncoderDecoderUtilsBase {
 
-/**
- * The {@link StreamInputBuffer} implementation, which is used when upgrading
- * HTTP -> HTTP/2 connections.
- * 
- * @author Alexey Stashok
- */
-class UpgradeInputBuffer implements StreamInputBuffer {
+    static final String AUTHORITY_HEADER = ":authority";
 
-    private boolean isClosed;
-    
-    @Override
-    public void onReadEventComplete() {
-        throw new UnsupportedOperationException("Not supported");
-    }
+    static final String METHOD_HEADER = ":method";
 
-    @Override
-    public boolean offer(Buffer data, boolean isLast) {
-        throw new UnsupportedOperationException("Not supported");
-    }
+    static final String PATH_HEADER = ":path";
 
-    @Override
-    public HttpContent poll() throws IOException {
-        throw new UnsupportedOperationException("Not supported");
-    }
+    static final String SCHEMA_HEADER = ":scheme";
 
-    @Override
-    public void close(Termination termination) {
-        terminate(termination);
-    }
+    static final String STATUS_HEADER = ":status";
 
-    @Override
-    public void terminate(Termination termination) {
-        synchronized (this) {
-            if (isClosed) {
-                return;
-            }
-            
-            isClosed = true;
-        }
-        
-        termination.doTask();
-    }
-
-    @Override
-    public synchronized boolean isClosed() {
-        return isClosed;
-    }
-    
 }

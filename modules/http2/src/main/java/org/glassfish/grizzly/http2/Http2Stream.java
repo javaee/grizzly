@@ -67,6 +67,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http2.Termination.TerminationType;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
@@ -75,7 +76,11 @@ import org.glassfish.grizzly.utils.Futures;
 
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 
-import static org.glassfish.grizzly.http2.Constants.*;
+import static org.glassfish.grizzly.http2.Termination.CLOSED_BY_PEER_STRING;
+import static org.glassfish.grizzly.http2.Termination.LOCAL_CLOSE_TERMINATION;
+import static org.glassfish.grizzly.http2.Termination.PEER_CLOSE_TERMINATION;
+import static org.glassfish.grizzly.http2.Termination.RESET_TERMINATION;
+import static org.glassfish.grizzly.http2.Termination.UNEXPECTED_FRAME_TERMINATION;
 
 /**
  * The abstraction representing HTTP2 stream.
@@ -682,31 +687,6 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
                 closeListener.onClosed(this, cr.getType());
             } catch (IOException ignored) {
             }
-        }
-    }
-    
-    protected enum TerminationType {
-        FIN, RST, LOCAL_CLOSE, PEER_CLOSE, FORCED
-    }
-    
-    protected static class Termination {
-        private final TerminationType type;
-        private final String description;
-
-        public Termination(final TerminationType type, final String description) {
-            this.type = type;
-            this.description = description;
-        }
-
-        public TerminationType getType() {
-            return type;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-        
-        public void doTask() {
         }
     }
 }

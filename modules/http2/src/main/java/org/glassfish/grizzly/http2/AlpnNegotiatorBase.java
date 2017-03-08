@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,65 +40,21 @@
 
 package org.glassfish.grizzly.http2;
 
-import org.glassfish.grizzly.http2.Http2Stream.Termination;
-import org.glassfish.grizzly.http2.Http2Stream.TerminationType;
-import org.glassfish.grizzly.utils.Charsets;
 
-/**
- *
- * @author oleksiys
- */
-public class Constants {
-
-    public static final int DEFAULT_MAX_HEADER_LIST_SIZE = 4096;
-
-    static final String AUTHORITY_HEADER = ":authority";
-
-    static final String METHOD_HEADER = ":method";
-
-    static final String PATH_HEADER = ":path";
-
-    static final String SCHEMA_HEADER = ":scheme";
-
-    static final String STATUS_HEADER = ":status";
-
-    static final Termination IN_FIN_TERMINATION =
-            new Termination(TerminationType.FIN, "End of input");
-    
-    static final Termination OUT_FIN_TERMINATION =
-            new Termination(TerminationType.FIN, "The output stream has been closed");
-    
-    static final String CLOSED_BY_PEER_STRING = "Closed by peer";
-    
-    static final Termination LOCAL_CLOSE_TERMINATION =
-            new Termination(TerminationType.LOCAL_CLOSE, "Closed locally");
-    
-    static final Termination PEER_CLOSE_TERMINATION =
-            new Termination(TerminationType.PEER_CLOSE, CLOSED_BY_PEER_STRING);
-    
-    static final Termination RESET_TERMINATION =
-            new Termination(TerminationType.RST, "Reset by peer");
-
-    static final Termination UNEXPECTED_FRAME_TERMINATION =
-            new Termination(TerminationType.LOCAL_CLOSE, "Unexpected HTTP/2 frame");
-
-    static final Termination FRAME_TOO_LARGE_TERMINATION =
-            new Termination(TerminationType.LOCAL_CLOSE, "HTTP/2 frame sent by peer is too large");
-
-    static final String HTTP2_PUSH_ENABLED = "http2-push-enabled";
+class AlpnNegotiatorBase {
 
     /**
      * ALPN token for HTTP/1.1.
      */
-    public static final String HTTP11 = "http/1.1";
+    static final String HTTP11 = "http/1.1";
 
     /**
      * ALPN token for HTTP/2.0.
      */
-    public static final String HTTP2 = "h2";
+    static final String HTTP2 = "h2";
 
     /**
-     * Token for clear-text HTTP/2.0.
+     * Supported protocols for negotiation.
      */
-    public static final String HTTP2_CLEAR = "h2c";
+    static final String[] SUPPORTED_PROTOCOLS = new String[] { HTTP2, HTTP11 };
 }

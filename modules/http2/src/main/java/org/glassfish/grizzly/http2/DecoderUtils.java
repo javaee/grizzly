@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,7 +58,7 @@ import org.glassfish.grizzly.http2.hpack.DecodingCallback;
  * 
  * @author Grizzly team
  */
-class DecoderUtils {
+class DecoderUtils extends EncoderDecoderUtilsBase {
     private final static Logger LOGGER = Grizzly.logger(DecoderUtils.class);
 
     private static final String COOKIE_SEP = "; ";
@@ -126,7 +126,7 @@ class DecoderUtils {
         final int valueLen = value.length();
         
         switch (name) {
-            case Constants.PATH_HEADER: {
+            case PATH_HEADER: {
                 int questionIdx = value.indexOf('?');
 
                 if (questionIdx == -1) {
@@ -140,15 +140,15 @@ class DecoderUtils {
                 
                 return;
             }
-            case Constants.METHOD_HEADER: {
+            case METHOD_HEADER: {
                 request.getMethodDC().setString(value);
                 return;
             }
-            case Constants.SCHEMA_HEADER: {
+            case SCHEMA_HEADER: {
                 request.setSecure(valueLen == 5); // support http and https only
                 return;
             }
-            case Constants.AUTHORITY_HEADER: {
+            case AUTHORITY_HEADER: {
                 request.getHeaders().addValue(Header.Host)
                         .setString(value);
                 return;
@@ -165,7 +165,7 @@ class DecoderUtils {
         validateHeaderCharacters(name, value);
         final int valueLen = value.length();
         switch (name) {
-            case Constants.STATUS_HEADER: {
+            case STATUS_HEADER: {
                 if ((valueLen) != 3) {
                     throw new IllegalStateException("Unexpected status code: " + value);
                 }

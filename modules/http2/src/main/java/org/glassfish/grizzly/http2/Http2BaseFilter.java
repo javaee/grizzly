@@ -90,7 +90,6 @@ import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.PriorityFrame;
 
-import static org.glassfish.grizzly.http2.Constants.HTTP2_CLEAR;
 
 /**
  * The {@link org.glassfish.grizzly.filterchain.Filter} serves as a bridge
@@ -105,6 +104,16 @@ import static org.glassfish.grizzly.http2.Constants.HTTP2_CLEAR;
  */
 public abstract class Http2BaseFilter extends HttpBaseFilter {
     private final static Logger LOGGER = Grizzly.logger(Http2BaseFilter.class);
+
+    /**
+     * Token for clear-text HTTP/2.0.
+     */
+    static final String HTTP2_CLEAR = "h2c";
+
+    /**
+     * Attribute name for associating push status.
+     */
+    static final String HTTP2_PUSH_ENABLED = "http2-push-enabled";
     
     static final byte[] PRI_PAYLOAD = "SM\r\n\r\n".getBytes(Charsets.ASCII_CHARSET);
     
@@ -607,7 +616,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                     break;
                 case SettingsFrame.SETTINGS_ENABLE_PUSH:
                     final boolean pushEnabled = (setting.getValue() == 1);
-                    http2Connection.getConnection().getAttributes().setAttribute(Constants.HTTP2_PUSH_ENABLED, pushEnabled);
+                    http2Connection.getConnection().getAttributes().setAttribute(HTTP2_PUSH_ENABLED, pushEnabled);
                     http2Connection.setPushEnabled(pushEnabled);
                     break;
                 case SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS:

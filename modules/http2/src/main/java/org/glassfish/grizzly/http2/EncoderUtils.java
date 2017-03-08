@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,7 +65,7 @@ import org.glassfish.grizzly.ssl.SSLUtils;
  * 
  * @author Grizzly team
  */
-class EncoderUtils {
+class EncoderUtils extends EncoderDecoderUtilsBase {
     private static final String HTTP = "http";
     private static final String HTTPS = "https";
 
@@ -88,7 +88,7 @@ class EncoderUtils {
 //        encoder.encodeHeader(Constants.STATUS_HEADER_BYTES,
 //                response.getHttpStatus().getStatusBytes(), false);
         
-        encoder.encodeHeader(Constants.STATUS_HEADER,
+        encoder.encodeHeader(STATUS_HEADER,
                 String.valueOf(response.getHttpStatus().getStatusCode()));
 
         encodeUserHeaders(headers, encoder);
@@ -178,23 +178,23 @@ class EncoderUtils {
         
         final HeadersEncoder encoder = http2Connection.getHeadersEncoder();
 
-        encoder.encodeHeader(Constants.METHOD_HEADER,
+        encoder.encodeHeader(METHOD_HEADER,
                 request.getMethod().toString());
 
         if (schemeLen > 0) {
-            encoder.encodeHeader(Constants.SCHEMA_HEADER,
+            encoder.encodeHeader(SCHEMA_HEADER,
                     requestURI.substring(0, schemeLen));
         } else {
             // guess
-            encoder.encodeHeader(Constants.SCHEMA_HEADER,
+            encoder.encodeHeader(SCHEMA_HEADER,
                     ((SSLUtils.getSSLEngine(http2Connection.getConnection()) == null)
                     ? HTTP
                     : HTTPS));
         }
 
-        encoder.encodeHeader(Constants.AUTHORITY_HEADER, hostHeader);
+        encoder.encodeHeader(AUTHORITY_HEADER, hostHeader);
 
-        encoder.encodeHeader(Constants.PATH_HEADER,
+        encoder.encodeHeader(PATH_HEADER,
                 (pathLen == requestURI.length())
                     ? requestURI
                     : requestURI.substring(pathStart, pathStart + pathLen));

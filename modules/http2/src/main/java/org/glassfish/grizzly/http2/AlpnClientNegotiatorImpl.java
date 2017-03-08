@@ -48,17 +48,10 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.npn.AlpnClientNegotiator;
 
-import static org.glassfish.grizzly.http2.Constants.HTTP11;
-import static org.glassfish.grizzly.http2.Constants.HTTP2;
 
-/**
- *
- * @author oleksiys
- */
-class AlpnClientNegotiatorImpl implements AlpnClientNegotiator {
+class AlpnClientNegotiatorImpl extends AlpnNegotiatorBase implements AlpnClientNegotiator {
     private final static Logger LOGGER = Grizzly.logger(AlpnClientNegotiatorImpl.class);
 
-    private final String[] supportedProtocolsStr = new String[] { HTTP2, HTTP11 };
     private final Http2ClientFilter filter;
 
     public AlpnClientNegotiatorImpl(final Http2ClientFilter filter) {
@@ -69,9 +62,9 @@ class AlpnClientNegotiatorImpl implements AlpnClientNegotiator {
     public String[] getProtocols(final SSLEngine sslEngine) {
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE, "Alpn getProtocols. Connection={0}, protocols={1}",
-                    new Object[]{AlpnSupport.getConnection(sslEngine), Arrays.toString(supportedProtocolsStr)});
+                    new Object[]{AlpnSupport.getConnection(sslEngine), Arrays.toString(SUPPORTED_PROTOCOLS)});
         }
-        return supportedProtocolsStr;
+        return SUPPORTED_PROTOCOLS.clone();
     }
 
     @Override

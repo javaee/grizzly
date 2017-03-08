@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2015-2017 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,58 +37,59 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.http2;
 
-import java.io.IOException;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http.HttpContent;
-
 /**
- * The {@link StreamInputBuffer} implementation, which is used when upgrading
- * HTTP -> HTTP/2 connections.
  * 
- * @author Alexey Stashok
  */
-class UpgradeInputBuffer implements StreamInputBuffer {
+public class Termination {
 
-    private boolean isClosed;
-    
-    @Override
-    public void onReadEventComplete() {
-        throw new UnsupportedOperationException("Not supported");
+    static final Termination IN_FIN_TERMINATION =
+            new Termination(TerminationType.FIN, "End of input");
+
+    static final Termination OUT_FIN_TERMINATION =
+            new Termination(TerminationType.FIN, "The output stream has been closed");
+
+    static final String CLOSED_BY_PEER_STRING = "Closed by peer";
+
+    static final Termination LOCAL_CLOSE_TERMINATION =
+            new Termination(TerminationType.LOCAL_CLOSE, "Closed locally");
+
+    static final Termination PEER_CLOSE_TERMINATION =
+            new Termination(TerminationType.PEER_CLOSE, CLOSED_BY_PEER_STRING);
+
+    static final Termination RESET_TERMINATION =
+            new Termination(TerminationType.RST, "Reset by peer");
+
+    static final Termination UNEXPECTED_FRAME_TERMINATION =
+            new Termination(TerminationType.LOCAL_CLOSE, "Unexpected HTTP/2 frame");
+
+    static final Termination FRAME_TOO_LARGE_TERMINATION =
+            new Termination(TerminationType.LOCAL_CLOSE, "HTTP/2 frame sent by peer is too large");
+
+    static final String HTTP2_PUSH_ENABLED = "http2-push-enabled";
+
+    enum TerminationType {
+        FIN, RST, LOCAL_CLOSE, PEER_CLOSE, FORCED
     }
 
-    @Override
-    public boolean offer(Buffer data, boolean isLast) {
-        throw new UnsupportedOperationException("Not supported");
+    private final TerminationType type;
+    private final String description;
+
+    public Termination(final TerminationType type, final String description) {
+        this.type = type;
+        this.description = description;
     }
 
-    @Override
-    public HttpContent poll() throws IOException {
-        throw new UnsupportedOperationException("Not supported");
+    public TerminationType getType() {
+        return type;
     }
 
-    @Override
-    public void close(Termination termination) {
-        terminate(termination);
+    public String getDescription() {
+        return description;
     }
 
-    @Override
-    public void terminate(Termination termination) {
-        synchronized (this) {
-            if (isClosed) {
-                return;
-            }
-            
-            isClosed = true;
-        }
-        
-        termination.doTask();
+    public void doTask() {
     }
-
-    @Override
-    public synchronized boolean isClosed() {
-        return isClosed;
-    }
-    
 }

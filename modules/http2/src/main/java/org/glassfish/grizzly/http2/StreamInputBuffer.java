@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -75,14 +75,14 @@ interface StreamInputBuffer {
      * 
      * Marks the input buffer as closed by adding Termination input element to the input queue.
      */
-    void close(final Http2Stream.Termination termination);
+    void close(final Termination termination);
 
     /**
      * Forcibly closes the input buffer.
      * 
      * All the buffered data will be discarded.
      */
-    void terminate(final Http2Stream.Termination termination);
+    void terminate(final Termination termination);
     
     /**
      * Returns <tt>true</tt> if the <tt>InputBuffer</tt> has been closed.

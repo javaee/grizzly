@@ -55,6 +55,8 @@ import java.util.concurrent.ExecutorService;
  */
 public class Http2Configuration {
 
+    public static final int DEFAULT_MAX_HEADER_LIST_SIZE = 4096;
+
     private volatile int maxConcurrentStreams;
     private volatile int initialWindowSize;
     private volatile int maxFramePayloadSize;
@@ -136,7 +138,7 @@ public class Http2Configuration {
 
     /**
      * @return the maximum size, in bytes, of header list.  If not explicitly configured, the default of
-     *  {@link Constants#DEFAULT_MAX_HEADER_LIST_SIZE} is used.
+     *  {@link #DEFAULT_MAX_HEADER_LIST_SIZE} is used.
      */
     public int getMaxHeaderListSize() {
         return maxHeaderListSize;
@@ -204,7 +206,7 @@ public class Http2Configuration {
         private int maxConcurrentStreams = -1;
         private int initialWindowSize = -1;
         private int maxFramePayloadSize = -1;
-        private int maxHeaderListSize = Constants.DEFAULT_MAX_HEADER_LIST_SIZE;
+        private int maxHeaderListSize = DEFAULT_MAX_HEADER_LIST_SIZE;
         private boolean disableCipherCheck;
         private boolean priorKnowledge;
         private ThreadPoolConfig threadPoolConfig;
