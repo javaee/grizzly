@@ -897,9 +897,10 @@ public class Http2ServerFilter extends Http2BaseFilter {
             });
 
 
-        } catch (Throwable e) {
+        } catch (Exception e) {
             LOGGER.log(Level.SEVERE,
-                    "Can not push: " + pushEvent.getPath(), e);
+                    "Unable to push resource identified by path [{}]", pushEvent.getPath());
+            LOGGER.log(Level.SEVERE, e.getMessage(), e);
         } finally {
             if (isDeflaterLocked) {
                 h2c.getDeflaterLock().unlock();
