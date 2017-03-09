@@ -280,7 +280,7 @@ public class IdleTimeoutFilter extends BaseFilter {
             final IdleRecord idleRecord = IDLE_ATTR.get(connection);
             // Small trick to not synchronize this block and queueAction();
             idleRecord.timeoutMillis = FOREVER_SPECIAL;
-            if (IdleRecord.counterUpdater.decrementAndGet(idleRecord) == 0) {
+            if (idleRecord.isClosed || IdleRecord.counterUpdater.decrementAndGet(idleRecord) == 0) {
                 final long timeoutToSet;
                 
                 // non-volatile isClosed should work ok,
@@ -290,6 +290,7 @@ public class IdleTimeoutFilter extends BaseFilter {
                 // 2) we see false, but in that case CAS will fail and timeout (assigned by close()) will remain 0
                 if (idleRecord.isClosed) {
                     timeoutToSet = 0;
+                    IdleRecord.counterUpdater.set(idleRecord, 0);
                 } else {
                     final long timeout = timeoutResolver.getTimeout(ctx);
                     timeoutToSet = timeout == FOREVER ?
