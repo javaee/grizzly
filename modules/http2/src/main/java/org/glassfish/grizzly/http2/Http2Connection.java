@@ -124,8 +124,6 @@ public class Http2Connection {
     private volatile FilterChain http2StreamChain;
     private volatile FilterChain http2ConnectionChain;
 
-    volatile Boolean cipherSuiteOkay;
-    
     private final Map<Integer, Http2Stream> streamsMap =
             DataStructures.getConcurrentMap();
     
