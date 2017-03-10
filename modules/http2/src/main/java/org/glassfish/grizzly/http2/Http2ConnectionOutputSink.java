@@ -99,29 +99,19 @@ public class Http2ConnectionOutputSink {
     }
     
     protected void writeDownStream(final Http2Frame frame) {
-        writeDownStream(frame, null);
-    }
-    
-    protected void writeDownStream(final Http2Frame frame,
-            final CompletionHandler<WriteResult> completionHandler) {
         
         http2Connection.getHttp2ConnectionChain().write(
                 http2Connection.getConnection(), null, 
                 frameCodec().serializeAndRecycle(http2Connection, frame),
-                completionHandler, (MessageCloner) null);        
+                null, (MessageCloner) null);
     }
 
     protected void writeDownStream(final List<Http2Frame> frames) {
-        writeDownStream(frames, null);
-    }
-
-    protected void writeDownStream(final List<Http2Frame> frames,
-            final CompletionHandler<WriteResult> completionHandler) {
         
         http2Connection.getHttp2ConnectionChain().write(
                 http2Connection.getConnection(), null, 
                 frameCodec().serializeAndRecycle(http2Connection, frames),
-                completionHandler, (MessageCloner) null);        
+                null, (MessageCloner) null);
     }
     
     @SuppressWarnings("unchecked")

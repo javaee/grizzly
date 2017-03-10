@@ -78,10 +78,6 @@ class Http2Request extends HttpRequestPacket implements Http2Header {
         this.response = new Http2Response();
     }
 
-    Http2Request(Http2Response response) {
-        this.response = response;
-    }
-    
     @Override
     public ProcessingState getProcessingState() {
         return processingState;

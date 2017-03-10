@@ -59,17 +59,6 @@ class Http2State {
 
     private List<ReadyListener> listeners;
     
-    static Http2State getOrCreate(final Connection connection) {
-        
-        Http2State state = http2State.get(connection);
-        if (state == null) {
-            state = new Http2State();
-            http2State.set(connection, state);
-        }
-        
-        return state;
-    }
-    
     static Http2State get(final Connection connection) {
         return http2State.get(connection);
     }
@@ -173,24 +162,12 @@ class Http2State {
         notifyReadyListeners();
     }
     
-    boolean isUpgradePhase() {
-        final Status statusLocal = status.get();
-        
-        return statusLocal == Status.HTTP_UPGRADE ||
-                statusLocal == Status.DIRECT_UPGRADE;
-    }
-    
     boolean isHttpUpgradePhase() {
         return status.get() == Status.HTTP_UPGRADE;
     }
     
     void finishHttpUpgradePhase() {
         status.compareAndSet(Status.HTTP_UPGRADE, Status.DIRECT_UPGRADE);
-    }
-
-    
-    boolean isDirectUpgradePhase() {
-        return status.get() == Status.DIRECT_UPGRADE;
     }
 
     void setDirectUpgradePhase() {

@@ -72,8 +72,9 @@ class DefaultInputBuffer implements StreamInputBuffer {
     
     private static final AtomicIntegerFieldUpdater<DefaultInputBuffer> inputQueueSizeUpdater =
             AtomicIntegerFieldUpdater.newUpdater(DefaultInputBuffer.class, "inputQueueSize");            
+    @SuppressWarnings("unused")
     private volatile int inputQueueSize;
-    
+
     private final BlockingQueue<InputElement> inputQueue =
             DataStructures.getLTQInstance(InputElement.class);
     
@@ -84,6 +85,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
     // when the flag is not null - poll0() will return -1.
     private static final AtomicReferenceFieldUpdater<DefaultInputBuffer, Termination> closeFlagUpdater =
             AtomicReferenceFieldUpdater.newUpdater(DefaultInputBuffer.class, Termination.class, "closeFlag");
+    @SuppressWarnings("unused")
     private volatile Termination closeFlag;
     
     private final Object terminateSync = new Object();

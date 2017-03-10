@@ -120,12 +120,15 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     // number of bytes reported to be read, but still unacked to the peer
     static final AtomicIntegerFieldUpdater<Http2Stream> unackedReadBytesUpdater =
             AtomicIntegerFieldUpdater.newUpdater(Http2Stream.class, "unackedReadBytes");
+    @SuppressWarnings("unused")
     private volatile int unackedReadBytes;
     
     // closeReasonRef, "null" value means the connection is open.
     private static final AtomicReferenceFieldUpdater<Http2Stream, CloseReason> closeReasonUpdater =
             AtomicReferenceFieldUpdater.newUpdater(Http2Stream.class, CloseReason.class, "closeReason");
+    @SuppressWarnings("unused")
     private volatile CloseReason closeReason;
+
     private volatile GrizzlyFuture<CloseReason> closeFuture;
     
     private final Queue<CloseListener> closeListeners =
@@ -133,6 +136,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     
     private static final AtomicIntegerFieldUpdater<Http2Stream> completeFinalizationCounterUpdater =
             AtomicIntegerFieldUpdater.newUpdater(Http2Stream.class, "completeFinalizationCounter");
+    @SuppressWarnings("unused")
     private volatile int completeFinalizationCounter;
 
     // flag, which is indicating if Http2Stream processing has been marked as complete by external code
