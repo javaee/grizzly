@@ -306,7 +306,6 @@ public class Http2Connection {
 
         final int i1 = buffer.getInt();
 
-        final int length = (i1 >>> 8) & 0xffffff;
         final int type =  i1 & 0xff;
 
         final int flags = buffer.get() & 0xff;
@@ -314,27 +313,27 @@ public class Http2Connection {
 
         switch (type) {
             case DataFrame.TYPE:
-                return DataFrame.fromBuffer(length, flags, streamId, buffer)
+                return DataFrame.fromBuffer(flags, streamId, buffer)
                         .normalize(); // remove padding
             case HeadersFrame.TYPE:
-                return HeadersFrame.fromBuffer(length, flags, streamId, buffer)
+                return HeadersFrame.fromBuffer(flags, streamId, buffer)
                         .normalize(); // remove padding
             case PriorityFrame.TYPE:
                 return PriorityFrame.fromBuffer(streamId, buffer);
             case RstStreamFrame.TYPE:
                 return RstStreamFrame.fromBuffer(flags, streamId, buffer);
             case SettingsFrame.TYPE:
-                return SettingsFrame.fromBuffer(length, flags, buffer);
+                return SettingsFrame.fromBuffer(flags, buffer);
             case PushPromiseFrame.TYPE:
-                return PushPromiseFrame.fromBuffer(length, flags, streamId, buffer);
+                return PushPromiseFrame.fromBuffer(flags, streamId, buffer);
             case PingFrame.TYPE:
                 return PingFrame.fromBuffer(flags, buffer);
             case GoAwayFrame.TYPE:
-                return GoAwayFrame.fromBuffer(length, buffer);
+                return GoAwayFrame.fromBuffer(buffer);
             case WindowUpdateFrame.TYPE:
                 return WindowUpdateFrame.fromBuffer(flags, streamId, buffer);
             case ContinuationFrame.TYPE:
-                return ContinuationFrame.fromBuffer(length, flags, streamId, buffer);
+                return ContinuationFrame.fromBuffer(flags, streamId, buffer);
             default:
                 throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR,
                         "Unknown frame type: " + type);

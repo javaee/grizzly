@@ -80,8 +80,9 @@ public class HeadersFrame extends HeaderBlockHead {
 
     // ---------------------------------------------------------- Public Methods
 
-    public static HeadersFrame fromBuffer(final int length,
-            final int flags, final int streamId, final Buffer buffer) {
+    public static HeadersFrame fromBuffer(final int flags,
+                                          final int streamId,
+                                          final Buffer buffer) {
         final HeadersFrame frame = create();
         frame.setFlags(flags);
         frame.setStreamId(streamId);

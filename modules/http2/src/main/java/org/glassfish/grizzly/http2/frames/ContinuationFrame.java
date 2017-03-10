@@ -62,8 +62,9 @@ public class ContinuationFrame extends HeaderBlockFragment {
 
     // ---------------------------------------------------------- Public Methods
 
-    public static ContinuationFrame fromBuffer(final int length,
-            final int flags, final int streamId, final Buffer buffer) {
+    public static ContinuationFrame fromBuffer(final int flags,
+                                               final int streamId,
+                                               final Buffer buffer) {
         final ContinuationFrame frame = create();
         frame.setFlags(flags);
         frame.setStreamId(streamId);

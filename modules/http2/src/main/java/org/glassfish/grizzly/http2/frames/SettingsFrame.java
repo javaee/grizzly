@@ -127,8 +127,8 @@ public class SettingsFrame extends Http2Frame {
         return frame;
     }
 
-    public static SettingsFrame fromBuffer(final int length, final int flags,
-            final Buffer frameBuffer) {
+    public static SettingsFrame fromBuffer(final int flags,
+                                           final Buffer frameBuffer) {
         SettingsFrame frame = create();
         frame.setFlags(flags);
         frame.setFrameBuffer(frameBuffer);

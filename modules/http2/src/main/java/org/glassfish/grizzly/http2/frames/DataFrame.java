@@ -83,8 +83,9 @@ public class DataFrame extends Http2Frame {
         return frame;
     }
 
-    public static DataFrame fromBuffer(final int length,
-            final int flags, final int streamId, final Buffer buffer) {
+    public static DataFrame fromBuffer(final int flags,
+                                       final int streamId,
+                                       final Buffer buffer) {
         final DataFrame frame = create();
         frame.setFlags(flags);
         frame.setStreamId(streamId);

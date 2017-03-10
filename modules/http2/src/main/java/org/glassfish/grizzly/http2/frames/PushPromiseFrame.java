@@ -65,8 +65,9 @@ public class PushPromiseFrame extends HeaderBlockHead {
 
     // ---------------------------------------------------------- Public Methods
 
-    public static PushPromiseFrame fromBuffer(final int length,
-            final int flags, final int streamId, final Buffer buffer) {
+    public static PushPromiseFrame fromBuffer(final int flags,
+                                              final int streamId,
+                                              final Buffer buffer) {
         final PushPromiseFrame frame = create();
         frame.setFlags(flags);
         frame.setStreamId(streamId);
