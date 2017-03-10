@@ -66,7 +66,7 @@ public class Http2AddOn implements AddOn {
 
     private static final Logger LOGGER = Grizzly.logger(Http2AddOn.class);
     
-    private Http2Configuration http2Configuration;
+    private final Http2Configuration http2Configuration;
 
 
     // ----------------------------------------------------------- Constructors
