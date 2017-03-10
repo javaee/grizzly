@@ -110,6 +110,7 @@
                         ${basedir}/../../grizzly-httpservice/src/main/java;
                         ${basedir}/../../../modules/bundles/http-servlet/src/main/java;
                     </sourcepath>
+                    <additionalparam>-Xdoclint:none</additionalparam>
                 </configuration>
             </plugin>
             <plugin>

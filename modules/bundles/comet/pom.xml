@@ -98,6 +98,7 @@
                         ${basedir}/../http/src/main/java;
                         ${basedir}/../../comet/src/main/java;
                     </sourcepath>
+                    <additionalparam>-Xdoclint:none</additionalparam>
                 </configuration>
             </plugin>
             <plugin>

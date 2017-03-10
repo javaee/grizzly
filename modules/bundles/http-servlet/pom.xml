@@ -100,6 +100,7 @@
                         ${basedir}/../../http-servlet/src/main/java;
                         ${basedir}/../../../extras/http-servlet-extras/src/main/java;
                     </sourcepath>
+                    <additionalparam>-Xdoclint:none</additionalparam>
                 </configuration>
             </plugin>
             <plugin>

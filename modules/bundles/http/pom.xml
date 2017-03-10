@@ -102,6 +102,7 @@
                         ${basedir}/../../spdy/src/main/java;
                         ${basedir}/../../../extras/http-server-multipart/src/main/java;
                     </sourcepath>
+                    <additionalparam>-Xdoclint:none</additionalparam>
                 </configuration>
             </plugin>
             <plugin>

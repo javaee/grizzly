@@ -101,6 +101,7 @@
                         ${basedir}/../../websockets/src/main/java;
                         ${basedir}/../../servlet/src/main/java;
                     </sourcepath>
+                    <additionalparam>-Xdoclint:none</additionalparam>
                 </configuration>
             </plugin>
             <plugin>

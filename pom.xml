@@ -173,7 +173,7 @@
                             <rules>
                                 <requireJavaVersion>
                                     <version>[${jdk.compile.version},)</version>
-                                    <message>You need JDK ${jdk.compile.version} and above to compile Grizzly! JDK 1.6 could be still used at runtime</message>
+                                    <message>You need JDK ${jdk.compile.version} and above to compile Grizzly! JDK 1.7 could be still used at runtime</message>
                                 </requireJavaVersion>
                                 <requireMavenVersion>
                                     <version>[3.0.3,)</version>
@@ -333,6 +333,7 @@
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <configuration>
                             <aggregate>true</aggregate>
+                            <additionalparam>-Xdoclint:none</additionalparam>
                         </configuration>
                         <executions>
                             <execution>
@@ -368,6 +369,7 @@
                         <link>http://download.oracle.com/javase/6/docs/api/
                         </link>
                     </links>
+                    <additionalparam>-Xdoclint:none</additionalparam>
                 </configuration>
             </plugin>
             <plugin>
@@ -511,6 +513,6 @@
         </maven.compiler.argument>
         <findbugs.skip>false</findbugs.skip>
         <findbugs.common>exclude-common.xml</findbugs.common>
-        <jdk.compile.version>1.7</jdk.compile.version>
+        <jdk.compile.version>1.8</jdk.compile.version>
     </properties>
 </project>
