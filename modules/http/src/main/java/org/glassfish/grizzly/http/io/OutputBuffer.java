@@ -988,6 +988,7 @@ public class OutputBuffer implements OutputSink {
         }
 
         if (bufferToFlush != null) {
+            doCommit();
             flushBuffer(bufferToFlush, isLast, null);
 
             return true;
@@ -1204,7 +1205,6 @@ public class OutputBuffer implements OutputSink {
     
     private void flushBinaryBuffersIfNeeded() throws IOException {
         if (compositeBuffer != null) { // this actually checks wheather current buffer was overloaded during encoding so we need to flush
-            doCommit();
             flushBinaryBuffers(false);
             
             blockAfterWriteIfNeeded();
