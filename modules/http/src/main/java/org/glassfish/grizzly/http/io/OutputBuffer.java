@@ -1043,6 +1043,7 @@ public class OutputBuffer {
         }
 
         if (bufferToFlush != null) {
+            doCommit();
             flushBuffer(bufferToFlush, isLast, null);
 
             return true;
@@ -1054,7 +1055,7 @@ public class OutputBuffer {
     private void flushBuffer(final Buffer bufferToFlush,
             final boolean isLast, final MessageCloner<Buffer> messageCloner)
             throws IOException {
-        
+
         builder.content(bufferToFlush).last(isLast);
         ctx.write(null,
                   builder.build(),
@@ -1077,7 +1078,7 @@ public class OutputBuffer {
     private boolean writingBytes() {
         return (currentBuffer != null && currentBuffer.position() != 0);
     }
-    
+
     private void checkCurrentBuffer() {
         if (currentBuffer == null) {
             currentBuffer = memoryManager.allocate(bufferSize);
@@ -1163,19 +1164,19 @@ public class OutputBuffer {
     }
 
     private void flushCharsToBuf(final CharBuffer charBuf, final boolean canFlushToNet) throws IOException {
-        
+
         if (!charBuf.hasRemaining()) return;
-        
+
         // flush the buffer - need to take care of encoding at this point
         final CharsetEncoder enc = getEncoder();
 
         checkCurrentBuffer();
-        
+
         if (!currentBuffer.hasRemaining()) {
             finishCurrentBuffer();
             checkCurrentBuffer();
         }
-        
+
         ByteBuffer currentByteBuffer = currentBuffer.toByteBuffer();
         int bufferPos = currentBuffer.position();
         int byteBufferPos = currentByteBuffer.position();
@@ -1199,7 +1200,7 @@ public class OutputBuffer {
             if (res == CoderResult.OVERFLOW) {
                 finishCurrentBuffer();
             }
-        } 
+        }
 
         if (res != CoderResult.UNDERFLOW) {
             throw new IOException("Encoding error");
@@ -1212,7 +1213,6 @@ public class OutputBuffer {
 
     private void flushBinaryBuffersIfNeeded() throws IOException {
         if (compositeBuffer != null) { // this actually checks wheather current buffer was overloaded during encoding so we need to flush
-            doCommit();
             flushBinaryBuffers(false);
             
             blockAfterWriteIfNeeded();
