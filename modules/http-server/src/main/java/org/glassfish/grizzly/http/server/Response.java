@@ -2111,6 +2111,7 @@ public class Response {
 
                 if (suspendedContext.markCancelled(expectedModCount)) {
 //                    ctx.resume();
+                    ctx.completeAndRelease();
                 }
             }
         }
@@ -2140,9 +2141,9 @@ public class Response {
                 try {
                     checkResponse();
 
-                    if (suspendedContext.markCancelled(expectedModCount)) {
+                    //if (suspendedContext.markCancelled(expectedModCount)) {
 //                        ctx.resume();
-                    }
+                    //}
                 } catch (Exception ignored) {
                 }
 
