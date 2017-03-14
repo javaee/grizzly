@@ -73,6 +73,7 @@ import java.util.LinkedList;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.CloseListener;
@@ -2141,9 +2142,9 @@ public class Response {
                 try {
                     checkResponse();
 
-                    //if (suspendedContext.markCancelled(expectedModCount)) {
+                    if (suspendedContext.markCancelled(expectedModCount)) {
 //                        ctx.resume();
-                    //}
+                    }
                 } catch (Exception ignored) {
                 }
 
