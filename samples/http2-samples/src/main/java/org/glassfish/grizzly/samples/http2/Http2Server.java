@@ -79,6 +79,7 @@ public class Http2Server {
             server.start();
             
             System.out.println("Press enter to exit...");
+            //noinspection ResultOfMethodCallIgnored
             System.in.read();
         } catch (IOException ioe) {
             LOGGER.log(Level.SEVERE, ioe.toString(), ioe);

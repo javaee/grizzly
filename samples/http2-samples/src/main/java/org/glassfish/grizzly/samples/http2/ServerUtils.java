@@ -65,16 +65,16 @@ public class ServerUtils {
      * @param name {@link NetworkListener} name
      * @param host {@link NetworkListener} host
      * @param port {@link NetworkListener} port
-     * @param enableFileCache
-     * @param addons
+     * @param enableFileCache pass <code>true</code> to enable the file cache,
+     *                        otherwise, <code>false</code>.
+     * @param addOns the {@link AddOn}s to install to the server.
      * @return {@link HttpServer}
      * 
-     * @throws IOException 
+     * @throws IOException if the smiley's folder isn't available.
      */
     protected static HttpServer configureServer(final String name,
             final String host, final int port, final boolean enableFileCache,
-            final AddOn... addons)
-            throws IOException {
+            final AddOn... addOns) throws IOException {
 
         // Create NetworkListener
         final NetworkListener listener = new NetworkListener(name, host, port);
@@ -88,7 +88,7 @@ public class ServerUtils {
         listener.setSecure(true);
         listener.setSSLEngineConfig(ServerUtils.getServerSSLEngineConfigurator());
         
-        for (AddOn addon : addons) {
+        for (AddOn addon : addOns) {
             listener.registerAddOn(addon);
         }
         
@@ -111,7 +111,7 @@ public class ServerUtils {
         config.addHttpHandler(new StaticHttpHandler(smileysRootFolder.getAbsolutePath()));
         
         // Add SmileysHandler to serve initial html page, which references smileys
-        config.addHttpHandler(new SmileysHandler("/", smileysRootFolder),
+        config.addHttpHandler(new SmileysHandler(),
                 "/getsmileys");
 
         return server;

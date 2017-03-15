@@ -39,7 +39,6 @@
  */
 package org.glassfish.grizzly.samples.http2;
 
-import java.io.File;
 import java.io.Writer;
 import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.Request;
@@ -63,19 +62,6 @@ import org.glassfish.grizzly.http.server.http2.PushBuilder;
  * @author Alexey Stashok
  */
 public class SmileysHandler extends HttpHandler {
-    private final String smileysContextPath;
-    private final File smileysRoot;
-
-    /**
-     * Construct SmileysHandler
-     * 
-     * @param smileysContextPath the context-path for the smiley image requests.
-     * @param smileysRoot the root folder where the smiley images are located.
-     */
-    public SmileysHandler(String smileysContextPath, File smileysRoot) {
-        this.smileysContextPath = smileysContextPath;
-        this.smileysRoot = smileysRoot;
-    }
 
     /**
      * {@inheritDoc}
