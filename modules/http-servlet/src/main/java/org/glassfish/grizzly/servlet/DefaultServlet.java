@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,25 +39,16 @@
  */
 package org.glassfish.grizzly.servlet;
 
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.http.server.FileCacheFilter;
 import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.http.server.filecache.FileCache;
-import org.glassfish.grizzly.http.util.MimeType;
-import org.glassfish.grizzly.utils.ArraySet;
+import org.glassfish.grizzly.http.server.StaticHttpHandlerBase;
 
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletRequestWrapper;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * This servlet will be invoked when no other servlet matches the request URI.
@@ -70,16 +61,14 @@ import java.util.logging.Logger;
  */
 public class DefaultServlet extends HttpServlet {
 
-    private static final Logger LOGGER = Grizzly.logger(DefaultServlet.class);
-
-    private final ArraySet<File> docRoots;
+    private final StaticHttpHandlerBase staticHttpHandlerBase;
 
     // ------------------------------------------------------------ Constructors
 
 
-    protected DefaultServlet(final ArraySet<File> docRoots) {
+    protected DefaultServlet(final StaticHttpHandlerBase staticHttpHandlerBase) {
 
-        this.docRoots = docRoots;
+        this.staticHttpHandlerBase = staticHttpHandlerBase;
 
     }
 
@@ -88,181 +77,21 @@ public class DefaultServlet extends HttpServlet {
 
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        boolean found = false;
-
-        final String uri = getRelativeURI(req);
-        final File[] fileFolders = docRoots.getArray();
-        if (fileFolders == null) {
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-
-        File resource = null;
-        for (int i = 0, len = fileFolders.length; i < len; i++) {
-            final File webDir = fileFolders[i];
-            // local file
-            resource = new File(webDir, uri);
-            final boolean exists = resource.exists();
-            final boolean isDirectory = resource.isDirectory();
-
-            if (exists && isDirectory) {
-                final File f = new File(resource, "/index.html");
-                if (f.exists()) {
-                    resource = f;
-                    found = true;
-                    break;
-                }
-            }
-
-            if (isDirectory || !exists) {
-                found = false;
-            } else {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found) {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "File not found  {0}", resource);
-            }
-            
-            resp.reset();
-            resp.sendError(404);
-            return;
-        }
-
-        sendFile(req, resp, resource);
-
-
-    }
-
-    @Override
-    protected void doHead(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setStatus(405);
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setStatus(405);
-    }
-
-    @Override
-    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setStatus(405);
-    }
-
-    @Override
-    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setStatus(405);
-    }
-
-    @Override
-    protected void doOptions(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setStatus(405);
-    }
-
-    @Override
-    protected void doTrace(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setStatus(405);
-    }
-
-
-    // --------------------------------------------------------- Private Methods
-
-    private void sendFile(final HttpServletRequest request,
-                          final HttpServletResponse response,
-                          final File file)
-            throws IOException {
-        final String path = file.getPath();
-        FileInputStream fis = null;
+    protected void service(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
+        final Request request = unwrap(req).getRequest();
         try {
-            fis = new FileInputStream(file);
-        } catch (FileNotFoundException fnfe) {
-            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-
-        try {
-            response.setStatus(HttpServletResponse.SC_OK);
-            String substr;
-            int dot = path.lastIndexOf('.');
-            if (dot < 0) {
-                substr = file.toString();
-                dot = substr.lastIndexOf('.');
-            } else {
-                substr = path;
-            }
-            if (dot > 0) {
-                String ext = substr.substring(dot + 1);
-                String ct = MimeType.get(ext);
-                if (ct != null) {
-                    response.setContentType(ct);
-                }
-            } else {
-                response.setContentType(MimeType.get("html"));
-            }
-
-            final long length = file.length();
-            // if length is larger than Integer.MAX_VALUE, then we have
-            // to rely on chunking.
-            if (length <= Integer.MAX_VALUE) {
-                response.setContentLength((int) length);
-            }
-            addToFileCache(request, file);
-
-            final OutputStream out = response.getOutputStream();
-
-            byte b[] = new byte[8192];
-            int rd;
-            while ((rd = fis.read(b)) > 0) {
-                //chunk.setBytes(b, 0, rd);
-                out.write(b, 0, rd);
-            }
-        } finally {
-            try {
-                fis.close();
-            } catch (IOException ignore) {
-            }
+            staticHttpHandlerBase.service(request, request.getResponse());
+        } catch (IOException ioe) {
+            throw ioe;
+        } catch (Exception e) {
+            throw new ServletException(e);
         }
     }
 
-    private String getRelativeURI(final HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        if (uri.contains("..")) {
-            return null;
-        }
-
-        final String resourcesContextPath = request.getContextPath();
-        if (resourcesContextPath.length() > 0) {
-            if (!uri.startsWith(resourcesContextPath)) {
-                return null;
-            }
-
-            uri = uri.substring(resourcesContextPath.length());
-        }
-
-        return uri;
+    private static HttpServletRequestImpl unwrap(final ServletRequest request) {
+        return ((request instanceof  HttpServletRequestImpl)
+                    ? (HttpServletRequestImpl) request
+                    : unwrap(((ServletRequestWrapper) request).getRequest()));
     }
 
-
-    // --------------------------------------------------------- Private Methods
-
-
-    private void addToFileCache(HttpServletRequest req, File resource) {
-        if (req instanceof HttpServletRequestImpl) {
-            final Request request = ((HttpServletRequestImpl) req).getRequest();
-            final FilterChainContext fcContext = request.getContext();
-            final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
-            if (fileCacheFilter != null) {
-                final FileCache fileCache = fileCacheFilter.getFileCache();
-                fileCache.add(request.getRequest(), resource);
-            }
-        }
-    }
-
-    private FileCacheFilter lookupFileCache(final FilterChainContext fcContext) {
-        return fcContext.getFilterChain().getByType(FileCacheFilter.class);
-    }
 }

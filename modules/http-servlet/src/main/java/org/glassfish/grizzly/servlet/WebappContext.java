@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,7 +63,7 @@ import org.glassfish.grizzly.http.server.HttpHandler;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.SessionManager;
-import org.glassfish.grizzly.http.server.StaticHttpHandler;
+import org.glassfish.grizzly.http.server.StaticHttpHandlerBase;
 import org.glassfish.grizzly.http.server.util.ClassLoaderUtil;
 import org.glassfish.grizzly.http.server.util.DispatcherHelper;
 import org.glassfish.grizzly.http.server.util.Enumerator;
@@ -1896,13 +1896,13 @@ public class WebappContext implements ServletContext {
         Map<HttpHandler,String[]> handlers = serverConfig.getHttpHandlers();
         for (final Map.Entry<HttpHandler,String[]> entry : handlers.entrySet()) {
             final HttpHandler h = entry.getKey();
-            if (!(h instanceof StaticHttpHandler)) {
+            if (!(h instanceof StaticHttpHandlerBase)) {
                 continue;
             }
             String[] mappings = entry.getValue();
             for (final String mapping : mappings) {
                 if ("/".equals(mapping)) {
-                    final DefaultServlet s = new DefaultServlet(((StaticHttpHandler) h).getDocRoots());
+                    final DefaultServlet s = new DefaultServlet((StaticHttpHandlerBase) h);
                     final ServletRegistration registration =
                             addServlet("DefaultServlet", s);
                     registration.addMapping("/");
@@ -1926,7 +1926,7 @@ public class WebappContext implements ServletContext {
                                                     updateMappings(servletHandler,
                                                             "/"));
                     if (servletHandlers == null) {
-                        servletHandlers = new LinkedHashSet<ServletHandler>(1, 1.0f);
+                        servletHandlers = new LinkedHashSet<>(1, 1.0f);
                     }
                     servletHandlers.add(servletHandler);
                 }
