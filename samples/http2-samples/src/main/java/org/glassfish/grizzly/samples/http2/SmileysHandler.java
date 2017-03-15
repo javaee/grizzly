@@ -48,15 +48,15 @@ import org.glassfish.grizzly.http.server.http2.PushBuilder;
 /**
  * The {@link HttpHandler} to serve HTML page referencing 48 smiley images.
  * When requesting this page user may specify the smiley image size: 16 and 64;
- * and specify if SPDY Server-Push has to be used to send smiley images before
+ * and specify if HTTP/2 Push has to be used to send smiley images before
  * the client explicitly request them.
  * 
  * In order to specify the image size the "size" parameter has to be used
  * (supported values are 16 and 64).
- * In order to enable/disable SPDY Server-Push the "push" parameter has to be
+ * In order to enable/disable HTTP/2 Push the "push" parameter has to be
  * used (supported values are true, false).
  * 
- * For example to request smileys with size 64x64 using SPDY Server-Push mode, the
+ * For example to request smileys with size 64x64 using HTTP/2 Push mode, the
  * request should look like: https://localhost:8080/getsmileys?size=64&push=true
  * 
  * @author Alexey Stashok
@@ -94,7 +94,7 @@ public class SmileysHandler extends HttpHandler {
         final int smileysPerRow = 4;
         final int totalSmileys = 48;
 
-        // check if SPDY Server-Push mode is on
+        // check if HTTP/2 Push is requested by the client and is enabled
         if (isPush) {
             final PushBuilder pushBuilder = request.getPushBuilder();
             
@@ -111,7 +111,7 @@ public class SmileysHandler extends HttpHandler {
         // Compose the main HTML page
         response.setContentType("text/html");
         final Writer writer = response.getWriter();
-        writer.write("<head><title>Grizzly SPDY sample</title></head>");
+        writer.write("<head><title>Grizzly HTTP/2 sample</title></head>");
         writer.write("<body>");
         writer.write("<table border=\"0\" align=\"center\" width=\"50%\">");
         
