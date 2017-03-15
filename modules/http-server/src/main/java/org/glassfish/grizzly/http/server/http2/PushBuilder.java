@@ -100,10 +100,6 @@ import java.util.List;
  * to the PushBuilder, unless the {@link Cookie#getMaxAge()} is &lt;=0, in which
  * case the Cookie will be removed from the builder.</li>
  *
- * <li>If this request has has the conditional headers If-Modified-Since
- * or If-None-Match, then the {@link #isConditional()} header is set to
- * true.</li>
- *
  * </ul>
  *
  * <p>The {@link #path} method must be called on the {@code PushBuilder}
@@ -115,11 +111,9 @@ import java.util.List;
  * methods before the {@link #push()} method is called to initiate an
  * asynchronous push request with the current state of the builder.
  * After the call to {@link #push()}, the builder may be reused for
- * another push, however the implementation must make it so the {@link
- * #path(String)}, {@link #eTag(String)} and {@link
- * #lastModified(String)} values are cleared before returning from
- * {@link #push}.  All other values are retained over calls to {@link
- * #push()}.
+ * another push, however the path and conditional headers are cleared
+ * before returning from {@link #push}.  All other values are retained
+ * over calls to {@link #push()}.
  *
  * @since 2.3.30
  */
@@ -157,11 +151,8 @@ public final class PushBuilder {
     Method method = Method.GET;
     String queryString;
     String sessionId;
-    boolean conditional;
     MimeHeaders headers;
     String path;
-    String eTag;
-    String lastModified;
     Request request;
     boolean sessionFromURL;
     List<Cookie> cookies;
@@ -170,12 +161,7 @@ public final class PushBuilder {
         this.request = request;
         headers = new MimeHeaders();
         headers.copyFrom(request.getRequest().getHeaders());
-        for (int i = 0, len = CONDITIONAL_HEADERS.length; i < len; i++) {
-            if (headers.contains(CONDITIONAL_HEADERS[i])) {
-                conditional = true;
-                break;
-            }
-        }
+
         for (int i = 0, len = REMOVE_HEADERS.length; i < len; i++) {
             headers.removeHeader(REMOVE_HEADERS[i]);
         }
@@ -191,13 +177,13 @@ public final class PushBuilder {
 
         final Cookie[] requestCookies = request.getCookies();
         if (requestCookies != null) {
-            cookies = new ArrayList<Cookie>(Arrays.asList(requestCookies));
+            cookies = new ArrayList<>(Arrays.asList(requestCookies));
         }
 
         final Cookie[] responseCookies = request.getResponse().getCookies();
         if (responseCookies != null) {
             if (cookies == null) {
-                cookies = new ArrayList<Cookie>(responseCookies.length);
+                cookies = new ArrayList<>(responseCookies.length);
             }
             for (int i = 0, len = responseCookies.length; i < len; i++) {
                 final Cookie c = responseCookies[i];
@@ -281,22 +267,6 @@ public final class PushBuilder {
     }
 
     /**
-     * Set if the request is to be conditional.
-     * If the request is conditional, any available values from {@link #eTag(String)} or
-     * {@link #lastModified(String)} will be set in the appropriate headers. If the request
-     * is not conditional, then eTag and lastModified values are ignored.
-     * Defaults to true if the associated request was conditional.
-     *
-     * @param conditional true if the push request is conditional
-     *
-     * @return this builder.
-     */
-    public PushBuilder conditional(boolean conditional) {
-        this.conditional = conditional;
-        return this;
-    }
-
-    /**
      * <p>Set a request header to be used for the push.  If the builder has an
      * existing header with the same name, its value is overwritten.</p>
      *
@@ -367,54 +337,15 @@ public final class PushBuilder {
     }
 
     /**
-     * Set the eTag to be used for conditional pushes.
-     * The eTag will be used only if {@link #isConditional()} is true.
-     * Defaults to no eTag.  The value is nulled after every call to
-     * {@link #push()}
-     *
-     * @param eTag the eTag to be used for the push.
-     *
-     * @return this builder.
-     */
-    public PushBuilder eTag(String eTag) {
-        this.eTag = validate(eTag);
-        return this;
-    }
-
-    /**
-     * Set the last modified date to be used for conditional pushes.
-     * The last modified date will be used only if {@link
-     * #isConditional()} is true.  Defaults to no date.  The value is
-     * nulled after every call to {@link #push()}
-     *
-     * @param lastModified the last modified date to be used for the push.
-     *
-     * @return this builder.
-     */
-    public PushBuilder lastModified(String lastModified) {
-        this.lastModified = validate(lastModified);
-        return this;
-    }
-
-    /**
      * Push a resource given the current state of the builder without blocking.
      * <p>
      * <p>Push a resource based on the current state of the PushBuilder.
      * Calling this method does not guarantee the resource will actually
      * be pushed, since it is possible the client can decline acceptance
      * of the pushed resource using the underlying HTTP/2 protocol.</p>
-     * <p>
-     * <p>If {@link #isConditional()} is true and an eTag or
-     * lastModified value is provided, then an appropriate conditional
-     * header will be generated. If both an eTag and lastModified value
-     * are provided only an If-None-Match header will be generated. If
-     * the builder has a session ID, then the pushed request will
-     * include the session ID either as a Cookie or as a URI parameter
-     * as appropriate. The builders query string is merged with any
-     * passed query string.</p>
-     * <p>
-     * <p>Before returning from this method, the builder has its path,
-     * eTag and lastModified fields nulled. All other fields are left as
+     *
+     * <p>Before returning from this method, the builder has its path set to null
+     * and all conditional headers removed. All other fields are left as
      * is for possible reuse in another push.</p>
      *
      * @throws IllegalStateException    if there was no call to {@link
@@ -450,20 +381,11 @@ public final class PushBuilder {
 
         path = pathLocal;
 
-        if (conditional) {
-            if (eTag != null) {
-                headers.addValue(Header.IfNoneMatch).setString(eTag);
-            } else if (lastModified != null) {
-                headers.addValue(Header.IfModifiedSince).setString(lastModified);
-            }
-        }
-
         request.getContext().notifyDownstream(PushEvent.create(this));
-        eTag = null;
-        lastModified = null;
         path = null;
-        headers.removeHeader(Header.IfNoneMatch);
-        headers.removeHeader(Header.IfModifiedSince);
+        for (int i = 0, len = CONDITIONAL_HEADERS.length; i < len; i++) {
+            headers.removeHeader(CONDITIONAL_HEADERS[i]);
+        }
 
     }
 
@@ -495,15 +417,6 @@ public final class PushBuilder {
     }
 
     /**
-     * Return if the request is to be conditional.
-     *
-     * @return if the request is to be conditional.
-     */
-    public boolean isConditional() {
-        return conditional;
-    }
-
-    /**
      * Return the set of header to be used for the push.
      *
      * @return the set of header to be used for the push.
@@ -528,24 +441,6 @@ public final class PushBuilder {
      */
     public String getPath() {
         return path;
-    }
-
-    /**
-     * Return the eTag to be used for conditional pushes.
-     *
-     * @return the eTag to be used for conditional pushes.
-     */
-    public String getETag() {
-        return eTag;
-    }
-
-    /**
-     * Return the last modified date to be used for conditional pushes.
-     *
-     * @return the last modified date to be used for conditional pushes.
-     */
-    public String getLastModified() {
-        return lastModified;
     }
 
 
