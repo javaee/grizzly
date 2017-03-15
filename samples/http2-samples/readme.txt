@@ -18,6 +18,3 @@ How to run:
    3.2: HTTP/2 with push
         https://localhost:8080/getsmileys?size=16&push=true
 or/and
-
-4) Test HTTPS server
-   https://localhost:8081/getsmileys?size=16
