@@ -95,7 +95,7 @@ import org.junit.runners.Parameterized.Parameters;
 import static org.junit.Assert.*;
 
 /**
- * The subset of HTTP File Cache tests to make sure SPDY works fine with FileCache.
+ * The subset of HTTP File Cache tests to make sure HTTP/2 works fine with FileCache.
  * 
  * @author Alexey Stashok
  */

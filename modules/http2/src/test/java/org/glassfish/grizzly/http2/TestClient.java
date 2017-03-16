@@ -158,30 +158,7 @@ public class TestClient {
                    .build();
             connection.write(HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build());
             
-            // Or
-            
-// ----------------------------------------------------------------------------            
-            // 2) uncomment if want to test
-            
-//            final SpdyStream spdyStream = spdySession.getStreamBuilder()
-//                    .method(Method.GET)
-//                    .uri("/")
-//                   .protocol(Protocol.HTTP_1_1)
-//                    .header(Header.Host, "www.google.com:443")
-//                    .fin(true)
-//                    .open();
-            
-// ----------------------------------------------------------------------------            
-            
-            
-//            HttpContent httpContent =
-//                    HttpContent.builder(spdyStream.getSpdyRequest())
-//                    .content(Buffers.EMPTY_BUFFER)
-//                    .last(true)
-//                    .build();
-            
-//            spdyConnection.write(httpContent);
-            
+
             final HttpPacket response = httpResponseQueue.take().get();
             
             int len = 0;
