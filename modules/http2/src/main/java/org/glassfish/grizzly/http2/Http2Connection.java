@@ -49,12 +49,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseListener;
 import org.glassfish.grizzly.CloseType;
 import org.glassfish.grizzly.Closeable;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.EmptyCompletionHandler;
-import org.glassfish.grizzly.GenericCloseListener;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventLifeCycleListener;
@@ -74,7 +74,6 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
-import org.glassfish.grizzly.http.util.Header;
 
 import org.glassfish.grizzly.http2.frames.ContinuationFrame;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
@@ -151,8 +150,6 @@ public class Http2Connection {
     private volatile int localMaxConcurrentStreams = getDefaultMaxConcurrentStreams();
     private int peerMaxConcurrentStreams = getDefaultMaxConcurrentStreams();
 
-    private final StreamBuilder streamBuilder = new StreamBuilder();
-    
     private final Http2ConnectionOutputSink outputSink;
     
     // true, if this connection is ready to accept frames or false if the first
@@ -570,10 +567,6 @@ public class Http2Connection {
     public int getNextLocalStreamId() {
         lastLocalStreamId += 2;
         return lastLocalStreamId;
-    }
-    
-    public StreamBuilder getStreamBuilder() {
-        return streamBuilder;
     }
     
     public Connection getConnection() {
@@ -1319,283 +1312,7 @@ public class Http2Connection {
         }
     }
 
-    public final class StreamBuilder {
-
-        private StreamBuilder() {
-        }
-        
-        public RegularStreamBuilder regular() {
-            return new RegularStreamBuilder();
-        }
-        
-        public PushStreamBuilder push() {
-            return new PushStreamBuilder();
-        }
-    }
-    
-    public final class PushStreamBuilder extends HttpHeader.Builder<PushStreamBuilder> {
-
-        private int associatedToStreamId;
-        private int priority;
-        private boolean isFin;
-        private String uri;
-        private String query;
-        
-        /**
-         * Set the request URI.
-         *
-         * @param uri the request URI.
-         * @return the current <code>Builder</code>
-         */
-        public PushStreamBuilder uri(final String uri) {
-            this.uri = uri;
-            return this;
-        }
-
-        /**
-         * Set the <code>query</code> portion of the request URI.
-         *
-         * @param query the query String
-         *
-         * @return the current <code>Builder</code>
-         */
-        public PushStreamBuilder query(final String query) {
-            this.query = query;
-            return this;
-        }
-
-        /**
-         * Set the <code>associatedToStreamId</code> parameter of a {@link Http2Stream}.
-         *
-         * @param associatedToStreamId the associatedToStreamId
-         *
-         * @return the current <code>Builder</code>
-         */
-        public PushStreamBuilder associatedToStreamId(final int associatedToStreamId) {
-            this.associatedToStreamId = associatedToStreamId;
-            return this;
-        }
-
-        /**
-         * Set the <code>priority</code> parameter of a {@link Http2Stream}.
-         *
-         * @param priority the priority
-         *
-         * @return the current <code>Builder</code>
-         */
-        public PushStreamBuilder priority(final int priority) {
-            this.priority = priority;
-            return this;
-        }
-        
-        /**
-         * Sets the <code>fin</code> flag of a {@link Http2Stream}.
-         * 
-         * @param fin the new value of the <code>fin</code> flag.
-         * 
-         * @return the current <code>Builder</code>
-         */
-        public PushStreamBuilder fin(final boolean fin) {
-            this.isFin = fin;
-            return this;
-        }
-        
-        /**
-         * Build the <tt>HttpRequestPacket</tt> message.
-         *
-         * @return <tt>HttpRequestPacket</tt>
-         * @throws org.glassfish.grizzly.http2.Http2StreamException if an error occurs opening the stream
-         */
-        @SuppressWarnings("unchecked")
-        public final Http2Stream open() throws Http2StreamException {
-            final HttpRequestPacket request = build();
-            newClientStreamLock.lock();
-            try {
-                final Http2Stream stream = openStream(
-                        request,
-                        getNextLocalStreamId(),
-                        associatedToStreamId, false, priority,
-                        Http2StreamState.IDLE);
-                
-                
-                connection.write(request.getResponse());
-                
-                return stream;
-            } finally {
-                newClientStreamLock.unlock();
-            }
-        }
-
-        @Override
-        public HttpRequestPacket build() {
-            Http2Request request = (Http2Request) super.build();
-            if (uri != null) {
-                request.setRequestURI(uri);
-            }
-            if (query != null) {
-                request.setQueryString(query);
-            }
-            
-            request.setExpectContent(!isFin);
-            
-            return request;
-        }
-
-        @Override
-        protected HttpHeader create() {
-            Http2Request request = Http2Request.create();
-            HttpResponsePacket packet = request.getResponse();
-            packet.setSecure(true);
-            return request;
-        }
-    }
-    
-    public final class RegularStreamBuilder extends HttpHeader.Builder<RegularStreamBuilder> {
-        private int priority;
-        private boolean isFin;
-        private Method method;
-        private String methodString;
-        private String uri;
-        private String query;
-        private String host;
-        
-
-        /**
-         * Set the HTTP request method.
-         * @param method the HTTP request method..
-         * @return the current <code>Builder</code>
-         */
-        public RegularStreamBuilder method(final Method method) {
-            this.method = method;
-            methodString = null;
-            return this;
-        }
-
-        /**
-         * Set the HTTP request method.
-         * @param methodString the HTTP request method. Format is "GET|POST...".
-         * @return the current <code>Builder</code>
-         */
-        public RegularStreamBuilder method(final String methodString) {
-            this.methodString = methodString;
-            method = null;
-            return this;
-        }
-
-        /**
-         * Set the request URI.
-         *
-         * @param uri the request URI.
-         * @return the current <code>Builder</code>
-         */
-        public RegularStreamBuilder uri(final String uri) {
-            this.uri = uri;
-            return this;
-        }
-
-        /**
-         * Set the <code>query</code> portion of the request URI.
-         *
-         * @param query the query String
-         * @return the current <code>Builder</code>
-         */
-        public RegularStreamBuilder query(final String query) {
-            this.query = query;
-            return this;
-        }
-
-        /**
-         * Set the value of the Host header.
-         *
-         * @param host the value of the Host header.
-         * @return the current <code>Builder</code>
-         */
-        public RegularStreamBuilder host(final String host) {
-            this.host = host;
-            return this;
-        }
-
-        /**
-         * Set the <code>priority</code> parameter of a {@link Http2Stream}.
-         *
-         * @param priority the priority
-         * @return the current <code>Builder</code>
-         */
-        public RegularStreamBuilder priority(final int priority) {
-            this.priority = priority;
-            return this;
-        }
-
-        /**
-         * Sets the <code>fin</code> flag of a {@link Http2Stream}.
-         * 
-         * @param fin the initial value of the <code>fin</code> flag.
-         * 
-         * @return the current <code>Builder</code>
-         */
-        public RegularStreamBuilder fin(final boolean fin) {
-            this.isFin = fin;
-            return this;
-        }
-        
-        /**
-         * Build the <tt>HttpRequestPacket</tt> message.
-         *
-         * @return <tt>HttpRequestPacket</tt>
-         * @throws org.glassfish.grizzly.http2.Http2StreamException if an error occurs opening the stream.
-         */
-        @SuppressWarnings("unchecked")
-        public final Http2Stream open() throws Http2StreamException {
-            HttpRequestPacket request = build();
-            newClientStreamLock.lock();
-            try {
-                final Http2Stream stream = openStream(
-                        request,
-                        getNextLocalStreamId(),
-                        0, false, priority, Http2StreamState.IDLE);
-                
-                
-                connection.write(request);
-                
-                return stream;
-            } finally {
-                newClientStreamLock.unlock();
-            }
-        }
-
-        @Override
-        public HttpRequestPacket build() {
-            Http2Request request = (Http2Request) super.build();
-            if (method != null) {
-                request.setMethod(method);
-            }
-            if (methodString != null) {
-                request.setMethod(methodString);
-            }
-            if (uri != null) {
-                request.setRequestURI(uri);
-            }
-            if (query != null) {
-                request.setQueryString(query);
-            }
-            if (host != null) {
-                request.addHeader(Header.Host, host);
-            }
-            
-            request.setExpectContent(!isFin);
-            
-            return request;
-        }
-
-        @Override
-        protected HttpHeader create() {
-            Http2Request request = Http2Request.create();
-            request.setSecure(true);
-            return request;
-        }
-    }
-    
-    private final class ConnectionCloseListener implements GenericCloseListener {
+    private final class ConnectionCloseListener implements CloseListener<Closeable, CloseType> {
 
         @Override
         public void onClosed(final Closeable closeable, final CloseType type)

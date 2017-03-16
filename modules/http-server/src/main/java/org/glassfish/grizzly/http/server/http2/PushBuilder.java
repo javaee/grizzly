@@ -283,6 +283,22 @@ public final class PushBuilder {
     }
 
     /**
+     * <p>Set a request header to be used for the push.  If the builder has an
+     * existing header with the same name, its value is overwritten.</p>
+     *
+     * @param name  The {@link Header} to set
+     * @param value The header value to set
+     *
+     * @return this builder.
+     */
+    public PushBuilder setHeader(Header name, String value) {
+        if (name != null && validValue(value)) {
+            headers.setValue(name).setString(value);
+        }
+        return this;
+    }
+
+    /**
      * <p>Add a request header to be used for the push.</p>
      *
      * @param name  The header name to add
@@ -297,7 +313,20 @@ public final class PushBuilder {
         return this;
     }
 
-
+    /**
+     * <p>Add a request header to be used for the push.</p>
+     *
+     * @param name  The {@link Header} to add
+     * @param value The header value to add
+     *
+     * @return this builder.
+     */
+    public PushBuilder addHeader(Header name, String value) {
+        if (name != null && validValue(value)) {
+            headers.addValue(name).setString(value);
+        }
+        return this;
+    }
 
     /**
      * <p>Remove the named request header.  If the header does not exist, take
@@ -312,6 +341,21 @@ public final class PushBuilder {
             if (!Header.Referer.getLowerCase().equals(name.toLowerCase())) {
                 headers.removeHeader(name);
             }
+        }
+        return this;
+    }
+
+    /**
+     * <p>Remove the named request header.  If the header does not exist, take
+     * no action.</p>
+     *
+     * @param name The {@link Header} to remove
+     *
+     * @return this builder.
+     */
+    public PushBuilder removeHeader(Header name) {
+        if (name != null && Header.Referer != name) {
+            headers.removeHeader(name);
         }
         return this;
     }
