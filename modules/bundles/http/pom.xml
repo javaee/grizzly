@@ -200,7 +200,7 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-npn-api</artifactId>
-            <version>1.7</version>
+            <version>${grizzly.alpn.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>

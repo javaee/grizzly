@@ -514,5 +514,6 @@
         <findbugs.skip>false</findbugs.skip>
         <findbugs.common>exclude-common.xml</findbugs.common>
         <jdk.compile.version>1.8</jdk.compile.version>
+        <grizzly.alpn.version>1.7</grizzly.alpn.version>
     </properties>
 </project>

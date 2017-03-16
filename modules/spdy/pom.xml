@@ -139,7 +139,7 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-npn-api</artifactId>
-            <version>1.7</version>
+            <version>${grizzly.alpn.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
