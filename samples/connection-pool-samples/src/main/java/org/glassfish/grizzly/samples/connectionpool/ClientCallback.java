@@ -39,6 +39,8 @@
  */
 package org.glassfish.grizzly.samples.connectionpool;
 
+import org.glassfish.grizzly.Connection;
+
 /**
  * The general callback interface to be used by a {@link ClientFilter} to
  * delegate client {@link Connection}'s event processing.

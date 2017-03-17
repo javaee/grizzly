@@ -39,6 +39,23 @@
  */
 package org.glassfish.grizzly.samples.connectionpool;
 
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.ConnectorHandler;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.connectionpool.EndpointKey;
+import org.glassfish.grizzly.connectionpool.MultiEndpointPool;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.utils.DataStructures;
+import org.glassfish.grizzly.utils.StringFilter;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -110,12 +127,12 @@ public class MultiEndpointPoolSample implements ClientCallback {
             
             // create a connection-pool EndpointKey for the server #1
             final EndpointKey<SocketAddress> server1EndpointKey =
-                    new EndpointKey<SocketAddress>("server1",
-                    server1.getEndpointAddress());
+                    new EndpointKey<>("server1",
+                            server1.getEndpointAddress());
             // create a connection-pool EndpointKey for the server #2
             final EndpointKey<SocketAddress> server2EndpointKey =
-                    new EndpointKey<SocketAddress>("server2",
-                    server2.getEndpointAddress());
+                    new EndpointKey<>("server2",
+                            server2.getEndpointAddress());
 
             // create a connection pool
             connectionPool = MultiEndpointPool
