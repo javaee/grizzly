@@ -67,5 +67,6 @@
         <module>http-jaxws-samples</module>
         <module>http2-samples</module>
         <module>tls-sni-samples</module>
+        <module>connection-pool-samples</module>
     </modules>
 </project>

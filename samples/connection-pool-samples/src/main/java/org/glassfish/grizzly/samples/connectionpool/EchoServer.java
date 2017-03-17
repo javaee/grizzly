@@ -39,6 +39,16 @@
  */
 package org.glassfish.grizzly.samples.connectionpool;
 
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.utils.Charsets;
+import org.glassfish.grizzly.utils.EchoFilter;
+import org.glassfish.grizzly.utils.StringFilter;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 
@@ -68,8 +78,6 @@ public class EchoServer {
     
     /**
      * Starts the server.
-     * 
-     * @throws IOException 
      */
     public void start() throws IOException {
         if (isRunning) {
@@ -78,7 +86,7 @@ public class EchoServer {
         
         isRunning = true;
         
-        final FilterChain filterChain =FilterChainBuilder.stateless()
+        final FilterChain filterChain = FilterChainBuilder.stateless()
                 .add(new TransportFilter())
                 .add(new StringFilter(Charsets.UTF8_CHARSET))
                 .add(new EchoFilter())
@@ -96,8 +104,6 @@ public class EchoServer {
     
     /**
      * Stops the server.
-     * 
-     * @throws IOException 
      */
     public void stop() throws IOException {
         if (!isRunning) {

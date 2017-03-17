@@ -39,6 +39,10 @@
  */
 package org.glassfish.grizzly.samples.connectionpool;
 
+import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+
 import java.io.IOException;
 
 /**
