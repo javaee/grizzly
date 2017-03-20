@@ -78,6 +78,7 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 
 import static org.glassfish.grizzly.http2.Termination.IN_FIN_TERMINATION;
 import static org.glassfish.grizzly.http2.Termination.OUT_FIN_TERMINATION;
+import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_ENABLE_PUSH;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS;
 
@@ -650,6 +651,8 @@ public class Http2ClientFilter extends Http2BaseFilter {
                 && initWindSize != http2Connection.getDefaultStreamWindowSize()) {
             builder.setting(SETTINGS_INITIAL_WINDOW_SIZE, initWindSize);
         }
+
+        builder.setting(SETTINGS_ENABLE_PUSH, ((getConfiguration().isPushEnabled()) ? 1 : 0));
         
         return builder;
     }    
