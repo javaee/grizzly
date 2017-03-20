@@ -213,11 +213,6 @@ public class SettingsFrame extends Http2Frame {
         return numberOfSettings;
     }
 
-    public int getSettingValue(final int settingId) {
-        final int idx = idx(settingId);
-        return idx != -1 ? settings[idx].value : -1;
-    }
-
     public Setting getSettingByIndex(final int idx) {
         return idx >= 0 && idx < numberOfSettings
                 ? settings[idx]
@@ -461,11 +456,6 @@ public class SettingsFrame extends Http2Frame {
         private Setting() {
         }
         
-        private Setting(final int settingId, final int value) {
-            this.id = settingId;
-            this.value = value;
-        }
-
         public int getId() {
             return id;
         }
