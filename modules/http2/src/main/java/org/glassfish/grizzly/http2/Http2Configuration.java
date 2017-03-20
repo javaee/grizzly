@@ -63,6 +63,7 @@ public class Http2Configuration {
     private volatile int maxHeaderListSize;
     private volatile boolean disableCipherCheck;
     private volatile boolean priorKnowledge;
+    private volatile boolean pushEnabled;
     private final ExecutorService executorService;
     private final ThreadPoolConfig threadPoolConfig;
 
@@ -79,6 +80,7 @@ public class Http2Configuration {
         priorKnowledge = builder.priorKnowledge;
         threadPoolConfig = builder.threadPoolConfig;
         executorService = builder.executorService;
+        pushEnabled = builder.pushEnabled;
     }
 
 
@@ -186,6 +188,20 @@ public class Http2Configuration {
     }
 
     /**
+     * @return <code>true</code> if push to be allowed by the server endpoint, otherwise <code>false</code>.
+     */
+    public boolean isPushEnabled() {
+        return pushEnabled;
+    }
+
+    /**
+     * Configure whether push should be allowed by the server endpoint.
+     */
+    public void setPushEnabled(final boolean pushEnabled) {
+        this.pushEnabled = pushEnabled;
+    }
+
+    /**
      * @return the thread pool configuration for servicing HTTP/2 streams, if any.
      */
     public ThreadPoolConfig getThreadPoolConfig() {
@@ -209,6 +225,7 @@ public class Http2Configuration {
         private int maxHeaderListSize = DEFAULT_MAX_HEADER_LIST_SIZE;
         private boolean disableCipherCheck;
         private boolean priorKnowledge;
+        private boolean pushEnabled = true;
         private ThreadPoolConfig threadPoolConfig;
         private ExecutorService executorService;
 
@@ -279,6 +296,14 @@ public class Http2Configuration {
          */
         public Http2ConfigurationBuilder priorKnowledge(final boolean val) {
             priorKnowledge = val;
+            return this;
+        }
+
+        /**
+         * @see #setPushEnabled(boolean)
+         */
+        public Http2ConfigurationBuilder enablePush(final boolean val) {
+            pushEnabled = val;
             return this;
         }
 
