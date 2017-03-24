@@ -98,7 +98,6 @@
                         ${basedir}/../core/src/main/java;
                         ${basedir}/../../http/src/main/java;
                         ${basedir}/../../http-server/src/main/java;
-                        ${basedir}/../../http2/src/main/java;
                         ${basedir}/../../http-ajp/src/main/java;
                         ${basedir}/../../spdy/src/main/java;
                         ${basedir}/../../../extras/http-server-multipart/src/main/java;
