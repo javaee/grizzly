@@ -60,7 +60,7 @@ import java.util.List;
  * safe without a request body.
  *
  * <p>A PushBuilder is obtained by calling {@link
- * Request#getPushBuilder()}.  Each call to this method will
+ * Request#newPushBuilder()}.  Each call to this method will
  * return a new instance of a PushBuilder based off the current {@code
  * HttpServletRequest}.  Any mutations to the returned PushBuilder are
  * not reflected on future returns.</p>

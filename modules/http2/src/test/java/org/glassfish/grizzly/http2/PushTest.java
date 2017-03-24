@@ -141,7 +141,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 try {
                     //noinspection ConstantConditions
                     builder.method(null);
@@ -185,7 +185,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.method(entry.getKey());
@@ -227,7 +227,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.method(entry.getKey());
@@ -268,7 +268,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.queryString(entry.getKey().getSecond());
@@ -308,7 +308,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.queryString(entry.getKey().getSecond());
@@ -350,7 +350,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.sessionId(entry.getKey().getSecond());
@@ -390,7 +390,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.sessionId(entry.getKey().getSecond());
@@ -432,7 +432,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.path(entry.getKey().getSecond());
@@ -472,7 +472,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.path(entry.getKey().getSecond());
@@ -514,7 +514,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
 
                 // clear all headers first
                 final Iterator<String> existingHeaders = builder.getHeaderNames().iterator();
@@ -565,7 +565,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.addHeader(entry.getKey().getFirst(), entry.getKey().getSecond());
@@ -607,7 +607,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
 
                 // clear all headers first
                 final Iterator<String> existingHeaders = builder.getHeaderNames().iterator();
@@ -658,7 +658,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.setHeader(entry.getKey().getFirst(), entry.getKey().getSecond());
@@ -698,7 +698,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 for (Map.Entry<Pair<String, String>, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.setHeader(entry.getKey().getFirst(), entry.getKey().getSecond());
@@ -740,7 +740,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 try {
                     //noinspection ConstantConditions
                     builder.push();
@@ -776,7 +776,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
 
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 sessionIdNull.compareAndSet(false, builder.getSessionId() == null);
                 latch.countDown();
             }
@@ -804,7 +804,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
                 final Session session = request.getSession(true);
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 sessionIdBySession.compareAndSet(false, builder.getSessionId().equals(session.getIdInternal()));
                 latch.countDown();
             }
@@ -832,7 +832,7 @@ public class PushTest extends AbstractHttp2Test {
         final HttpHandler handler = new HttpHandler() {
             @Override
             public void service(final Request request, final Response response) throws Exception {
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 sessionIdBySession.compareAndSet(false, builder.getSessionId().equals(expectedId));
                 latch.countDown();
             }
@@ -867,7 +867,7 @@ public class PushTest extends AbstractHttp2Test {
 
             @Override
             public void service(final Request request, final Response response) throws Exception {
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 builder.path("/resource1");
                 builder.push();
                 builder.path("/resource2");
@@ -961,7 +961,7 @@ public class PushTest extends AbstractHttp2Test {
 
             @Override
             public void service(final Request request, final Response response) throws Exception {
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 builder.path("/resource1");
                 builder.push();
                 response.setCharacterEncoding("UTF-8");
@@ -1142,7 +1142,7 @@ public class PushTest extends AbstractHttp2Test {
                 final Cookie resCookie = new Cookie("chocolate", "chip");
                 resCookie.setMaxAge(Integer.MAX_VALUE);
                 response.addCookie(resCookie);
-                final PushBuilder builder = request.getPushBuilder();
+                final PushBuilder builder = request.newPushBuilder();
                 builder.path("/resource1").push();
                 response.setCharacterEncoding("UTF-8");
                 response.setContentType("text/plain");

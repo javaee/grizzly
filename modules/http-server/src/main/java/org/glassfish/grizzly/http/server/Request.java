@@ -710,7 +710,13 @@ public class Request {
     // ------------------------------------------------- Request Public Methods
 
 
-    public PushBuilder getPushBuilder() {
+    /**
+     * @return a new {@link PushBuilder} for issuing server push responses
+     * from the current request.  If the current connection does not
+     * support server push, or server push has been disabled by the
+     * client, it will return <code>null</code>.
+     */
+    public PushBuilder newPushBuilder() {
         return ((isPushEnabled()) ? new PushBuilder(this) : null);
     }
 

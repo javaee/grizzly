@@ -96,7 +96,7 @@ public class SmileysHandler extends HttpHandler {
 
         // check if HTTP/2 Push is requested by the client and is enabled
         if (isPush) {
-            final PushBuilder pushBuilder = request.getPushBuilder();
+            final PushBuilder pushBuilder = request.newPushBuilder();
             
             // if psuBuilder == null - then it's not an HTTP/2 request or Push is disabled.
             if (pushBuilder != null) {
