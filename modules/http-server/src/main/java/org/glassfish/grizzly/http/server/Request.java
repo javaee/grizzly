@@ -552,7 +552,8 @@ public class Request {
      * @return <code>true</code> if HTTP/2 push is enabled, otherwise, <code>false</code>.
      */
     public boolean isPushEnabled() {
-        return ((Boolean) getContext().getConnection().getAttributes().getAttribute(HTTP2_PUSH_ENABLED));
+        final Boolean result = (Boolean) getContext().getConnection().getAttributes().getAttribute(HTTP2_PUSH_ENABLED);
+        return ((result != null) ? result : false);
     }
     
     /**
