@@ -59,7 +59,7 @@ public class PushEvent implements FilterChainEvent {
 
     public static final Object TYPE = PushEvent.class.getName();
 
-    private Method method;
+    private String method;
     private MimeHeaders headers = new MimeHeaders();
     private String path;
     private HttpRequestPacket httpRequest;
@@ -101,7 +101,7 @@ public class PushEvent implements FilterChainEvent {
     /**
      * @return the HTTP Method of the push request.
      */
-    public Method getMethod() {
+    public String getMethod() {
         return method;
     }
 
@@ -186,7 +186,7 @@ public class PushEvent implements FilterChainEvent {
      * in an exception when {@link #build()} is invoked;
      */
     public static final class PushEventBuilder {
-        private Method method = Method.GET;
+        private String method = Method.GET.getMethodString();
         private MimeHeaders headers = new MimeHeaders();
         private String path;
         private HttpRequestPacket httpRequest;
@@ -203,15 +203,19 @@ public class PushEvent implements FilterChainEvent {
          * @throws IllegalArgumentException if a {@link Method} other
          *  than {@link Method#GET} or {@link Method#HEAD} are provided.
          */
-        public PushEventBuilder method(final Method val) {
+        public PushEventBuilder method(final String val) {
             if (method == null) {
                 throw new NullPointerException();
             }
-            if (Method.GET.equals(val) || Method.HEAD.equals(val)) {
-                this.method = val;
-            } else {
+            if (Method.POST.getMethodString().equals(method)
+                    || Method.PUT.getMethodString().equals(method)
+                    || Method.DELETE.getMethodString().equals(method)
+                    || Method.CONNECT.getMethodString().equals(method)
+                    || Method.OPTIONS.getMethodString().equals(method)
+                    || Method.TRACE.getMethodString().equals(method)) {
                 throw new IllegalArgumentException();
             }
+            this.method = val;
             return this;
         }
 

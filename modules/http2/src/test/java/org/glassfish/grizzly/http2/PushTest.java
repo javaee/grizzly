@@ -170,14 +170,13 @@ public class PushTest extends AbstractHttp2Test {
     @Test
     public void pushBuilderInvalidMethod() {
 
-        final HashMap<Method, AtomicBoolean> methodsMap = new HashMap<>();
-        methodsMap.put(Method.OPTIONS, new AtomicBoolean());
-        methodsMap.put(Method.POST, new AtomicBoolean());
-        methodsMap.put(Method.PUT, new AtomicBoolean());
-        methodsMap.put(Method.DELETE, new AtomicBoolean());
-        methodsMap.put(Method.TRACE, new AtomicBoolean());
-        methodsMap.put(Method.CONNECT, new AtomicBoolean());
-        methodsMap.put(Method.PATCH, new AtomicBoolean());
+        final HashMap<String, AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(Method.OPTIONS.getMethodString(), new AtomicBoolean());
+        methodsMap.put(Method.POST.getMethodString(), new AtomicBoolean());
+        methodsMap.put(Method.PUT.getMethodString(), new AtomicBoolean());
+        methodsMap.put(Method.DELETE.getMethodString(), new AtomicBoolean());
+        methodsMap.put(Method.TRACE.getMethodString(), new AtomicBoolean());
+        methodsMap.put(Method.CONNECT.getMethodString(), new AtomicBoolean());
 
         final CountDownLatch latch = new CountDownLatch(1);
 
@@ -186,13 +185,13 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.newPushBuilder();
-                for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<String, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.method(entry.getKey());
                     } catch (IllegalArgumentException iae) {
                         entry.getValue().compareAndSet(false, true);
                     } catch (Exception e) {
-                        System.out.println('[' + entry.getKey().getMethodString() + "] Unexpected exception: " + e);
+                        System.out.println('[' + entry.getKey() + "] Unexpected exception: " + e);
                     }
                 }
                 latch.countDown();
@@ -203,9 +202,9 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public Throwable call() throws Exception {
                 // validate the AtomicBooleans in the map.  They should all be true.
-                for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<String, AtomicBoolean> entry : methodsMap.entrySet()) {
                     assertThat(String.format("No IllegalStateException or unexpected Exception thrown when providing %s to PushBuilder.method()",
-                            entry.getKey().getMethodString()), entry.getValue().get(), is(true));
+                            entry.getKey()), entry.getValue().get(), is(true));
                 }
                 return null;
             }
@@ -217,9 +216,9 @@ public class PushTest extends AbstractHttp2Test {
     @Test
     public void pushBuilderValidMethod() {
 
-        final HashMap<Method, AtomicBoolean> methodsMap = new HashMap<>();
-        methodsMap.put(Method.GET, new AtomicBoolean());
-        methodsMap.put(Method.HEAD, new AtomicBoolean());
+        final HashMap<String, AtomicBoolean> methodsMap = new HashMap<>();
+        methodsMap.put(Method.GET.getMethodString(), new AtomicBoolean());
+        methodsMap.put(Method.HEAD.getMethodString(), new AtomicBoolean());
 
         final CountDownLatch latch = new CountDownLatch(1);
 
@@ -228,12 +227,12 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
 
                 final PushBuilder builder = request.newPushBuilder();
-                for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<String, AtomicBoolean> entry : methodsMap.entrySet()) {
                     try {
                         builder.method(entry.getKey());
                         entry.getValue().compareAndSet(false, true);
                     } catch (Exception e) {
-                        System.out.println('[' + entry.getKey().getMethodString() + "] Unexpected exception: " + e);
+                        System.out.println('[' + entry.getKey() + "] Unexpected exception: " + e);
                     }
                 }
                 latch.countDown();
@@ -243,9 +242,9 @@ public class PushTest extends AbstractHttp2Test {
         final Callable<Throwable> result = new Callable<Throwable>() {
             @Override
             public Throwable call() throws Exception {
-                for (Map.Entry<Method, AtomicBoolean> entry : methodsMap.entrySet()) {
+                for (Map.Entry<String, AtomicBoolean> entry : methodsMap.entrySet()) {
                     assertThat(String.format("Unexpected Exception thrown when providing %s to PushBuilder.method()",
-                            entry.getKey().getMethodString()), entry.getValue().get(), is(true));
+                            entry.getKey()), entry.getValue().get(), is(true));
                 }
                 return null;
             }

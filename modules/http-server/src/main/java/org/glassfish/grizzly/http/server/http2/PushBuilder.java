@@ -148,7 +148,7 @@ public final class PushBuilder {
             Header.IfMatch,
     };
 
-    Method method = Method.GET;
+    String method = Method.GET.getMethodString();
     String queryString;
     String sessionId;
     MimeHeaders headers;
@@ -219,15 +219,19 @@ public final class PushBuilder {
      *                                  or any non-cacheable or unsafe methods defined in RFC 7231,
      *                                  which are POST, PUT, DELETE, CONNECT, OPTIONS and TRACE.
      */
-    public PushBuilder method(Method method) {
+    public PushBuilder method(final String method) {
         if (method == null) {
             throw new NullPointerException();
         }
-        if (Method.GET.equals(method) || Method.HEAD.equals(method)) {
-            this.method = method;
-        } else {
+        if (Method.POST.getMethodString().equals(method)
+                || Method.PUT.getMethodString().equals(method)
+                || Method.DELETE.getMethodString().equals(method)
+                || Method.CONNECT.getMethodString().equals(method)
+                || Method.OPTIONS.getMethodString().equals(method)
+                || Method.TRACE.getMethodString().equals(method)) {
             throw new IllegalArgumentException();
         }
+        this.method = method;
         return this;
     }
 
@@ -438,7 +442,7 @@ public final class PushBuilder {
      *
      * @return the method to be used for the push.
      */
-    public Method getMethod() {
+    public String getMethod() {
         return method;
     }
 
