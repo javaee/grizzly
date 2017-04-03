@@ -867,10 +867,8 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
                 final PushBuilder builder = request.newPushBuilder();
-                builder.path("/resource1/some/path?a=1&b=2");
-                builder.push();
-                builder.path("/resource2");
-                builder.push();
+                builder.path("/resource1/some/path?a=1").queryString("b=2").push();
+                builder.path("/resource2").push();
                 response.setCharacterEncoding("UTF-8");
                 response.setContentType("text/plain");
                 response.getWriter().write("main");
