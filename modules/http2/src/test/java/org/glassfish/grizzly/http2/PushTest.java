@@ -867,7 +867,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
                 final PushBuilder builder = request.newPushBuilder();
-                builder.path("/resource1");
+                builder.path("/resource1?a=1&b=2");
                 builder.push();
                 builder.path("/resource2");
                 builder.push();
@@ -882,6 +882,14 @@ public class PushTest extends AbstractHttp2Test {
             public void service(final Request request, final Response response) throws Exception {
                 response.setCharacterEncoding("UTF-8");
                 response.setContentType("text/plain");
+                if (!"1".equals(request.getParameter("a"))) {
+                    response.getWriter().write("missing request parameter 'a'");
+                    return;
+                }
+                if (!"2".equals(request.getParameter("b"))) {
+                    response.getWriter().write("missing request parameter 'b'");
+                    return;
+                }
                 response.getWriter().write("resource1");
             }
         };
@@ -947,8 +955,8 @@ public class PushTest extends AbstractHttp2Test {
 
         doPushTest(request, validator, resultQueue,
                 HttpHandlerRegistration.of(mainHandler, "/main"),
-                HttpHandlerRegistration.of(resource1, "/resource1"),
-                HttpHandlerRegistration.of(resource2, "/resource2"));
+                HttpHandlerRegistration.of(resource1, "/resource1/*"),
+                HttpHandlerRegistration.of(resource2, "/resource2/*"));
     }
 
     @Test

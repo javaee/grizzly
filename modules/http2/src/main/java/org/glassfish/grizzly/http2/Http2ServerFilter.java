@@ -850,9 +850,18 @@ public class Http2ServerFilter extends Http2BaseFilter {
             if (parentStream == null) {
                 return;
             }
+            final String eventPath = pushEvent.getPath();
+            String path = eventPath;
+            String query = null;
+            final int idx = eventPath.indexOf('?');
+            if (idx != -1) {
+                path = eventPath.substring(0, idx);
+                query = eventPath.substring(idx + 1);
+            }
             final Http2Request request = Http2Request.create();
             request.setConnection(ctx.getConnection());
-            request.setRequestURI(pushEvent.getPath());
+            request.setRequestURI(path);
+            request.getQueryStringDC().setString(query);
             request.setProtocol(Protocol.HTTP_2_0);
             request.setMethod(pushEvent.getMethod());
             request.setSecure(pushEvent.getHttpRequest().isSecure());
