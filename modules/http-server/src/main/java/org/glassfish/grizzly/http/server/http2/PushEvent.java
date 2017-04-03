@@ -200,8 +200,9 @@ public class PushEvent implements FilterChainEvent {
          * @return this
          *
          * @throws NullPointerException if no value is provided.
-         * @throws IllegalArgumentException if a {@link Method} other
-         *  than {@link Method#GET} or {@link Method#HEAD} are provided.
+         * @throws IllegalArgumentException if the argument is the empty String,
+         *                                  or any non-cacheable or unsafe methods defined in RFC 7231,
+         *                                  which are POST, PUT, DELETE, CONNECT, OPTIONS and TRACE.
          */
         public PushEventBuilder method(final String val) {
             if (method == null) {
