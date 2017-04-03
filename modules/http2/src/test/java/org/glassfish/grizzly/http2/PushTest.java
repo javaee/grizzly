@@ -867,7 +867,7 @@ public class PushTest extends AbstractHttp2Test {
             @Override
             public void service(final Request request, final Response response) throws Exception {
                 final PushBuilder builder = request.newPushBuilder();
-                builder.path("/resource1?a=1&b=2");
+                builder.path("/resource1/some/path?a=1&b=2");
                 builder.push();
                 builder.path("/resource2");
                 builder.push();
@@ -883,12 +883,15 @@ public class PushTest extends AbstractHttp2Test {
                 response.setCharacterEncoding("UTF-8");
                 response.setContentType("text/plain");
                 if (!"1".equals(request.getParameter("a"))) {
-                    response.getWriter().write("missing request parameter 'a'");
+                    response.getWriter().write("missing or incorrect value for request parameter 'a'");
                     return;
                 }
                 if (!"2".equals(request.getParameter("b"))) {
-                    response.getWriter().write("missing request parameter 'b'");
+                    response.getWriter().write("missing or incorrect value for request parameter 'b'");
                     return;
+                }
+                if (!"/some/path".equals(request.getPathInfo())) {
+                    response.getWriter().write("Unexpected path info: " + request.getPathInfo());
                 }
                 response.getWriter().write("resource1");
             }
@@ -936,7 +939,7 @@ public class PushTest extends AbstractHttp2Test {
                             assertThat(stream.isPushStream(), is(false));
                             assertThat(content.getContent().toStringContent(), is("main"));
                             break;
-                        case "/resource1":
+                        case "/resource1/some/path":
                             assertThat(stream.isPushStream(), is(true));
                             assertThat(content.getContent().toStringContent(), is("resource1"));
                             break;
