@@ -90,6 +90,7 @@ public enum Header {
     ProxyAuthorization("Proxy-Authorization"),
     ProxyConnection("Proxy-Connection"),
     Range("Range"),
+    @SuppressWarnings("SpellCheckingInspection")
     Referer("Referer"),
     RetryAfter("Retry-After"),
     Server("Server"),
@@ -109,7 +110,7 @@ public enum Header {
 
     // ----------------------------------------------------------------- Statics
 
-    private static final Map<String,Header> VALUES = new TreeMap<String,Header>(String.CASE_INSENSITIVE_ORDER);
+    private static final Map<String,Header> VALUES = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     static {
         for (final Header h : Header.values()) {
             VALUES.put(h.toString(), h);
@@ -233,95 +234,5 @@ public enum Header {
         return VALUES.get(name);
 
     }
-
-
-    // --------------------------------------------------------- Private Methods
-
-
-    private boolean equalsIgnoreCase(final byte[] b) {
-
-        final int len = headerNameBytes.length;
-        if (b == null ||  len != b.length) {
-            return false;
-        }
-
-        for (int i = 0; i < len; i++) {
-            if (headerNameLowerCaseBytes[i] != Ascii.toLower(b[i])) {
-                return false;
-            }
-        }
-        return true;
-
-    }
-
-
-    // ---------------------------------------------------------- Nested Classes
-
-
-//    private static final class RecyclableHeapBuffer extends HeapBuffer implements Cacheable {
-//
-//        private static final ThreadCache.CachedTypeIndex<RecyclableHeapBuffer> CACHE_IDX =
-//            ThreadCache.obtainIndex(RecyclableHeapBuffer.class, 64);
-//
-//        // -------------------------------------------------------- Constructors
-//
-//
-//        RecyclableHeapBuffer(byte[] heap, int offset, int cap) {
-//            super(heap, offset, cap);
-//            allowBufferDispose(true);
-//        }
-//
-//
-//        // --------------------------------------------- Methods from HeapBuffer
-//
-//        @Override
-//        public boolean isReadOnly() {
-//            return true;
-//        }
-//
-//        @Override
-//        public void dispose() {
-//            recycle();
-//        }
-//
-//        // ---------------------------------------------- Methods from Cacheable
-//
-//
-//        @Override
-//        public void recycle() {
-//            this.heap = null;
-//            this.byteBuffer = null;
-//            this.offset = 0;
-//            this.cap = 0;
-//            this.lim = 0;
-//            ThreadCache.putToCache(CACHE_IDX, this);
-//        }
-//
-//
-//        // ----------------------------------------------------- Private Methods
-//
-//
-//        private static RecyclableHeapBuffer create(final byte[] heap) {
-//
-//            RecyclableHeapBuffer b = ThreadCache.takeFromCache(CACHE_IDX);
-//            if (b == null) {
-//                b = new RecyclableHeapBuffer(heap, 0, heap.length);
-//            } else {
-//                b.init(heap);
-//            }
-//            return b;
-//
-//        }
-//
-//        private void init(byte[] heap) {
-//
-//            this.heap = heap;
-//            this.offset = 0;
-//            this.cap = heap.length;
-//            this.lim = cap;
-//
-//        }
-//
-//    }
 
 }
