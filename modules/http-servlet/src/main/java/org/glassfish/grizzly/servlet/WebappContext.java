@@ -191,7 +191,7 @@ public class WebappContext implements ServletContext {
             DataStructures.<String, Object>getConcurrentMap(16, 0.75f, 64);
 
     /* Server name; used in the Server entity header */
-    private volatile String serverInfo = "Grizzly " + Grizzly.getDotedVersion();
+    private volatile String serverInfo = "grizzly/" + Grizzly.getDotedVersion();
 
 
     /* Thread local data used during request dispatch */
@@ -289,6 +289,16 @@ public class WebappContext implements ServletContext {
 
     // ---------------------------------------------------------- Public Methods
 
+    /**
+     * Set the value of the <code>Server</code> header to be sent in the response.
+     * If the value is a zero-length String or null, no <code>Server</code> header
+     * will be sent.
+     *
+     * @param serverInfo the string to be sent with the response.
+     */
+    public void setServerInfo(final String serverInfo) {
+        this.serverInfo = serverInfo;
+    }
 
     /**
      *
