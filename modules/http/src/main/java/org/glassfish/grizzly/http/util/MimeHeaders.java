@@ -63,7 +63,7 @@ import org.glassfish.grizzly.Buffer;
 
 /* XXX XXX XXX Need a major rewrite  !!!!
  */
-/**
+/*
  * This class is used to contain standard Internet message headers,
  * used for SMTP (RFC822) and HTTP (RFC2068) messages as well as for
  * MIME (RFC 2045) applications such as transferring typed data and
@@ -144,6 +144,8 @@ public class MimeHeaders {
      */
     private int count;
 
+    int mark;
+
     private int maxNumHeaders = MAX_NUM_HEADERS_DEFAULT;
 
     /**
@@ -153,7 +155,7 @@ public class MimeHeaders {
 
         @Override
         public Iterator<String> iterator() {
-            return new NamesIterator(MimeHeaders.this);
+            return new NamesIterator(MimeHeaders.this, false);
         }
     };
 
@@ -179,6 +181,10 @@ public class MimeHeaders {
             headers[i].recycle();
         }
         count = 0;
+    }
+
+    public void mark() {
+        mark = count;
     }
 
     /**
@@ -366,24 +372,42 @@ public class MimeHeaders {
         return namesIterable;
     }
 
+    public Iterable<String> trailerNames() {
+        return new Iterable<String>() {
+
+            @Override
+            public Iterator<String> iterator() {
+                return new NamesIterator(MimeHeaders.this, true);
+            }
+        };
+    }
+
     public Iterable<String> values(final String name) {
         return new Iterable<String>() {
 
             @Override
             public Iterator<String> iterator() {
-                return new ValuesIterator(MimeHeaders.this, name);
+                return new ValuesIterator(MimeHeaders.this, name, false);
             }
         };
     }
 
     public Iterable<String> values(final Header name) {
+        return values(name.toString());
+    }
+
+    public Iterable<String> trailerValues(final String name) {
         return new Iterable<String>() {
 
             @Override
             public Iterator<String> iterator() {
-                return new ValuesIterator(MimeHeaders.this, name.toString());
+                return new ValuesIterator(MimeHeaders.this, name, true);
             }
         };
+    }
+
+    public Iterable<String> trailerValues(final Header name) {
+        return values(name.toString());
     }
 
     // -------------------- Adding headers --------------------
@@ -677,9 +701,9 @@ class NamesIterator implements Iterator<String> {
     String next;
     final MimeHeaders headers;
 
-    NamesIterator(MimeHeaders headers) {
+    NamesIterator(MimeHeaders headers, final boolean trailersOnly) {
         this.headers = headers;
-        pos = 0;
+        pos = ((trailersOnly) ? headers.mark : 0);
         size = headers.size();
         findNext();
     }
@@ -732,7 +756,7 @@ class NamesIterator implements Iterator<String> {
 /** Enumerate the values for a (possibly ) multiple
 value element.
  */
-class ValuesIterator implements Iterator<String> {
+final class ValuesIterator implements Iterator<String> {
 
     int pos;
     int size;
@@ -741,10 +765,12 @@ class ValuesIterator implements Iterator<String> {
     final MimeHeaders headers;
     final String name;
 
-    ValuesIterator(MimeHeaders headers, String name) {
+    ValuesIterator(final MimeHeaders headers,
+                   final String name,
+                   final boolean trailersOnly) {
         this.name = name;
         this.headers = headers;
-        pos = 0;
+        pos = ((trailersOnly) ? headers.mark : 0);
         size = headers.size();
         findNext();
     }
@@ -785,10 +811,10 @@ class ValuesIterator implements Iterator<String> {
     }
 }
 
-class MimeHeaderField {
+final class MimeHeaderField {
 
-    protected final DataChunk nameB = DataChunk.newInstance();
-    protected final DataChunk valueB = DataChunk.newInstance();
+    final DataChunk nameB = DataChunk.newInstance();
+    final DataChunk valueB = DataChunk.newInstance();
 
     private boolean isSerialized;
     /**
