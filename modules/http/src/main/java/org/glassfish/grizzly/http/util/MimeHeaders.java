@@ -181,6 +181,7 @@ public class MimeHeaders {
             headers[i].recycle();
         }
         count = 0;
+        mark = 0;
     }
 
     public void mark() {
