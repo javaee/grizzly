@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -58,7 +59,6 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.InQueueFilter;
 import org.glassfish.grizzly.utils.StringFilter;
@@ -80,7 +80,7 @@ public class FilterChainReadTest extends TestCase {
         Connection connection = null;
         int messageNum = 3;
 
-        final BlockingQueue<String> intermResultQueue = DataStructures.getLTQInstance(String.class);
+        final BlockingQueue<String> intermResultQueue = new LinkedTransferQueue<>();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter());
@@ -181,7 +181,7 @@ public class FilterChainReadTest extends TestCase {
 
         final StringFilter stringFilter = new StringFilter();
         
-        final BlockingQueue<String> intermResultQueue = DataStructures.getLTQInstance(String.class);
+        final BlockingQueue<String> intermResultQueue = new LinkedTransferQueue<>();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(stringFilter);
@@ -223,7 +223,7 @@ public class FilterChainReadTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            final BlockingQueue<String> resultQueue = DataStructures.getLTQInstance(String.class);
+            final BlockingQueue<String> resultQueue = new LinkedTransferQueue<>();
 
             FilterChainBuilder clientFilterChainBuilder =
                     FilterChainBuilder.newInstance();
@@ -295,7 +295,7 @@ public class FilterChainReadTest extends TestCase {
     public void testBlockingReadError() throws Exception {
         Connection connection = null;
 
-        final BlockingQueue<Object> intermResultQueue = DataStructures.getLTQInstance(Object.class);
+        final BlockingQueue<Object> intermResultQueue = new LinkedTransferQueue<>();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.newInstance();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new StringFilter());

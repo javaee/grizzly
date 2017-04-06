@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,12 +40,8 @@
 package org.glassfish.grizzly.utils;
 
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.logging.Level;
-import org.glassfish.grizzly.Grizzly;
 
 /*
  * Utility class, which tries to pickup the best collection implementation depending
@@ -55,61 +51,16 @@ import org.glassfish.grizzly.Grizzly;
  */
 public class DataStructures {
     private final static boolean USE_CUSTOM_CHM8;
-    private final static Class<?> LTQclass;
 
     static {
-        String className = null;
-        boolean useCustomCHM8 = false;
-        
-        Class<?> c;
-        try {
-            final JdkVersion jdkVersion = JdkVersion.getJdkVersion();
-            final JdkVersion jdk18Version = JdkVersion.parseVersion("1.8.0");
-            
-            useCustomCHM8 = jdkVersion.isUnsafeSupported() &&
-                    jdk18Version.compareTo(jdkVersion) > 0;
-            
-            final JdkVersion jdk17Version = JdkVersion.parseVersion("1.7.0");
-            className = (jdk17Version.compareTo(jdkVersion) <= 0)
-                    ? "java.util.concurrent.LinkedTransferQueue"
-                    : "org.glassfish.grizzly.utils.LinkedTransferQueue";
-            
-            c = getAndVerify(className);
-            Grizzly.logger(DataStructures.class).log(Level.FINE, "USING LTQ class:{0}", c);
-        } catch (Throwable t) {
-            Grizzly.logger(DataStructures.class).log(Level.FINE,
-                    "failed loading datastructure class:" + className +
-                    " fallback to embedded one", t);
-            
-            c = LinkedBlockingQueue.class; // fallback to LinkedBlockingQueue
-        }
-        
-        LTQclass = c;
-        USE_CUSTOM_CHM8 = useCustomCHM8;
+        final JdkVersion jdkVersion = JdkVersion.getJdkVersion();
+        final JdkVersion jdk18Version = JdkVersion.parseVersion("1.8.0");
+
+        USE_CUSTOM_CHM8 = jdkVersion.isUnsafeSupported() &&
+                jdk18Version.compareTo(jdkVersion) > 0;
     }
 
-    private static Class<?> getAndVerify(String cname) throws Throwable {
-        return DataStructures.class.getClassLoader().loadClass(cname).newInstance().getClass();
-    }
 
-    @SuppressWarnings("unchecked")
-    public static <T> BlockingQueue<T> getLTQInstance() {
-        try {
-            return (BlockingQueue<T>) LTQclass.newInstance();
-        } catch (Exception ea) {
-            throw new RuntimeException(ea);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> BlockingQueue<T> getLTQInstance(Class<T> t) {
-        try {
-            return (BlockingQueue<T>) LTQclass.newInstance();
-        } catch (Exception ea) {
-            throw new RuntimeException(ea);
-        }
-    }
-    
     /**
      * Creates a new, empty map with a default initial capacity (16),
      * load factor (0.75) and concurrencyLevel (16).

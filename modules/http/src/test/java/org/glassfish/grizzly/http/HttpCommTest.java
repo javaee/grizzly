@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,6 +60,7 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -69,7 +70,6 @@ import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Test HTTP communication
@@ -99,7 +99,7 @@ public class HttpCommTest extends TestCase {
             transport.bind(PORT);
             transport.start();
             
-            final BlockingQueue<HttpPacket> resultQueue = DataStructures.getLTQInstance(HttpPacket.class);
+            final BlockingQueue<HttpPacket> resultQueue = new LinkedTransferQueue<>();
 
             final FilterChain clientFilterChain = FilterChainBuilder.newInstance()
                     .add(new TransportFilter())

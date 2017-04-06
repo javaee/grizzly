@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,6 +51,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -77,7 +78,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.BufferInQueueFilter;
 import org.glassfish.grizzly.utils.ClientCheckFilter;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.InQueueFilter;
 import org.glassfish.grizzly.utils.ParallelWriteFilter;
@@ -219,7 +219,7 @@ public class TCPNIOTransportTest {
 
     @Test
     public void testClose() throws Exception {
-        final BlockingQueue<Connection> acceptedQueue = DataStructures.getLTQInstance();
+        final BlockingQueue<Connection> acceptedQueue = new LinkedTransferQueue<>();
         
         Connection<?> connectedConnection = null;
         Connection acceptedConnection = null;

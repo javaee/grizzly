@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,17 +66,16 @@ import java.io.Reader;
 import java.nio.CharBuffer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.DelayFilter;
 import org.glassfish.grizzly.utils.Futures;
 
-import static junit.framework.Assert.assertEquals;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.util.HeaderValue;
@@ -1012,7 +1011,7 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         final BlockingQueue<Future<Boolean>> testResultQueue =
-                DataStructures.getLTQInstance();
+                new LinkedTransferQueue<>();
         
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         server.getListener("grizzly").getKeepAliveConfig().setMaxRequestsCount(-1);
@@ -1295,7 +1294,7 @@ public class HttpInputStreamsTest extends TestCase {
                         int count) throws Throwable {
 
         final BlockingQueue<Future<Boolean>> testResultQueue =
-                DataStructures.getLTQInstance();
+                new LinkedTransferQueue<>();
         
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         ServerConfiguration sconfig = server.getServerConfiguration();
