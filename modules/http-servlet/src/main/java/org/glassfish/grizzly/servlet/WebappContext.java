@@ -323,6 +323,11 @@ public class WebappContext implements ServletContext {
                         getSessionCookieConfig().setName(manager.getSessionCookieName());
                     }
                 }
+                String serverName = targetServer.getServerConfiguration().getHttpServerName();
+                if (serverName != null) {
+                    serverName += '/' + targetServer.getServerConfiguration().getHttpServerVersion();
+                }
+                setServerInfo(serverName);
                 initializeListeners();
                 contextInitialized();
                 initServlets(targetServer);
