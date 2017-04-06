@@ -325,7 +325,10 @@ public class WebappContext implements ServletContext {
                 }
                 String serverName = targetServer.getServerConfiguration().getHttpServerName();
                 if (serverName != null) {
-                    serverName += '/' + targetServer.getServerConfiguration().getHttpServerVersion();
+                    String serverVersion = targetServer.getServerConfiguration().getHttpServerVersion();
+                    if (serverVersion != null) {
+                        serverName += '/' + serverVersion;
+                    }
                 }
                 setServerInfo(serverName);
                 initializeListeners();
