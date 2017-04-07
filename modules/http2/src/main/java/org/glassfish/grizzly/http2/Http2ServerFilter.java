@@ -843,7 +843,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
             throw new IllegalStateException("Unable to find valid Http2Connection");
         }
         boolean isNewClientStreamLocked = true;
-        boolean isDeflaterLocked = true;
+        boolean isDeflaterLocked = false;
         h2c.getNewClientStreamLock().lock();
         try {
             final Http2Stream parentStream = Http2Stream.getStreamFor(pushEvent.getHttpRequest());
@@ -860,7 +860,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
             }
             final Http2Request request = Http2Request.create();
             request.setConnection(ctx.getConnection());
-            request.setRequestURI(path);
+            request.getRequestURIRef().init(path);
             request.getQueryStringDC().setString(query);
             request.setProtocol(Protocol.HTTP_2_0);
             request.setMethod(pushEvent.getMethod());
@@ -870,56 +870,67 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
             prepareOutgoingRequest(request);
             prepareOutgoingResponse(request.getResponse());
+            final Http2Stream pushStream;
 
-            final Http2Stream pushStream = h2c.openStream(
-                    request,
-                    h2c.getNextLocalStreamId(), parentStream.getId(),
-                    false, 0,
-                    Http2StreamState.RESERVED_LOCAL);
-            pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
+            try {
+                pushStream = h2c.openStream(
+                        request,
+                        h2c.getNextLocalStreamId(), parentStream.getId(),
+                        false, 0,
+                        Http2StreamState.RESERVED_LOCAL);
+                pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
 
-            h2c.getDeflaterLock().lock();
-            h2c.getNewClientStreamLock().unlock();
-            isDeflaterLocked = true;
-            isNewClientStreamLocked = false;
+                h2c.getDeflaterLock().lock();
+                h2c.getNewClientStreamLock().unlock();
+                isDeflaterLocked = true;
+                isNewClientStreamLocked = false;
 
-            List<Http2Frame> pushPromiseFrames =
-                    h2c.encodeHttpRequestAsPushPromiseFrames(
-                            ctx, pushStream.getRequest(), parentStream.getId(),
-                            pushStream.getId(), null);
+                List<Http2Frame> pushPromiseFrames =
+                        h2c.encodeHttpRequestAsPushPromiseFrames(
+                                ctx, pushStream.getRequest(), parentStream.getId(),
+                                pushStream.getId(), null);
 
-            h2c.getOutputSink().writeDownStream(
-                    pushPromiseFrames);
+                h2c.getDeflaterLock().unlock();
+                isDeflaterLocked = false;
 
-            h2c.getDeflaterLock().unlock();
-            isDeflaterLocked = false;
+                h2c.getOutputSink().writeDownStream(
+                        pushPromiseFrames);
+            } finally {
+                if (isDeflaterLocked) {
+                    h2c.getDeflaterLock().unlock();
+                }
+
+                if (isNewClientStreamLocked) {
+                    h2c.getNewClientStreamLock().unlock();
+                }
+            }
 
             request.getProcessingState().setHttpContext(
                     HttpContext.newInstance(pushStream, pushStream, pushStream, request));
             // now send the request upstream...
+
             submit(ctx.getConnection(), new Runnable() {
                 @Override
                 public void run() {
-                    h2c.sendMessageUpstream(pushStream, HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).build());
+                    h2c.sendMessageUpstream(pushStream,
+                                            HttpContent
+                                                .builder(request)
+                                                .content(Buffers.EMPTY_BUFFER)
+                                                    .build());
                 }
             });
 
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE,
-                    "Unable to push resource identified by path [{}]", pushEvent.getPath());
+                    "Unable to push resource identified by path [{0}]", pushEvent.getPath());
             LOGGER.log(Level.SEVERE, e.getMessage(), e);
         } finally {
-            if (isDeflaterLocked) {
-                h2c.getDeflaterLock().unlock();
-            }
-
-            if (isNewClientStreamLocked) {
-                h2c.getNewClientStreamLock().unlock();
-            }
             pushEvent.recycle();
             ctx.resume(ctx.getStopAction());
         }
+
+
     }
 
     private void submit(final Connection c, final Runnable runnable) {

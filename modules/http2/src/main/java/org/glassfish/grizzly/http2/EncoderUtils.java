@@ -170,7 +170,7 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
         }
         
         headers.removeHeader(Header.Connection);
-        headers.removeHeader(Header.Host);
+        //headers.removeHeader(Header.Host);
         headers.removeHeader(Header.KeepAlive);
         headers.removeHeader(Header.ProxyConnection);
         headers.removeHeader(Header.TransferEncoding);
