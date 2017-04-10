@@ -93,6 +93,8 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
 
     public static final String HTTP2_STREAM_ATTRIBUTE =
             HttpRequestPacket.READ_ONLY_ATTR_PREFIX + Http2Stream.class.getName();
+    public static final String HTTP2_PARENT_STREAM_ATTRIBUTE =
+            HttpRequestPacket.READ_ONLY_ATTR_PREFIX + "parent." + Http2Stream.class.getName();
 
     static final int UPGRADE_STREAM_ID = 1;
     

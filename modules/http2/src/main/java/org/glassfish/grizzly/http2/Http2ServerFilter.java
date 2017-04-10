@@ -73,6 +73,7 @@ import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
+import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.ssl.SSLUtils;
@@ -842,11 +843,14 @@ public class Http2ServerFilter extends Http2BaseFilter {
         if (h2c == null) {
             throw new IllegalStateException("Unable to find valid Http2Connection");
         }
-        boolean isNewClientStreamLocked = true;
-        boolean isDeflaterLocked = false;
-        h2c.getNewClientStreamLock().lock();
+
         try {
-            final Http2Stream parentStream = Http2Stream.getStreamFor(pushEvent.getHttpRequest());
+            final HttpRequestPacket source = (HttpRequestPacket) pushEvent.getHttpRequest();
+            Http2Stream parentStream = (Http2Stream) source.getAttribute(Http2Stream.HTTP2_PARENT_STREAM_ATTRIBUTE);
+            if (parentStream == null) {
+                parentStream = Http2Stream.getStreamFor(pushEvent.getHttpRequest());
+            }
+
             if (parentStream == null) {
                 return;
             }
@@ -859,6 +863,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 query = eventPath.substring(idx + 1);
             }
             final Http2Request request = Http2Request.create();
+            request.setAttribute(Http2Stream.HTTP2_PARENT_STREAM_ATTRIBUTE, parentStream);
             request.setConnection(ctx.getConnection());
             request.getRequestURIRef().init(path);
             request.getQueryStringDC().setString(query);
@@ -872,7 +877,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
             prepareOutgoingResponse(request.getResponse());
             final Http2Stream pushStream;
 
-            try {
+            synchronized (h2c) {
                 pushStream = h2c.openStream(
                         request,
                         h2c.getNextLocalStreamId(), parentStream.getId(),
@@ -881,27 +886,14 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
 
                 h2c.getDeflaterLock().lock();
-                h2c.getNewClientStreamLock().unlock();
-                isDeflaterLocked = true;
-                isNewClientStreamLocked = false;
-
-                List<Http2Frame> pushPromiseFrames =
-                        h2c.encodeHttpRequestAsPushPromiseFrames(
-                                ctx, pushStream.getRequest(), parentStream.getId(),
-                                pushStream.getId(), null);
-
-                h2c.getDeflaterLock().unlock();
-                isDeflaterLocked = false;
-
-                h2c.getOutputSink().writeDownStream(
-                        pushPromiseFrames);
-            } finally {
-                if (isDeflaterLocked) {
+                try {
+                    List<Http2Frame> pushPromiseFrames =
+                            h2c.encodeHttpRequestAsPushPromiseFrames(
+                                    ctx, pushStream.getRequest(), parentStream.getId(),
+                                    pushStream.getId(), null);
+                    h2c.getOutputSink().writeDownStream(pushPromiseFrames);
+                } finally {
                     h2c.getDeflaterLock().unlock();
-                }
-
-                if (isNewClientStreamLocked) {
-                    h2c.getNewClientStreamLock().unlock();
                 }
             }
 
