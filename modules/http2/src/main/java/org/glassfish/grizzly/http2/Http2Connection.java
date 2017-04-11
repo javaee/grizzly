@@ -1310,7 +1310,8 @@ public class Http2Connection {
         @Override
         public void onClosed(final Closeable closeable, final CloseType type)
                 throws IOException {
-            
+
+            NetLogger.logClose(Http2Connection.this);
             final boolean isClosing;
             synchronized (sessionLock) {
                 isClosing = !isClosed();
