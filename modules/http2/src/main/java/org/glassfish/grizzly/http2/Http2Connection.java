@@ -94,7 +94,6 @@ import static org.glassfish.grizzly.http2.frames.SettingsFrame.*;
 import static org.glassfish.grizzly.http2.Http2BaseFilter.PRI_PAYLOAD;
 import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;
 import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
-import sun.nio.ch.Net;
 
 
 /**
@@ -987,13 +986,13 @@ public class Http2Connection {
                 throw new Http2StreamException(streamId, ErrorCode.REFUSED_STREAM);
             }
             
-            if (refStreamId > 0) {
-                final Http2Stream mainStream = getStream(refStreamId);
-                if (mainStream == null) {
-                    throw new Http2StreamException(streamId, ErrorCode.REFUSED_STREAM,
-                            "The parent stream does not exist");
-                }
-            }
+//            if (refStreamId > 0) {
+//                final Http2Stream mainStream = getStream(refStreamId);
+//                if (mainStream == null) {
+//                    throw new Http2StreamException(streamId, ErrorCode.REFUSED_STREAM,
+//                            "The parent stream does not exist");
+//                }
+//            }
             
             streamsMap.put(streamId, stream);
             lastLocalStreamId = streamId;
