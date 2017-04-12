@@ -73,7 +73,6 @@ import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
-import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.ssl.SSLUtils;

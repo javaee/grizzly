@@ -79,7 +79,7 @@ public class HeadersDecoder {
         return false;
     }
     
-    public void decode(final DecodingCallback callback) throws IOException {
+    public void decode(final DecodingCallback callback) {
         if (inBuffer != null) {
             hpackDecoder.decode(inBuffer, !isProcessingHeaders(), callback);
             

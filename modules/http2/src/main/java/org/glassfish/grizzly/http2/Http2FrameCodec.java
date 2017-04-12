@@ -42,7 +42,6 @@ package org.glassfish.grizzly.http2;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
@@ -50,7 +49,6 @@ import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
-import sun.nio.ch.Net;
 
 /**
  * The {@link Filter} responsible for transforming {@link Http2Frame}s
