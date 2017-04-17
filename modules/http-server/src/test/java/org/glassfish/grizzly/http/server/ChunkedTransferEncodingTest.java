@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http.server;
 import org.glassfish.grizzly.http.ChunkedTransferEncoding;
 import org.glassfish.grizzly.http.FixedLengthTransferEncoding;
 import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.HttpHeader;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.List;
@@ -158,7 +157,7 @@ public class ChunkedTransferEncodingTest {
     @Test
     public void testNoTrailerHeaders() throws Exception {
         Map<String, Pair<String, String>> headers =
-                new HashMap<String, Pair<String, String>>();
+                new HashMap<>();
 
         final int packetsNum = 5;
         
@@ -168,9 +167,9 @@ public class ChunkedTransferEncodingTest {
     @Test
     public void testTrailerHeaders() throws Exception {
         Map<String, Pair<String, String>> headers =
-                new HashMap<String, Pair<String, String>>();
-        headers.put("X-Host", new Pair<String,String>("localhost", "localhost"));
-        headers.put("X-Content-length", new Pair<String,String>("2345", "2345"));
+                new HashMap<>();
+        headers.put("X-Host", new Pair<>("localhost", "localhost"));
+        headers.put("X-Content-length", new Pair<>("2345", "2345"));
         
         final int packetsNum = 5;
         
@@ -180,9 +179,9 @@ public class ChunkedTransferEncodingTest {
     @Test
     public void testTrailerHeadersWithoutContent() throws Exception {
         Map<String, Pair<String, String>> headers =
-                new HashMap<String, Pair<String, String>>();
-        headers.put("X-Host", new Pair<String,String>("localhost", "localhost"));
-        headers.put("X-Content-length", new Pair<String,String>("2345", "2345"));
+                new HashMap<>();
+        headers.put("X-Host", new Pair<>("localhost", "localhost"));
+        headers.put("X-Content-length", new Pair<>("2345", "2345"));
         
         final int packetsNum = 10;
         
@@ -192,12 +191,12 @@ public class ChunkedTransferEncodingTest {
     @Test
     public void testTrailerHeadersOverflow() throws Exception {
         Map<String, Pair<String, String>> headers =
-                new HashMap<String, Pair<String, String>>();
+                new HashMap<>();
         // This number of headers should be enough to overflow socket's read buffer,
         // so trailer headers will not fit into socket read window
         final int headersNum = HttpCodecFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE / 2;
         for (int i = 0; i < headersNum; i++) {
-            headers.put("X-Host-" + i, new Pair<String,String>("localhost", "localhost"));
+            headers.put("X-Host-" + i, new Pair<>("localhost", "localhost"));
         }
         
         doHttpRequestTest(1, true, headers, 500);
@@ -280,7 +279,7 @@ public class ChunkedTransferEncodingTest {
             final Map<String, Pair<String, String>> trailerHeaders,
             final boolean isAddCloseHeader) {
 
-        final List<HttpPacket> packetList = new ArrayList<HttpPacket>();
+        final List<HttpPacket> packetList = new ArrayList<>();
         
         final Builder requestPacketBuilder = HttpRequestPacket.builder();
         requestPacketBuilder
