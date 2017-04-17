@@ -93,6 +93,8 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
 
     public static final String HTTP2_STREAM_ATTRIBUTE =
             HttpRequestPacket.READ_ONLY_ATTR_PREFIX + Http2Stream.class.getName();
+    public static final String HTTP2_PARENT_STREAM_ATTRIBUTE =
+            HttpRequestPacket.READ_ONLY_ATTR_PREFIX + "parent." + Http2Stream.class.getName();
 
     static final int UPGRADE_STREAM_ID = 1;
     
@@ -578,10 +580,8 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      * The method is called when an outbound headers are about to be sent to the peer.
      *
      * @param isEOS flag indicating if the end-of-stream has been reached
-     *
-     * @throws Http2StreamException if an error occurs processing the headers frame
      */
-    void onSndHeaders(final boolean isEOS) throws Http2StreamException {
+    void onSndHeaders(final boolean isEOS) {
         // change the state
         final Http2StreamState s = state;
         if (s == Http2StreamState.IDLE) {
@@ -615,8 +615,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         return null;
     }
     
-    void offerInputData(final Buffer data, final boolean isLast)
-            throws Http2StreamException {
+    void offerInputData(final Buffer data, final boolean isLast) {
         final boolean isFirstBufferCached = (cachedInputBuffer == null);
         cachedIsLast |= isLast;
         cachedInputBuffer = Buffers.appendBuffers(

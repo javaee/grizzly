@@ -172,6 +172,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         try {
             try {
                 for (Http2Frame inFrame : framesList) {
+                    NetLogger.log(NetLogger.Context.RX, http2Connection, inFrame);
                     try {
                         processInFrame(http2Connection, ctx, inFrame);
                     } catch (Http2StreamException e) {

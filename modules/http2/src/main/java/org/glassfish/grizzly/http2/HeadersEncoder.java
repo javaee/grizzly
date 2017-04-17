@@ -70,8 +70,7 @@ public class HeadersEncoder {
         hpackEncoder = new Encoder(maxHeaderTableSize);
     }
     
-    public void encodeHeader(final String name, final String value)
-            throws IOException {
+    public void encodeHeader(final String name, final String value) {
         init();
         hpackEncoder.header(name, value);
         while (!hpackEncoder.encode(buffer)) {
@@ -79,7 +78,7 @@ public class HeadersEncoder {
         }
     }
     
-    public Buffer flushHeaders() throws IOException {
+    public Buffer flushHeaders() {
         final Buffer bufferLocal = buffer;
         bufferLocal.trim();
         buffer = null;

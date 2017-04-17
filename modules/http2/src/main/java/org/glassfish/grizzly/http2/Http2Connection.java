@@ -96,7 +96,6 @@ import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;
 import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
 
 
-
 /**
  * The HTTP2 connection abstraction.
  * 
@@ -638,11 +637,12 @@ public class Http2Connection {
     }
 
     protected void sendWindowUpdate(final int streamId, final int delta) {
-        outputSink.writeDownStream(
-                WindowUpdateFrame.builder()
-                        .streamId(streamId)
-                        .windowSizeIncrement(delta)
-                        .build());
+        final WindowUpdateFrame f = WindowUpdateFrame.builder()
+                .streamId(streamId)
+                .windowSizeIncrement(delta)
+                .build();
+        NetLogger.log(NetLogger.Context.TX, this, f);
+        outputSink.writeDownStream(f);
     }
     
     boolean sendPreface() {
@@ -674,12 +674,8 @@ public class Http2Connection {
     
     protected void sendServerPreface() {
         final SettingsFrame settingsFrame = prepareSettings().build();
-        
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "Tx: server preface (the settings frame)."
-                    + "Connection={0}, settingsFrame={1}",
-                    new Object[]{connection, settingsFrame});
-        }
+
+        NetLogger.log(NetLogger.Context.TX, this, settingsFrame);
 
         // server preface
         //noinspection unchecked
@@ -712,13 +708,9 @@ public class Http2Connection {
         final HttpContent content = HttpContent.builder(request)
                 .content(payload)
                 .build();
-        
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "Tx: client preface including the settings "
-                    + "frame. Connection={0}, settingsFrame={1}",
-                    new Object[]{connection, settingsFrame});
-        }
-        
+
+        NetLogger.log(NetLogger.Context.TX, this, settingsFrame);
+
         connection.write(content);
     }
     
@@ -994,13 +986,13 @@ public class Http2Connection {
                 throw new Http2StreamException(streamId, ErrorCode.REFUSED_STREAM);
             }
             
-            if (refStreamId > 0) {
-                final Http2Stream mainStream = getStream(refStreamId);
-                if (mainStream == null) {
-                    throw new Http2StreamException(streamId, ErrorCode.REFUSED_STREAM,
-                            "The parent stream does not exist");
-                }
-            }
+//            if (refStreamId > 0) {
+//                final Http2Stream mainStream = getStream(refStreamId);
+//                if (mainStream == null) {
+//                    throw new Http2StreamException(streamId, ErrorCode.REFUSED_STREAM,
+//                            "The parent stream does not exist");
+//                }
+//            }
             
             streamsMap.put(streamId, stream);
             lastLocalStreamId = streamId;
@@ -1317,7 +1309,8 @@ public class Http2Connection {
         @Override
         public void onClosed(final Closeable closeable, final CloseType type)
                 throws IOException {
-            
+
+            NetLogger.logClose(Http2Connection.this);
             final boolean isClosing;
             synchronized (sessionLock) {
                 isClosing = !isClosed();

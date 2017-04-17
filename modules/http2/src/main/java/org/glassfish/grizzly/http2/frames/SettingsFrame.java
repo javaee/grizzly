@@ -261,6 +261,10 @@ public class SettingsFrame extends Http2Frame {
     protected int calcLength() {
         return numberOfSettings * 6;
     }
+
+    public String getSettingNameById(final int id) {
+        return OPTION_TEXT[id - 1];
+    }
     
     // -------------------------------------------------- Methods from Cacheable
 

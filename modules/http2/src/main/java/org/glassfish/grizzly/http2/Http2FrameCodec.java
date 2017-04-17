@@ -42,7 +42,6 @@ package org.glassfish.grizzly.http2;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
@@ -89,13 +88,6 @@ public class Http2FrameCodec {
             return null;
         }
 
-        final boolean logit = LOGGER.isLoggable(Level.FINE);
-        if (logit) {
-            LOGGER.log(Level.FINE, "Rx [1]: connection={0}, frame={1}",
-                    new Object[]{makeString(http2Connection.getConnection()),
-                        makeString(parsingResult.frameList().get(parsingResult.frameList().size() - 1))});
-        }
-
         Buffer remainder = parsingResult.remainder();
 
         while (remainder.remaining() >= http2Connection.getFrameHeaderSize()) {
@@ -107,11 +99,6 @@ public class Http2FrameCodec {
 
             remainder = parsingResult.remainder();
 
-            if (logit) {
-                LOGGER.log(Level.FINE, "Rx [2]: connection={0}, frame={1}",
-                        new Object[]{makeString(http2Connection.getConnection()),
-                            makeString(parsingResult.frameList().get(parsingResult.frameList().size() - 1))});
-            }
         }
 
         return parsingResult.frameList();
@@ -134,11 +121,7 @@ public class Http2FrameCodec {
     public Buffer serializeAndRecycle(final Http2Connection http2Connection,
             final Http2Frame frame) {
 
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "Tx: connection={0}, frame={1}",
-                    new Object[]{makeString(http2Connection.getConnection()),
-                        makeString(frame)});
-        }
+        NetLogger.log(NetLogger.Context.TX, http2Connection, frame);
 
         final Buffer resultBuffer = frame.toBuffer(http2Connection);
         frame.recycle();
@@ -148,20 +131,13 @@ public class Http2FrameCodec {
     public Buffer serializeAndRecycle(final Http2Connection http2Connection,
             final List<Http2Frame> frames) {
 
-        if (LOGGER.isLoggable(Level.FINE)) {
-            LOGGER.log(Level.FINE, "Tx: connection={0}, frames={1}",
-                    new Object[]{makeString(http2Connection.getConnection()),
-                        makeString(frames)});
-        }
-
-
         Buffer resultBuffer = null;
 
         final int framesCount = frames.size();
 
         for (int i = 0; i < framesCount; i++) {
             final Http2Frame frame = frames.get(i);
-
+            NetLogger.log(NetLogger.Context.TX, http2Connection, frame);
             final Buffer buffer = frame.toBuffer(http2Connection);
             frame.recycle();
 
