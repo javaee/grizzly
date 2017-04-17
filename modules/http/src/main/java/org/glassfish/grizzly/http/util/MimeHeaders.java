@@ -185,7 +185,9 @@ public class MimeHeaders {
     }
 
     public void mark() {
-        mark = count;
+        if (mark == 0) {
+            mark = count;
+        }
     }
 
     /**
