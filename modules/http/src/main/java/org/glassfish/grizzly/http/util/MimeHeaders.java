@@ -264,6 +264,13 @@ public class MimeHeaders {
         return count;
     }
 
+    public int trailerSize() {
+        if (mark > 0) {
+            return (count - mark);
+        }
+        return 0;
+    }
+
     /**
      * Returns the Nth header name, or null if there is no such header.
      * This may be used to iterate through all header fields.

@@ -67,6 +67,8 @@ import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -103,6 +105,7 @@ import org.glassfish.grizzly.http.util.Chunk;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http.util.Parameters;
 import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.utils.Charsets;
@@ -444,6 +447,11 @@ public class Request {
      */
     protected final Response response;
 
+    /**
+     * Trailer headers, if any.
+     */
+    protected Map<String,String> trailers;
+
     // ----------------------------------------------------------- Constructors
     /**
      * Temporarily introduce public constructor to fix GRIZZLY-1782.
@@ -683,6 +691,8 @@ public class Request {
         parameters.recycle();
 
         requestExecutorProvider = null;
+
+        trailers = null;
         
         afterServicesList.clear();
 
@@ -1681,6 +1691,40 @@ public class Request {
      */
     public Iterable<String> getHeaders(final Header header) {
         return request.getHeaders().values(header);
+    }
+
+    /**
+     * Get the request trailer headers.
+     * This method can only be called after the application reads all
+     * the request content.
+     *
+     * @return A {@link Map} of trailers headers or <code>null</code> if none were present.
+     *
+     * @throws IllegalStateException if neither
+     * {@link ReadHandler#onAllDataRead} has been called nor
+     * an EOF indication has been returned from the
+     * {@link #getReader}, {@link #getNIOReader()}, {@link #getInputStream},
+     * {@link #getNIOInputStream()}.
+     *
+     * @since 2.4.0
+     */
+    public Map<String,String> getTrailers() {
+        if (inputBuffer.isFinished()) {
+            if (trailers == null) {
+                final MimeHeaders headers = request.getHeaders();
+                final int trailerSize = headers.trailerSize();
+                if (trailerSize > 0) {
+                    trailers = new HashMap<>(trailerSize);
+                    for (String name : headers.trailerNames()) {
+                        trailers.put(name, headers.getHeader(name));
+                    }
+                } else {
+                    return null;
+                }
+            }
+            return trailers;
+        }
+        throw new IllegalStateException();
     }
 
 

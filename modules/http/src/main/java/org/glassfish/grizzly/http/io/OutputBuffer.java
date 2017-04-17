@@ -59,6 +59,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -72,10 +73,12 @@ import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContent.Builder;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpServerFilter;
+import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HeaderValue;
@@ -172,6 +175,8 @@ public class OutputBuffer {
     private boolean isLastWriteNonBlocking;
     
     private HttpContext httpContext;
+
+    private Supplier<Map<String,String>> trailersSupplier;
     
     
     // ---------------------------------------------------------- Public Methods
@@ -899,6 +904,11 @@ public class OutputBuffer {
         }
     }
 
+
+    public void setTrailers(Supplier<Map<String,String>> trailersSupplier) {
+        this.trailersSupplier = trailersSupplier;
+    }
+
     /**
      * @return {@link Executor}, which will be used for notifying user
      * registered {@link WriteHandler}.
@@ -1042,7 +1052,7 @@ public class OutputBuffer {
             bufferToFlush = null;
         }
 
-        if (bufferToFlush != null) {
+        if (bufferToFlush != null || isLast) {
             doCommit();
             flushBuffer(bufferToFlush, isLast, null);
 
@@ -1056,9 +1066,21 @@ public class OutputBuffer {
             final boolean isLast, final MessageCloner<Buffer> messageCloner)
             throws IOException {
 
-        builder.content(bufferToFlush).last(isLast);
+        final HttpContent content;
+        if (isLast && trailersSupplier != null && outputHeader.isChunked()) {
+                HttpTrailer.Builder tBuilder = outputHeader.httpTrailerBuilder().content(bufferToFlush).last(true);
+                final Map<String,String> trailers = trailersSupplier.get();
+                if (trailers != null && !trailers.isEmpty()) {
+                    for (Map.Entry<String, String> entry : trailers.entrySet()) {
+                        tBuilder.header(entry.getKey(), entry.getValue());
+                    }
+                }
+            content = tBuilder.build();
+        } else {
+            content = builder.content(bufferToFlush).last(isLast).build();
+        }
         ctx.write(null,
-                  builder.build(),
+                  content,
                   null,
                   messageCloner,
                   IS_BLOCKING);

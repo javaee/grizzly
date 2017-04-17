@@ -71,9 +71,10 @@ import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.CloseListener;
@@ -323,6 +324,23 @@ public class Response {
     // ------------------------------------------------------- Response Methods
 
     /**
+     * Set the supplier of trailer headers.
+     * The supplier will be called within the scope of whatever thread/call
+     * causes the response content to be completed. Typically this will
+     * be any thread calling close() on the output stream or writer.
+     *
+     * The trailers that run afoul of the provisions of section 4.1.2 of
+     * RFC 7230 are ignored.
+     *
+     * @param trailerSupplier the supplier of trailer headers
+     *
+     * @since 2.4.0
+     */
+    public void setTrailers(Supplier<Map<String, String>> trailerSupplier) {
+        outputBuffer.setTrailers(trailerSupplier);
+    }
+
+    /**
      * Encode the session identifier associated with this response
      * into the specified URL, if necessary.
      *
@@ -380,14 +398,9 @@ public class Response {
             return (false);
 
         final Session session = request.getSession(false);
-        if (session == null)
-            return (false);
-
-        if (request.isRequestedSessionIdFromCookie())
-            return (false);
-
-
-        return doIsEncodeable(request, session, location);
+        return (session != null
+                  && !request.isRequestedSessionIdFromCookie()
+                  && doIsEncodeable(request, session, location));
 
     }
 
@@ -477,7 +490,7 @@ public class Response {
      * Sets the {@link ErrorPageGenerator} to be used by
      * {@link #sendError(int)} or {@link #sendError(int, java.lang.String)}.
      * 
-     * @param errorPageGenerator 
+     * @param errorPageGenerator the custom {@link ErrorPageGenerator}.
      */
     public void setErrorPageGenerator(ErrorPageGenerator errorPageGenerator) {
         this.errorPageGenerator = errorPageGenerator;
@@ -500,6 +513,7 @@ public class Response {
      *
      * @return the detail error message
      */
+    @SuppressWarnings("unused")
     public String getDetailMessage() {
         checkResponse();
         return response.getReasonPhrase();
@@ -730,7 +744,7 @@ public class Response {
 
     /**
      * Flush the current buffered content to the network.
-     * @throws IOException
+     * @throws IOException if an occur occurs flushing to the wire.
      */
     public void flush() throws IOException {
         outputBuffer.flush();
@@ -982,7 +996,7 @@ public class Response {
      */
     public String[] getHeaderValues(final String name) {
         checkResponse();
-        final Collection<String> result = new LinkedList<String>();
+        final Collection<String> result = new LinkedList<>();
         for (final String headerValue : response.getHeaders().values(name)) {
             result.add(headerValue);
         }
@@ -1063,7 +1077,6 @@ public class Response {
     /**
      * Special method for adding a session cookie as we should be overriding 
      * any previous 
-     * @param cookie
      */
     protected void addSessionCookieInternal(final Cookie cookie) {
         if (isCommitted())
@@ -1110,6 +1123,7 @@ public class Response {
      * Removes any Set-Cookie response headers whose value contains the
      * string "JSESSIONID=" or "JSESSIONIDSSO="
      */
+    @SuppressWarnings("unused")
     protected void removeSessionCookies() {
         final String sessionCookieName = request.getSessionCookieName();
         final String pattern = sessionCookieName != null
@@ -1249,6 +1263,7 @@ public class Response {
      *
      * @since 2.1.2
      */
+    @SuppressWarnings("unused")
     public void addIntHeader(final Header header, final int value) {
 
         if (isCommitted())
@@ -1276,6 +1291,7 @@ public class Response {
      *
      * @since 2.1.2
      */
+    @SuppressWarnings("unused")
     public boolean containsHeader(final Header header) {
         checkResponse();
         return response.containsHeader(header);
@@ -1455,6 +1471,7 @@ public class Response {
      *
      * @since 2.1.2
      */
+    @SuppressWarnings("unused")
     public void setDateHeader(final Header header, long value) {
 
         if (isCommitted())
@@ -1557,6 +1574,7 @@ public class Response {
      *
      * @since 2.1.2
      */
+    @SuppressWarnings("unused")
     public void setIntHeader(final Header header, final int value) {
 
         if (isCommitted())
@@ -1625,8 +1643,9 @@ public class Response {
     @SuppressWarnings({"unchecked"})
     protected String toAbsolute(final String location, final boolean normalize) {
 
-        if (location == null)
-            return location;
+        if (location == null) {
+            return null;
+        }
 
         final boolean leadingSlash = location.startsWith("/");
 
@@ -1776,6 +1795,7 @@ public class Response {
     /**
      * Is the file cache enabled?
      */
+    @SuppressWarnings("unused")
     public boolean isCacheEnabled() {
         return cacheEnabled;
     }
@@ -1812,6 +1832,7 @@ public class Response {
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid committing response.
      */
+    @SuppressWarnings("deprecation")
     public void suspend() {
         suspend(DelayedExecutor.UNSET_TIMEOUT, TimeUnit.MILLISECONDS);
     }
@@ -1939,6 +1960,7 @@ public class Response {
     public void cancel() {
         checkResponse();
 
+        //noinspection deprecation
         suspendedContext.markCancelled();
 
         ctx.resume();
@@ -2098,6 +2120,7 @@ public class Response {
             return suspendStatus;
         }        
         
+        @SuppressWarnings("deprecation")
         private class SuspendCloseListener implements GenericCloseListener {
             private final int expectedModCount;
 
@@ -2142,6 +2165,7 @@ public class Response {
                 try {
                     checkResponse();
 
+                    //noinspection StatementWithEmptyBody
                     if (suspendedContext.markCancelled(expectedModCount)) {
 //                        ctx.resume();
                     }

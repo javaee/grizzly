@@ -152,8 +152,7 @@ public class InputBuffer {
     /**
      * CharsetDecoders cache
      */
-    private final Map<String, CharsetDecoder> decoders =
-            new HashMap<String, CharsetDecoder>();
+    private final Map<String, CharsetDecoder> decoders = new HashMap<>();
 
     /**
      * Flag indicating all request content has been read.
@@ -567,7 +566,7 @@ public class InputBuffer {
      * @param length how much content should attempt to buffer,
      * <code>-1</code> means buffer entire request.
      * 
-     * @throws IOException
+     * @throws IOException if an error occurs reading data from the wire.
      */
     public void fillFully(final int length) throws IOException {
         if (LOGGER.isLoggable(LOGGER_LEVEL)) {
@@ -1097,7 +1096,7 @@ public class InputBuffer {
      * Read next chunk of data in this thread, block if needed.
      * 
      * @return {@link HttpContent}
-     * @throws IOException 
+     * @throws IOException if an error occurs reading data from the wire.
      */
     protected HttpContent blockingRead() throws IOException {
         final ReadResult rr = ctx.read();
@@ -1410,14 +1409,13 @@ public class InputBuffer {
      * Check if passed {@link HttpContent} is {@link HttpTrailer}, which represents
      * trailer chunk (when chunked Transfer-Encoding is used), if it is a trailer
      * chunk - then copy all the available trailer headers to request headers map.
-     * 
-     * @param httpContent 
      */
     private static void checkHttpTrailer(final HttpContent httpContent) {
         if (HttpTrailer.isTrailer(httpContent)) {
+
             final HttpTrailer httpTrailer = (HttpTrailer) httpContent;
             final HttpHeader httpHeader = httpContent.getHttpHeader();
-            
+            httpHeader.getHeaders().mark();
             final MimeHeaders trailerHeaders = httpTrailer.getHeaders();
             final int size = trailerHeaders.size();
             for (int i = 0; i < size; i++) {

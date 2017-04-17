@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.http.server;
 
+import org.glassfish.grizzly.http.ChunkedTransferEncoding;
+import org.glassfish.grizzly.http.FixedLengthTransferEncoding;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.HttpHeader;
 import java.io.ByteArrayOutputStream;
@@ -66,6 +68,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -213,6 +217,9 @@ public class ChunkedTransferEncodingTest {
         final TCPNIOTransport transport = networkListener.getTransport();
         
         FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+        final HttpClientFilter clientFilter = new HttpClientFilter();
+        clientFilter.addTransferEncoding(new FixedLengthTransferEncoding());
+        clientFilter.addTransferEncoding(new ChunkedTransferEncoding(HttpCodecFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE));
         clientFilterChainBuilder.add(new TransportFilter())
                 .add(new HttpClientFilter())
                 .add(new HTTPResponseFilter(queue));
@@ -255,10 +262,10 @@ public class ChunkedTransferEncodingTest {
                 
                 // if we don't expect error response - check the content
                 assertEquals("packet#" + i, content, responseHttpContent.getContent());
-                final HttpHeader responseHeader = responseHttpContent.getHttpHeader();
+                HttpTrailer trailer = (HttpTrailer) responseHttpContent;
                 for (Entry<String, Pair<String, String>> entry : trailerHeaders.entrySet()) {
                     assertEquals("packet#" + i, entry.getValue().getSecond(),
-                            responseHeader.getHeader(entry.getKey()));
+                            trailer.getHeader(entry.getKey()));
                 }
             } else {
                 Throwable t = echoHandler.errors.poll(10, TimeUnit.SECONDS);
@@ -380,6 +387,14 @@ public class ChunkedTransferEncodingTest {
         
         @Override
         public void service(Request request, Response response) throws Exception {
+
+            response.setTrailers(new Supplier<Map<String, String>>() {
+                @Override
+                public Map<String, String> get() {
+                    return request.getTrailers();
+                }
+            });
+
             if (isAsyncHttpHandler) {
                 doAsync(request, response);
             } else {
@@ -435,11 +450,7 @@ public class ChunkedTransferEncodingTest {
                 }
                 
                 private void echo() throws IOException {
-                    for (String headerName : request.getHeaderNames()) {
-                        if (headerName.startsWith("x-"));
-                        response.addHeader(headerName, request.getHeader(headerName));
-                    }
-                    
+                    response.flush(); // force the headers to be committed.
                     writer.write(baos.toByteArray());
                 }
             });
@@ -461,12 +472,8 @@ public class ChunkedTransferEncodingTest {
 
                 final OutputStream os = response.getOutputStream();
 
-                for (String headerName : request.getHeaderNames()) {
-                    if (headerName.startsWith("x-"));
-                    response.addHeader(headerName, request.getHeader(headerName));
-                }
-
                 os.write(output);
+                os.flush(); // force the headers to be committed.
             } catch (Throwable t) {
                 errors.offer(t);
                 throw new IOException(t);
