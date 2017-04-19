@@ -90,6 +90,7 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
             throw new InvalidCharacterException(re);
         } finally {
             request.setProtocol(Protocol.HTTP_2_0);
+            request.getResponse().setProtocol(Protocol.HTTP_2_0);
         }
     }
 
@@ -115,8 +116,29 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
             throw new InvalidCharacterException(re);
         } finally {
             response.setProtocol(Protocol.HTTP_2_0);
+            response.getRequest().setProtocol(Protocol.HTTP_2_0);
         }
 
+    }
+
+    @SuppressWarnings("DuplicateThrows")
+    static void decodeTrailerHeaders(final Http2Connection http2Connection,
+                                     final HttpHeader header)
+            throws InvalidCharacterException, IOException {
+        try {
+            final MimeHeaders headers = header.getHeaders();
+            http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
+
+                @Override
+                public void onDecoded(final CharSequence name, final CharSequence value) {
+                    // TODO trailer validation
+                    headers.addValue(name.toString()).setString(value.toString());
+                }
+
+            });
+        } catch (RuntimeException re) {
+            throw new InvalidCharacterException(re);
+        }
     }
 
     private static void processServiceRequestHeader(

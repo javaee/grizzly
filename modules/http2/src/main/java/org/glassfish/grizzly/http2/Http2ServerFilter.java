@@ -749,12 +749,34 @@ public class Http2ServerFilter extends Http2BaseFilter {
         final Http2Request request = Http2Request.create();
         request.setConnection(context.getConnection());
 
-        final Http2Stream stream = http2Connection.acceptStream(request,
-                                                                headersFrame.getStreamId(),
-                                                                headersFrame.getStreamDependency(),
-                                                                headersFrame.isExclusive(),
-                                                                0,
-                                                                Http2StreamState.IDLE);
+        Http2Stream stream = http2Connection.getStream(headersFrame.getStreamId());
+        if (stream != null) {
+            // trailers
+            assert headersFrame.isEndStream();
+            try {
+                stream.onRcvHeaders(true);
+                DecoderUtils.decodeTrailerHeaders(http2Connection, stream.getRequest());
+            } catch (IOException ioe) {
+                handleIOException(http2Connection, stream, ioe);
+                return;
+            }
+            if (headersFrame.isTruncated()) {
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING,
+                               "[{0}, {1}] Trailer headers truncated.  Some headers may not be available.",
+                               new Object[] { http2Connection.toString(), headersFrame.getStreamId()});
+                }
+            }
+            stream.inputBuffer.terminate(IN_FIN_TERMINATION);
+            return;
+        }
+
+        stream = http2Connection.acceptStream(request,
+                                              headersFrame.getStreamId(),
+                                              headersFrame.getStreamDependency(),
+                                              headersFrame.isExclusive(),
+                                              0,
+                                              Http2StreamState.IDLE);
         if (stream == null) { // GOAWAY has been sent, so ignoring this request
             request.recycle();
             return;
@@ -763,18 +785,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
         try {
             DecoderUtils.decodeRequestHeaders(http2Connection, request);
         } catch (IOException ioe) {
-            if (ioe instanceof InvalidCharacterException) {
-                if (LOGGER.isLoggable(Level.WARNING)) {
-                    LOGGER.warning(ioe.getMessage());
-                }
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, ioe.getMessage(), ioe);
-                }
-                http2Connection.sendRstFrame(ErrorCode.PROTOCOL_ERROR, stream.getId());
-                return;
-            } else {
-                throw ioe;
-            }
+            handleIOException(http2Connection, stream, ioe);
+            return;
         }
         if (headersFrame.isTruncated()) {
             final HttpResponsePacket response = request.getResponse();
@@ -785,7 +797,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
             processOutgoingHttpHeader(context, http2Connection, header, response);
             return;
         }
-        onHttpHeadersParsed(request, context);        
+        onHttpHeadersParsed(request, context);
+        request.getHeaders().mark();
 
         prepareIncomingRequest(stream, request);
         
@@ -802,9 +815,13 @@ public class Http2ServerFilter extends Http2BaseFilter {
             stream.inputBuffer.terminate(IN_FIN_TERMINATION);
         }
 
-        sendUpstream(http2Connection, stream, request, isExpectContent);
+        sendUpstream(http2Connection,
+                     stream,
+                     request.httpContentBuilder().content(Buffers.EMPTY_BUFFER).last(!isExpectContent).build());
     }
-    
+
+
+
     /**
      *
      * @param ctx the current {@link FilterChainContext}
@@ -964,5 +981,21 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
         // enable read now to start accepting HTTP2 frames
         newContext.resume(newContext.getStopAction());
-    }        
+    }
+
+    private static void handleIOException(final Http2Connection http2Connection,
+                                          final Http2Stream stream,
+                                          final IOException ioe) throws IOException {
+        if (ioe instanceof InvalidCharacterException) {
+            if (LOGGER.isLoggable(Level.WARNING)) {
+                LOGGER.warning(ioe.getMessage());
+            }
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, ioe.getMessage(), ioe);
+            }
+            http2Connection.sendRstFrame(ErrorCode.PROTOCOL_ERROR, stream.getId());
+        } else {
+            throw ioe;
+        }
+    }
 }

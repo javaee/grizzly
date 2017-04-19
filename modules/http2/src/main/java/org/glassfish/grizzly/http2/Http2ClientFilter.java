@@ -61,18 +61,21 @@ import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.http.util.HttpStatus;
 
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
+import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.npn.AlpnClientNegotiator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 
@@ -577,22 +580,37 @@ public class Http2ClientFilter extends Http2BaseFilter {
         }
         
         final boolean isEOS = headersFrame.isEndStream();
-        if (isEOS) {
-            response.setExpectContent(false);
-            stream.inputBuffer.terminate(IN_FIN_TERMINATION);
-        }
-        
-        DecoderUtils.decodeResponseHeaders(http2Connection, response);
-        onHttpHeadersParsed(response, context);        
+//        if (isEOS) {
+//            response.setExpectContent(false);
+//            stream.inputBuffer.terminate(IN_FIN_TERMINATION);
+//        }
+        bind(request, response);
 
         stream.onRcvHeaders(isEOS);
-        bind(request, response);
+        final HttpContent content;
+        if (stream.getInboundHeaderFramesCounter() == 1) {
+            DecoderUtils.decodeResponseHeaders(http2Connection, response);
+            onHttpHeadersParsed(response, context);
+            response.getHeaders().mark();
+            content = response.httpContentBuilder().content(Buffers.EMPTY_BUFFER).last(isEOS).build();
+        } else {
+            DecoderUtils.decodeTrailerHeaders(http2Connection, response);
+            final HttpTrailer trailer = response.httpTrailerBuilder().content(Buffers.EMPTY_BUFFER).last(isEOS).build();
+            content = trailer;
+            final MimeHeaders mimeHeaders = response.getHeaders();
+            if (mimeHeaders.trailerSize() > 0) {
+                for (final String name : mimeHeaders.trailerNames()) {
+                    trailer.addHeader(name, mimeHeaders.getHeader(name));
+                }
+            }
+
+        }
 
         if (isEOS) {
             onHttpPacketParsed(response, context);
         }
 
-        sendUpstream(http2Connection, stream, response, !isEOS);
+        sendUpstream(http2Connection, stream, content);
     }
 
     @SuppressWarnings("DuplicateThrows")
@@ -629,7 +647,9 @@ public class Http2ClientFilter extends Http2BaseFilter {
 
         // send the push request upstream only in case, when user explicitly wants it
         if (sendPushRequestUpstream) {
-            sendUpstream(http2Connection, stream, request, false);
+            sendUpstream(http2Connection,
+                         stream,
+                         request.httpContentBuilder().content(Buffers.EMPTY_BUFFER).last(false).build());
         }
     }
 

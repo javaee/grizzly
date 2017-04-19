@@ -533,7 +533,11 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
             closeStream();
         }
     }
-    
+
+    int getInboundHeaderFramesCounter() {
+        return inboundHeaderFramesCounter;
+    }
+
     /**
      * The method is called when an inbound headers are decoded for the stream,
      * which means all the header frames arrived and we're ready to parse the headers.

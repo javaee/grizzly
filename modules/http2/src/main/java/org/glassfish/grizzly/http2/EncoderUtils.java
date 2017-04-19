@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http2;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpRequestPacket;
@@ -200,6 +201,23 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
                     : requestURI.substring(pathStart, pathStart + pathLen));
         
         encodeUserHeaders(headers, encoder);
+
+        return encoder.flushHeaders();
+    }
+
+    static Buffer encodeTrailerHeaders(final Http2Connection http2Connection,
+                                       final MimeHeaders trailers) {
+        assert http2Connection.getDeflaterLock().isLocked();
+
+        if (trailers == null || trailers.size() == 0) {
+            return Buffers.EMPTY_BUFFER;
+        }
+
+        final HeadersEncoder encoder = http2Connection.getHeadersEncoder();
+        for (final String name : trailers.names()) {
+            // TODO: header name validation
+            encoder.encodeHeader(name, trailers.getHeader(name));
+        }
 
         return encoder.flushHeaders();
     }

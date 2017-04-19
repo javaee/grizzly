@@ -79,6 +79,7 @@ import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpServerFilter;
 import org.glassfish.grizzly.http.HttpTrailer;
+import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HeaderValue;
@@ -133,7 +134,7 @@ public class OutputBuffer {
     private final ByteArrayCloner cloner = new ByteArrayCloner(temporaryWriteBuffer);
 
     private final List<LifeCycleListener> lifeCycleListeners =
-            new ArrayList<LifeCycleListener>(2);
+            new ArrayList<>(2);
 
     private boolean committed;
 
@@ -144,7 +145,7 @@ public class OutputBuffer {
     private CharsetEncoder encoder;
 
     private final Map<String, CharsetEncoder> encoders =
-            new HashMap<String, CharsetEncoder>();
+            new HashMap<>();
 
     private char[] charsArray;
     private int charsArrayLength;
@@ -1067,7 +1068,7 @@ public class OutputBuffer {
             throws IOException {
 
         final HttpContent content;
-        if (isLast && trailersSupplier != null && outputHeader.isChunked()) {
+        if (isLast && trailersSupplier != null && (outputHeader.isChunked() || outputHeader.getProtocol().equals(Protocol.HTTP_2_0))) {
                 HttpTrailer.Builder tBuilder = outputHeader.httpTrailerBuilder().content(bufferToFlush).last(true);
                 final Map<String,String> trailers = trailersSupplier.get();
                 if (trailers != null && !trailers.isEmpty()) {

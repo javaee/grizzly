@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -58,6 +59,7 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
 import org.glassfish.grizzly.memory.Buffers;
@@ -315,10 +317,24 @@ class DefaultOutputSink implements StreamOutputSink {
 
             Buffer dataToSend = null;
             boolean isLast = httpContent.isLast();
+            final boolean isTrailer = HttpTrailer.isTrailer(httpContent);
             Buffer data = httpContent.getContent();
             final int dataSize = data.remaining();
 
             if (isLast && dataSize == 0) {
+                if (isTrailer) {
+                    // !!!!! LOCK the deflater
+                    isDeflaterLocked = true;
+                    http2Connection.getDeflaterLock().lock();
+                    List<Http2Frame> trailerFrames =
+                            http2Connection.encodeTrailersAsHeaderFrames(stream.getId(),
+                                                                         new ArrayList<>(4),
+                                                                         ((HttpTrailer) httpContent).getHeaders());
+                    unflushedWritesCounter.incrementAndGet();
+                    flushToConnectionOutputSink(trailerFrames, null,
+                            new FlushCompletionHandler(completionHandler),
+                            messageCloner, true);
+                }
                 close();
                 return;
             }

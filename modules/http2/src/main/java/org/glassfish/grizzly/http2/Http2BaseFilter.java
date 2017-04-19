@@ -847,8 +847,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
     
     void sendUpstream(final Http2Connection http2Connection,
-            final Http2Stream stream, final HttpHeader httpHeader,
-            final boolean isExpectContent) {
+            final Http2Stream stream, final HttpContent content) {
         
         final HttpRequestPacket request = stream.getRequest();
         final HttpContext httpContext = HttpContext.newInstance(stream,
@@ -861,10 +860,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             // can stall
             Threads.setService(true);
             try {
-                http2Connection.sendMessageUpstream(stream,
-                        HttpContent.builder(httpHeader)
-                        .last(!isExpectContent)
-                        .build());
+                http2Connection.sendMessageUpstream(stream, content);
             } finally {
                 Threads.setService(false);
             }
@@ -872,10 +868,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             threadPool.execute(new Runnable() {
                 @Override
                 public void run() {
-                    http2Connection.sendMessageUpstream(stream,
-                            HttpContent.builder(httpHeader)
-                            .last(!isExpectContent)
-                            .build());
+                    http2Connection.sendMessageUpstream(stream, content);
                 }
             });
         }

@@ -42,9 +42,7 @@ package org.glassfish.grizzly.http2;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.memory.Buffers;
@@ -57,7 +55,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
  * @author Grizzly team
  */
 public class Http2FrameCodec {
-    private static final Logger LOGGER = Grizzly.logger(Http2FrameCodec.class);
 
     /**
      *
@@ -216,10 +213,6 @@ public class Http2FrameCodec {
         
         message.tryDispose();
         return false;
-    }
-    
-    private static String makeString(final Object o) {
-        return o == null ? null : o.toString();
     }
     
     public final static class FrameParsingState {

@@ -62,6 +62,7 @@ import org.glassfish.grizzly.ProcessorExecutor;
 import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http2.frames.DataFrame;
 import org.glassfish.grizzly.http2.frames.PingFrame;
 import org.glassfish.grizzly.http2.frames.PriorityFrame;
@@ -774,6 +775,25 @@ public class Http2Connection {
         handlerFilter.onHttpHeadersEncoded(httpHeader, ctx);
 
         return headerFrames;
+    }
+
+    /**
+     * Encodes the {@link Map} of header values into header frames to be sent as trailer headers.
+     *
+     * @param streamId the stream associated with this request
+     * @param toList the target {@link List}, to which the frames will be serialized.
+     * @param trailerHeaders a {@link MimeHeaders} of headers to be transmitted as trailers.
+     *
+     * @return the HTTP2 header frames sequence
+     *
+     * @throws IOException if an error occurs encoding the header
+     */
+    protected List<Http2Frame> encodeTrailersAsHeaderFrames(final int streamId,
+                                                            final List<Http2Frame> toList,
+                                                            final MimeHeaders trailerHeaders)
+    throws IOException {
+        final Buffer compressedHeaders = EncoderUtils.encodeTrailerHeaders(this, trailerHeaders);
+        return bufferToHeaderFrames(streamId, compressedHeaders, true, toList);
     }
     
     /**
