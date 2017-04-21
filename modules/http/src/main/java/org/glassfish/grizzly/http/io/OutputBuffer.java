@@ -50,6 +50,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -118,6 +119,35 @@ public class OutputBuffer {
      */
     private final static boolean IS_BLOCKING =
             Boolean.getBoolean(OutputBuffer.class.getName() + ".isBlocking");
+
+    private static final String[] INVALID_TRAILER_NAMES = {
+            Header.CacheControl.getLowerCase(),
+            Header.Expect.getLowerCase(),
+            Header.Host.getLowerCase(),
+            Header.MaxForwards.getLowerCase(),
+            Header.Pragma.getLowerCase(),
+            Header.Range.getLowerCase(),
+            Header.TE.getLowerCase(),
+            Header.SetCookie.getLowerCase(),
+            Header.Authorization.getLowerCase(),
+            Header.WWWAuthenticate.getLowerCase(),
+            Header.ProxyAuthenticate.getLowerCase(),
+            Header.ProxyAuthorization.getLowerCase(),
+            Header.Age.getLowerCase(),
+            Header.Date.getLowerCase(),
+            Header.Location.getLowerCase(),
+            Header.RetryAfter.getLowerCase(),
+            Header.Vary.getLowerCase(),
+            Header.Warnings.getLowerCase(),
+            Header.IfMatch.getLowerCase(),
+            Header.IfNoneMatch.getLowerCase(),
+            Header.IfModifiedSince.getLowerCase(),
+            Header.IfUnmodifiedSince.getLowerCase(),
+            Header.IfRange.getLowerCase()
+    };
+    static {
+        Arrays.sort(INVALID_TRAILER_NAMES);
+    }
 
     private FilterChainContext ctx;
 
@@ -1073,7 +1103,10 @@ public class OutputBuffer {
                 final Map<String,String> trailers = trailersSupplier.get();
                 if (trailers != null && !trailers.isEmpty()) {
                     for (Map.Entry<String, String> entry : trailers.entrySet()) {
-                        tBuilder.header(entry.getKey(), entry.getValue());
+                        final String name = entry.getKey();
+                        if (validTrailerName(name)) {
+                            tBuilder.header(name, entry.getValue());
+                        }
                     }
                 }
             content = tBuilder.build();
@@ -1252,6 +1285,10 @@ public class OutputBuffer {
     private void updateNonBlockingStatus() {
         isLastWriteNonBlocking = isNonBlockingWriteGuaranteed;
         isNonBlockingWriteGuaranteed = false;
+    }
+
+    private static boolean validTrailerName(final String name) {
+        return (Arrays.binarySearch(INVALID_TRAILER_NAMES, name.toLowerCase()) < 0);
     }
 
     /**
