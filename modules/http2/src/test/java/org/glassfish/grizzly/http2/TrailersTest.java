@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http2;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -59,18 +60,22 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
+import org.junit.After;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TrailersTest extends AbstractHttp2Test {
 
@@ -80,13 +85,67 @@ public class TrailersTest extends AbstractHttp2Test {
 
     // ----------------------------------------------------------- Test Methods
 
+    @After
+    public void tearDown() {
+        if (httpServer != null) {
+            httpServer.shutdownNow();
+        }
+    }
+
 
     @Test
     public void testTrailers() throws Exception {
         configureHttpServer();
-        startHttpServer();
+        startHttpServer(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                response.setContentType("text/plain");
+                final InputStream in = request.getInputStream();
+                StringBuilder sb = new StringBuilder();
+                int b;
+                while ((b = in.read()) != -1) {
+                    sb.append((char) b);
+                }
+
+                response.setTrailers(new Supplier<Map<String, String>>() {
+                    @Override
+                    public Map<String, String> get() {
+                        return request.getTrailers();
+                    }
+                });
+                response.getWriter().write(sb.toString());
+                response.flush();
+            }
+        });
         final CountDownLatch latch = new CountDownLatch(1);
-        final Connection c = getConnection("localhost", PORT, latch);
+        final AtomicReference<Throwable> error = new AtomicReference<>();
+
+        final Filter filter = new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent httpContent = ctx.getMessage();
+                try {
+                    if (httpContent.isLast()) {
+                        assertTrue(httpContent instanceof HttpTrailer);
+                        final MimeHeaders trailers = ((HttpTrailer) httpContent).getHeaders();
+
+                        assertEquals(2, trailers.size());
+                        assertEquals("value-a", trailers.getHeader("trailer-a"));
+                        assertEquals("value-b", trailers.getHeader("trailer-b"));
+                        latch.countDown();
+                    } else {
+                        if (httpContent.getContent().remaining() > 0) {
+                            assertEquals("a=b&c=d", httpContent.getContent().toStringContent());
+                        }
+                    }
+                } catch (Throwable t) {
+                    error.set(t);
+                }
+
+                return ctx.getStopAction();
+            }
+        };
+        final Connection c = getConnection("localhost", PORT, filter);
         HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
         HttpRequestPacket request = builder.method(Method.POST)
                 .uri("/echo")
@@ -102,20 +161,18 @@ public class TrailersTest extends AbstractHttp2Test {
                 .header("trailer-a", "value-a")
                 .header("trailer-b", "value-b")
                 .build());
-        assertTrue(latch.await(100, TimeUnit.SECONDS));
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        final Throwable t = error.get();
+        if (t != null) {
+            t.printStackTrace();
+            fail();
+        }
     }
 
-
-    // -------------------------------------------------------- Private Methods
-
-
-    private void configureHttpServer() throws Exception {
-        httpServer = createServer(null, PORT, false, true);
-        httpServer.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(-1);
-    }
-
-    private void startHttpServer() throws Exception {
-        httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
+    @Test
+    public void testNoContentTrailers() throws Exception {
+        configureHttpServer();
+        startHttpServer(new HttpHandler() {
             @Override
             public void service(Request request, Response response) throws Exception {
                 response.setContentType("text/plain");
@@ -130,34 +187,76 @@ public class TrailersTest extends AbstractHttp2Test {
                         return request.getTrailers();
                     }
                 });
-                response.getWriter().write("RESPONSE");
-                response.flush();
             }
-        }, "/echo");
+        });
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicReference<Throwable> error = new AtomicReference<>();
+
+        final Filter filter = new BaseFilter() {
+            @Override
+            public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                final HttpContent httpContent = ctx.getMessage();
+                try {
+                    if (httpContent.isLast()) {
+                        assertTrue(httpContent instanceof HttpTrailer);
+                        final MimeHeaders trailers = ((HttpTrailer) httpContent).getHeaders();
+
+                        assertEquals(2, trailers.size());
+                        assertEquals("value-a", trailers.getHeader("trailer-a"));
+                        assertEquals("value-b", trailers.getHeader("trailer-b"));
+                        latch.countDown();
+                    }
+                } catch (Throwable t) {
+                    error.set(t);
+                }
+
+                return ctx.getStopAction();
+            }
+        };
+        final Connection c = getConnection("localhost", PORT, filter);
+        HttpRequestPacket.Builder builder = HttpRequestPacket.builder();
+        HttpRequestPacket request = builder.method(Method.POST)
+                .uri("/echo")
+                .protocol(Protocol.HTTP_2_0)
+                .host("localhost:" + PORT).build();
+        c.write(HttpContent.builder(request)
+                .last(false)
+                .build());
+        c.write(HttpTrailer.builder(request)
+                .content(Buffers.EMPTY_BUFFER)
+                .last(true)
+                .header("trailer-a", "value-a")
+                .header("trailer-b", "value-b")
+                .build());
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        final Throwable t = error.get();
+        if (t != null) {
+            t.printStackTrace();
+            fail();
+        }
+    }
+
+
+    // -------------------------------------------------------- Private Methods
+
+
+    private void configureHttpServer() throws Exception {
+        httpServer = createServer(null, PORT, false, true);
+        httpServer.getListener("grizzly").getKeepAlive().setIdleTimeoutInSeconds(-1);
+    }
+
+    private void startHttpServer(final HttpHandler handler) throws Exception {
+        httpServer.getServerConfiguration().addHttpHandler(handler, "/echo");
         httpServer.start();
     }
 
-    private Connection getConnection(final String host, final int port, final CountDownLatch latch)
+    private Connection getConnection(final String host,
+                                     final int port,
+                                     final Filter clientFilter)
             throws Exception {
 
         final FilterChain clientChain =
-                createClientFilterChainAsBuilder(false, true, new BaseFilter() {
-                    @Override
-                    public NextAction handleRead(FilterChainContext ctx) throws IOException {
-                        final HttpContent httpContent = ctx.getMessage();
-                        if (httpContent.isLast()) {
-                            assertTrue(httpContent instanceof HttpTrailer);
-                            final MimeHeaders trailers = ((HttpTrailer) httpContent).getHeaders();
-
-                            assertEquals(2, trailers.size());
-                            assertEquals("value-a", trailers.getHeader("trailer-a"));
-                            assertEquals("value-b", trailers.getHeader("trailer-b"));
-                            latch.countDown();
-                        }
-
-                        return ctx.getStopAction();
-                    }
-                }).build();
+                createClientFilterChainAsBuilder(false, true, clientFilter).build();
 
         SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler.builder(
                 httpServer.getListener("grizzly").getTransport())

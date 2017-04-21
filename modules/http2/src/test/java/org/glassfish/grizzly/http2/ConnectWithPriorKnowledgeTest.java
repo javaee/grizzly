@@ -88,7 +88,7 @@ public class ConnectWithPriorKnowledgeTest extends AbstractHttp2Test {
                 .protocol(Protocol.HTTP_2_0)
                 .host("localhost:" + PORT).build();
         c.write(HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build());
-        assertTrue(latch.await(100, TimeUnit.SECONDS));
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
     }
 
 

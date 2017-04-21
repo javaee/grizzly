@@ -168,6 +168,8 @@ public class OutputBuffer {
 
     private boolean committed;
 
+    private boolean headersWritten;
+
     private boolean finished;
 
     private boolean closed;
@@ -404,6 +406,7 @@ public class OutputBuffer {
         committed = false;
         finished = false;
         closed = false;
+        headersWritten = false;
 
         lifeCycleListeners.clear();
     }
@@ -1099,16 +1102,17 @@ public class OutputBuffer {
 
         final HttpContent content;
         if (isLast && trailersSupplier != null && (outputHeader.isChunked() || outputHeader.getProtocol().equals(Protocol.HTTP_2_0))) {
-                HttpTrailer.Builder tBuilder = outputHeader.httpTrailerBuilder().content(bufferToFlush).last(true);
-                final Map<String,String> trailers = trailersSupplier.get();
-                if (trailers != null && !trailers.isEmpty()) {
-                    for (Map.Entry<String, String> entry : trailers.entrySet()) {
-                        final String name = entry.getKey();
-                        if (validTrailerName(name)) {
-                            tBuilder.header(name, entry.getValue());
-                        }
+            forceCommitHeaders(false);
+            HttpTrailer.Builder tBuilder = outputHeader.httpTrailerBuilder().content(bufferToFlush).last(true);
+            final Map<String, String> trailers = trailersSupplier.get();
+            if (trailers != null && !trailers.isEmpty()) {
+                for (Map.Entry<String, String> entry : trailers.entrySet()) {
+                    final String name = entry.getKey();
+                    if (validTrailerName(name)) {
+                        tBuilder.header(name, entry.getValue());
                     }
                 }
+            }
             content = tBuilder.build();
         } else {
             content = builder.content(bufferToFlush).last(isLast).build();
@@ -1190,14 +1194,17 @@ public class OutputBuffer {
     }
 
     private void forceCommitHeaders(final boolean isLast) throws IOException {
-        if (isLast) {
-            if (outputHeader != null) {
-                builder.last(true).content(null);
-                ctx.write(builder.build(), IS_BLOCKING);
+        if (!headersWritten) {
+            if (isLast) {
+                if (outputHeader != null) {
+                    builder.last(true).content(null);
+                    ctx.write(builder.build(), IS_BLOCKING);
+                }
+            } else {
+                ctx.write(outputHeader, IS_BLOCKING);
             }
-        } else {
-            ctx.write(outputHeader, IS_BLOCKING);
         }
+        headersWritten = true;
     }
 
     private void checkCompositeBuffer() {
