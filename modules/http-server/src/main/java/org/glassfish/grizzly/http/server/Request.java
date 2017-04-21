@@ -67,7 +67,6 @@ import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -262,7 +261,7 @@ public class Request {
     protected HttpServerFilter httpServerFilter;
 
     protected final List<AfterServiceListener> afterServicesList =
-            new ArrayList<AfterServiceListener>(4);
+            new ArrayList<>(4);
 
     private Session session;
 
@@ -300,7 +299,7 @@ public class Request {
     /**
      * The preferred Locales associated with this Request.
      */
-    protected final ArrayList<Locale> locales = new ArrayList<Locale>();
+    protected final ArrayList<Locale> locales = new ArrayList<>();
     
 
     /**
@@ -550,7 +549,6 @@ public class Request {
 
     /**
      * Set the session cookie name, if not set default JSESSIONID name will be used
-     * @param sessionCookieName 
      */
     public void setSessionCookieName(String sessionCookieName) {
         this.sessionCookieName = sessionCookieName;
@@ -583,8 +581,7 @@ public class Request {
 
     /**
      * Set {@link SessionManager}, <tt>null</tt> value implies {@link DefaultSessionManager}
-     * @param sessionManager 
-     */    
+     */
     protected void setSessionManager(final SessionManager sessionManager) {
         this.sessionManager = sessionManager;
     }
@@ -621,6 +618,7 @@ public class Request {
      * Remove the "after-service" listener, which was previously added by {@link #addAfterServiceListener(org.glassfish.grizzly.http.server.AfterServiceListener)}.
      * @param listener the "after-service" listener, which was previously added by {@link #addAfterServiceListener(org.glassfish.grizzly.http.server.AfterServiceListener)}.
      */
+    @SuppressWarnings("unused")
     public void removeAfterServiceListener(final AfterServiceListener listener) {
         afterServicesList.remove(listener);
     }
@@ -798,6 +796,7 @@ public class Request {
      * @return a {@link Set} containing the String names of all note bindings
      * that exist for this request.
      */
+    @SuppressWarnings("unused")
     public Set<String> getNoteNames() {
         return request.getNoteNames();
     }
@@ -809,6 +808,7 @@ public class Request {
      *
      * @param note {@link Note} value to be removed
      */
+    @SuppressWarnings("unused")
     public <E> E removeNote(final Note<E> note) {
         return request.removeNote(note);
     }
@@ -832,6 +832,7 @@ public class Request {
      *
      * @param name The server name
      */
+    @SuppressWarnings("unused")
     public void setServerName(String name) {
         request.serverName().setString(name);
     }
@@ -842,6 +843,7 @@ public class Request {
      *
      * @param port The server port
      */
+    @SuppressWarnings("unused")
     public void setServerPort(int port) {
         request.setServerPort(port);
     }
@@ -885,6 +887,7 @@ public class Request {
      *          and attempt to URI-decode {@link org.glassfish.grizzly.http.util.RequestURIRef#getDecodedURI()}
      *          failed.
      */
+    @SuppressWarnings("unused")
     public String getHttpHandlerPath() {
         return httpHandlerPath.get();
     }
@@ -932,6 +935,7 @@ public class Request {
      */
     public Object getAttribute(final String name) {
         if (SEND_FILE_ENABLED_ATTR.equals(name)) {
+            assert response != null;
             return response.isSendFileEnabled();
         }
         Object attribute = request.getAttribute(name);
@@ -1062,7 +1066,7 @@ public class Request {
      */
     public boolean asyncInput() {
 
-        return inputBuffer.isAsyncEnabled();
+        return true;
 
     }
 
@@ -1109,7 +1113,7 @@ public class Request {
         if (!locales.isEmpty())
             return locales;
 
-        final ArrayList<Locale> results = new ArrayList<Locale>();
+        final ArrayList<Locale> results = new ArrayList<>();
         results.add(defaultLocale);
         return results;
 
@@ -1367,6 +1371,7 @@ public class Request {
 
         request.setAttribute(name, value);
 
+        assert response != null;
         if (response.isSendFileEnabled() && SEND_FILE_ATTR.equals(name)) {
             RequestUtils.handleSendFile(this);
         }
@@ -1413,11 +1418,13 @@ public class Request {
     /**
      * Static setter method for the maximum dispatch depth
      */
+    @SuppressWarnings("unused")
     public static void setMaxDispatchDepth(int depth) {
         maxDispatchDepth = depth;
     }
 
 
+    @SuppressWarnings("unused")
     public static int getMaxDispatchDepth(){
         return maxDispatchDepth;
     }
@@ -1425,6 +1432,7 @@ public class Request {
     /**
      * Increment the depth of application dispatch
      */
+    @SuppressWarnings("unused")
     public int incrementDispatchDepth() {
         return ++dispatchDepth;
     }
@@ -1433,6 +1441,7 @@ public class Request {
     /**
      * Decrement the depth of application dispatch
      */
+    @SuppressWarnings("unused")
     public int decrementDispatchDepth() {
         return --dispatchDepth;
     }
@@ -1441,6 +1450,7 @@ public class Request {
     /**
      * Check if the application dispatching has reached the maximum
      */
+    @SuppressWarnings("unused")
     public boolean isMaxDispatchDepthReached() {
         return dispatchDepth > maxDispatchDepth;
     }
@@ -1455,6 +1465,7 @@ public class Request {
      *
      * @param cookie The new cookie
      */
+    @SuppressWarnings("unused")
     public void addCookie(Cookie cookie) {
 
         // For compatibility only
@@ -1494,6 +1505,7 @@ public class Request {
      * @param name Name of this request parameter
      * @param values Corresponding values for this request parameter
      */
+    @SuppressWarnings("unused")
     public void addParameter(String name, String values[]) {
         parameters.addParameterValues(name, values);
     }
@@ -1502,6 +1514,7 @@ public class Request {
     /**
      * Clear the collection of Cookies associated with this Request.
      */
+    @SuppressWarnings("unused")
     public void clearCookies() {
         cookiesParsed = true;
         cookies = null;
@@ -1511,6 +1524,7 @@ public class Request {
     /**
      * Clear the collection of Headers associated with this Request.
      */
+    @SuppressWarnings("unused")
     public void clearHeaders() {
         // Not used
     }
@@ -1519,6 +1533,7 @@ public class Request {
     /**
      * Clear the collection of Locales associated with this Request.
      */
+    @SuppressWarnings("unused")
     public void clearLocales() {
         locales.clear();
     }
@@ -1527,6 +1542,7 @@ public class Request {
     /**
      * Clear the collection of parameters associated with this Request.
      */
+    @SuppressWarnings("unused")
     public void clearParameters() {
         // Not used
     }
@@ -1627,6 +1643,7 @@ public class Request {
      *
      *  @since 2.1.2
      */
+    @SuppressWarnings("unused")
     public long getDateHeader(Header header) {
 
         String value = getHeader(header);
@@ -1767,6 +1784,7 @@ public class Request {
      *
      *  @since 2.1.2
      */
+    @SuppressWarnings("unused")
     public int getIntHeader(final Header header) {
 
         String value = getHeader(header);
@@ -1811,6 +1829,7 @@ public class Request {
      * Sets the query string associated with this request.
      * @param queryString the query string associated with this request.
      */
+    @SuppressWarnings("unused")
     public void setQueryString(String queryString) {
         request.setQueryString(queryString);
     }
@@ -1978,6 +1997,7 @@ public class Request {
         return ctx;
     }
 
+    @SuppressWarnings("unused")
     protected String unescape(String s) {
         if (s == null) {
             return null;
@@ -2208,7 +2228,7 @@ public class Request {
         // a local collection, sorted by the quality value (so we can
         // add Locales in descending order).  The values will be ArrayLists
         // containing the corresponding Locales to be added
-        TreeMap<Double,List<Locale>> localLocalesMap = new TreeMap<Double,List<Locale>>();
+        TreeMap<Double,List<Locale>> localLocalesMap = new TreeMap<>();
 
         // Preprocess the value to remove all whitespace
         int white = value.indexOf(' ');
@@ -2276,7 +2296,7 @@ public class Request {
             Double key = -quality;  // Reverse the order
             List<Locale> values = localLocalesMap.get(key);
             if (values == null) {
-                values = new ArrayList<Locale>();
+                values = new ArrayList<>();
                 localLocalesMap.put(key, values);
             }
             values.add(locale);
@@ -2296,6 +2316,7 @@ public class Request {
     /**
      * Parses the value of the JROUTE cookie, if present.
      */
+    @SuppressWarnings("unused")
     void parseJrouteCookie() {
         if (!cookiesParsed) {
             parseCookies();
@@ -2311,6 +2332,7 @@ public class Request {
      * @return <code>true</code> if the given string is composed of
      *  upper- or lowercase letters only, <code>false</code> otherwise.
      */
+    @SuppressWarnings("unused")
     static boolean isAlpha(String value) {
 
         if (value == null) {
@@ -2451,7 +2473,8 @@ public class Request {
         final Cookie cookie = new Cookie(obtainSessionCookieName(),
                                          session.getIdInternal());
         configureSessionCookie(cookie);
-        
+
+        assert response != null;
         response.addCookie(cookie);
         
         return session;
