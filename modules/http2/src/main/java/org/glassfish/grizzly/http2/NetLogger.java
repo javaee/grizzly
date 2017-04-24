@@ -52,6 +52,7 @@ import org.glassfish.grizzly.http2.frames.PriorityFrame;
 import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
 import org.glassfish.grizzly.http2.frames.RstStreamFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
+import org.glassfish.grizzly.http2.frames.UnknownFrame;
 import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
 
 import java.util.logging.Level;
@@ -60,7 +61,7 @@ import java.util.logging.Logger;
 final class NetLogger {
 
     private static final Logger LOGGER = Grizzly.logger(NetLogger.class);
-    private static final Level LEVEL = Level.FINE;
+    private static final Level LEVEL = Level.INFO;
 
     private static final String CLOSE_FMT           = "'{' \"session\":\"{0}\", \"event\":\"CLOSE\" '}'";
     private static final String DATA                = "DATA";
@@ -79,6 +80,8 @@ final class NetLogger {
     private static final String RST_FMT             = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"error-code\":\"{3}\" '}'";
     private static final String SETTINGS            = "SETTINGS";
     private static final String SETTINGS_FMT        = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"settings\":'{'{2}'}' '}'";
+    private static final String UNKNOWN             = "UNKNOWN";
+    private static final String UNKNOWN_FMT         = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"frame-type\":\"{2}\", \"len\":\"{3}\" '}'";
     private static final String WINDOW_UPDATE       = "WINDOW_UPDATE";
     private static final String WINDOW_UPDATE_FMT   = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"delta\":\"{2}\" '}'";
 
@@ -129,7 +132,7 @@ final class NetLogger {
                 log(ctx, c, (WindowUpdateFrame) frame);
                 break;
             default:
-                LOGGER.warning("Unable to log frame of type: " + frame.getClass().getName());
+                log(ctx, c, (UnknownFrame) frame);
 
         }
     }
@@ -254,6 +257,17 @@ final class NetLogger {
                     escape(c.getConnection().toString()),
                     ctx.getPrefix() + WINDOW_UPDATE,
                     frame.getWindowSizeIncrement()});
+        }
+    }
+
+    static void log(final Context ctx, final Http2Connection c, final UnknownFrame frame) {
+        validateParams(ctx, c, frame);
+        if (LOGGER.isLoggable(LEVEL)) {
+            LOGGER.log(LEVEL, UNKNOWN_FMT, new Object[]{
+                    escape(c.getConnection().toString()),
+                    ctx.getPrefix() + UNKNOWN,
+                    frame.getType(),
+                    frame.getLength()});
         }
     }
 

@@ -66,6 +66,7 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.http2.frames.DataFrame;
 import org.glassfish.grizzly.http2.frames.PingFrame;
 import org.glassfish.grizzly.http2.frames.PriorityFrame;
+import org.glassfish.grizzly.http2.frames.UnknownFrame;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
@@ -299,7 +300,8 @@ public class Http2Connection {
     public Http2Frame parseHttp2FrameHeader(final Buffer buffer)
             throws Http2ConnectionException {
         // we assume the passed buffer represents only this frame, no remainders allowed
-        assert buffer.remaining() == getFrameSize(buffer);
+        final int len = getFrameSize(buffer);
+        assert buffer.remaining() == len;
 
         final int i1 = buffer.getInt();
 
@@ -332,8 +334,7 @@ public class Http2Connection {
             case ContinuationFrame.TYPE:
                 return ContinuationFrame.fromBuffer(flags, streamId, buffer);
             default:
-                throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR,
-                        "Unknown frame type: " + type);
+                return new UnknownFrame(type, len);
         }
     }
 
