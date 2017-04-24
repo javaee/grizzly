@@ -411,20 +411,7 @@ public class Http2Connection {
         
         final int oldPos = buffer.position();
         try {
-            final Http2Frame oversizedFrame = parseHttp2FrameHeader(buffer);
-            final int streamId = oversizedFrame.getStreamId();
-            if (streamId > 0) {
-                final Http2Stream stream = getStream(streamId);
-                if (stream != null) {
-                    // Known Http2Stream
-                    stream.inputBuffer.close(FRAME_TOO_LARGE_TERMINATION);
-                    sendRstFrame(ErrorCode.FRAME_SIZE_ERROR, streamId);
-                } else {
-                    sendRstFrame(ErrorCode.STREAM_CLOSED, streamId);
-                }
-            } else {
-                throw new Http2ConnectionException(ErrorCode.FRAME_SIZE_ERROR);
-            }
+            throw new Http2ConnectionException(ErrorCode.FRAME_SIZE_ERROR);
         } finally {
             buffer.position(oldPos);
         }
