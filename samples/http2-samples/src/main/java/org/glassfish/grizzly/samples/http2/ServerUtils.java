@@ -85,8 +85,8 @@ public class ServerUtils {
         listener.getFileCache().setEnabled(enableFileCache);
         
         // enable security (required for NPN mode)
-        listener.setSecure(true);
-        listener.setSSLEngineConfig(ServerUtils.getServerSSLEngineConfigurator());
+        //listener.setSecure(true);
+        //listener.setSSLEngineConfig(ServerUtils.getServerSSLEngineConfigurator());
         
         for (AddOn addon : addOns) {
             listener.registerAddOn(addon);
@@ -100,19 +100,21 @@ public class ServerUtils {
         final ServerConfiguration config = server.getServerConfiguration();
 
         // Initialize smileys folder
-        final File smileysRootFolder = new File(SMILEYS_ROOT);
+        //final File smileysRootFolder = new File(SMILEYS_ROOT);
         
         // check if the smileys folder exists
-        if (!smileysRootFolder.exists() || !smileysRootFolder.isDirectory()) {
-            throw new IOException("The smileys folder doesn't exist");
-        }
+//        if (!smileysRootFolder.exists() || !smileysRootFolder.isDirectory()) {
+//            throw new IOException("The smileys folder doesn't exist");
+//        }
         
         // Add StaticHttpHandler responsible for serving static (smileys) images
-        config.addHttpHandler(new StaticHttpHandler(smileysRootFolder.getAbsolutePath()));
+        //config.addHttpHandler(new StaticHttpHandler(smileysRootFolder.getAbsolutePath()));
         
         // Add SmileysHandler to serve initial html page, which references smileys
         config.addHttpHandler(new SmileysHandler(),
                 "/getsmileys");
+
+        config.addHttpHandler(new StaticHttpHandler("/tmp"), "/");
 
         return server;
     }

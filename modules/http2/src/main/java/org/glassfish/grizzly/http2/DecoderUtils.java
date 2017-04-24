@@ -68,10 +68,9 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
     private static final String INVALID_CHARACTER_MESSAGE =
             "Invalid character 0x%02x at index '%s' found in header %s [%s: %s]";
 
-    @SuppressWarnings("DuplicateThrows")
     static void decodeRequestHeaders(final Http2Connection http2Connection,
                                      final HttpRequestPacket request)
-            throws InvalidCharacterException, IOException {
+            throws IOException {
 
         try {
             http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
@@ -87,17 +86,16 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
             });
         } catch (RuntimeException re) {
-            throw new InvalidCharacterException(re);
+            throw new IOException(re);
         } finally {
             request.setProtocol(Protocol.HTTP_2_0);
             request.getResponse().setProtocol(Protocol.HTTP_2_0);
         }
     }
 
-    @SuppressWarnings("DuplicateThrows")
     static void decodeResponseHeaders(final Http2Connection http2Connection,
                                       final HttpResponsePacket response)
-            throws InvalidCharacterException, IOException {
+            throws IOException {
 
         try {
             http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
@@ -113,7 +111,7 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
             });
         } catch (RuntimeException re) {
-            throw new InvalidCharacterException(re);
+            throw new IOException(re);
         } finally {
             response.setProtocol(Protocol.HTTP_2_0);
             response.getRequest().setProtocol(Protocol.HTTP_2_0);
@@ -121,10 +119,9 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
     }
 
-    @SuppressWarnings("DuplicateThrows")
     static void decodeTrailerHeaders(final Http2Connection http2Connection,
                                      final HttpHeader header)
-            throws InvalidCharacterException, IOException {
+            throws IOException {
         try {
             final MimeHeaders headers = header.getHeaders();
             http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
@@ -137,7 +134,7 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
             });
         } catch (RuntimeException re) {
-            throw new InvalidCharacterException(re);
+            throw new IOException(re);
         }
     }
 

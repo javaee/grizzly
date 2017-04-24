@@ -986,16 +986,17 @@ public class Http2ServerFilter extends Http2BaseFilter {
     private static void handleIOException(final Http2Connection http2Connection,
                                           final Http2Stream stream,
                                           final IOException ioe) throws IOException {
-        if (ioe instanceof InvalidCharacterException) {
-            if (LOGGER.isLoggable(Level.WARNING)) {
-                LOGGER.warning(ioe.getMessage());
-            }
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, ioe.getMessage(), ioe);
-            }
-            http2Connection.sendRstFrame(ErrorCode.PROTOCOL_ERROR, stream.getId());
-        } else {
-            throw ioe;
-        }
+//        if (ioe instanceof InvalidCharacterException) {
+//            if (LOGGER.isLoggable(Level.WARNING)) {
+//                LOGGER.warning(ioe.getMessage());
+//            }
+//            if (LOGGER.isLoggable(Level.FINE)) {
+//                LOGGER.log(Level.FINE, ioe.getMessage(), ioe);
+//            }
+//            http2Connection.sendRstFrame(ErrorCode.PROTOCOL_ERROR, stream.getId());
+//        } else {
+        http2Connection.goAway(ErrorCode.COMPRESSION_ERROR, ioe.getCause().getMessage());
+        http2Connection.getConnection().close();
+        //}
     }
 }

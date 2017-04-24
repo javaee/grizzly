@@ -134,9 +134,7 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
         request.setHeader(new String(temp, Charsets.ASCII_CHARSET), "value");
         c.write(HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build());
         Thread.sleep(1000);
-        final Http2Stream stream = Http2Stream.getStreamFor(request);
-        assertNotNull(stream);
-        assertFalse(stream.isOpen());
+        assertFalse(c.isOpen());
     }
 
 

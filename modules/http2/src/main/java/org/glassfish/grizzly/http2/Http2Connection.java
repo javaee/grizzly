@@ -619,13 +619,24 @@ public class Http2Connection {
      * @param errorCode GOAWAY status code.
      */
     public void goAway(final ErrorCode errorCode) {
-        final Http2Frame goAwayFrame = setGoAwayLocally(errorCode);
+        goAway(errorCode, null);
+    }
+
+    /**
+     * If the session is still open - closes it and sends GOAWAY frame to a peer,
+     * otherwise if the session was already closed - does nothing.
+     *
+     * @param errorCode GOAWAY status code.
+     * @param detail details of cause, if any.
+     */
+    public void goAway(final ErrorCode errorCode, String detail) {
+        final Http2Frame goAwayFrame = setGoAwayLocally(errorCode, detail);
         if (goAwayFrame != null) {
             outputSink.writeDownStream(goAwayFrame);
         }
     }
 
-    GoAwayFrame setGoAwayLocally(final ErrorCode errorCode) {
+    GoAwayFrame setGoAwayLocally(final ErrorCode errorCode, final String detail) {
         final int lastPeerStreamIdLocal = close();
         if (lastPeerStreamIdLocal == -1) {
             return null; // Http2Connection is already in go-away state
@@ -633,6 +644,9 @@ public class Http2Connection {
         
         return GoAwayFrame.builder()
                 .lastStreamId(lastPeerStreamIdLocal)
+                .additionalDebugData(((detail != null)
+                        ? Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, detail)
+                        : Buffers.EMPTY_BUFFER))
                 .errorCode(errorCode)
                 .build();
     }

@@ -60,7 +60,7 @@ import java.util.logging.Logger;
 final class NetLogger {
 
     private static final Logger LOGGER = Grizzly.logger(NetLogger.class);
-    private static final Level LEVEL = Level.FINE;
+    private static final Level LEVEL = Level.INFO;
 
     private static final String CLOSE_FMT           = "'{' \"session\":\"{0}\", \"event\":\"CLOSE\" '}'";
     private static final String DATA                = "DATA";

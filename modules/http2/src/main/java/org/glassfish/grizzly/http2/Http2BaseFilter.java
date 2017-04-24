@@ -209,13 +209,13 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 LOGGER.log(Level.FINE, "Http2ConnectionException occurred on connection=" +
                         ctx.getConnection() + " during Http2Frame processing", e);
             }
-            sendGoAwayAndClose(ctx, http2Connection, e.getErrorCode());
+            sendGoAwayAndClose(ctx, http2Connection, e.getErrorCode(), e.getMessage());
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "IOException occurred on connection=" +
                         ctx.getConnection() + " during Http2Frame processing", e);
             }
-            sendGoAwayAndClose(ctx, http2Connection, ErrorCode.INTERNAL_ERROR);
+            sendGoAwayAndClose(ctx, http2Connection, ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
         
         return false;
@@ -927,10 +927,10 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
     @SuppressWarnings("unchecked")
     private void sendGoAwayAndClose(final FilterChainContext ctx,
-            final Http2Connection http2Connection, final ErrorCode errorCode) {
+            final Http2Connection http2Connection, final ErrorCode errorCode, final String detail) {
 
         final Http2Frame goAwayFrame = 
-                http2Connection.setGoAwayLocally(errorCode);
+                http2Connection.setGoAwayLocally(errorCode, detail);
 
         if (goAwayFrame != null) {
             final Connection connection = ctx.getConnection();
