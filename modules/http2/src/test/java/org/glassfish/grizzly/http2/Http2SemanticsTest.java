@@ -70,7 +70,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 
 @RunWith(Parameterized.class)
 public class Http2SemanticsTest extends AbstractHttp2Test {
