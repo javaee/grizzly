@@ -242,7 +242,7 @@ public final class Decoder {
         requireNonNull(headerBlock, "headerBlock");
         requireNonNull(consumer, "consumer");
         while (headerBlock.hasRemaining()) {
-            proceed(headerBlock, consumer);
+            proceed(headerBlock, consumer, endOfHeaderBlock);
         }
         if (endOfHeaderBlock && state != State.READY) {
             throw new RuntimeException(
@@ -250,7 +250,7 @@ public final class Decoder {
         }
     }
 
-    private void proceed(Buffer input, DecodingCallback action) {
+    private void proceed(Buffer input, DecodingCallback action, boolean endOfHeaderBlock) {
         switch (state) {
             case READY:
                 resumeReady(input);
@@ -268,7 +268,7 @@ public final class Decoder {
                 resumeLiteralNeverIndexed(input, action);
                 break;
             case SIZE_UPDATE:
-                resumeSizeUpdate(input, action);
+                resumeSizeUpdate(input, action, endOfHeaderBlock);
                 break;
             default:
                 throw new InternalError(
@@ -472,7 +472,10 @@ public final class Decoder {
     //            | 0 | 0 | 1 |   Max size (5+)   |
     //            +---+---------------------------+
     //
-    private void resumeSizeUpdate(Buffer input, DecodingCallback action) {
+    private void resumeSizeUpdate(Buffer input, DecodingCallback action, boolean endOfHeaderBlock) {
+        if (endOfHeaderBlock) {
+            throw new RuntimeException("Illegal attempt to resize dynamic table after the header block has been processed.");
+        }
         if (!integerReader.read(input)) {
             return;
         }
