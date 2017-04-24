@@ -473,9 +473,9 @@ public final class Decoder {
     //            +---+---------------------------+
     //
     private void resumeSizeUpdate(Buffer input, DecodingCallback action, boolean endOfHeaderBlock) {
-        if (endOfHeaderBlock) {
-            throw new RuntimeException("Illegal attempt to resize dynamic table after the header block has been processed.");
-        }
+//        if (endOfHeaderBlock) {
+//            throw new RuntimeException("Illegal attempt to resize dynamic table after the header block has been processed.");
+//        }
         if (!integerReader.read(input)) {
             return;
         }
