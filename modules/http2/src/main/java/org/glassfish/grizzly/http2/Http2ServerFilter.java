@@ -517,17 +517,18 @@ public class Http2ServerFilter extends Http2BaseFilter {
         }
         
         httpContent.recycle();
-        
-        final List<Http2Frame> framesList =
-                frameCodec.parse(http2Connection,
-                        http2State.getFrameParsingState(),
-                        framePayload);
 
         // Prime the initial value of push.  Will be overridden if the settings contain a
         // new value.
         if (connection.getAttributes().getAttribute(HTTP2_PUSH_ENABLED) == null) {
             connection.getAttributes().setAttribute(HTTP2_PUSH_ENABLED, Boolean.TRUE);
         }
+        
+        final List<Http2Frame> framesList =
+                frameCodec.parse(http2Connection,
+                        http2State.getFrameParsingState(),
+                        framePayload);
+
         if (!processFrames(ctx, http2Connection, framesList)) {
             return ctx.getSuspendAction();
         }
