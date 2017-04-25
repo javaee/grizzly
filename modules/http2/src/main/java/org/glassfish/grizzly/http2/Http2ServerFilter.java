@@ -757,7 +757,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 stream.onRcvHeaders(true);
                 DecoderUtils.decodeTrailerHeaders(http2Connection, stream.getRequest());
             } catch (IOException ioe) {
-                handleIOException(http2Connection, stream, ioe);
+                handleDecodingError(http2Connection, ioe);
                 return;
             }
             if (headersFrame.isTruncated()) {
@@ -785,7 +785,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
         try {
             DecoderUtils.decodeRequestHeaders(http2Connection, request);
         } catch (IOException ioe) {
-            handleIOException(http2Connection, stream, ioe);
+            handleDecodingError(http2Connection, ioe);
             return;
         }
         if (headersFrame.isTruncated()) {
@@ -983,18 +983,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
         newContext.resume(newContext.getStopAction());
     }
 
-    private static void handleIOException(final Http2Connection http2Connection,
-                                          final Http2Stream stream,
-                                          final IOException ioe) throws IOException {
-//        if (ioe instanceof InvalidCharacterException) {
-//            if (LOGGER.isLoggable(Level.WARNING)) {
-//                LOGGER.warning(ioe.getMessage());
-//            }
-//            if (LOGGER.isLoggable(Level.FINE)) {
-//                LOGGER.log(Level.FINE, ioe.getMessage(), ioe);
-//            }
-//            http2Connection.sendRstFrame(ErrorCode.PROTOCOL_ERROR, stream.getId());
-//        } else {
+    private static void handleDecodingError(final Http2Connection http2Connection,
+                                            final IOException ioe) throws IOException {
         http2Connection.goAway(ErrorCode.COMPRESSION_ERROR, ioe.getCause().getMessage());
         http2Connection.getConnection().close();
         //}
