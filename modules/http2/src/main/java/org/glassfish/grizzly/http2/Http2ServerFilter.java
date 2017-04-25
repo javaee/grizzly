@@ -893,7 +893,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
             prepareOutgoingResponse(request.getResponse());
             final Http2Stream pushStream;
 
-            synchronized (h2c) {
+            h2c.getNewClientStreamLock().lock();
+            try {
                 pushStream = h2c.openStream(
                         request,
                         h2c.getNextLocalStreamId(), parentStream.getId(),
@@ -911,6 +912,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 } finally {
                     h2c.getDeflaterLock().unlock();
                 }
+            } finally {
+                h2c.getNewClientStreamLock().unlock();
             }
 
             request.getProcessingState().setHttpContext(
