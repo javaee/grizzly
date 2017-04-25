@@ -465,7 +465,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
         final Http2Connection http2Connection =
                 obtainHttp2Connection(http2State, ctx, true);
 
-        if (!getConfiguration().isDisableCipherCheck() && !CIPHER_CHECKED.isSet(connection)) {
+        if (httpHeader.isSecure() && !getConfiguration().isDisableCipherCheck() && !CIPHER_CHECKED.isSet(connection)) {
             CIPHER_CHECKED.set(connection, connection);
             final SSLEngine engine = SSLUtils.getSSLEngine(connection);
             if (engine != null) {
