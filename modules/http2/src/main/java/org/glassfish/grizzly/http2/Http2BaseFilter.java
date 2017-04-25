@@ -576,9 +576,8 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             if (stream != null) {
                 stream.getOutputSink().onPeerWindowUpdate(delta);
             } else {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.fine("\nStream id=" + streamId + " was not found. Ignoring the message.");
-                }
+                http2Connection.goAway(ErrorCode.PROTOCOL_ERROR);
+                http2Connection.getConnection().closeSilently();
             }
         }
     }
@@ -650,8 +649,9 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         final int streamId = rstFrame.getStreamId();
         final Http2Stream stream = http2Connection.getStream(streamId);
         if (stream == null) {
-            // If the stream is not found - just ignore the rst
-            frame.recycle();
+            // If the stream is not found, it's effectively idle.  Terminate the connection.
+            http2Connection.goAway(ErrorCode.PROTOCOL_ERROR);
+            http2Connection.getConnection().closeSilently();
             return;
         }
         
