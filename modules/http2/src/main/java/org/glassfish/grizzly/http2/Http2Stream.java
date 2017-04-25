@@ -87,7 +87,7 @@ import static org.glassfish.grizzly.http2.Termination.UNEXPECTED_FRAME_TERMINATI
  * 
  * @author Grizzly team
  */
-public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
+public class Http2Stream extends Node implements AttributeStorage, OutputSink, Closeable {
 
     private static final Logger LOGGER = Grizzly.logger(Http2Stream.class);
 
@@ -106,10 +106,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     private volatile Http2StreamState state;
     
     private final HttpRequestPacket request;
-    private final int streamId;
-    private final int refStreamId;
-    private final int priority;
-    private final boolean exclusive;
+    private int priority;
 
     private final Http2Connection http2Connection;
     
@@ -173,22 +170,24 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      * @param http2Connection the {@link Http2Connection} for this {@link Http2Stream}.
      * @param request the {@link HttpRequestPacket} initiating the stream.
      * @param streamId this stream's ID.
-     * @param refStreamId the parent stream, if any.
+     * @param parentStreamId the parent stream, if any.
      * @param priority the priority of this stream.
      * @param initState the initial stream state.
      */
     protected Http2Stream(final Http2Connection http2Connection,
             final HttpRequestPacket request,
-            final int streamId, final int refStreamId,
+            final int streamId, final int parentStreamId,
             final boolean exclusive, final int priority,
             final Http2StreamState initState) {
+        super(streamId);
         this.http2Connection = http2Connection;
         this.request = request;
-        this.streamId = streamId;
-        this.refStreamId = refStreamId;
         this.exclusive = exclusive;
         this.priority = priority;
         this.state = initState;
+
+        final Node parent = http2Connection.find(parentStreamId);
+        parent.addChild(this, exclusive);
 
         inputBuffer = new DefaultInputBuffer(this);
         outputSink = new DefaultOutputSink(this);
@@ -207,14 +206,12 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     protected Http2Stream(final Http2Connection http2Connection,
             final HttpRequestPacket request,
             final int priority, final Http2StreamState initState) {
+        super(UPGRADE_STREAM_ID);
         this.http2Connection = http2Connection;
         this.request = request;
-        this.streamId = UPGRADE_STREAM_ID;
-        this.refStreamId = 0;
         this.priority = priority;
         this.state = initState;
 
-        this.exclusive = false;
         inputBuffer = http2Connection.isServer()
                 ? new UpgradeInputBuffer()
                 : new DefaultInputBuffer(this);
@@ -267,23 +264,27 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     }
     
     public int getId() {
-        return streamId;
+        return id;
     }
 
-    public int getReferStreamId() {
-        return refStreamId;
+    public int getParentStreamId() {
+        return parent.id;
     }
 
     public int getPriority() {
         return priority;
     }
 
+    void setPriority(final int priority) {
+        this.priority = priority;
+    }
+
     public boolean isPushStream() {
-        return (streamId % 2) == 0;
+        return ((id & 1 ) == 0);
     }
     
     public boolean isLocallyInitiatedStream() {
-        return http2Connection.isLocallyInitiatedStream(streamId);
+        return http2Connection.isLocallyInitiatedStream(id);
     }
 
     @Override

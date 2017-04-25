@@ -77,10 +77,11 @@ public class PriorityFrame extends Http2Frame {
         PriorityFrame frame = create();
         frame.setStreamId(streamId);
         
-        final int int4 = frameBuffer.getInt();
-        
-        frame.isExclusive = (int4 < 0);  // last bit is set
-        frame.streamDependency = int4 & 0x7fffffff;
+        final int dependency = frameBuffer.getInt();
+
+        frame.streamDependency = dependency & 0x7fffffff;
+        frame.isExclusive = (dependency & 1L << 31) != 0;  // last bit is set
+
         frame.weight = frameBuffer.get() & 0xff;
 
         frame.setFrameBuffer(frameBuffer);
