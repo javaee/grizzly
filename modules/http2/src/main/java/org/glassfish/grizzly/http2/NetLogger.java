@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http2;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.http2.frames.ContinuationFrame;
 import org.glassfish.grizzly.http2.frames.DataFrame;
 import org.glassfish.grizzly.http2.frames.GoAwayFrame;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
@@ -66,6 +67,8 @@ final class NetLogger {
     private static final String CLOSE_FMT           = "'{' \"session\":\"{0}\", \"event\":\"CLOSE\" '}'";
     private static final String DATA                = "DATA";
     private static final String DATA_FMT            = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"fin\":\"{3}\", \"len\":\"{4}\" '}'";
+    private static final String CONTINUATION        = "CONTINUATION";
+    private static final String CONTINUATION_FMT    = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"len\":\"{3}\" '}'";
     private static final String GOAWAY              = "GOAWAY";
     private static final String GOAWAY_FMT          = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"last-stream\":\"{3}\", \"error-code\":\"{4}\", \"detail\":\"{5}\" '}'";
     private static final String HEADERS             = "HEADERS";
@@ -104,6 +107,9 @@ final class NetLogger {
 
     static void log(final Context ctx, final Http2Connection c, final Http2Frame frame) {
         switch (frame.getType()) {
+            case ContinuationFrame.TYPE:
+                log(ctx, c, (ContinuationFrame) frame);
+                break;
             case DataFrame.TYPE:
                 log(ctx, c, (DataFrame) frame);
                 break;
@@ -134,6 +140,17 @@ final class NetLogger {
             default:
                 log(ctx, c, (UnknownFrame) frame);
 
+        }
+    }
+
+    static void log(final Context ctx, final Http2Connection c, final ContinuationFrame frame) {
+        validateParams(ctx, c, frame);
+        if (LOGGER.isLoggable(LEVEL)) {
+            LOGGER.log(LEVEL, CONTINUATION_FMT, new Object[]{
+                    escape(c.getConnection().toString()),
+                    ctx.getPrefix() + CONTINUATION,
+                    frame.getStreamId(),
+                    frame.getLength()});
         }
     }
 
