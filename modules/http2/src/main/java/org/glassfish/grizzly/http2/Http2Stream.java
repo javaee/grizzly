@@ -600,20 +600,27 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     
     private Buffer cachedInputBuffer;
     private boolean cachedIsLast;
+
+    boolean isHalfClosedRemote() {
+        return (stateUpdater.get(this) == Http2StreamState.HALF_CLOSED_REMOTE);
+    }
+
+    Http2StreamException assertCanAcceptFrames() {
+        if (isHalfClosedRemote()) {
+
+            close0(null, CloseType.LOCALLY,
+                    new IOException("Received DATA frame on HALF_CLOSED_REMOTE stream."), false);
+            return new Http2StreamException(getId(),
+                    ErrorCode.STREAM_CLOSED, "Received DATA frame on HALF_CLOSED_REMOTE stream.");
+        }
+        return null;
+    };
     
     Http2StreamException assertCanAcceptData() {
         if (isPushStream() && isLocallyInitiatedStream()) {
             return new Http2StreamException(getId(),
                     ErrorCode.PROTOCOL_ERROR,
                     "Data frame received on a push-stream");
-        }
-
-        if (stateUpdater.get(this) == Http2StreamState.HALF_CLOSED_REMOTE) {
-
-            close0(null, CloseType.LOCALLY,
-                    new IOException("Received DATA frame on HALF_CLOSED_REMOTE stream."), false);
-            return new Http2StreamException(getId(),
-                    ErrorCode.STREAM_CLOSED, "Received DATA frame on HALF_CLOSED_REMOTE stream.");
         }
 
         if (inboundHeaderFramesCounter != 1) { // we accept data only if we received one HeadersFrame

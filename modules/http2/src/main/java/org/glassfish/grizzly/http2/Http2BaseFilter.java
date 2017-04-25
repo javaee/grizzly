@@ -512,6 +512,15 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                                 final Http2Frame frame)
      throws Http2StreamException, Http2ConnectionException, IOException {
 
+        final Http2Stream stream = http2Connection.getStream(frame.getStreamId());
+        if (stream != null) {
+            Http2StreamException error = stream.assertCanAcceptFrames();
+            if (error != null) {
+                frame.recycle();
+                throw error;
+            }
+        }
+
         http2Connection.checkFrameSequenceSemantics(frame);
         
         switch (frame.getType()) {
