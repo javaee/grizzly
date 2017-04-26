@@ -349,6 +349,11 @@ class DefaultInputBuffer implements StreamInputBuffer {
     @Override
     public void close(final Termination termination) {
         if (inputClosed.compareAndSet(false, true)) {
+            final Termination.TerminationType type = termination.getType();
+            if (type == Termination.LOCAL_CLOSE_TERMINATION.getType()
+                    || type == Termination.PEER_CLOSE_TERMINATION.getType()) {
+                return;
+            }
             offer0(new InputElement(termination, true, true));
         }
     }
