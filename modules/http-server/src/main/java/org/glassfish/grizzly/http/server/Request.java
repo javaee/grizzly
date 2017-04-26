@@ -67,6 +67,7 @@ import java.nio.charset.Charset;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -1712,16 +1713,23 @@ public class Request {
 
     /**
      * Get the request trailer headers.
+     * Values may only be returned in the case of HTTP/1.1 when the request is
+     * using the <code>transfer-encoding</code> <code>chunked</code> or in HTTP/2
+     * sends a second <code>HEADERS</code> frame terminating the stream.  An empty
+     * <code>Map</code> will be returned in all other cases.
+     *
+     * While headers are typical case insensitive, the headers stored in the
+     * returned <code>Map</code> will be done so in <b>lower-case</b>.
+     *
      * This method can only be called after the application reads all
      * the request content.
      *
-     * @return A {@link Map} of trailers headers or <code>null</code> if none were present.
+     * @return A {@link Map} of trailers headers, if any were present.
      *
      * @throws IllegalStateException if neither
-     * {@link ReadHandler#onAllDataRead} has been called nor
-     * an EOF indication has been returned from the
-     * {@link #getReader}, {@link #getNIOReader()}, {@link #getInputStream},
-     * {@link #getNIOInputStream()}.
+     *  {@link ReadHandler#onAllDataRead} has been called or an EOF indication has
+     *  been returned from the {@link #getReader}, {@link #getNIOReader()},
+     *  {@link #getInputStream}, {@link #getNIOInputStream()}.
      *
      * @since 2.4.0
      */
@@ -1733,10 +1741,10 @@ public class Request {
                 if (trailerSize > 0) {
                     trailers = new HashMap<>(trailerSize);
                     for (String name : headers.trailerNames()) {
-                        trailers.put(name, headers.getHeader(name));
+                        trailers.put(name.toLowerCase(), headers.getHeader(name));
                     }
                 } else {
-                    return null;
+                    trailers = Collections.emptyMap();
                 }
             }
             return trailers;
