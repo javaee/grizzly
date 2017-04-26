@@ -421,8 +421,8 @@ public class Http2Stream extends Node implements AttributeStorage, OutputSink, C
         // Schedule (add to the stream's input queue) the Termination,
         // which will be invoked once read by the user code.
         // This way we simulate Java Socket behavior
-        inputBuffer.close(
-                new Termination(TerminationType.PEER_CLOSE, CLOSED_BY_PEER_STRING) {
+        inputBuffer.terminate(
+                new Termination(TerminationType.PEER_CLOSE, CLOSED_BY_PEER_STRING, true) {
             @Override
             public void doTask() {
                 close0(null, CloseType.REMOTELY, null, false);
