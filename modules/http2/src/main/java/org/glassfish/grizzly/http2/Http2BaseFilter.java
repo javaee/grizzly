@@ -522,7 +522,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 break;
             }
             case PriorityFrame.TYPE: {
-                processPriorityFrame(http2Connection, frame);
+                //processPriorityFrame(http2Connection, frame);
                 break;
             }
             case HeadersFrame.TYPE:
