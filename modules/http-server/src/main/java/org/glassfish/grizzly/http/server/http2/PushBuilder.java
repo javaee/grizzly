@@ -48,6 +48,8 @@ import org.glassfish.grizzly.http.server.Session;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -428,6 +430,10 @@ public final class PushBuilder {
         }
 
         path = pathLocal;
+
+        if (!request.getContext().getConnection().isOpen()) {
+            throw new UncheckedIOException("Unable to push: connection closed", new IOException());
+        }
 
         request.getContext().notifyDownstream(PushEvent.create(this));
         path = null;
