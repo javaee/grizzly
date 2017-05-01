@@ -91,6 +91,7 @@ import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
+import static org.glassfish.grizzly.http2.Termination.FRAME_TOO_LARGE_TERMINATION;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.*;
 import static org.glassfish.grizzly.http2.Http2BaseFilter.PRI_PAYLOAD;
 import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;
@@ -102,7 +103,7 @@ import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
  * 
  * @author Alexey Stashok
  */
-public class Http2Connection extends Node {
+public class Http2Connection {
     private static final Logger LOGGER = Grizzly.logger(Http2Connection.class);
 
     private final boolean isServer;
@@ -184,7 +185,6 @@ public class Http2Connection extends Node {
     public Http2Connection(final Connection<?> connection,
                        final boolean isServer,
                        final Http2BaseFilter handlerFilter) {
-        super(0);
         this.connection = connection;
         final FilterChain chain = (FilterChain) connection.getProcessor();
         final int sslIdx = chain.indexOfType(SSLBaseFilter.class);
