@@ -114,7 +114,6 @@ public class TrailersTest extends AbstractHttp2Test {
                     }
                 });
                 response.getWriter().write(sb.toString());
-                response.flush();
             }
         });
         final CountDownLatch latch = new CountDownLatch(1);
