@@ -768,7 +768,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
                                new Object[] { http2Connection.toString(), headersFrame.getStreamId()});
                 }
             }
-            stream.inputBuffer.terminate(IN_FIN_TERMINATION);
+            stream.flushInputData();
+            stream.inputBuffer.close(IN_FIN_TERMINATION);
             return;
         }
 

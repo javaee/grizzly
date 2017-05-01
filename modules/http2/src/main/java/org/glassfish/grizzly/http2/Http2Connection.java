@@ -91,7 +91,6 @@ import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
-import static org.glassfish.grizzly.http2.Termination.FRAME_TOO_LARGE_TERMINATION;
 import static org.glassfish.grizzly.http2.frames.SettingsFrame.*;
 import static org.glassfish.grizzly.http2.Http2BaseFilter.PRI_PAYLOAD;
 import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;

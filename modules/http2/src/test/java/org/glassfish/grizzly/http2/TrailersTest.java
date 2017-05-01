@@ -63,17 +63,19 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.junit.After;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -118,13 +120,19 @@ public class TrailersTest extends AbstractHttp2Test {
         });
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> error = new AtomicReference<>();
+        final AtomicInteger contentCount = new AtomicInteger();
+        final AtomicBoolean lastProcessed = new AtomicBoolean();
 
         final Filter filter = new BaseFilter() {
             @Override
             public NextAction handleRead(FilterChainContext ctx) throws IOException {
                 final HttpContent httpContent = ctx.getMessage();
                 try {
+                    if (lastProcessed.get()) {
+                        fail("Already processed last packet");
+                    }
                     if (httpContent.isLast()) {
+                        lastProcessed.compareAndSet(false, true);
                         assertTrue(httpContent instanceof HttpTrailer);
                         final MimeHeaders trailers = ((HttpTrailer) httpContent).getHeaders();
 
@@ -133,12 +141,19 @@ public class TrailersTest extends AbstractHttp2Test {
                         assertEquals("value-b", trailers.getHeader("trailer-b"));
                         latch.countDown();
                     } else {
-                        if (httpContent.getContent().remaining() > 0) {
-                            assertEquals("a=b&c=d", httpContent.getContent().toStringContent());
+                        assertFalse(httpContent instanceof HttpTrailer);
+                        int result = contentCount.incrementAndGet();
+                        if (result == 1) {
+                            assertTrue(httpContent.getContent().remaining() == 0); // response
+                        } else if (result == 2) {
+                            assertEquals("a=b&c=d", httpContent.getContent().toStringContent()); // response body
+                        } else {
+                            fail("Unexpected content");
                         }
                     }
                 } catch (Throwable t) {
                     error.set(t);
+                    latch.countDown();
                 }
 
                 return ctx.getStopAction();
@@ -150,12 +165,8 @@ public class TrailersTest extends AbstractHttp2Test {
                 .uri("/echo")
                 .protocol(Protocol.HTTP_2_0)
                 .host("localhost:" + PORT).build();
-        c.write(HttpContent.builder(request)
-                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "a=b&c=d"))
-                .last(false)
-                .build());
         c.write(HttpTrailer.builder(request)
-                .content(Buffers.EMPTY_BUFFER)
+                .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, "a=b&c=d"))
                 .last(true)
                 .header("trailer-a", "value-a")
                 .header("trailer-b", "value-b")
@@ -166,6 +177,7 @@ public class TrailersTest extends AbstractHttp2Test {
             t.printStackTrace();
             fail();
         }
+
     }
 
     @Test
@@ -207,6 +219,7 @@ public class TrailersTest extends AbstractHttp2Test {
                     }
                 } catch (Throwable t) {
                     error.set(t);
+                    latch.countDown();
                 }
 
                 return ctx.getStopAction();
@@ -218,10 +231,10 @@ public class TrailersTest extends AbstractHttp2Test {
                 .uri("/echo")
                 .protocol(Protocol.HTTP_2_0)
                 .host("localhost:" + PORT).build();
-        c.write(HttpContent.builder(request)
+        c.write(HttpContent.builder(request) // write the request
                 .last(false)
                 .build());
-        c.write(HttpTrailer.builder(request)
+        c.write(HttpTrailer.builder(request) // write the trailer
                 .content(Buffers.EMPTY_BUFFER)
                 .last(true)
                 .header("trailer-a", "value-a")

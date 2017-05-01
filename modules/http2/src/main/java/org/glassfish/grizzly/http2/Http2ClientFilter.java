@@ -580,15 +580,16 @@ public class Http2ClientFilter extends Http2BaseFilter {
         }
         
         final boolean isEOS = headersFrame.isEndStream();
-//        if (isEOS) {
-//            response.setExpectContent(false);
-//            stream.inputBuffer.terminate(IN_FIN_TERMINATION);
-//        }
+
         bind(request, response);
 
         stream.onRcvHeaders(isEOS);
         final HttpContent content;
         if (stream.getInboundHeaderFramesCounter() == 1) {
+            if (isEOS) {
+                response.setExpectContent(false);
+                stream.inputBuffer.terminate(IN_FIN_TERMINATION);
+            }
             DecoderUtils.decodeResponseHeaders(http2Connection, response);
             onHttpHeadersParsed(response, context);
             response.getHeaders().mark();
@@ -603,7 +604,8 @@ public class Http2ClientFilter extends Http2BaseFilter {
                     trailer.addHeader(name, mimeHeaders.getHeader(name));
                 }
             }
-
+            stream.flushInputData();
+            //stream.inputBuffer.terminate(IN_FIN_TERMINATION);
         }
 
         if (isEOS) {

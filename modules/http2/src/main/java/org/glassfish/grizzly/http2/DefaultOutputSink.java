@@ -246,6 +246,7 @@ class DefaultOutputSink implements StreamOutputSink {
      *          current thread.
      * @throws IOException if an error occurs with the write operation.
      */
+    @SuppressWarnings("ConstantConditions")
     @Override
     public synchronized void writeDownStream(final HttpPacket httpPacket,
                                              final FilterChainContext ctx,
@@ -325,15 +326,7 @@ class DefaultOutputSink implements StreamOutputSink {
                 if (isTrailer) {
                     // !!!!! LOCK the deflater
                     isDeflaterLocked = true;
-                    http2Connection.getDeflaterLock().lock();
-                    List<Http2Frame> trailerFrames =
-                            http2Connection.encodeTrailersAsHeaderFrames(stream.getId(),
-                                                                         new ArrayList<>(4),
-                                                                         ((HttpTrailer) httpContent).getHeaders());
-                    unflushedWritesCounter.incrementAndGet();
-                    flushToConnectionOutputSink(trailerFrames, null,
-                            new FlushCompletionHandler(completionHandler),
-                            messageCloner, true);
+                    sendTrailers(completionHandler, messageCloner, (HttpTrailer) httpContent);
                 }
                 close();
                 return;
@@ -432,7 +425,17 @@ class DefaultOutputSink implements StreamOutputSink {
                 
                 flushToConnectionOutputSink(headerFrames, dataToSend, flushCompletionHandler,
                         isDataCloned ? null : messageCloner,
-                        isLast);
+                        isLast && !isTrailer);
+            }
+
+            if (isLast) {
+                if (isTrailer) {
+                    // !!!!! LOCK the deflater
+                    isDeflaterLocked = true;
+                    sendTrailers(completionHandler, messageCloner, (HttpTrailer) httpContent);
+                }
+                close();
+                return;
             }
         
         } finally {
@@ -447,6 +450,8 @@ class DefaultOutputSink implements StreamOutputSink {
         
         addOutputQueueRecord(outputQueueRecord);
     }
+
+
 
     /**
      * Flush {@link Http2Stream} output and notify {@link CompletionHandler} once
@@ -672,6 +677,21 @@ class DefaultOutputSink implements StreamOutputSink {
         } else if (!isAtomic) {
             outputQueue.releaseSpace(justSentBytes);
         }
+    }
+
+    private void sendTrailers(final CompletionHandler<WriteResult> completionHandler,
+                              final MessageCloner<Buffer> messageCloner,
+                              final HttpTrailer httpContent)
+    throws IOException {
+        http2Connection.getDeflaterLock().lock();
+        List<Http2Frame> trailerFrames =
+                http2Connection.encodeTrailersAsHeaderFrames(stream.getId(),
+                        new ArrayList<>(4),
+                        httpContent.getHeaders());
+        unflushedWritesCounter.incrementAndGet();
+        flushToConnectionOutputSink(trailerFrames, null,
+                new FlushCompletionHandler(completionHandler),
+                messageCloner, true);
     }
 
     private static class OutputQueueRecord extends AsyncQueueRecord<WriteResult> {
