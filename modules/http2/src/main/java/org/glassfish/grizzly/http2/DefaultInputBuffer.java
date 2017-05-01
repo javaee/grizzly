@@ -91,7 +91,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
     private final Object terminateSync = new Object();
     
     private final Http2Stream stream;
-    private final Http2Connection http2Connection;
+    private final Http2Session http2Session;
     
     private final Object expectInputSwitchSync = new Object();
     private boolean expectInputSwitch;
@@ -100,7 +100,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
     
     DefaultInputBuffer(final Http2Stream stream) {
         this.stream = stream;
-        http2Connection = stream.getHttp2Connection();
+        http2Session = stream.getHttp2Session();
     }
     
     /**
@@ -117,7 +117,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
         
         // If input stream has been terminated - send error message upstream
         if (isClosed()) {
-            http2Connection.sendMessageUpstream(stream, 
+            http2Session.sendMessageUpstream(stream,
                     buildBrokenHttpContent(
                         new EOFException(closeFlag.getDescription())));
             
@@ -226,11 +226,11 @@ class DefaultInputBuffer implements StreamInputBuffer {
                 if (!inputElement.isService) {
                     // if this is element containing payload
                     // append input queue and extra input element contents
-                    payload = Buffers.appendBuffers(http2Connection.getMemoryManager(),
+                    payload = Buffers.appendBuffers(http2Session.getMemoryManager(),
                             payload, data);
                     
                     // notify peer that data.remaining() has been read (update window)
-                    http2Connection.ackConsumedData(stream, bufSz(data));
+                    http2Session.ackConsumedData(stream, bufSz(data));
                 } else if (payload == null) {
                     payload = data;
                 }
@@ -242,7 +242,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
             // build HttpContent based on payload
             final HttpContent content = buildHttpContent(payload);
             // send it upstream
-            http2Connection.sendMessageUpstreamWithParseNotify(stream, content);
+            http2Session.sendMessageUpstreamWithParseNotify(stream, content);
         } catch (IOException e) {
             // Should never be thrown
             LOGGER.log(Level.WARNING, "Unexpected IOException: {0}", e.getMessage());
@@ -284,7 +284,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
             if (inputQueueSizeNow <= 0) {
                 // if there is no element available - block
                 try {
-                    inputElement = inputQueue.poll(http2Connection.getConnection()
+                    inputElement = inputQueue.poll(http2Session.getConnection()
                             .getReadTimeout(TimeUnit.MILLISECONDS),
                             TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
@@ -314,7 +314,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
             } else {
                 // if there are more than 1 elements available
                 final CompositeBuffer compositeBuffer =
-                        CompositeBuffer.newBuffer(http2Connection.getMemoryManager());
+                        CompositeBuffer.newBuffer(http2Session.getMemoryManager());
 
                 for (int i = 0; i < inputQueueSizeNow; i++) {
                     final InputElement currentElement = inputQueue.poll();
@@ -336,7 +336,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
         }
         
         // send window_update notification
-        http2Connection.ackConsumedData(stream, bufSz(buffer));
+        http2Session.ackConsumedData(stream, bufSz(buffer));
 
         return buffer;
     }    
@@ -393,7 +393,7 @@ class DefaultInputBuffer implements StreamInputBuffer {
             }
             
             if (szToRelease > 0) {
-                http2Connection.ackConsumedData(szToRelease);
+                http2Session.ackConsumedData(szToRelease);
             }
             
             stream.onInputClosed();

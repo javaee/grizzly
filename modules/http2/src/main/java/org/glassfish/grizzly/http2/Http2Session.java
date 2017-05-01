@@ -102,8 +102,8 @@ import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
  * 
  * @author Alexey Stashok
  */
-public class Http2Connection {
-    private static final Logger LOGGER = Grizzly.logger(Http2Connection.class);
+public class Http2Session {
+    private static final Logger LOGGER = Grizzly.logger(Http2Session.class);
 
     private final boolean isServer;
     private final Connection<?> connection;
@@ -132,7 +132,7 @@ public class Http2Connection {
     final List<Http2Stream> streamsToFlushInput = new ArrayList<>();
     
     // The List object used to store header frames. Could be used by
-    // Http2Connection streams, when they write headers
+    // Http2Session streams, when they write headers
     protected final List<Http2Frame> tmpHeaderFramesList =
             new ArrayList<>(2);
     
@@ -157,16 +157,16 @@ public class Http2Connection {
     private volatile boolean isPrefaceReceived;
     private volatile boolean isPrefaceSent;
     
-    public static Http2Connection get(final Connection connection) {
+    public static Http2Session get(final Connection connection) {
         final Http2State http2State = Http2State.get(connection);
         return http2State != null
-                ? http2State.getHttp2Connection()
+                ? http2State.getHttp2Session()
                 : null;
     }
     
     static void bind(final Connection connection,
-            final Http2Connection http2Connection) {
-        Http2State.obtain(connection).setHttp2Connection(http2Connection);
+            final Http2Session http2Session) {
+        Http2State.obtain(connection).setHttp2Session(http2Session);
     }
     
     private final Holder<?> addressHolder;
@@ -181,9 +181,9 @@ public class Http2Connection {
     
     private final AtomicInteger unackedReadBytes  = new AtomicInteger();
         
-    public Http2Connection(final Connection<?> connection,
-                       final boolean isServer,
-                       final Http2BaseFilter handlerFilter) {
+    public Http2Session(final Connection<?> connection,
+                        final boolean isServer,
+                        final Http2BaseFilter handlerFilter) {
         this.connection = connection;
         final FilterChain chain = (FilterChain) connection.getProcessor();
         final int sslIdx = chain.indexOfType(SSLBaseFilter.class);
@@ -534,7 +534,7 @@ public class Http2Connection {
     }
 
     /**
-     * @return <code>true</code> if push is enabled for this {@link Http2Connection}, otherwise
+     * @return <code>true</code> if push is enabled for this {@link Http2Session}, otherwise
      *  returns <code>false</code>.  Push is enabled by default.
      */
     public boolean isPushEnabled() {
@@ -542,7 +542,7 @@ public class Http2Connection {
     }
 
     /**
-     * Configure whether or not push is enabled on this {@link Http2Connection}.
+     * Configure whether or not push is enabled on this {@link Http2Session}.
      *
      * @param pushEnabled flag toggling push support.
      */
@@ -626,7 +626,7 @@ public class Http2Connection {
     GoAwayFrame setGoAwayLocally(final ErrorCode errorCode, final String detail) {
         final int lastPeerStreamIdLocal = close();
         if (lastPeerStreamIdLocal == -1) {
-            return null; // Http2Connection is already in go-away state
+            return null; // Http2Session is already in go-away state
         }
         
         return GoAwayFrame.builder()
@@ -1331,7 +1331,7 @@ public class Http2Connection {
         public void onClosed(final Closeable closeable, final CloseType type)
                 throws IOException {
 
-            NetLogger.logClose(Http2Connection.this);
+            NetLogger.logClose(Http2Session.this);
             final boolean isClosing;
             synchronized (sessionLock) {
                 isClosing = !isClosed();

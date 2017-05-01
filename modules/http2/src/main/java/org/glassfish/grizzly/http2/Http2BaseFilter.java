@@ -162,7 +162,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
 
     protected boolean processFrames(final FilterChainContext ctx,
-            final Http2Connection http2Connection,
+            final Http2Session http2Session,
             final List<Http2Frame> framesList) {
         
         if (framesList == null || framesList.isEmpty()) {
@@ -172,9 +172,9 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         try {
             try {
                 for (Http2Frame inFrame : framesList) {
-                    NetLogger.log(NetLogger.Context.RX, http2Connection, inFrame);
+                    NetLogger.log(NetLogger.Context.RX, http2Session, inFrame);
                     try {
-                        processInFrame(http2Connection, ctx, inFrame);
+                        processInFrame(http2Session, ctx, inFrame);
                     } catch (Http2StreamException e) {
                         if (LOGGER.isLoggable(Level.FINE)) {
                             LOGGER.log(Level.FINE, "Http2StreamException occurred on connection=" +
@@ -187,7 +187,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                             throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR);
                         }
 
-                        sendRstStream(ctx, http2Connection,
+                        sendRstStream(ctx, http2Session,
                                 streamId, e.getErrorCode());
                     }
                 }
@@ -197,7 +197,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             }
 
             final List<Http2Stream> streamsToFlushInput =
-                    http2Connection.streamsToFlushInput;
+                    http2Session.streamsToFlushInput;
             for (Http2Stream streamsToFlush : streamsToFlushInput) {
                 streamsToFlush.flushInputData();
             }
@@ -209,13 +209,13 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 LOGGER.log(Level.FINE, "Http2ConnectionException occurred on connection=" +
                         ctx.getConnection() + " during Http2Frame processing", e);
             }
-            sendGoAwayAndClose(ctx, http2Connection, e.getErrorCode(), e.getMessage());
+            sendGoAwayAndClose(ctx, http2Session, e.getErrorCode(), e.getMessage());
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "IOException occurred on connection=" +
                         ctx.getConnection() + " during Http2Frame processing", e);
             }
-            sendGoAwayAndClose(ctx, http2Connection, ErrorCode.INTERNAL_ERROR, e.getMessage());
+            sendGoAwayAndClose(ctx, http2Session, ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
         
         return false;
@@ -507,46 +507,46 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     // --------------------------------------------------------- Private Methods
     
     @SuppressWarnings("DuplicateThrows")
-    private void processInFrame(final Http2Connection http2Connection,
+    private void processInFrame(final Http2Session http2Session,
                                 final FilterChainContext context,
                                 final Http2Frame frame)
      throws Http2StreamException, Http2ConnectionException, IOException {
 
-        http2Connection.checkFrameSequenceSemantics(frame);
+        http2Session.checkFrameSequenceSemantics(frame);
         
         switch (frame.getType()) {
             case DataFrame.TYPE: {
-                processDataFrame(http2Connection, context, (DataFrame) frame);
+                processDataFrame(http2Session, context, (DataFrame) frame);
                 break;
             }
             case PriorityFrame.TYPE: {
-                //processPriorityFrame(http2Connection, frame);
+                //processPriorityFrame(http2Session, frame);
                 break;
             }
             case HeadersFrame.TYPE:
             case PushPromiseFrame.TYPE:
             case ContinuationFrame.TYPE: {
-                processHeadersFrame(http2Connection, context, frame);
+                processHeadersFrame(http2Session, context, frame);
                 break;
             }
             case SettingsFrame.TYPE: {
-                processSettingsFrame(http2Connection, context, frame);
+                processSettingsFrame(http2Session, context, frame);
                 break;
             }
             case PingFrame.TYPE: {
-                processPingFrame(http2Connection, frame);
+                processPingFrame(http2Session, frame);
                 break;
             }
             case RstStreamFrame.TYPE: {
-                processRstStreamFrame(http2Connection, frame);
+                processRstStreamFrame(http2Session, frame);
                 break;
             }
             case GoAwayFrame.TYPE: {
-                processGoAwayFrame(http2Connection, frame);
+                processGoAwayFrame(http2Session, frame);
                 break;
             }
             case WindowUpdateFrame.TYPE: {
-                processWindowUpdateFrame(http2Connection, frame);
+                processWindowUpdateFrame(http2Session, frame);
                 break;
             }
             default: {
@@ -560,7 +560,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
     }
 
-    private void processWindowUpdateFrame(final Http2Connection http2Connection,
+    private void processWindowUpdateFrame(final Http2Session http2Session,
             final Http2Frame frame) throws Http2StreamException {
         
         WindowUpdateFrame updateFrame = (WindowUpdateFrame) frame;
@@ -568,28 +568,28 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         final int delta = updateFrame.getWindowSizeIncrement();
 
         if (streamId == 0) {
-            http2Connection.getOutputSink().onPeerWindowUpdate(delta);
+            http2Session.getOutputSink().onPeerWindowUpdate(delta);
         } else {
-            final Http2Stream stream = http2Connection.getStream(streamId);
+            final Http2Stream stream = http2Session.getStream(streamId);
 
             //noinspection Duplicates
             if (stream != null) {
                 stream.getOutputSink().onPeerWindowUpdate(delta);
             } else {
-                http2Connection.goAway(ErrorCode.PROTOCOL_ERROR);
-                http2Connection.getConnection().closeSilently();
+                http2Session.goAway(ErrorCode.PROTOCOL_ERROR);
+                http2Session.getConnection().closeSilently();
             }
         }
     }
 
-    private void processGoAwayFrame(final Http2Connection http2Connection,
+    private void processGoAwayFrame(final Http2Session http2Session,
                                     final Http2Frame frame) {
 
         GoAwayFrame goAwayFrame = (GoAwayFrame) frame;
-        http2Connection.setGoAwayByPeer(goAwayFrame.getLastStreamId());
+        http2Session.setGoAwayByPeer(goAwayFrame.getLastStreamId());
     }
     
-    private void processSettingsFrame(final Http2Connection http2Connection,
+    private void processSettingsFrame(final Http2Session http2Session,
             final FilterChainContext context, final Http2Frame frame)
             throws Http2ConnectionException {
         
@@ -600,12 +600,12 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             return;
         }
         
-        applySettings(http2Connection, settingsFrame);
+        applySettings(http2Session, settingsFrame);
         
-        sendSettingsAck(http2Connection, context);
+        sendSettingsAck(http2Session, context);
     }
     
-    void applySettings(final Http2Connection http2Connection,
+    void applySettings(final Http2Session http2Session,
             final SettingsFrame settingsFrame) throws Http2ConnectionException {
 
         for (int i = 0, numberOfSettings = settingsFrame.getNumberOfSettings(); i < numberOfSettings; i++) {
@@ -616,17 +616,17 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                     break;
                 case SettingsFrame.SETTINGS_ENABLE_PUSH:
                     final boolean pushEnabled = (setting.getValue() == 1);
-                    http2Connection.getConnection().getAttributes().setAttribute(HTTP2_PUSH_ENABLED, pushEnabled);
-                    http2Connection.setPushEnabled(pushEnabled);
+                    http2Session.getConnection().getAttributes().setAttribute(HTTP2_PUSH_ENABLED, pushEnabled);
+                    http2Session.setPushEnabled(pushEnabled);
                     break;
                 case SettingsFrame.SETTINGS_MAX_CONCURRENT_STREAMS:
-                    http2Connection.setPeerMaxConcurrentStreams(setting.getValue());
+                    http2Session.setPeerMaxConcurrentStreams(setting.getValue());
                     break;
                 case SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE:
-                    http2Connection.setPeerStreamWindowSize(setting.getValue());
+                    http2Session.setPeerStreamWindowSize(setting.getValue());
                     break;
                 case SettingsFrame.SETTINGS_MAX_FRAME_SIZE:
-                    http2Connection.setPeerMaxFramePayloadSize(setting.getValue());
+                    http2Session.setPeerMaxFramePayloadSize(setting.getValue());
                     break;
                 case SettingsFrame.SETTINGS_MAX_HEADER_LIST_SIZE:
                     break;
@@ -634,24 +634,24 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         }
     }
 
-    private void processPingFrame(final Http2Connection http2Connection,
+    private void processPingFrame(final Http2Session http2Session,
                              final Http2Frame frame) {
         PingFrame pingFrame = (PingFrame) frame;
         // Send the same ping message back, but set the ack flag
         pingFrame.setFlag(PingFrame.ACK_FLAG);
-        http2Connection.getOutputSink().writeDownStream(pingFrame);
+        http2Session.getOutputSink().writeDownStream(pingFrame);
     }
 
-    private void processRstStreamFrame(final Http2Connection http2Connection,
+    private void processRstStreamFrame(final Http2Session http2Session,
                                   final Http2Frame frame) {
 
         final RstStreamFrame rstFrame = (RstStreamFrame) frame;
         final int streamId = rstFrame.getStreamId();
-        final Http2Stream stream = http2Connection.getStream(streamId);
+        final Http2Stream stream = http2Session.getStream(streamId);
         if (stream == null) {
-            // If the stream is not found, it's effectively idle.  Terminate the connection.
-            http2Connection.goAway(ErrorCode.PROTOCOL_ERROR);
-            http2Connection.getConnection().closeSilently();
+//            // If the stream is not found, it's effectively idle.  Terminate the connection.
+//            http2Session.goAway(ErrorCode.PROTOCOL_ERROR);
+//            http2Session.getConnection().closeSilently();
             return;
         }
         
@@ -659,12 +659,12 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         stream.resetRemotely();
     }
     
-    private void processHeadersFrame(final Http2Connection http2Connection,
+    private void processHeadersFrame(final Http2Session http2Session,
                                   final FilterChainContext context,
                                   final Http2Frame frame) throws IOException {
         final HeaderBlockFragment headerFragment = (HeaderBlockFragment) frame;
         
-        final HeadersDecoder headersDecoder = http2Connection.getHeadersDecoder();
+        final HeadersDecoder headersDecoder = http2Session.getHeadersDecoder();
         
         if (headerFragment.getCompressedHeaders().hasRemaining()) {
             if (!headersDecoder.append(headerFragment.takePayload())) {
@@ -673,7 +673,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                         headersDecoder.finishHeader();
                 firstHeaderFrame.setTruncated();
                 try {
-                    processCompleteHeader(http2Connection, context, firstHeaderFrame);
+                    processCompleteHeader(http2Session, context, firstHeaderFrame);
                 } finally {
                     firstHeaderFrame.recycle();
                 }
@@ -698,22 +698,22 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 headersDecoder.finishHeader();
 
         try {
-            processCompleteHeader(http2Connection, context, firstHeaderFrame);
+            processCompleteHeader(http2Session, context, firstHeaderFrame);
         } finally {
             firstHeaderFrame.recycle();
         }
     }
 
     /**
-     * The method is called once complete HTTP header block arrives on {@link Http2Connection}.
+     * The method is called once complete HTTP header block arrives on {@link Http2Session}.
      * 
-     * @param http2Connection the {@link Http2Connection} associated with this header.
+     * @param http2Session the {@link Http2Session} associated with this header.
      * @param context the current {@link FilterChainContext}
      * @param firstHeaderFrame the first {@link HeaderBlockHead} from the first {@link HeadersFrame} received.
      * @throws IOException if an error occurs when dealing with the event.
      */
     protected abstract void processCompleteHeader(
-            final Http2Connection http2Connection,
+            final Http2Session http2Session,
             final FilterChainContext context,
             final HeaderBlockHead firstHeaderFrame) throws IOException;
 
@@ -728,19 +728,19 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         
         final Object message = ctx.getMessage();
         
-        final Http2Connection http2Connection = obtainHttp2Connection(ctx, false);
+        final Http2Session http2Session = obtainHttp2Connection(ctx, false);
 
-        if (http2Connection.isHttp2OutputEnabled() &&
+        if (http2Session.isHttp2OutputEnabled() &&
                 HttpPacket.isHttp(message)) {
 
             // Get HttpPacket
             final HttpPacket httpPacket = ctx.getMessage();
             final HttpHeader httpHeader = httpPacket.getHttpHeader();
 
-            processOutgoingHttpHeader(ctx, http2Connection, httpHeader, httpPacket);
+            processOutgoingHttpHeader(ctx, http2Session, httpHeader, httpPacket);
         } else {
             final TransportContext transportContext = ctx.getTransportContext();
-            http2Connection.getOutputSink().writeDownStream(message,
+            http2Session.getOutputSink().writeDownStream(message,
                     transportContext.getCompletionHandler(),
                         transportContext.getMessageCloner());
         }
@@ -749,7 +749,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
 
     protected abstract void processOutgoingHttpHeader(final FilterChainContext ctx,
-            final Http2Connection http2Connection,
+            final Http2Session http2Session,
             final HttpHeader httpHeader,
             final HttpPacket entireHttpPacket) throws IOException;
     
@@ -816,37 +816,37 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
     
     /**
-     * Creates {@link Http2Connection} with pre-configured initial-windows-size and
+     * Creates {@link Http2Session} with pre-configured initial-windows-size and
      * max-concurrent-streams
      * @param connection the TCP {@link Connection}
      * @param isServer flag indicating whether this connection is server side or not.
-     * @return {@link Http2Connection}
+     * @return {@link Http2Session}
      */
-    protected Http2Connection createHttp2Connection(final Connection connection,
-            final boolean isServer) {
+    protected Http2Session createHttp2Connection(final Connection connection,
+                                                 final boolean isServer) {
         
-        final Http2Connection http2Connection =
-            new Http2Connection(connection, isServer, this);
+        final Http2Session http2Session =
+            new Http2Session(connection, isServer, this);
 
         final int initialWindowSize = configuration.getInitialWindowSize();
         if (initialWindowSize != -1) {
-            http2Connection.setLocalStreamWindowSize(initialWindowSize);
+            http2Session.setLocalStreamWindowSize(initialWindowSize);
         }
 
         final int maxConcurrentStreams = configuration.getMaxConcurrentStreams();
         if (maxConcurrentStreams != -1) {
-            http2Connection.setLocalMaxConcurrentStreams(maxConcurrentStreams);
+            http2Session.setLocalMaxConcurrentStreams(maxConcurrentStreams);
         }
         
-        Http2Connection.bind(connection, http2Connection);
+        Http2Session.bind(connection, http2Session);
         
-        return http2Connection;
+        return http2Session;
     }
     
-    protected void onPrefaceReceived(final Http2Connection http2Connection) {
+    protected void onPrefaceReceived(final Http2Session http2Session) {
     }
     
-    void sendUpstream(final Http2Connection http2Connection,
+    void sendUpstream(final Http2Session http2Session,
             final Http2Stream stream, final HttpContent content) {
         
         final HttpRequestPacket request = stream.getRequest();
@@ -860,7 +860,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             // can stall
             Threads.setService(true);
             try {
-                http2Connection.sendMessageUpstream(stream, content);
+                http2Session.sendMessageUpstream(stream, content);
             } finally {
                 Threads.setService(false);
             }
@@ -868,7 +868,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             threadPool.execute(new Runnable() {
                 @Override
                 public void run() {
-                    http2Connection.sendMessageUpstream(stream, content);
+                    http2Session.sendMessageUpstream(stream, content);
                 }
             });
         }
@@ -914,7 +914,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
     
     void sendRstStream(final FilterChainContext ctx,
-            final Http2Connection http2Connection,
+            final Http2Session http2Session,
             final int streamId, final ErrorCode errorCode) {
 
         final RstStreamFrame rstStreamFrame = RstStreamFrame.builder()
@@ -922,35 +922,35 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 .streamId(streamId)
                 .build();
 
-        ctx.write(frameCodec.serializeAndRecycle(http2Connection, rstStreamFrame));
+        ctx.write(frameCodec.serializeAndRecycle(http2Session, rstStreamFrame));
     }
 
     @SuppressWarnings("unchecked")
     private void sendGoAwayAndClose(final FilterChainContext ctx,
-            final Http2Connection http2Connection, final ErrorCode errorCode, final String detail) {
+                                    final Http2Session http2Session, final ErrorCode errorCode, final String detail) {
 
         final Http2Frame goAwayFrame = 
-                http2Connection.setGoAwayLocally(errorCode, detail);
+                http2Session.setGoAwayLocally(errorCode, detail);
 
         if (goAwayFrame != null) {
             final Connection connection = ctx.getConnection();
-            ctx.write(frameCodec.serializeAndRecycle(http2Connection, goAwayFrame));
+            ctx.write(frameCodec.serializeAndRecycle(http2Session, goAwayFrame));
             connection.closeSilently();
         }
     }
 
     /**
-     * Obtain {@link Http2Connection} associated with the {@link Connection}
+     * Obtain {@link Http2Session} associated with the {@link Connection}
      * and prepare it for use.
      * 
      * @param context {@link FilterChainContext}
      * @param isUpStream <tt>true</tt> if the {@link FilterChainContext} represents
      *          upstream {@link FilterChain} execution, or <tt>false</tt> otherwise
-     * @return {@link Http2Connection} associated with the {@link Connection}
+     * @return {@link Http2Session} associated with the {@link Connection}
      *          and prepare it for use
      */
     @SuppressWarnings("SameParameterValue")
-    protected final Http2Connection obtainHttp2Connection(
+    protected final Http2Session obtainHttp2Connection(
             final FilterChainContext context,
             final boolean isUpStream) {
         
@@ -958,40 +958,40 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
 
     /**
-     * Obtain {@link Http2Connection} associated with the {@link Connection}
+     * Obtain {@link Http2Session} associated with the {@link Connection}
      * and prepare it for use.
      * 
      * @param http2State {@link Http2State} associated with the {@link Connection}
      * @param context {@link FilterChainContext}
      * @param isUpStream <tt>true</tt> if the {@link FilterChainContext} represents
      *          upstream {@link FilterChain} execution, or <tt>false</tt> otherwise
-     * @return {@link Http2Connection} associated with the {@link Connection}
+     * @return {@link Http2Session} associated with the {@link Connection}
      *          and prepare it for use
      */
-    final Http2Connection obtainHttp2Connection(
+    final Http2Session obtainHttp2Connection(
             final Http2State http2State,
             final FilterChainContext context,
             final boolean isUpStream) {
         final Connection connection = context.getConnection();
         
-        Http2Connection http2Connection = http2State != null
-                ? http2State.getHttp2Connection()
+        Http2Session http2Session = http2State != null
+                ? http2State.getHttp2Session()
                 : null;
         
-        if (http2Connection == null) {
-            http2Connection = Http2Connection.get(connection);
-            if (http2Connection == null) {
+        if (http2Session == null) {
+            http2Session = Http2Session.get(connection);
+            if (http2Session == null) {
 
-                http2Connection = createHttp2Connection(connection, true);
+                http2Session = createHttp2Connection(connection, true);
             }
         }
         
-        http2Connection.setupFilterChains(context, isUpStream);
+        http2Session.setupFilterChains(context, isUpStream);
 
-        return http2Connection;
+        return http2Session;
     }
 
-    private void sendSettingsAck(final Http2Connection http2Connection,
+    private void sendSettingsAck(final Http2Session http2Session,
             final FilterChainContext context) {
 
         final SettingsFrame frame = SettingsFrame.builder()
@@ -1000,17 +1000,17 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         
         context.write(
                 frameCodec.serializeAndRecycle(
-                        http2Connection, frame)
+                        http2Session, frame)
         );
     }
     
-    private static void processDataFrame(final Http2Connection http2Connection,
+    private static void processDataFrame(final Http2Session http2Session,
             final FilterChainContext context,
             final DataFrame dataFrame) throws Http2StreamException {
 
 
         final Buffer data = dataFrame.getData();
-        final Http2Stream stream = http2Connection.getStream(dataFrame.getStreamId());
+        final Http2Stream stream = http2Session.getStream(dataFrame.getStreamId());
 
         if (stream == null) {
 
@@ -1023,7 +1023,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
             dataFrame.recycle();
 
-            http2Connection.ackConsumedData(dataSize);
+            http2Session.ackConsumedData(dataSize);
 
             throw new Http2StreamException(dataFrame.getStreamId(), ErrorCode.STREAM_CLOSED);
         }
@@ -1033,7 +1033,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         if (error != null) {
             final int dataSize = data.remaining();
             dataFrame.recycle();
-            http2Connection.ackConsumedData(dataSize);
+            http2Session.ackConsumedData(dataSize);
             
             throw error;
         }

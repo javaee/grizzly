@@ -43,7 +43,7 @@ package org.glassfish.grizzly.http2.frames;
 import java.util.Map;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.http2.Http2Connection;
+import org.glassfish.grizzly.http2.Http2Session;
 
 public abstract class Http2Frame implements Cacheable {
     protected static final boolean DONT_RECYCLE =
@@ -64,7 +64,7 @@ public abstract class Http2Frame implements Cacheable {
 
     // ---------------------------------------------------------- Public Methods
 
-    public abstract Buffer toBuffer(Http2Connection connection);
+    public abstract Buffer toBuffer(Http2Session connection);
     
     public boolean isFlagSet(final int flag) {
         return (flags & flag) == flag;

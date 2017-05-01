@@ -68,12 +68,12 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
     private static final String INVALID_CHARACTER_MESSAGE =
             "Invalid character 0x%02x at index '%s' found in header %s [%s: %s]";
 
-    static void decodeRequestHeaders(final Http2Connection http2Connection,
+    static void decodeRequestHeaders(final Http2Session http2Session,
                                      final HttpRequestPacket request)
             throws IOException {
 
         try {
-            http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
+            http2Session.getHeadersDecoder().decode(new DecodingCallback() {
 
                 @Override
                 public void onDecoded(CharSequence name, CharSequence value) {
@@ -93,12 +93,12 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
         }
     }
 
-    static void decodeResponseHeaders(final Http2Connection http2Connection,
+    static void decodeResponseHeaders(final Http2Session http2Session,
                                       final HttpResponsePacket response)
             throws IOException {
 
         try {
-            http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
+            http2Session.getHeadersDecoder().decode(new DecodingCallback() {
 
                 @Override
                 public void onDecoded(final CharSequence name, final CharSequence value) {
@@ -119,12 +119,12 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
     }
 
-    static void decodeTrailerHeaders(final Http2Connection http2Connection,
+    static void decodeTrailerHeaders(final Http2Session http2Session,
                                      final HttpHeader header)
             throws IOException {
         try {
             final MimeHeaders headers = header.getHeaders();
-            http2Connection.getHeadersDecoder().decode(new DecodingCallback() {
+            http2Session.getHeadersDecoder().decode(new DecodingCallback() {
 
                 @Override
                 public void onDecoded(final CharSequence name, final CharSequence value) {

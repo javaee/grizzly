@@ -58,14 +58,14 @@ public class Http2FrameCodec {
 
     /**
      *
-     * @param http2Connection the {@link Http2Connection} from which the source buffer was obtained.
+     * @param http2Session the {@link Http2Session} from which the source buffer was obtained.
      * @param parsingState the current {@link FrameParsingState}.
      * @param srcMessage the inbound buffer.
      * @return one or more {@link Http2Frame}s parsed from the source message.
      *
      * @throws Http2ConnectionException if an error occurs parsing the frame(s).
      */
-    public List<Http2Frame> parse(final Http2Connection http2Connection,
+    public List<Http2Frame> parse(final Http2Session http2Session,
             final FrameParsingState parsingState, Buffer srcMessage)
             throws Http2ConnectionException {
         
@@ -76,10 +76,10 @@ public class Http2FrameCodec {
         }
         
         srcMessage = parsingState.appendToRemainder(
-                http2Connection.getMemoryManager(), srcMessage);
+                http2Session.getMemoryManager(), srcMessage);
         
         ParsingResult parsingResult = parseFrame(
-                http2Connection, parsingState, srcMessage);
+                http2Session, parsingState, srcMessage);
 
         if (!parsingResult.isReady()) {
             return null;
@@ -87,8 +87,8 @@ public class Http2FrameCodec {
 
         Buffer remainder = parsingResult.remainder();
 
-        while (remainder.remaining() >= http2Connection.getFrameHeaderSize()) {
-            parsingResult = parseFrame(http2Connection, parsingState, remainder);
+        while (remainder.remaining() >= http2Session.getFrameHeaderSize()) {
+            parsingResult = parseFrame(http2Session, parsingState, remainder);
 
             if (!parsingResult.isReady()) {
                 return parsingResult.frameList();
@@ -106,7 +106,7 @@ public class Http2FrameCodec {
 //                GoAwayFrame.builder()
 //                .errorCode(error.getErrorCode())
 //                .build();
-//        sndBuffer = goAwayFrame.toBuffer(http2State.getHttp2Connection());
+//        sndBuffer = goAwayFrame.toBuffer(http2State.getHttp2Session());
 //
 //        // send last message and close the connection
 //        ctx.write(sndBuffer);
@@ -115,17 +115,17 @@ public class Http2FrameCodec {
 //        return ctx.getStopAction();
     }
 
-    public Buffer serializeAndRecycle(final Http2Connection http2Connection,
+    public Buffer serializeAndRecycle(final Http2Session http2Session,
             final Http2Frame frame) {
 
-        NetLogger.log(NetLogger.Context.TX, http2Connection, frame);
+        NetLogger.log(NetLogger.Context.TX, http2Session, frame);
 
-        final Buffer resultBuffer = frame.toBuffer(http2Connection);
+        final Buffer resultBuffer = frame.toBuffer(http2Session);
         frame.recycle();
         return resultBuffer;
     }
 
-    public Buffer serializeAndRecycle(final Http2Connection http2Connection,
+    public Buffer serializeAndRecycle(final Http2Session http2Session,
             final List<Http2Frame> frames) {
 
         Buffer resultBuffer = null;
@@ -134,11 +134,11 @@ public class Http2FrameCodec {
 
         for (int i = 0; i < framesCount; i++) {
             final Http2Frame frame = frames.get(i);
-            NetLogger.log(NetLogger.Context.TX, http2Connection, frame);
-            final Buffer buffer = frame.toBuffer(http2Connection);
+            NetLogger.log(NetLogger.Context.TX, http2Session, frame);
+            final Buffer buffer = frame.toBuffer(http2Session);
             frame.recycle();
 
-            resultBuffer = Buffers.appendBuffers(http2Connection.getMemoryManager(),
+            resultBuffer = Buffers.appendBuffers(http2Session.getMemoryManager(),
                     resultBuffer, buffer);
         }
         
@@ -149,11 +149,11 @@ public class Http2FrameCodec {
     
     // --------------------------------------------------------- Private Methods
 
-    private ParsingResult parseFrame(final Http2Connection http2Connection,
+    private ParsingResult parseFrame(final Http2Session http2Session,
             final FrameParsingState state,
             final Buffer buffer) throws Http2ConnectionException {
         
-        final int frameHeaderSize = http2Connection.getFrameHeaderSize();
+        final int frameHeaderSize = http2Session.getFrameHeaderSize();
         final int bufferSize = buffer.remaining();
         final ParsingResult parsingResult = state.parsingResult();
         
@@ -162,11 +162,11 @@ public class Http2FrameCodec {
             return parsingResult.setNeedMore(buffer);
         }
         
-        final int len = http2Connection.getFrameSize(buffer);
+        final int len = http2Session.getFrameSize(buffer);
         
-        if (len > http2Connection.getLocalMaxFramePayloadSize() + frameHeaderSize) {
+        if (len > http2Session.getLocalMaxFramePayloadSize() + frameHeaderSize) {
             
-            http2Connection.onOversizedFrame(buffer);
+            http2Session.onOversizedFrame(buffer);
 
             // skip the frame header
             buffer.position(buffer.position() + frameHeaderSize);
@@ -191,7 +191,7 @@ public class Http2FrameCodec {
         }
 
         final Buffer remainder = buffer.split(buffer.position() + len);
-        final Http2Frame frame = http2Connection.parseHttp2FrameHeader(buffer);
+        final Http2Frame frame = http2Session.parseHttp2FrameHeader(buffer);
 
         return parsingResult.setParsed(frame, remainder);
     }

@@ -44,7 +44,7 @@ import java.util.Collections;
 import java.util.Map;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http2.Http2Connection;
+import org.glassfish.grizzly.http2.Http2Session;
 
 public class PriorityFrame extends Http2Frame {
     private static final ThreadCache.CachedTypeIndex<PriorityFrame> CACHE_IDX =
@@ -126,11 +126,11 @@ public class PriorityFrame extends Http2Frame {
     }
 
     @Override
-    public Buffer toBuffer(final Http2Connection http2Connection) {
-        final Buffer buffer = http2Connection.getMemoryManager()
-                .allocate(http2Connection.getFrameHeaderSize() + 5);
+    public Buffer toBuffer(final Http2Session http2Session) {
+        final Buffer buffer = http2Session.getMemoryManager()
+                .allocate(http2Session.getFrameHeaderSize() + 5);
         
-        http2Connection.serializeHttp2FrameHeader(this, buffer);
+        http2Session.serializeHttp2FrameHeader(this, buffer);
         buffer.putInt((isExclusive ? 0x80000000 : 0) |
                 (streamDependency & 0x7fffffff));
         buffer.put((byte) weight);

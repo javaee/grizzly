@@ -61,13 +61,13 @@ import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
 
 /**
- * Class represents an output sink associated with specific {@link Http2Connection}
+ * Class represents an output sink associated with specific {@link Http2Session}
  * and is responsible for session (connection) level flow control.
  * 
  * @author Alexey Stashok
  */
 public class Http2ConnectionOutputSink {
-    protected final Http2Connection http2Connection;
+    protected final Http2Session http2Session;
     private static final Logger LOGGER = Grizzly.logger(Http2ConnectionOutputSink.class);
     private static final Level LOGGER_LEVEL = Level.FINE;
 
@@ -88,29 +88,29 @@ public class Http2ConnectionOutputSink {
     private final List<Http2Frame> tmpFramesList = new LinkedList<>();
     private final AtomicBoolean writerLock = new AtomicBoolean();
 
-    public Http2ConnectionOutputSink(Http2Connection session) {
-        this.http2Connection = session;
+    public Http2ConnectionOutputSink(Http2Session session) {
+        this.http2Session = session;
         availConnectionWindowSize = new AtomicInteger(
-                http2Connection.getDefaultConnectionWindowSize());
+                http2Session.getDefaultConnectionWindowSize());
     }
 
     protected Http2FrameCodec frameCodec() {
-        return http2Connection.handlerFilter.frameCodec;
+        return http2Session.handlerFilter.frameCodec;
     }
     
     protected void writeDownStream(final Http2Frame frame) {
         
-        http2Connection.getHttp2ConnectionChain().write(
-                http2Connection.getConnection(), null, 
-                frameCodec().serializeAndRecycle(http2Connection, frame),
+        http2Session.getHttp2ConnectionChain().write(
+                http2Session.getConnection(), null,
+                frameCodec().serializeAndRecycle(http2Session, frame),
                 null, (MessageCloner) null);
     }
 
     protected void writeDownStream(final List<Http2Frame> frames) {
         
-        http2Connection.getHttp2ConnectionChain().write(
-                http2Connection.getConnection(), null, 
-                frameCodec().serializeAndRecycle(http2Connection, frames),
+        http2Session.getHttp2ConnectionChain().write(
+                http2Session.getConnection(), null,
+                frameCodec().serializeAndRecycle(http2Session, frames),
                 null, (MessageCloner) null);
     }
     
@@ -123,15 +123,15 @@ public class Http2ConnectionOutputSink {
         final Object msg;
         if (anyMessage instanceof List) {
             msg = frameCodec().serializeAndRecycle(
-                    http2Connection, (List<Http2Frame>) anyMessage);
+                    http2Session, (List<Http2Frame>) anyMessage);
         } else if (anyMessage instanceof Http2Frame) {
             msg = frameCodec().serializeAndRecycle(
-                    http2Connection, (Http2Frame) anyMessage);
+                    http2Session, (Http2Frame) anyMessage);
         } else {
             msg = anyMessage;
         }
         
-        http2Connection.getHttp2ConnectionChain().write(http2Connection.getConnection(),
+        http2Session.getHttp2ConnectionChain().write(http2Session.getConnection(),
                 null, msg, completionHandler, messageCloner);        
     }
 
@@ -151,7 +151,7 @@ public class Http2ConnectionOutputSink {
         // @TODO check overflow
         final int newWindowSize = availConnectionWindowSize.addAndGet(delta);
         if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-            LOGGER.log(LOGGER_LEVEL, "Http2Connection. Expand connection window size by {0} bytes. Current connection window size is: {1}",
+            LOGGER.log(LOGGER_LEVEL, "Http2Session. Expand connection window size by {0} bytes. Current connection window size is: {1}",
                     new Object[] {delta, newWindowSize});
         }
 
@@ -199,7 +199,7 @@ public class Http2ConnectionOutputSink {
         final int dataSize = data.remaining();
 
         if (messageCloner != null) {
-            data = messageCloner.clone(http2Connection.getConnection(), data);
+            data = messageCloner.clone(http2Session.getConnection(), data);
         }
 
         final Http2ConnectionOutputSink.OutputQueueRecord record = new Http2ConnectionOutputSink.OutputQueueRecord(
@@ -311,7 +311,7 @@ public class Http2ConnectionOutputSink {
 
                 needToNotify = true;
                 if (LOGGER.isLoggable(LOGGER_LEVEL)) {
-                    LOGGER.log(LOGGER_LEVEL, "Http2Connection. Shrink connection window size by {0} bytes. Current connection window size is: {1}",
+                    LOGGER.log(LOGGER_LEVEL, "Http2Session. Shrink connection window size by {0} bytes. Current connection window size is: {1}",
                             new Object[] {bytesToTransfer, newWindowSize});
                 }
 

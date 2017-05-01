@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http2;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpRequestPacket;
@@ -71,10 +70,10 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
     private static final String HTTPS = "https";
 
     @SuppressWarnings("unchecked")
-    static Buffer encodeResponseHeaders(final Http2Connection http2Connection,
+    static Buffer encodeResponseHeaders(final Http2Session http2Session,
             final HttpResponsePacket response) throws IOException {
         
-        assert http2Connection.getDeflaterLock().isLocked();
+        assert http2Session.getDeflaterLock().isLocked();
         
         final MimeHeaders headers = response.getHeaders();
         
@@ -84,7 +83,7 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
         headers.removeHeader(Header.TransferEncoding);
         headers.removeHeader(Header.Upgrade);
         
-        final HeadersEncoder encoder = http2Connection.getHeadersEncoder();
+        final HeadersEncoder encoder = http2Session.getHeadersEncoder();
 
 //        encoder.encodeHeader(Constants.STATUS_HEADER_BYTES,
 //                response.getHttpStatus().getStatusBytes(), false);
@@ -99,10 +98,10 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
     
     @SuppressWarnings("unchecked")
     static Buffer encodeRequestHeaders(
-            final Http2Connection http2Connection,
+            final Http2Session http2Session,
             final HttpRequestPacket request) throws IOException {
 
-        assert http2Connection.getDeflaterLock().isLocked();
+        assert http2Session.getDeflaterLock().isLocked();
         
         // ----------------- Parse URI scheme and path ----------------
 //        int schemeStart = -1;
@@ -177,7 +176,7 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
         headers.removeHeader(Header.TransferEncoding);
         headers.removeHeader(Header.Upgrade);
         
-        final HeadersEncoder encoder = http2Connection.getHeadersEncoder();
+        final HeadersEncoder encoder = http2Session.getHeadersEncoder();
 
         encoder.encodeHeader(METHOD_HEADER,
                 request.getMethod().toString());
@@ -188,7 +187,7 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
         } else {
             // guess
             encoder.encodeHeader(SCHEMA_HEADER,
-                    ((SSLUtils.getSSLEngine(http2Connection.getConnection()) == null)
+                    ((SSLUtils.getSSLEngine(http2Session.getConnection()) == null)
                     ? HTTP
                     : HTTPS));
         }
@@ -205,15 +204,15 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
         return encoder.flushHeaders();
     }
 
-    static Buffer encodeTrailerHeaders(final Http2Connection http2Connection,
+    static Buffer encodeTrailerHeaders(final Http2Session http2Session,
                                        final MimeHeaders trailers) {
-        assert http2Connection.getDeflaterLock().isLocked();
+        assert http2Session.getDeflaterLock().isLocked();
 
         if (trailers == null || trailers.size() == 0) {
             return Buffers.EMPTY_BUFFER;
         }
 
-        final HeadersEncoder encoder = http2Connection.getHeadersEncoder();
+        final HeadersEncoder encoder = http2Session.getHeadersEncoder();
         for (final String name : trailers.names()) {
             // TODO: header name validation
             encoder.encodeHeader(name, trailers.getHeader(name));

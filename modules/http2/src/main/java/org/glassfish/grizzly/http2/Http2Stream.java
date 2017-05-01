@@ -111,7 +111,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     private final int priority;
     private final boolean exclusive;
 
-    private final Http2Connection http2Connection;
+    private final Http2Session http2Session;
     
     private final AttributeHolder attributes =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createSafeAttributeHolder();
@@ -170,19 +170,19 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     /**
      * Create HTTP2 stream.
      * 
-     * @param http2Connection the {@link Http2Connection} for this {@link Http2Stream}.
+     * @param http2Session the {@link Http2Session} for this {@link Http2Stream}.
      * @param request the {@link HttpRequestPacket} initiating the stream.
      * @param streamId this stream's ID.
      * @param refStreamId the parent stream, if any.
      * @param priority the priority of this stream.
      * @param initState the initial stream state.
      */
-    protected Http2Stream(final Http2Connection http2Connection,
+    protected Http2Stream(final Http2Session http2Session,
             final HttpRequestPacket request,
             final int streamId, final int refStreamId,
             final boolean exclusive, final int priority,
             final Http2StreamState initState) {
-        this.http2Connection = http2Connection;
+        this.http2Session = http2Session;
         this.request = request;
         this.streamId = streamId;
         this.refStreamId = refStreamId;
@@ -199,15 +199,15 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     /**
      * Construct upgrade stream, which is half HTTP, half HTTP2
      *
-     * @param http2Connection the {@link Http2Connection} for this {@link Http2Stream}.
+     * @param http2Session the {@link Http2Session} for this {@link Http2Stream}.
      * @param request the {@link HttpRequestPacket} initiating the stream.
      * @param priority the priority of this stream.
      * @param initState the initial stream state.
      */
-    protected Http2Stream(final Http2Connection http2Connection,
+    protected Http2Stream(final Http2Session http2Session,
             final HttpRequestPacket request,
             final int priority, final Http2StreamState initState) {
-        this.http2Connection = http2Connection;
+        this.http2Session = http2Session;
         this.request = request;
         this.streamId = UPGRADE_STREAM_ID;
         this.refStreamId = 0;
@@ -215,19 +215,19 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         this.state = initState;
 
         this.exclusive = false;
-        inputBuffer = http2Connection.isServer()
+        inputBuffer = http2Session.isServer()
                 ? new UpgradeInputBuffer()
                 : new DefaultInputBuffer(this);
         
-        outputSink = http2Connection.isServer()
+        outputSink = http2Session.isServer()
                 ? new DefaultOutputSink(this)
-                : new UpgradeOutputSink(http2Connection);
+                : new UpgradeOutputSink(http2Session);
         
         HTTP_RQST_HTTP2_STREAM_ATTR.set(request, this);
     }
     
-    Http2Connection getHttp2Connection() {
-        return http2Connection;
+    Http2Session getHttp2Session() {
+        return http2Session;
     }
 
     public Http2StreamState getState() {
@@ -240,11 +240,11 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     }
     
     public int getPeerWindowSize() {
-        return http2Connection.getPeerStreamWindowSize();
+        return http2Session.getPeerStreamWindowSize();
     }
 
     public int getLocalWindowSize() {
-        return http2Connection.getLocalStreamWindowSize();
+        return http2Session.getLocalStreamWindowSize();
     }
     
     /**
@@ -263,7 +263,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     }
 
     public boolean isPushEnabled() {
-        return http2Connection.isPushEnabled();
+        return http2Session.isPushEnabled();
     }
     
     public int getId() {
@@ -283,7 +283,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     }
     
     public boolean isLocallyInitiatedStream() {
-        return http2Connection.isLocallyInitiatedStream(streamId);
+        return http2Session.isLocallyInitiatedStream(streamId);
     }
 
     @Override
@@ -631,11 +631,11 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         final boolean isFirstBufferCached = (cachedInputBuffer == null);
         cachedIsLast |= isLast;
         cachedInputBuffer = Buffers.appendBuffers(
-                http2Connection.getMemoryManager(),
+                http2Session.getMemoryManager(),
                 cachedInputBuffer, data);
         
         if (isFirstBufferCached) {
-            http2Connection.streamsToFlushInput.add(this);
+            http2Session.streamsToFlushInput.add(this);
         }
     }
     
@@ -664,7 +664,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
                 // if we can't add this buffer to the stream input buffer -
                 // we have to release the part of connection window allocated
                 // for the buffer
-                http2Connection.ackConsumedData(size);
+                http2Session.ackConsumedData(size);
             }
         }
     }
@@ -674,7 +674,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     }
     
     private void closeStream() {
-        http2Connection.deregisterStream(this);
+        http2Session.deregisterStream(this);
     }
     
     HttpHeader getInputHttpHeader() {

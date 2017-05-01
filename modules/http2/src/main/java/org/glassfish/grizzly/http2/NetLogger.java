@@ -105,7 +105,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final Http2Frame frame) {
+    static void log(final Context ctx, final Http2Session c, final Http2Frame frame) {
         switch (frame.getType()) {
             case ContinuationFrame.TYPE:
                 log(ctx, c, (ContinuationFrame) frame);
@@ -143,7 +143,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final ContinuationFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final ContinuationFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             LOGGER.log(LEVEL, CONTINUATION_FMT, new Object[]{
@@ -154,7 +154,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final DataFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final DataFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             LOGGER.log(LEVEL, DATA_FMT, new Object[]{
@@ -166,7 +166,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final GoAwayFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final GoAwayFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             final Buffer b = frame.getAdditionalDebugData();
@@ -181,7 +181,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final HeadersFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final HeadersFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             LOGGER.log(LEVEL, HEADERS_FMT, new Object[]{
@@ -197,7 +197,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final PingFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final PingFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             LOGGER.log(LEVEL, PING_FMT, new Object[]{
@@ -208,7 +208,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final PriorityFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final PriorityFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             LOGGER.log(LEVEL, PRIORITY_FMT, new Object[]{
@@ -221,7 +221,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final PushPromiseFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final PushPromiseFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             LOGGER.log(LEVEL, PUSH_PROMISE_FMT, new Object[]{
@@ -233,7 +233,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final RstStreamFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final RstStreamFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             LOGGER.log(LEVEL, RST_FMT, new Object[]{
@@ -244,7 +244,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final SettingsFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final SettingsFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             final int numSettings = frame.getNumberOfSettings();
@@ -267,7 +267,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final WindowUpdateFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final WindowUpdateFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             LOGGER.log(LEVEL, WINDOW_UPDATE_FMT, new Object[]{
@@ -277,7 +277,7 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Connection c, final UnknownFrame frame) {
+    static void log(final Context ctx, final Http2Session c, final UnknownFrame frame) {
         validateParams(ctx, c, frame);
         if (LOGGER.isLoggable(LEVEL)) {
             LOGGER.log(LEVEL, UNKNOWN_FMT, new Object[]{
@@ -288,9 +288,9 @@ final class NetLogger {
         }
     }
 
-    static void logClose(final Http2Connection c) {
+    static void logClose(final Http2Session c) {
         if (c == null) {
-            throw new NullPointerException("Http2Connection cannot be null");
+            throw new NullPointerException("Http2Session cannot be null");
         }
         if (LOGGER.isLoggable(LEVEL)) {
             LOGGER.log(LEVEL, CLOSE_FMT, new Object[]{escape(c.getConnection().toString())});
@@ -302,13 +302,13 @@ final class NetLogger {
 
 
     private static void validateParams(final Context ctx,
-                                       final Http2Connection c,
+                                       final Http2Session c,
                                        final Http2Frame frame) {
         if (ctx == null) {
             throw new NullPointerException("Context cannot be null.");
         }
         if (c == null) {
-            throw new NullPointerException("Http2Connection cannot be null.");
+            throw new NullPointerException("Http2Session cannot be null.");
         }
         if (frame == null) {
             throw new NullPointerException("Http2Frame cannot be null.");

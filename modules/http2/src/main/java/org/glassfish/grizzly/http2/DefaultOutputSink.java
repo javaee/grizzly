@@ -106,7 +106,7 @@ class DefaultOutputSink implements StreamOutputSink {
     private Termination terminationFlag;
     
     // associated HTTP/2 session
-    private final Http2Connection http2Connection;
+    private final Http2Session http2Session;
     // associated HTTP/2 stream
     private final Http2Stream stream;
 
@@ -119,7 +119,7 @@ class DefaultOutputSink implements StreamOutputSink {
     
     DefaultOutputSink(final Http2Stream stream) {
         this.stream = stream;
-        http2Connection = stream.getHttp2Connection();
+        http2Session = stream.getHttp2Session();
         availStreamWindowSize = new AtomicInteger(stream.getPeerWindowSize());
     }
 
@@ -276,9 +276,9 @@ class DefaultOutputSink implements StreamOutputSink {
                 
                 // !!!!! LOCK the deflater
                 isDeflaterLocked = true;
-                http2Connection.getDeflaterLock().lock();
+                http2Session.getDeflaterLock().lock();
                 
-                headerFrames = http2Connection.encodeHttpHeaderAsHeaderFrames(
+                headerFrames = http2Session.encodeHttpHeaderAsHeaderFrames(
                         ctx, httpHeader, stream.getId(), isNoPayload, null);
                 stream.onSndHeaders(isNoPayload);
 
@@ -314,7 +314,7 @@ class DefaultOutputSink implements StreamOutputSink {
                 return;
             }
             
-            http2Connection.handlerFilter.onHttpContentEncoded(httpContent, ctx);
+            http2Session.handlerFilter.onHttpContentEncoded(httpContent, ctx);
 
             Buffer dataToSend = null;
             boolean isLast = httpContent.isLast();
@@ -348,7 +348,7 @@ class DefaultOutputSink implements StreamOutputSink {
 
                 if (messageCloner != null) {
                     data = messageCloner.clone(
-                            http2Connection.getConnection(), data);
+                            http2Session.getConnection(), data);
                     isDataCloned = true;
                 }
 
@@ -381,7 +381,7 @@ class DefaultOutputSink implements StreamOutputSink {
             if (fitWindowLen < remaining) {
                 if (!isDataCloned && messageCloner != null) {
                     data = messageCloner.clone(
-                            http2Connection.getConnection(), data);
+                            http2Session.getConnection(), data);
                     isDataCloned = true;
                 }
 
@@ -440,7 +440,7 @@ class DefaultOutputSink implements StreamOutputSink {
         
         } finally {
             if (isDeflaterLocked) {
-                http2Connection.getDeflaterLock().unlock();
+                http2Session.getDeflaterLock().unlock();
             }
         }
         
@@ -521,7 +521,7 @@ class DefaultOutputSink implements StreamOutputSink {
             final MessageCloner<Buffer> messageCloner,
             final boolean isLast) {
         
-        http2Connection.getOutputSink().writeDataDownStream(stream, headerFrames,
+        http2Session.getOutputSink().writeDataDownStream(stream, headerFrames,
                 data, completionHandler, messageCloner, isLast);
         
         if (isLast) {
@@ -683,9 +683,9 @@ class DefaultOutputSink implements StreamOutputSink {
                               final MessageCloner<Buffer> messageCloner,
                               final HttpTrailer httpContent)
     throws IOException {
-        http2Connection.getDeflaterLock().lock();
+        http2Session.getDeflaterLock().lock();
         List<Http2Frame> trailerFrames =
-                http2Connection.encodeTrailersAsHeaderFrames(stream.getId(),
+                http2Session.encodeTrailersAsHeaderFrames(stream.getId(),
                         new ArrayList<>(4),
                         httpContent.getHeaders());
         unflushedWritesCounter.incrementAndGet();

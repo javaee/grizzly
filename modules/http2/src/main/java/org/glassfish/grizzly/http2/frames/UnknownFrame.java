@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.http2.frames;
 
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.http2.Http2Connection;
+import org.glassfish.grizzly.http2.Http2Session;
 
 import java.util.Collections;
 import java.util.Map;
@@ -60,7 +60,7 @@ public class UnknownFrame extends Http2Frame {
     }
 
     @Override
-    public Buffer toBuffer(final Http2Connection connection) {
+    public Buffer toBuffer(final Http2Session connection) {
         throw new UnsupportedOperationException();
     }
 

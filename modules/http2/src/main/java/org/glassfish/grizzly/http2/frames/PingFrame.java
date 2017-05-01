@@ -44,7 +44,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http2.Http2Connection;
+import org.glassfish.grizzly.http2.Http2Session;
 
 public class PingFrame extends Http2Frame {
 
@@ -145,11 +145,11 @@ public class PingFrame extends Http2Frame {
     }
 
     @Override
-    public Buffer toBuffer(final Http2Connection http2Connection) {
-        final Buffer buffer = http2Connection.getMemoryManager().allocate(
-                http2Connection.getFrameHeaderSize() + 8);
+    public Buffer toBuffer(final Http2Session http2Session) {
+        final Buffer buffer = http2Session.getMemoryManager().allocate(
+                http2Session.getFrameHeaderSize() + 8);
         
-        http2Connection.serializeHttp2FrameHeader(this, buffer);
+        http2Session.serializeHttp2FrameHeader(this, buffer);
         buffer.putLong(opaqueData);
         buffer.trim();
         

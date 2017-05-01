@@ -44,7 +44,7 @@ import java.util.Collections;
 import java.util.Map;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http2.Http2Connection;
+import org.glassfish.grizzly.http2.Http2Session;
 
 public class WindowUpdateFrame extends Http2Frame {
 
@@ -136,11 +136,11 @@ public class WindowUpdateFrame extends Http2Frame {
     }
 
     @Override
-    public Buffer toBuffer(final Http2Connection http2Connection) {
-        final Buffer buffer = http2Connection.getMemoryManager()
-                .allocate(http2Connection.getFrameHeaderSize() + 4);
+    public Buffer toBuffer(final Http2Session http2Session) {
+        final Buffer buffer = http2Session.getMemoryManager()
+                .allocate(http2Session.getFrameHeaderSize() + 4);
         
-        http2Connection.serializeHttp2FrameHeader(this, buffer);
+        http2Session.serializeHttp2FrameHeader(this, buffer);
         buffer.putInt(windowSizeIncrement & 0x7fffffff);
         
         buffer.trim();

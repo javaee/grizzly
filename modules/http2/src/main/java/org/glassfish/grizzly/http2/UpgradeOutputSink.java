@@ -55,10 +55,10 @@ import org.glassfish.grizzly.http.HttpPacket;
  * @author Alexey Stashok
  */
 public class UpgradeOutputSink implements StreamOutputSink {
-    private final Http2Connection connection;
+    private final Http2Session connection;
     private boolean isClosed;
 
-    public UpgradeOutputSink(Http2Connection connection) {
+    public UpgradeOutputSink(Http2Session connection) {
         this.connection = connection;
     }
     

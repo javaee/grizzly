@@ -88,17 +88,17 @@ final class AlpnServerNegotiatorImpl extends AlpnNegotiatorBase implements AlpnS
         if (HTTP2.equals(supportedProtocol)) {
         // If HTTP2 is supported - initialize HTTP2 connection
             // Create HTTP2 connection and bind it to the Grizzly connection
-            final Http2Connection http2Connection =
+            final Http2Session http2Session =
                     filter.createHttp2Connection(connection, true);
             
             // we expect client preface
-            http2Connection.getHttp2State().setDirectUpgradePhase();
+            http2Session.getHttp2State().setDirectUpgradePhase();
             // !!! DON'T SEND PREFACE HERE
             // SSL connection (handshake) is not established yet and if we try
             // to send preface here SSLBaseFilter will try to flush it right away,
             // because it doesn't queue the output data like SSLFilter.
-//            http2Connection.enableHttp2Output();
-//            http2Connection.sendPreface();
+//            http2Session.enableHttp2Output();
+//            http2Session.sendPreface();
         }
     }
     

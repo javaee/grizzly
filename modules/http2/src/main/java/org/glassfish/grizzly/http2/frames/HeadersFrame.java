@@ -47,7 +47,7 @@ import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
-import org.glassfish.grizzly.http2.Http2Connection;
+import org.glassfish.grizzly.http2.Http2Session;
 
 public class HeadersFrame extends HeaderBlockHead {
 
@@ -192,19 +192,19 @@ public class HeadersFrame extends HeaderBlockHead {
     }
     
     @Override
-    public Buffer toBuffer(final Http2Connection http2Connection) {
+    public Buffer toBuffer(final Http2Session http2Session) {
         final boolean isPadded = isFlagSet(PADDED);
         final boolean isPrioritySet = isFlagSet(PRIORITIZED);
         
         final int extraHeaderLen = (isPadded ? 1 : 0) +
                 (isPrioritySet ? 5 : 0);
         
-        final MemoryManager memoryManager = http2Connection.getMemoryManager();
+        final MemoryManager memoryManager = http2Session.getMemoryManager();
         
         final Buffer buffer = memoryManager.allocate(
-                http2Connection.getFrameHeaderSize() + extraHeaderLen);
+                http2Session.getFrameHeaderSize() + extraHeaderLen);
         
-        http2Connection.serializeHttp2FrameHeader(this, buffer);
+        http2Session.serializeHttp2FrameHeader(this, buffer);
 
         if (isPadded) {
             buffer.put((byte) (padLength & 0xff));

@@ -92,7 +92,7 @@ class Http2State {
     private final AtomicReference<Status> status = new AtomicReference<>();
     private final FrameParsingState frameParsingState = new FrameParsingState();
     
-    private Http2Connection http2Connection;
+    private Http2Session http2Session;
 
     private boolean isClientHttpUpgradeRequestFinished;
     private boolean isClientPrefaceSent;
@@ -142,7 +142,7 @@ class Http2State {
         }
         if (isReady()) {
             for (int i = 0, len = readyListeners.length; i < len; i++) {
-                readyListeners[i].ready(http2Connection);
+                readyListeners[i].ready(http2Session);
             }
         } else {
             if (listeners == null) {
@@ -178,13 +178,13 @@ class Http2State {
         return frameParsingState;
     }
 
-    Http2Connection getHttp2Connection() {
-        return http2Connection;
+    Http2Session getHttp2Session() {
+        return http2Session;
     }
 
-    void setHttp2Connection(final Http2Connection http2Connection) {
-        this.http2Connection = http2Connection;
-        this.http2Connection.http2State = this;
+    void setHttp2Session(final Http2Session http2Session) {
+        this.http2Session = http2Session;
+        this.http2Session.http2State = this;
     }
 
     
@@ -210,7 +210,7 @@ class Http2State {
     private synchronized void notifyReadyListeners() {
         if (listeners != null && !listeners.isEmpty()) {
             for (ReadyListener listener : listeners) {
-                listener.ready(http2Connection);
+                listener.ready(http2Session);
             }
             listeners.clear();
             listeners = null;
@@ -218,6 +218,6 @@ class Http2State {
     }
 
     interface ReadyListener {
-        void ready(Http2Connection http2Connection);
+        void ready(Http2Session http2Session);
     }
 }

@@ -1160,11 +1160,11 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
         public NextAction handleConnect(final FilterChainContext ctx)
                 throws IOException {
 
-            final Http2Connection c = Http2Connection.get(ctx.getConnection());
+            final Http2Session c = Http2Session.get(ctx.getConnection());
             if (c != null) { // we're going over TLS
                 c.getHttp2State().addReadyListener(new Http2State.ReadyListener() {
                     @Override
-                    public void ready(Http2Connection http2Connection) {
+                    public void ready(Http2Session http2Session) {
                         try {
                             sendRequest(ctx);
                             ctx.resume(ctx.getStopAction());
