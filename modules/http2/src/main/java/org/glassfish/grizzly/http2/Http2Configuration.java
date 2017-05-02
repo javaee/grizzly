@@ -62,9 +62,9 @@ public class Http2Configuration {
     private volatile int initialWindowSize;
     private volatile int maxFramePayloadSize;
     private volatile int maxHeaderListSize;
-    private volatile float streamsHighWaterMark = DEFAULT_STREAMS_HIGH_WATER_MARK;
-    private volatile float cleanPercentage = DEFAULT_STREAMS_CLEAN_PERCENTAGE;
-    private volatile int cleanFrequencyCheck = DEFAULT_CLEAN_FREQUENCY_CHECK;
+    private volatile float streamsHighWaterMark;
+    private volatile float cleanPercentage;
+    private volatile int cleanFrequencyCheck;
     private volatile boolean disableCipherCheck;
     private volatile boolean priorKnowledge;
     private volatile boolean pushEnabled;
@@ -85,6 +85,9 @@ public class Http2Configuration {
         threadPoolConfig = builder.threadPoolConfig;
         executorService = builder.executorService;
         pushEnabled = builder.pushEnabled;
+        streamsHighWaterMark = builder.streamsHighWaterMark;
+        cleanPercentage = builder.cleanPercentage;
+        cleanFrequencyCheck = builder.cleanFrequencyCheck;
     }
 
 
@@ -283,6 +286,9 @@ public class Http2Configuration {
         private boolean disableCipherCheck;
         private boolean priorKnowledge;
         private boolean pushEnabled = true;
+        private float streamsHighWaterMark = DEFAULT_STREAMS_HIGH_WATER_MARK;
+        private float cleanPercentage = DEFAULT_STREAMS_CLEAN_PERCENTAGE;
+        private int cleanFrequencyCheck = DEFAULT_CLEAN_FREQUENCY_CHECK;
         private ThreadPoolConfig threadPoolConfig;
         private ExecutorService executorService;
 
@@ -361,6 +367,30 @@ public class Http2Configuration {
          */
         public Http2ConfigurationBuilder enablePush(final boolean val) {
             pushEnabled = val;
+            return this;
+        }
+
+        /**
+         * @see #setStreamsHighWaterMark(float)
+         */
+        public Http2ConfigurationBuilder streamsHighWaterMark(final float val) {
+            streamsHighWaterMark = val;
+            return this;
+        }
+
+        /**
+         * @see #setCleanPercentage(float)
+         */
+        public Http2ConfigurationBuilder cleanPercentage(final float val) {
+            cleanPercentage = val;
+            return this;
+        }
+
+        /**
+         * @see #setCleanFrequencyCheck(int)
+         */
+        public Http2ConfigurationBuilder cleanFrequencyCheck(final int val) {
+            cleanFrequencyCheck = val;
             return this;
         }
 
