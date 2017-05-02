@@ -42,9 +42,12 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,7 +62,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.ProcessorExecutor;
-import org.glassfish.grizzly.WriteHandler;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.util.MimeHeaders;
@@ -87,7 +89,6 @@ import org.glassfish.grizzly.http2.frames.RstStreamFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLBaseFilter;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -98,7 +99,7 @@ import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
 
 
 /**
- * The HTTP2 connection abstraction.
+ * The HTTP2 session abstraction.
  * 
  * @author Alexey Stashok
  */
@@ -123,8 +124,12 @@ public class Http2Session {
     private volatile FilterChain http2StreamChain;
     private volatile FilterChain http2ConnectionChain;
 
-    private final Map<Integer, Http2Stream> streamsMap =
-            DataStructures.getConcurrentMap();
+    private static final AtomicIntegerFieldUpdater<Http2Session> concurrentStreamCountUpdater =
+            AtomicIntegerFieldUpdater.newUpdater(Http2Session.class, "concurrentStreamsCount");
+    @SuppressWarnings("unused")
+    private volatile int concurrentStreamsCount;
+
+    private final Map<Integer, Http2Stream> streamsMap = new TreeMap<>();
     
     // (Optimization) We may read several DataFrames belonging to the same
     // Http2Stream, so in order to not process every DataFrame separately -
@@ -151,7 +156,12 @@ public class Http2Session {
     private int peerMaxConcurrentStreams = getDefaultMaxConcurrentStreams();
 
     private final Http2ConnectionOutputSink outputSink;
-    
+
+    private final Http2Configuration http2Configuration;
+
+    private volatile int streamsHighWaterMark;
+    private int checkCount;
+
     // true, if this connection is ready to accept frames or false if the first
     // HTTP/1.1 Upgrade is still in progress
     private volatile boolean isPrefaceReceived;
@@ -192,6 +202,12 @@ public class Http2Session {
         }
         this.isServer = isServer;
         this.handlerFilter = handlerFilter;
+
+        this.http2Configuration = handlerFilter.getConfiguration();
+        streamsHighWaterMark =
+                Float.valueOf(
+                        getDefaultMaxConcurrentStreams() * http2Configuration.getStreamsHighWaterMark())
+                        .intValue();
         
         final int customMaxFramePayloadSz
                 = handlerFilter.getLocalMaxFramePayloadSize() > 0
@@ -272,13 +288,9 @@ public class Http2Session {
      *
      * @param maxHeaderListSize size, in bytes, of the header list.
      */
+    @SuppressWarnings("unused")
     public void setMaxHeaderListSize(int maxHeaderListSize) {
         this.maxHeaderListSize = maxHeaderListSize;
-    }
-
-    protected boolean isFrameReady(final Buffer buffer) {
-        final int frameLen = getFrameSize(buffer);
-        return frameLen > 0 && buffer.remaining() >= frameLen;
     }
 
     /**
@@ -430,6 +442,7 @@ public class Http2Session {
     /**
      * @return The max <tt>payload</tt> size to be accepted by the peer
      */
+    @SuppressWarnings("unused")
     public int getPeerMaxFramePayloadSize() {
         return peerMaxFramePayloadSize;
     }
@@ -451,14 +464,6 @@ public class Http2Session {
     }
     
     
-    boolean canWrite() {
-        return outputSink.canWrite();
-    }
-    
-    void notifyCanWrite(final WriteHandler writeHandler) {
-        outputSink.notifyCanWrite(writeHandler);
-    }
-    
     public int getLocalStreamWindowSize() {
         return localStreamWindowSize;
     }
@@ -476,8 +481,11 @@ public class Http2Session {
             final int delta = peerStreamWindowSize - this.peerStreamWindowSize;
             
             this.peerStreamWindowSize = peerStreamWindowSize;
-            
+
             for (Http2Stream stream : streamsMap.values()) {
+                if (stream.isState(Http2StreamState.CLOSED)) {
+                    continue;
+                }
                 try {
                     stream.getOutputSink().onPeerWindowUpdate(delta);
                 } catch (Http2StreamException e) {
@@ -496,10 +504,12 @@ public class Http2Session {
         return localConnectionWindowSize;
     }
 
+    @SuppressWarnings("unused")
     public void setLocalConnectionWindowSize(final int localConnectionWindowSize) {
         this.localConnectionWindowSize = localConnectionWindowSize;
     }
     
+    @SuppressWarnings("unused")
     public int getAvailablePeerConnectionWindowSize() {
         return outputSink.getAvailablePeerConnectionWindowSize();
     }
@@ -517,11 +527,13 @@ public class Http2Session {
      */
     public void setLocalMaxConcurrentStreams(int localMaxConcurrentStreams) {
         this.localMaxConcurrentStreams = localMaxConcurrentStreams;
+        streamsHighWaterMark = Float.valueOf(localMaxConcurrentStreams * 0.5f).intValue();
     }
 
     /**
      * @return the maximum number of concurrent streams allowed for this session by peer.
      */
+    @SuppressWarnings("unused")
     public int getPeerMaxConcurrentStreams() {
         return peerMaxConcurrentStreams;
     }
@@ -945,26 +957,26 @@ public class Http2Session {
     }
 
     Http2Stream acceptStream(final HttpRequestPacket request,
-            final int streamId, final int refStreamId,
+            final int streamId, final int parentStreamId,
             final boolean exclusive, final int priority,
             final Http2StreamState initState)
     throws Http2ConnectionException {
         
         final Http2Stream stream = newStream(request,
-                streamId, refStreamId, exclusive, priority, initState);
+                streamId, parentStreamId, exclusive, priority, initState);
         
         synchronized(sessionLock) {
             if (isClosed()) {
                 return null; // if the session is closed is set - return null to ignore stream creation
             }
             
-            if (streamsMap.size() >= getLocalMaxConcurrentStreams()) {
+            if (concurrentStreamsCount >= getLocalMaxConcurrentStreams()) {
                 // throw Session level exception because headers were not decompressed,
                 // so compression context is lost
                 throw new Http2ConnectionException(ErrorCode.REFUSED_STREAM);
             }
             
-            streamsMap.put(streamId, stream);
+            registerStream(streamId, stream);
             lastPeerStreamId = streamId;
         }
         
@@ -978,7 +990,7 @@ public class Http2Session {
      * {@link #getNewClientStreamLock()} lock.
      * @param request the request that initiated the stream
      * @param streamId the ID of this new stream
-     * @param refStreamId the parent stream
+     * @param parentStreamId the parent stream
      * @param priority the priority of this stream
      * @param initState the initial {@link Http2StreamState}
      *
@@ -987,14 +999,14 @@ public class Http2Session {
      * @throws org.glassfish.grizzly.http2.Http2StreamException if an error occurs opening the stream.
      */
     public Http2Stream openStream(final HttpRequestPacket request,
-            final int streamId, final int refStreamId,
+            final int streamId, final int parentStreamId,
             final boolean exclusive,
             final int priority,
             final Http2StreamState initState)
             throws Http2StreamException {
         
         final Http2Stream stream = newStream(request,
-                streamId, refStreamId, exclusive,
+                streamId, parentStreamId, exclusive,
                 priority, initState);
         
         synchronized(sessionLock) {
@@ -1003,19 +1015,19 @@ public class Http2Session {
                         ErrorCode.REFUSED_STREAM, "Session is closed");
             }
             
-            if (streamsMap.size() >= getLocalMaxConcurrentStreams()) {
+            if (concurrentStreamsCount >= getLocalMaxConcurrentStreams()) {
                 throw new Http2StreamException(streamId, ErrorCode.REFUSED_STREAM);
             }
             
-//            if (refStreamId > 0) {
-//                final Http2Stream mainStream = getStream(refStreamId);
-//                if (mainStream == null) {
-//                    throw new Http2StreamException(streamId, ErrorCode.REFUSED_STREAM,
-//                            "The parent stream does not exist");
-//                }
-//            }
+            if (parentStreamId > 0) {
+                final Http2Stream mainStream = getStream(parentStreamId);
+                if (mainStream == null) {
+                    throw new Http2StreamException(streamId, ErrorCode.REFUSED_STREAM,
+                            "The parent stream does not exist");
+                }
+            }
             
-            streamsMap.put(streamId, stream);
+            registerStream(streamId, stream);
             lastLocalStreamId = streamId;
         }
         
@@ -1048,8 +1060,7 @@ public class Http2Session {
                 throw new Http2StreamException(Http2Stream.UPGRADE_STREAM_ID,
                         ErrorCode.REFUSED_STREAM, "Session is closed");
             }
-            
-            streamsMap.put(Http2Stream.UPGRADE_STREAM_ID, stream);
+            registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
             lastLocalStreamId = Http2Stream.UPGRADE_STREAM_ID;
         }
         
@@ -1080,8 +1091,8 @@ public class Http2Session {
                 throw new Http2StreamException(Http2Stream.UPGRADE_STREAM_ID,
                         ErrorCode.REFUSED_STREAM, "Session is closed");
             }
-            
-            streamsMap.put(Http2Stream.UPGRADE_STREAM_ID, stream);
+
+            registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
             lastLocalStreamId = Http2Stream.UPGRADE_STREAM_ID;
         }
         
@@ -1098,7 +1109,6 @@ public class Http2Session {
     boolean setupFilterChains(final FilterChainContext context,
             final boolean isUpStream) {
 
-        //noinspection Duplicates
         if (http2ConnectionChain == null) {
             synchronized(this) {
                 if (http2ConnectionChain == null) {
@@ -1122,10 +1132,6 @@ public class Http2Session {
         }
         
         return false;
-    }
-    
-    FilterChain getHttp2StreamChain() {
-        return http2StreamChain;
     }
     
     FilterChain getHttp2ConnectionChain() {
@@ -1156,20 +1162,30 @@ public class Http2Session {
         }
     }
     
-    Object getSessionLock() {
-        return sessionLock;
-    }
-
     /**
      * Called from {@link Http2Stream} once stream is completely closed.
      */
-    void deregisterStream(final Http2Stream htt2Stream) {
-        streamsMap.remove(htt2Stream.getId());
+    void deregisterStream() {
+        decStreamCount();
         
         final boolean isCloseSession;
         synchronized (sessionLock) {
             // If we're in GOAWAY state and there are no streams left - close this session
-            isCloseSession = isClosed() && streamsMap.isEmpty();
+            isCloseSession = isClosed() && concurrentStreamsCount == 0;
+            if (!isCloseSession) {
+                if (checkCount++ > http2Configuration.getCleanFrequencyCheck() && streamsMap.size() > streamsHighWaterMark) {
+                    checkCount = 0;
+                    int maxCount = Float.valueOf(streamsHighWaterMark * http2Configuration.getCleanPercentage()).intValue();
+                    int count = 0;
+                    for (final Iterator<Map.Entry<Integer,Http2Stream>> streamIds = streamsMap.entrySet().iterator(); (streamIds.hasNext() && count < maxCount);) {
+                        final Map.Entry<Integer,Http2Stream> entry = streamIds.next();
+                        if (entry.getValue().isState(Http2StreamState.CLOSED)) {
+                            streamIds.remove();
+                        }
+                        count++;
+                    }
+                }
+            }
         }
         
         if (isCloseSession) {
@@ -1223,7 +1239,6 @@ public class Http2Session {
         sendMessageUpstream(stream, message, upstreamContext);
     }
 
-    @SuppressWarnings("Duplicates")
     private void sendMessageUpstream(final Http2Stream stream,
                                      final HttpPacket message,
                                      final FilterChainContext upstreamContext) {
@@ -1323,6 +1338,29 @@ public class Http2Session {
                 }
             }
         }
+    }
+
+    /*
+     * This method is not thread safe and should be guarded by the session lock.
+     */
+    void registerStream(final int streamId, final Http2Stream stream) {
+        if (streamId < 1) {
+            throw new IllegalArgumentException("Invalid stream ID");
+        }
+        if (stream == null) {
+            throw new NullPointerException("Attempt to register null stream");
+        }
+
+        streamsMap.put(streamId, stream);
+        incStreamCount();
+    }
+
+    void incStreamCount() {
+        concurrentStreamCountUpdater.incrementAndGet(this);
+    }
+
+    void decStreamCount() {
+        concurrentStreamCountUpdater.decrementAndGet(this);
     }
 
     private final class ConnectionCloseListener implements CloseListener<Closeable, CloseType> {

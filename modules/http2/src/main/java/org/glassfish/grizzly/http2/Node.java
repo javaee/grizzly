@@ -45,7 +45,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * N-ary tree node implementation to support HTTP/2 stream hierarchies.
- * @since 2.3.29
  */
 public abstract class Node {
 

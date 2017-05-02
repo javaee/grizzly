@@ -325,15 +325,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
     /**
-     * Callback method, called when {@link HttpPacket} parsing has been completed.
-     *
-     * @param httpHeader {@link HttpHeader}, which represents parsed HTTP packet header
-     * @param ctx        processing context.
-     * @return <code>true</code> if an error has occurred while processing
-     *         the header portion of the HTTP request, otherwise returns
-     *         <code>false</code>.
-     *
-     * @since 2.3.3
+     * @inheritDoc
      */
     @SuppressWarnings({"UnusedReturnValue", "unused"})
     protected boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
@@ -342,16 +334,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
     /**
-     * Callback invoked when the HTTP message header parsing is complete.
-     *
-     * @param httpHeader {@link HttpHeader}, which represents parsed HTTP packet header
-     * @param buffer     {@link Buffer} the header was parsed from
-     * @param ctx        processing context.
-     * @return <code>true</code> if an error has occurred while processing
-     *         the header portion of the HTTP request, otherwise returns
-     *         <code>false</code>.
-     *
-     * @since 2.3.3
+     * @inheritDoc
      */
     @SuppressWarnings({"UnusedReturnValue", "unused"})
     protected boolean onHttpHeaderParsed(HttpHeader httpHeader,
@@ -362,15 +345,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
     /**
-     * <p>
-     * Invoked when either the request line or status line has been parsed.
-     * <p/>
-     * </p>
-     *
-     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
-     * @param ctx        processing context.
-     *
-     * @since 2.3.3
+     * @inheritDoc
      */
     @SuppressWarnings("unused")
     protected void onInitialLineParsed(final HttpHeader httpHeader,
@@ -379,15 +354,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
     /**
-     * <p>
-     * Invoked when the initial response line has been  encoded in preparation
-     * to being transmitted to the user-agent.
-     * </p>
-     *
-     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
-     * @param ctx        processing context.
-     *
-     * @since 2.3.3
+     * @inheritDoc
      */
     @SuppressWarnings("unused")
     protected void onInitialLineEncoded(final HttpHeader httpHeader,
@@ -396,16 +363,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
     /**
-     * <p>
-     * Invoked when all headers of the packet have been parsed.  Depending on the
-     * transfer encoding being used by the current request, this method may be
-     * invoked multiple times.
-     * </p>
-     *
-     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
-     * @param ctx        processing context.
-     *
-     * @since 2.3.3
+     * @inheritDoc
      */
     @SuppressWarnings("unused")
     protected void onHttpHeadersParsed(final HttpHeader httpHeader,
@@ -414,15 +372,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
     /**
-     * <p>
-     * Invoked when HTTP headers have been encoded in preparation to being
-     * transmitted to the user-agent.
-     * </p>
-     *
-     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
-     * @param ctx        processing context.
-     *
-     * @since 2.3.3
+     * @inheritDoc
      */
     @SuppressWarnings("unused")
     protected void onHttpHeadersEncoded(final HttpHeader httpHeader,
@@ -431,15 +381,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
     /**
-     * <p>
-     * Invoked as request/response body content has been processed by this
-     * {@link org.glassfish.grizzly.filterchain.Filter}.
-     * </p>
-     *
-     * @param content request/response body content
-     * @param ctx     processing context.
-     *
-     * @since 2.3.3
+     * @inheritDoc
      */
     @SuppressWarnings("unused")
     protected void onHttpContentParsed(final HttpContent content,
@@ -447,15 +389,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
 
     /**
-     * <p>
-     * Invoked when a HTTP body chunk has been encoded in preparation to being
-     * transmitted to the user-agent.
-     * </p>
-     *
-     * @param content {@link HttpContent}, which represents HTTP packet header
-     * @param ctx     processing context.
-     *
-     * @since 2.3.3
+     * @inheritDoc
      */
     @SuppressWarnings("unused")
     protected void onHttpContentEncoded(final HttpContent content,
@@ -464,18 +398,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
     /**
-     * <p>
-     * Callback which is invoked when parsing an HTTP message header fails.
-     * The processing logic has to take care about error handling and following
-     * connection closing.
-     * </p>
-     *
-     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
-     * @param ctx        the {@link FilterChainContext} processing this request
-     * @param t          the cause of the error
-     * @throws java.io.IOException if an error occurs when dealing with the event.
-     *
-     * @since 2.3.3
+     * @inheritDoc
      */
     @SuppressWarnings("unused")
     protected void onHttpHeaderError(final HttpHeader httpHeader,
@@ -484,18 +407,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
 
     /**
-     * <p>
-     * Callback which is invoked when parsing an HTTP message payload fails.
-     * The processing logic has to take care about error handling and following
-     * connection closing.
-     * </p>
-     *
-     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
-     * @param ctx        the {@link FilterChainContext} processing this request
-     * @param t          the cause of the error
-     * @throws java.io.IOException if an error occurs when dealing with the event.
-     *
-     * @since 2.3.3
+     * @inheritDoc
      */
     @SuppressWarnings("unused")
     protected void onHttpContentError(HttpHeader httpHeader,
@@ -649,9 +561,14 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         final int streamId = rstFrame.getStreamId();
         final Http2Stream stream = http2Session.getStream(streamId);
         if (stream == null) {
-//            // If the stream is not found, it's effectively idle.  Terminate the connection.
-//            http2Session.goAway(ErrorCode.PROTOCOL_ERROR);
-//            http2Session.getConnection().closeSilently();
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine("Received RST frame on on existent stream.  Ignoring frame.");
+            }
+            return;
+        }
+        if (stream.isState(Http2StreamState.IDLE)) {
+            http2Session.goAway(ErrorCode.PROTOCOL_ERROR);
+            http2Session.getConnection().closeSilently();
             return;
         }
         

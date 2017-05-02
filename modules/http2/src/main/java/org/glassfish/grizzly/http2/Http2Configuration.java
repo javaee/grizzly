@@ -50,17 +50,21 @@ import java.util.concurrent.ExecutorService;
  *
  * @see Http2ClientFilter
  * @see Http2ServerFilter
- *
- * @since 2.3.30
  */
 public class Http2Configuration {
 
     public static final int DEFAULT_MAX_HEADER_LIST_SIZE = 4096;
+    public static final float DEFAULT_STREAMS_HIGH_WATER_MARK = 0.5f;
+    public static final float DEFAULT_STREAMS_CLEAN_PERCENTAGE = 0.5f;
+    public static final int DEFAULT_CLEAN_FREQUENCY_CHECK = 50;
 
     private volatile int maxConcurrentStreams;
     private volatile int initialWindowSize;
     private volatile int maxFramePayloadSize;
     private volatile int maxHeaderListSize;
+    private volatile float streamsHighWaterMark = DEFAULT_STREAMS_HIGH_WATER_MARK;
+    private volatile float cleanPercentage = DEFAULT_STREAMS_CLEAN_PERCENTAGE;
+    private volatile int cleanFrequencyCheck = DEFAULT_CLEAN_FREQUENCY_CHECK;
     private volatile boolean disableCipherCheck;
     private volatile boolean priorKnowledge;
     private volatile boolean pushEnabled;
@@ -199,6 +203,59 @@ public class Http2Configuration {
      */
     public void setPushEnabled(final boolean pushEnabled) {
         this.pushEnabled = pushEnabled;
+    }
+
+    /**
+     * @return the high-water mark indicating streams old closed streams should be cleaned up.
+     *  If not explicitly configured, this returns {@value #DEFAULT_STREAMS_HIGH_WATER_MARK}.
+     */
+    public float getStreamsHighWaterMark() {
+        return streamsHighWaterMark;
+    }
+
+    /**
+     * Streams are maintained and periodically cleaned when the stream count (open or otherwise) surpasses the
+     * the specified high-water mark.  This value is applied against the max concurrent streams for the
+     * endpoint which HTTP2 is being configured for.  For example, if the max concurrent streams is 100 and the mark
+     * percentage is .5, then the high water mark for a clean attempt would be 50.
+     */
+    public void setStreamsHighWaterMark(final float streamsHighWaterMark) {
+        this.streamsHighWaterMark = streamsHighWaterMark;
+    }
+
+    /**
+     * @return the number of streams to attempt to remove from the streams structure.  Note that only closed streams
+     * will ultimately be removed.  If not explicitly configured, this returns {@value #DEFAULT_STREAMS_CLEAN_PERCENTAGE}.
+     */
+    public float getCleanPercentage() {
+        return cleanPercentage;
+    }
+
+    /**
+     * The number of streams to attempt to remove from the streams structure.  Note that only closed streams
+     * will ultimately be removed.  This value is applied against the computed result for the streams high water
+     * mark.  For example, if the max concurrent streams is 100 and the mark percentage is .5, then the high water mark
+     * for a clean attempt would be 50.  The number of streams to process in the clean attempt, assuming the clean
+     * percentage is .5, would be 25.
+     */
+    public void setCleanPercentage(final float cleanPercentage) {
+        this.cleanPercentage = cleanPercentage;
+    }
+
+    /**
+     * @return how often, in terms of closed streams, the streams structure will be checked for cleaning.
+     *  If not explicitly configured, this returns {@value #DEFAULT_CLEAN_FREQUENCY_CHECK}
+     */
+    public int getCleanFrequencyCheck() {
+        return cleanFrequencyCheck;
+    }
+
+    /**
+     * Set the number of streams that must be closed before checking if the number of streams exceeds the high-water
+     * mark.
+     */
+    public void setCleanFrequencyCheck(final int cleanFrequencyCheck) {
+        this.cleanFrequencyCheck = cleanFrequencyCheck;
     }
 
     /**

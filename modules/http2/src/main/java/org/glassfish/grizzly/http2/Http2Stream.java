@@ -107,7 +107,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     
     private final HttpRequestPacket request;
     private final int streamId;
-    private final int refStreamId;
+    private final int parentStreamId;
     private final int priority;
     private final boolean exclusive;
 
@@ -173,19 +173,19 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      * @param http2Session the {@link Http2Session} for this {@link Http2Stream}.
      * @param request the {@link HttpRequestPacket} initiating the stream.
      * @param streamId this stream's ID.
-     * @param refStreamId the parent stream, if any.
+     * @param parentStreamId the parent stream, if any.
      * @param priority the priority of this stream.
      * @param initState the initial stream state.
      */
     protected Http2Stream(final Http2Session http2Session,
             final HttpRequestPacket request,
-            final int streamId, final int refStreamId,
+            final int streamId, final int parentStreamId,
             final boolean exclusive, final int priority,
             final Http2StreamState initState) {
         this.http2Session = http2Session;
         this.request = request;
         this.streamId = streamId;
-        this.refStreamId = refStreamId;
+        this.parentStreamId = parentStreamId;
         this.exclusive = exclusive;
         this.priority = priority;
         this.state = initState;
@@ -210,7 +210,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         this.http2Session = http2Session;
         this.request = request;
         this.streamId = UPGRADE_STREAM_ID;
-        this.refStreamId = 0;
+        this.parentStreamId = 0;
         this.priority = priority;
         this.state = initState;
 
@@ -238,6 +238,10 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
             final Http2StreamState newState) {
         return stateUpdater.compareAndSet(this, expectedState, newState);
     }
+
+    boolean isState(final Http2StreamState streamState) {
+        return state == streamState;
+    }
     
     public int getPeerWindowSize() {
         return http2Session.getPeerStreamWindowSize();
@@ -262,6 +266,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         return request.getResponse();
     }
 
+    @SuppressWarnings("unused")
     public boolean isPushEnabled() {
         return http2Session.isPushEnabled();
     }
@@ -270,16 +275,18 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         return streamId;
     }
 
-    public int getReferStreamId() {
-        return refStreamId;
+    @SuppressWarnings("unused")
+    public int getParentStreamId() {
+        return parentStreamId;
     }
 
+    @SuppressWarnings("unused")
     public int getPriority() {
         return priority;
     }
 
     public boolean isPushStream() {
-        return (streamId % 2) == 0;
+        return (streamId & 1) == 0;
     }
     
     public boolean isLocallyInitiatedStream() {
@@ -503,7 +510,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
                         addCloseListener(new org.glassfish.grizzly.CloseListener() {
 
                             @Override
-                            public void onClosed(Closeable closeable, ICloseType type)
+                            public void onClosed(Closeable closeable, @SuppressWarnings("deprecation") ICloseType type)
                                     throws IOException {
                                 final CloseReason cr = closeReason;
                                 assert cr != null;
@@ -674,7 +681,8 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     }
     
     private void closeStream() {
-        http2Session.deregisterStream(this);
+        stateUpdater.set(this, Http2StreamState.CLOSED);
+        http2Session.deregisterStream();
     }
     
     HttpHeader getInputHttpHeader() {
