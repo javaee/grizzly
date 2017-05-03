@@ -122,7 +122,7 @@ public class Http2Session {
     private final ReentrantLock newClientStreamLock = new ReentrantLock();
     
     private volatile FilterChain http2StreamChain;
-    private volatile FilterChain http2ConnectionChain;
+    private volatile FilterChain htt2SessionChain;
 
     private static final AtomicIntegerFieldUpdater<Http2Session> concurrentStreamCountUpdater =
             AtomicIntegerFieldUpdater.newUpdater(Http2Session.class, "concurrentStreamsCount");
@@ -155,7 +155,7 @@ public class Http2Session {
     private volatile int localMaxConcurrentStreams = getDefaultMaxConcurrentStreams();
     private int peerMaxConcurrentStreams = getDefaultMaxConcurrentStreams();
 
-    private final Http2ConnectionOutputSink outputSink;
+    private final Http2SessionOutputSink outputSink;
 
     private final Http2Configuration http2Configuration;
 
@@ -243,8 +243,8 @@ public class Http2Session {
         this.outputSink = newOutputSink();
     }
 
-    protected Http2ConnectionOutputSink newOutputSink() {
-        return new Http2ConnectionOutputSink(this);
+    protected Http2SessionOutputSink newOutputSink() {
+        return new Http2SessionOutputSink(this);
     }
 
     public int getFrameHeaderSize() {
@@ -309,7 +309,7 @@ public class Http2Session {
     }
 
     public Http2Frame parseHttp2FrameHeader(final Buffer buffer)
-            throws Http2ConnectionException {
+            throws Http2SessionException {
         // we assume the passed buffer represents only this frame, no remainders allowed
         final int len = getFrameSize(buffer);
         assert buffer.remaining() == len;
@@ -376,7 +376,7 @@ public class Http2Session {
     }
 
     protected void checkFrameSequenceSemantics(final Http2Frame frame)
-            throws Http2ConnectionException {
+            throws Http2SessionException {
         
         final int frameType = frame.getType();
         
@@ -386,7 +386,7 @@ public class Http2Session {
                     LOGGER.log(Level.FINE, "First in frame should be a SettingsFrame (preface)", frame);
                 }
                 
-                throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR);
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR);
             }
             
             isPrefaceReceived = true;
@@ -405,7 +405,7 @@ public class Http2Session {
                     LOGGER.log(Level.FINE, "ContinuationFrame is expected, but {0} came", frame);
                 }
 
-                throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR);
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR);
             }
         } else if (frameType == ContinuationFrame.TYPE) {
             // isParsing == false, so no ContinuationFrame expected
@@ -413,16 +413,16 @@ public class Http2Session {
                 LOGGER.log(Level.FINE, "ContinuationFrame is not expected");
             }
 
-            throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR);
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR);
         }
     }
     
     protected void onOversizedFrame(final Buffer buffer)
-            throws Http2ConnectionException {
+            throws Http2SessionException {
         
         final int oldPos = buffer.position();
         try {
-            throw new Http2ConnectionException(ErrorCode.FRAME_SIZE_ERROR);
+            throw new Http2SessionException(ErrorCode.FRAME_SIZE_ERROR);
         } finally {
             buffer.position(oldPos);
         }
@@ -452,13 +452,13 @@ public class Http2Session {
      * The method is called during the {@link SettingsFrame} processing.
      * 
      * @param peerMaxFramePayloadSize max payload size accepted by the peer.
-     * @throws Http2ConnectionException if the peerMaxFramePayloadSize violates the limits
+     * @throws Http2SessionException if the peerMaxFramePayloadSize violates the limits
      */
     protected void setPeerMaxFramePayloadSize(final int peerMaxFramePayloadSize)
-            throws Http2ConnectionException {
+            throws Http2SessionException {
         if (peerMaxFramePayloadSize < getSpecMinFramePayloadSize() ||
                 peerMaxFramePayloadSize > getSpecMaxFramePayloadSize()) {
-            throw new Http2ConnectionException(ErrorCode.FRAME_SIZE_ERROR);
+            throw new Http2SessionException(ErrorCode.FRAME_SIZE_ERROR);
         }
         this.peerMaxFramePayloadSize = peerMaxFramePayloadSize;
     }
@@ -607,7 +607,7 @@ public class Http2Session {
         return streamsMap.get(streamId);
     }
     
-    protected Http2ConnectionOutputSink getOutputSink() {
+    protected Http2SessionOutputSink getOutputSink() {
         return outputSink;
     }
     
@@ -960,7 +960,7 @@ public class Http2Session {
             final int streamId, final int parentStreamId,
             final boolean exclusive, final int priority,
             final Http2StreamState initState)
-    throws Http2ConnectionException {
+    throws Http2SessionException {
         
         final Http2Stream stream = newStream(request,
                 streamId, parentStreamId, exclusive, priority, initState);
@@ -973,7 +973,7 @@ public class Http2Session {
             if (concurrentStreamsCount >= getLocalMaxConcurrentStreams()) {
                 // throw Session level exception because headers were not decompressed,
                 // so compression context is lost
-                throw new Http2ConnectionException(ErrorCode.REFUSED_STREAM);
+                throw new Http2SessionException(ErrorCode.REFUSED_STREAM);
             }
             
             registerStream(streamId, stream);
@@ -1109,20 +1109,20 @@ public class Http2Session {
     boolean setupFilterChains(final FilterChainContext context,
             final boolean isUpStream) {
 
-        if (http2ConnectionChain == null) {
+        if (htt2SessionChain == null) {
             synchronized(this) {
-                if (http2ConnectionChain == null) {
+                if (htt2SessionChain == null) {
                     if (isUpStream) {
                         http2StreamChain = (FilterChain) context.getFilterChain().subList(
                                 context.getFilterIdx(), context.getEndIdx());
 
-                        http2ConnectionChain = (FilterChain) context.getFilterChain().subList(
+                        htt2SessionChain = (FilterChain) context.getFilterChain().subList(
                                 context.getStartIdx(), context.getFilterIdx());
                     } else {
                         http2StreamChain = (FilterChain) context.getFilterChain().subList(
                                 context.getFilterIdx(), context.getFilterChain().size());
 
-                        http2ConnectionChain = (FilterChain) context.getFilterChain().subList(
+                        htt2SessionChain = (FilterChain) context.getFilterChain().subList(
                                 context.getEndIdx() + 1, context.getFilterIdx());
                     }
                     
@@ -1134,8 +1134,8 @@ public class Http2Session {
         return false;
     }
     
-    FilterChain getHttp2ConnectionChain() {
-        return http2ConnectionChain;
+    FilterChain getHttp2SessionChain() {
+        return htt2SessionChain;
     }
     
     /**

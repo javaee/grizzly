@@ -177,7 +177,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
             connection.enableIOEvent(IOEvent.READ);
             return suspendAction;
         } else if (getConfiguration().isPriorKnowledge()) {
-            final Http2Session http2Session = createClientHttp2Connection(connection);
+            final Http2Session http2Session = createClientHttp2Session(connection);
             final Http2State state = http2Session.getHttp2State();
             state.setDirectUpgradePhase();
             http2Session.sendPreface();
@@ -234,7 +234,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
         }
         
         final Http2Session http2Session =
-                obtainHttp2Connection(http2State, ctx, true);
+                obtainHttp2Session(http2State, ctx, true);
         
         final Buffer framePayload = httpContent.getContent();
 
@@ -407,9 +407,9 @@ public class Http2ClientFilter extends Http2BaseFilter {
      * @param connection the TCP connection
      * @return {@link Http2Session}
      */
-    protected Http2Session createClientHttp2Connection(final Connection connection) {
+    protected Http2Session createClientHttp2Session(final Connection connection) {
 
-        return createHttp2Connection(connection, false);
+        return createHttp2Session(connection, false);
     }
     
     protected AlpnClientNegotiator getClientAlpnNegotiator() {
@@ -455,7 +455,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
         http2State.setDirectUpgradePhase();  // expecting preface (settings frame)
         
         final Http2Session http2Session =
-                createClientHttp2Connection(connection);
+                createClientHttp2Session(connection);
         
         if (http2State.tryLockClientPreface()) {
             http2Session.sendPreface();
@@ -564,7 +564,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
     private void processInResponse(final Http2Session http2Session,
             final FilterChainContext context,
             final HeadersFrame headersFrame)
-            throws Http2ConnectionException, IOException {
+            throws Http2SessionException, IOException {
 
         final Http2Stream stream = http2Session.getStream(
                 headersFrame.getStreamId());

@@ -63,11 +63,11 @@ public class Http2FrameCodec {
      * @param srcMessage the inbound buffer.
      * @return one or more {@link Http2Frame}s parsed from the source message.
      *
-     * @throws Http2ConnectionException if an error occurs parsing the frame(s).
+     * @throws Http2SessionException if an error occurs parsing the frame(s).
      */
     public List<Http2Frame> parse(final Http2Session http2Session,
             final FrameParsingState parsingState, Buffer srcMessage)
-            throws Http2ConnectionException {
+            throws Http2SessionException {
         
         if (parsingState.bytesToSkip() > 0) {
             if (!skip(parsingState, srcMessage)) {
@@ -151,7 +151,7 @@ public class Http2FrameCodec {
 
     private ParsingResult parseFrame(final Http2Session http2Session,
             final FrameParsingState state,
-            final Buffer buffer) throws Http2ConnectionException {
+            final Buffer buffer) throws Http2SessionException {
         
         final int frameHeaderSize = http2Session.getFrameHeaderSize();
         final int bufferSize = buffer.remaining();

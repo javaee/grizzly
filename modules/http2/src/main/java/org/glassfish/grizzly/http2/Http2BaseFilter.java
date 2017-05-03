@@ -184,7 +184,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                         final int streamId = e.getStreamId();
 
                         if (streamId == 0) {
-                            throw new Http2ConnectionException(ErrorCode.PROTOCOL_ERROR);
+                            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR);
                         }
 
                         sendRstStream(ctx, http2Session,
@@ -204,9 +204,9 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             streamsToFlushInput.clear();
             
             return true;
-        } catch (Http2ConnectionException e) {
+        } catch (Http2SessionException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "Http2ConnectionException occurred on connection=" +
+                LOGGER.log(Level.FINE, "Http2SessionException occurred on connection=" +
                         ctx.getConnection() + " during Http2Frame processing", e);
             }
             sendGoAwayAndClose(ctx, http2Session, e.getErrorCode(), e.getMessage());
@@ -422,7 +422,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     private void processInFrame(final Http2Session http2Session,
                                 final FilterChainContext context,
                                 final Http2Frame frame)
-     throws Http2StreamException, Http2ConnectionException, IOException {
+     throws Http2StreamException, Http2SessionException, IOException {
 
         http2Session.checkFrameSequenceSemantics(frame);
         
@@ -503,7 +503,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     
     private void processSettingsFrame(final Http2Session http2Session,
             final FilterChainContext context, final Http2Frame frame)
-            throws Http2ConnectionException {
+            throws Http2SessionException {
         
         final SettingsFrame settingsFrame = (SettingsFrame) frame;
         
@@ -518,7 +518,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
     
     void applySettings(final Http2Session http2Session,
-            final SettingsFrame settingsFrame) throws Http2ConnectionException {
+            final SettingsFrame settingsFrame) throws Http2SessionException {
 
         for (int i = 0, numberOfSettings = settingsFrame.getNumberOfSettings(); i < numberOfSettings; i++) {
             final SettingsFrame.Setting setting = settingsFrame.getSettingByIndex(i);
@@ -645,7 +645,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         
         final Object message = ctx.getMessage();
         
-        final Http2Session http2Session = obtainHttp2Connection(ctx, false);
+        final Http2Session http2Session = obtainHttp2Session(ctx, false);
 
         if (http2Session.isHttp2OutputEnabled() &&
                 HttpPacket.isHttp(message)) {
@@ -739,8 +739,8 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      * @param isServer flag indicating whether this connection is server side or not.
      * @return {@link Http2Session}
      */
-    protected Http2Session createHttp2Connection(final Connection connection,
-                                                 final boolean isServer) {
+    protected Http2Session createHttp2Session(final Connection connection,
+                                              final boolean isServer) {
         
         final Http2Session http2Session =
             new Http2Session(connection, isServer, this);
@@ -867,11 +867,11 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      *          and prepare it for use
      */
     @SuppressWarnings("SameParameterValue")
-    protected final Http2Session obtainHttp2Connection(
+    protected final Http2Session obtainHttp2Session(
             final FilterChainContext context,
             final boolean isUpStream) {
         
-        return obtainHttp2Connection(null, context, isUpStream);
+        return obtainHttp2Session(null, context, isUpStream);
     }
 
     /**
@@ -885,7 +885,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      * @return {@link Http2Session} associated with the {@link Connection}
      *          and prepare it for use
      */
-    final Http2Session obtainHttp2Connection(
+    final Http2Session obtainHttp2Session(
             final Http2State http2State,
             final FilterChainContext context,
             final boolean isUpStream) {
@@ -899,7 +899,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             http2Session = Http2Session.get(connection);
             if (http2Session == null) {
 
-                http2Session = createHttp2Connection(connection, true);
+                http2Session = createHttp2Session(connection, true);
             }
         }
         
