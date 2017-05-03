@@ -51,26 +51,26 @@ import org.glassfish.grizzly.http2.frames.ErrorCode;
  * 
  * @author Alexey Stashok
  */
-public final class Http2ConnectionException extends IOException {
+public final class Http2SessionException extends IOException {
     private final ErrorCode errorCode;
 
     /**
-     * Construct <tt>Http2ConnectionException</tt>.
+     * Construct <tt>Http2SessionException</tt>.
      * 
-     * @param errorCode the {@link ErrorCode} for this {@link Http2ConnectionException}
+     * @param errorCode the {@link ErrorCode} for this {@link Http2SessionException}
      */
-    public Http2ConnectionException(final ErrorCode errorCode) {
+    public Http2SessionException(final ErrorCode errorCode) {
         this(errorCode, null);
     }
 
     /**
-     * Construct <tt>Http2ConnectionException</tt>.
+     * Construct <tt>Http2SessionException</tt>.
      * 
-     * @param errorCode the {@link ErrorCode} for this {@link Http2ConnectionException}
-     * @param message the detail message for this {@link Http2ConnectionException}
+     * @param errorCode the {@link ErrorCode} for this {@link Http2SessionException}
+     * @param message the detail message for this {@link Http2SessionException}
      */
-    public Http2ConnectionException(final ErrorCode errorCode,
-            final String message) {
+    public Http2SessionException(final ErrorCode errorCode,
+                                 final String message) {
         super(message);
         this.errorCode = errorCode;
     }

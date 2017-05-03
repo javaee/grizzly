@@ -77,7 +77,7 @@ class AlpnClientNegotiatorImpl extends AlpnNegotiatorBase implements AlpnClientN
         final Connection connection = AlpnSupport.getConnection(sslEngine);
         if (HTTP2.equals(selectedProtocol)) {
             final Http2Session http2Session =
-                    filter.createClientHttp2Connection(connection);
+                    filter.createClientHttp2Session(connection);
             
             // we expect preface
             http2Session.getHttp2State().setDirectUpgradePhase();

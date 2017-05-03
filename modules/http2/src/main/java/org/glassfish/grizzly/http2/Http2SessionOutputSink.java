@@ -66,16 +66,16 @@ import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
  * 
  * @author Alexey Stashok
  */
-public class Http2ConnectionOutputSink {
+public class Http2SessionOutputSink {
     protected final Http2Session http2Session;
-    private static final Logger LOGGER = Grizzly.logger(Http2ConnectionOutputSink.class);
+    private static final Logger LOGGER = Grizzly.logger(Http2SessionOutputSink.class);
     private static final Level LOGGER_LEVEL = Level.FINE;
 
     private static final int MAX_FRAME_PAYLOAD_SIZE = 16383;
     private static final int MAX_OUTPUT_QUEUE_SIZE = 65536;
 
     // async output queue
-    private final TaskQueue<Http2ConnectionOutputSink.OutputQueueRecord> outputQueue =
+    private final TaskQueue<Http2SessionOutputSink.OutputQueueRecord> outputQueue =
             TaskQueue.createTaskQueue(new TaskQueue.MutableMaxQueueSize() {
 
                 @Override
@@ -88,7 +88,7 @@ public class Http2ConnectionOutputSink {
     private final List<Http2Frame> tmpFramesList = new LinkedList<>();
     private final AtomicBoolean writerLock = new AtomicBoolean();
 
-    public Http2ConnectionOutputSink(Http2Session session) {
+    public Http2SessionOutputSink(Http2Session session) {
         this.http2Session = session;
         availConnectionWindowSize = new AtomicInteger(
                 http2Session.getDefaultConnectionWindowSize());
@@ -100,7 +100,7 @@ public class Http2ConnectionOutputSink {
     
     protected void writeDownStream(final Http2Frame frame) {
         
-        http2Session.getHttp2ConnectionChain().write(
+        http2Session.getHttp2SessionChain().write(
                 http2Session.getConnection(), null,
                 frameCodec().serializeAndRecycle(http2Session, frame),
                 null, (MessageCloner) null);
@@ -108,7 +108,7 @@ public class Http2ConnectionOutputSink {
 
     protected void writeDownStream(final List<Http2Frame> frames) {
         
-        http2Session.getHttp2ConnectionChain().write(
+        http2Session.getHttp2SessionChain().write(
                 http2Session.getConnection(), null,
                 frameCodec().serializeAndRecycle(http2Session, frames),
                 null, (MessageCloner) null);
@@ -131,7 +131,7 @@ public class Http2ConnectionOutputSink {
             msg = anyMessage;
         }
         
-        http2Session.getHttp2ConnectionChain().write(http2Session.getConnection(),
+        http2Session.getHttp2SessionChain().write(http2Session.getConnection(),
                 null, msg, completionHandler, messageCloner);        
     }
 
@@ -202,7 +202,7 @@ public class Http2ConnectionOutputSink {
             data = messageCloner.clone(http2Session.getConnection(), data);
         }
 
-        final Http2ConnectionOutputSink.OutputQueueRecord record = new Http2ConnectionOutputSink.OutputQueueRecord(
+        final Http2SessionOutputSink.OutputQueueRecord record = new Http2SessionOutputSink.OutputQueueRecord(
                 stream.getId(), data,
                 completionHandler, isLast);
 
@@ -247,7 +247,7 @@ public class Http2ConnectionOutputSink {
             while (availWindowSize > bytesToTransfer &&
                     queueSize > queueSizeToFree) {
 
-                final Http2ConnectionOutputSink.OutputQueueRecord record = outputQueue.poll();
+                final Http2SessionOutputSink.OutputQueueRecord record = outputQueue.poll();
 
                 if (record == null) {
                     // keep this warning for now

@@ -89,7 +89,7 @@ final class AlpnServerNegotiatorImpl extends AlpnNegotiatorBase implements AlpnS
         // If HTTP2 is supported - initialize HTTP2 connection
             // Create HTTP2 connection and bind it to the Grizzly connection
             final Http2Session http2Session =
-                    filter.createHttp2Connection(connection, true);
+                    filter.createHttp2Session(connection, true);
             
             // we expect client preface
             http2Session.getHttp2State().setDirectUpgradePhase();
