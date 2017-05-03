@@ -12,13 +12,13 @@ single and multiple endpoints respectively. Each connection pool abstraction has
 a builder, which helps to construct and initialize a connection pool of a
 specific configuration.
 
-The javadocs for the full connection pool package may be found [here][pkgdocs].
+<!-- The javadocs for the full connection pool package may be found [here][pkgdocs]. -->
 
 [pkgdocs]: https://grizzly.java.net/docs/2.3/apidocs/org/glassfish/grizzly/connectionpool/package-summary.html
 
 ## SingleEndpointPool
 
-The [SingleEndpointPool][sep] represents a connection pool to a single endpoint. For
+The SingleEndpointPool represents a connection pool to a single endpoint. For
 example if we want to create a connection pool to “grizzly.java.net:443″ and set
 the maximum number of connections in pool equal to eight – the code will look like:
 
@@ -173,7 +173,7 @@ open and will be closed once you will try to return them back to the pool.
 
 ## MultiEndpointPool
 
-The [MultiEndpointPool][mep] represents a connection pool to multiple endpoints. We can
+The MultiEndpointPool represents a connection pool to multiple endpoints. We can
 think of MultiEndpointPool as an Endpoint-to-SingleEndpointPool map, where each endpoint
 is represented by an EndpointKey. The MultiEndpointPool supports pretty much the same
 set of operations as SingleEndpointPool, but some of these operations (especially related to the

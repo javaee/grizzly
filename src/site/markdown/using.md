@@ -3,7 +3,7 @@ In addition to java.net projects such as [GlassFish][gforg], [Shoal][shoal], and
 If you\'d like to have your project listed, drop us a line on our [mailing lists][lists].
 
 [lists]: mailing.html
-[gforg]: https://glassfish.java.net
+[gforg]: https://github.com/javaee/glassfish
 [jersey]: https://jersey.java.net
 [shoal]: https://shoal.java.net
 

@@ -23,7 +23,7 @@ typically where your application logic for your comet-based applications
 lives. The following example shows how to set up a long polling request
 and notify it about events. This code is taken from the count-clicker
 comet sample in the grizzly source repository
-(http://java.net/projects/grizzly/sources/git/show/samples/comet/comet-counter).
+(https://github.com/javaee/grizzly/tree/2.3.x/samples/comet/comet-counter).
 
 ```java
 public class CounterHandler extends DefaultCometHandler<HttpServletResponse> {

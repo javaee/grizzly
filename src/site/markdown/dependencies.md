@@ -133,40 +133,6 @@ Websocket applications on both the server and client sides.
 </dependency>
 ```
 
-## SPDY
-
-`grizzly-spdy` provides the ability to create both server and client
-side applications using the SPDY/3 protocol.
-
-```xml
-<dependency>
-    <groupId>org.glassfish.grizzly</groupId>
-    <artifactId>grizzly-spdy</artifactId>
-    <version>@VERSION@</version>
-</dependency>
-```
-
-The SPDY module, for normal use cases, will also require the Next Protocol Negotiation
-(NPN) JAR to be on the bootclasspath of the JVM providing leveraging SPDY support.
-
-```xml
-<dependency>
-  <groupId>org.glassfish.grizzly</groupId>
-  <artifactId>grizzly-npn-bootstrap</artifactId>
-  <version>1.0</version>
-</dependency>
-```
-
-There is also a version of the NPN jar for those using SPDY in an OSGi environment.
-
-```xml
-<dependency>
-  <groupId>org.glassfish.grizzly</groupId>
-  <artifactId>grizzly-npn-osgi</artifactId>
-  <version>1.0</version>
-</dependency>
-```
-
 ## JAX-WS
 
 `grizzly-http-server-jaxws`, building on top of `grizzly-http-server`, provides
@@ -298,7 +264,7 @@ modules.
 ## The HTTP Server Core Bundle
 
 The `grizzly-http-server-core' bundle aggregates the `grizzly-core` bundle with
-the `grizzly-http-server`, `grizzly-http-ajp`, `grizzly-spdy`, and
+the `grizzly-http-server`, `grizzly-http-ajp`, and
 `grizzly-http-server-multipart` modules.
 
 ```xml

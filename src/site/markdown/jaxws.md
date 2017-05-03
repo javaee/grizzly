@@ -1,7 +1,7 @@
 ## JAXWS Overview
 
 Starting with version 2.1.2, Grizzly supports
-[JAX-WS](http://jax-ws.java.net/) web services execution via [HTTP
+[JAX-WS](https://github.com/javaee/metro-jax-ws) web services execution via [HTTP
 server framework](httpserverframework.html). Using this feature it is
 possible to run JAX-WS web services without need to run them inside
 web-/app-server, but at the same time use all the Grizzly features in

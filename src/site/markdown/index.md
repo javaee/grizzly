@@ -34,7 +34,7 @@ See our list of [dependencies][deps] for details.
 <h2><a href="https://github.com/AsyncHttpClient/async-http-client" class="headerlink"><img src="images/reqres.png"/> Need an HTTP Client?</a></h2>
 
 We\'ve contributed a Grizzly-based provider to the [Async HTTP Client][ahc] project that,
-in addition to, HTTP, supports WebSockets and eventually, SPDY.
+in addition to, HTTP, supports WebSockets and eventually, HTTP/2.
 
 
 ## ![Blogs][blog] Developer Blogs

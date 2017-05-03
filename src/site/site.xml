@@ -28,7 +28,7 @@
             <protocolRelativeURLs>true</protocolRelativeURLs>
 
             <!-- Comment this out for local development. -->
-            <absoluteResourceURL>https://grizzly.java.net</absoluteResourceURL>
+            <absoluteResourceURL>https://javaee.github.io/grizzly/</absoluteResourceURL>
 
             <!-- Brand on the top menu bar -->
             <brand>
@@ -185,16 +185,15 @@
                 <item name="JAXWS" href="jaxws.html"/>
                 <item name="WebSockets" href="websockets.html"/>
                 <item name="AJP" href="ajp.html"/>
-                <item name="SPDY" href="spdy.html"/>
             </item>
-            <item name="Javadocs/XREF" href="hack" collapse="true">
-                <item name="Grizzly 2.3 Javadoc" href="https://grizzly.java.net/docs/2.3/apidocs"/>
-                <item name="Grizzly 2.3 XRef" href="https://grizzly.java.net/docs/2.3/xref"/>
-                <item name="Grizzly 2.2 Javadoc" href="https://grizzly.java.net/docs/2.2/apidocs"/>
-                <item name="Grizzly 2.2 XRef" href="https://grizzly.java.net/docs/2.2/xref"/>
-                <item name="Grizzly 1.9 Javadoc" href="https://grizzly.java.net/docs/1.9/apidocs"/>
-                <item name="Grizzly 1.9 XRef" href="https://grizzly.java.net/docs/1.9/xref"/>
-            </item>
+            <!--<item name="Javadocs/XREF" href="hack" collapse="true">-->
+                <!--<item name="Grizzly 2.3 Javadoc" href="https://grizzly.java.net/docs/2.3/apidocs"/>-->
+                <!--<item name="Grizzly 2.3 XRef" href="https://grizzly.java.net/docs/2.3/xref"/>-->
+                <!--<item name="Grizzly 2.2 Javadoc" href="https://grizzly.java.net/docs/2.2/apidocs"/>-->
+                <!--<item name="Grizzly 2.2 XRef" href="https://grizzly.java.net/docs/2.2/xref"/>-->
+                <!--<item name="Grizzly 1.9 Javadoc" href="https://grizzly.java.net/docs/1.9/apidocs"/>-->
+                <!--<item name="Grizzly 1.9 XRef" href="https://grizzly.java.net/docs/1.9/xref"/>-->
+            <!--</item>-->
         </menu>
         <menu name="Contribute">
             <item name="Contribute" href="contribute.html"/>
@@ -203,8 +202,8 @@
             <item name="Mailing Lists" href="mailing.html"/>
         </menu>
         <menu name="Project Info">
-            <item name="Source Control" href="scm.html"/>
-            <item name="Issue Tracking" href="https://java.net/jira/browse/GRIZZLY/"/>
+            <item name="Source Control" href="https://github.com/javaee/grizzly"/>
+            <item name="Issue Tracking" href="https://github.com/javaee/grizzly/issues"/>
             <item name="Mailing Lists" href="mailing.html"/>
             <item name="Project Team" href="team-list.html"/>
         </menu>

@@ -2,23 +2,23 @@
 
 ---
 
-## [![bug][bug]][grizzly-jira] Report Issues
+## [![bug][bug]][grizzly-issues] Report Issues
 
 Issue reporting is central to OSS projects.  If the issue isn't reported,
 we can't fix it.  Please report any bugs, feature, and/or improvement requests on the
-[Grizzly JIRA][grizzly-jira].
+[Grizzly GitHub Issues][grizzly-issues] tracker.
 
-[grizzly-jira]: https://java.net/jira/browse/GRIZZLY
+[grizzly-issues]: https://github.com/javaee/grizzly/issues
 [bug]: images/bug.png
 
 
-## [![git][git]][scm] Submit Patches
+## [![git][git]] Submit Patches
 
-Have a fix or a feature you\'d like to share?  Open an [issue][grizzly-jira] and link a [gist][gist]
-containing your patch with details on what you\'re resolving and how you\'ve resolving it.
+Have a fix or a feature you\'d like to share?  Submit a [Pull Request][pull]!
 
 [git]: images/git.png
 [gist]: https://gist.github.com
+[pull]: https://github.com/javaee/grizzly/pulls
 
 
 ## ![pen][pen] Documentation
@@ -26,7 +26,7 @@ containing your patch with details on what you\'re resolving and how you\'ve res
 Good documentation is an important aspect of any software project.  We\'ve
 taken several strides in improving our documentation, but there\'s always room
 for improvement.  If you see anything missing or an area that could be improved,
-let us [know][grizzly-jira] or submit a patch.
+let us [know][grizzly-issues] or submit a patch.
 
 [pen]: images/pen.png
 
@@ -41,7 +41,7 @@ Write a blog and drop us a note.
 
 ## ![reviews][search] Code Review
 
-More eyes on the code means better quality.  Review our [code][scm] for style issues,
+More eyes on the code means better quality.  Review our code for style issues,
 potential issues, or glaring bugs.  Anything helps!
 
 [search]: images/search.png
@@ -55,6 +55,4 @@ lists][list] or follow questions tagged with `grizzly` on [StackOverflow][stack]
 [stack]: http://stackoverflow.com/questions/tagged/grizzly
 [support]: images/conversation.png
 [list]: mailing.html
-
-[scm]: scm.html
 

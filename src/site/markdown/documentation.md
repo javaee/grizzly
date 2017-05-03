@@ -33,7 +33,6 @@
 * [JAXWS][jax]
 * [WebSockets][ws]
 * [AJP][ajp]
-* [SPDY][spdy]
 
 [http]: httpframework.html
 [https]: httpserverframework.html
@@ -42,4 +41,3 @@
 [jax]: jaxws.html
 [ws]: websockets.html
 [ajp]: ajp.html
-[spdy]: spdy.html

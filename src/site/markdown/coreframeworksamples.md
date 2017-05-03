@@ -205,8 +205,8 @@ The core framework samples can be reviewed in one of two ways:
 -   Directly from the git repository:
 
 ```
-git clone git://java.net/grizzly~git
-cd grizzly~git
+git clone https://github.com/javaee/grizzly.git
+cd grizzly
 git checkout @TAG@
 cd samples/framework-samples
 ```
