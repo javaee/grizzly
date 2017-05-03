@@ -15,15 +15,15 @@
  
 		<link href="//netdna.bootstrapcdn.com/bootswatch/2.2.2/cosmo/bootstrap.min.css" rel="stylesheet" />
 		<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-responsive.min.css" rel="stylesheet" />
-		<link href="https://grizzly.java.net/css/bootswatch.css" rel="stylesheet" />
-		<link href="https://grizzly.java.net/css/reflow-skin.css" rel="stylesheet" />
+		<link href="https://javaee.github.io/grizzly//css/bootswatch.css" rel="stylesheet" />
+		<link href="https://javaee.github.io/grizzly//css/reflow-skin.css" rel="stylesheet" />
 		
 		<link href="//yandex.st/highlightjs/7.3/styles/solarized_dark.min.css" rel="stylesheet" />
 		
-		<link href="https://grizzly.java.net/css/lightbox.css" rel="stylesheet" />
+		<link href="https://javaee.github.io/grizzly//css/lightbox.css" rel="stylesheet" />
 		
-		<link href="https://grizzly.java.net/css/site.css" rel="stylesheet" />
-		<link href="https://grizzly.java.net/css/print.css" rel="stylesheet" media="print" />
+		<link href="https://javaee.github.io/grizzly//css/site.css" rel="stylesheet" />
+		<link href="https://javaee.github.io/grizzly//css/print.css" rel="stylesheet" media="print" />
 		
 		<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
 		<!--[if lt IE 9]>
@@ -83,18 +83,6 @@
 											<li><a href="jaxws.html" title="JAXWS">JAXWS </a></li>
 											<li><a href="websockets.html" title="WebSockets">WebSockets </a></li>
 											<li><a href="ajp.html" title="AJP">AJP </a></li>
-											<li><a href="spdy.html" title="SPDY">SPDY </a></li>
-										</ul>
-									</li>
-									<li class="dropdown-submenu">
-										<a href="hack" title="Javadocs/XREF">Javadocs/XREF </a>
-										<ul class="dropdown-menu">
-											<li><a href="https://grizzly.java.net/docs/2.3/apidocs" title="Grizzly 2.3 Javadoc" class="externalLink">Grizzly 2.3 Javadoc </a></li>
-											<li><a href="https://grizzly.java.net/docs/2.3/xref" title="Grizzly 2.3 XRef" class="externalLink">Grizzly 2.3 XRef </a></li>
-											<li><a href="https://grizzly.java.net/docs/2.2/apidocs" title="Grizzly 2.2 Javadoc" class="externalLink">Grizzly 2.2 Javadoc </a></li>
-											<li><a href="https://grizzly.java.net/docs/2.2/xref" title="Grizzly 2.2 XRef" class="externalLink">Grizzly 2.2 XRef </a></li>
-											<li><a href="https://grizzly.java.net/docs/1.9/apidocs" title="Grizzly 1.9 Javadoc" class="externalLink">Grizzly 1.9 Javadoc </a></li>
-											<li><a href="https://grizzly.java.net/docs/1.9/xref" title="Grizzly 1.9 XRef" class="externalLink">Grizzly 1.9 XRef </a></li>
 										</ul>
 									</li>
 								</ul>
@@ -181,12 +169,12 @@
  <div class="section"> 
   <h3 id="Client-Side_Connection_Pool">Client-Side Connection Pool</h3> 
   <p>As of Grizzly 2.3.4, a new client-side connection pool API has been introduced. This API is completely different from one provided by Grizzly 1.9.x, it has more features and hopefully is nicer and easier to use. There are 2 main abstractions: SingleEndpointPool and MultiEndpointPool, which represent a connection pool to a single and multiple endpoints respectively. Each connection pool abstraction has a builder, which helps to construct and initialize a connection pool of a specific configuration.</p> 
-  <p>The javadocs for the full connection pool package may be found <a class="externalLink" href="https://grizzly.java.net/docs/2.3/apidocs/org/glassfish/grizzly/connectionpool/package-summary.html">here</a>.</p> 
+  <!-- The javadocs for the full connection pool package may be found [here][pkgdocs]. --> 
  </div> 
 </div> 
 <div class="section"> 
  <h2 id="SingleEndpointPool">SingleEndpointPool</h2> 
- <p>The <a class="externalLink" href="https://grizzly.java.net/docs/2.3/apidocs/org/glassfish/grizzly/connectionpool/SingleEndpointPool.html">SingleEndpointPool</a> represents a connection pool to a single endpoint. For example if we want to create a connection pool to “grizzly.java.net:443″ and set the maximum number of connections in pool equal to eight – the code will look like:</p> 
+ <p>The SingleEndpointPool represents a connection pool to a single endpoint. For example if we want to create a connection pool to “grizzly.java.net:443″ and set the maximum number of connections in pool equal to eight – the code will look like:</p> 
  <div class="source"> 
   <pre>TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
                 .processor(myFilterChain)
@@ -317,7 +305,7 @@ pool.detach(connection);
 </div> 
 <div class="section"> 
  <h2 id="MultiEndpointPool">MultiEndpointPool</h2> 
- <p>The <a class="externalLink" href="https://grizzly.java.net/docs/2.3/apidocs/org/glassfish/grizzly/connectionpool/MultiEndpointPool.html">MultiEndpointPool</a> represents a connection pool to multiple endpoints. We can think of MultiEndpointPool as an Endpoint-to-SingleEndpointPool map, where each endpoint is represented by an EndpointKey. The MultiEndpointPool supports pretty much the same set of operations as SingleEndpointPool, but some of these operations (especially related to the Connection allocation) require EndpointKey parameter. Here is an example of MultiEndpointPool, which is used to allocate connections to 2 different servers:</p> 
+ <p>The MultiEndpointPool represents a connection pool to multiple endpoints. We can think of MultiEndpointPool as an Endpoint-to-SingleEndpointPool map, where each endpoint is represented by an EndpointKey. The MultiEndpointPool supports pretty much the same set of operations as SingleEndpointPool, but some of these operations (especially related to the Connection allocation) require EndpointKey parameter. Here is an example of MultiEndpointPool, which is used to allocate connections to 2 different servers:</p> 
  <div class="source"> 
   <pre>// Build a connection pool
 MultiEndpointPool pool = MultiEndpointPool
@@ -571,10 +559,10 @@ Connection c2 = transport.connect(&quot;10.20.30.40&quot;, 443).get();
 					<ul class="nav nav-list">
 						<li class="nav-header">Project Info</li>
 						<li>
-							<a href="scm.html" title="Source Control">Source Control </a>
+							<a href="./" title="Source Control">Source Control </a>
 						</li>
 						<li>
-							<a href="https://java.net/jira/browse/GRIZZLY/" title="Issue Tracking" class="externalLink">Issue Tracking </a>
+							<a href="issues" title="Issue Tracking">Issue Tracking </a>
 						</li>
 						<li>
 							<a href="mailing.html" title="Mailing Lists">Mailing Lists </a>
@@ -607,18 +595,18 @@ Connection c2 = transport.connect(&quot;10.20.30.40&quot;, 443).get();
 	<script type="text/javascript">
 		if (typeof jQuery == 'undefined')
 		{
-			document.write(unescape("%3Cscript src='https://grizzly.java.net/js/jquery-1.8.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+			document.write(unescape("%3Cscript src='https://javaee.github.io/grizzly//js/jquery-1.8.3.min.js' type='text/javascript'%3E%3C/script%3E"));
 		}
 	</script>
 	
 	<script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
-	<script src="https://grizzly.java.net/js/lightbox.js"></script>
-	<script src="https://grizzly.java.net/js/jquery.smooth-scroll.min.js"></script>
+	<script src="https://javaee.github.io/grizzly//js/lightbox.js"></script>
+	<script src="https://javaee.github.io/grizzly//js/jquery.smooth-scroll.min.js"></script>
 	<!-- back button support for smooth scroll -->
-	<script src="https://grizzly.java.net/js/jquery.ba-bbq.min.js"></script>
+	<script src="https://javaee.github.io/grizzly//js/jquery.ba-bbq.min.js"></script>
 	<script src="//yandex.st/highlightjs/7.3/highlight.min.js"></script>
 
-	<script src="https://grizzly.java.net/js/reflow-skin.js"></script>
+	<script src="https://javaee.github.io/grizzly//js/reflow-skin.js"></script>
 	
 	</body>
 </html>

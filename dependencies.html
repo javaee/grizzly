@@ -15,15 +15,15 @@
  
 		<link href="//netdna.bootstrapcdn.com/bootswatch/2.2.2/cosmo/bootstrap.min.css" rel="stylesheet" />
 		<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-responsive.min.css" rel="stylesheet" />
-		<link href="https://grizzly.java.net/css/bootswatch.css" rel="stylesheet" />
-		<link href="https://grizzly.java.net/css/reflow-skin.css" rel="stylesheet" />
+		<link href="https://javaee.github.io/grizzly//css/bootswatch.css" rel="stylesheet" />
+		<link href="https://javaee.github.io/grizzly//css/reflow-skin.css" rel="stylesheet" />
 		
 		<link href="//yandex.st/highlightjs/7.3/styles/solarized_dark.min.css" rel="stylesheet" />
 		
-		<link href="https://grizzly.java.net/css/lightbox.css" rel="stylesheet" />
+		<link href="https://javaee.github.io/grizzly//css/lightbox.css" rel="stylesheet" />
 		
-		<link href="https://grizzly.java.net/css/site.css" rel="stylesheet" />
-		<link href="https://grizzly.java.net/css/print.css" rel="stylesheet" media="print" />
+		<link href="https://javaee.github.io/grizzly//css/site.css" rel="stylesheet" />
+		<link href="https://javaee.github.io/grizzly//css/print.css" rel="stylesheet" media="print" />
 		
 		<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
 		<!--[if lt IE 9]>
@@ -83,18 +83,6 @@
 											<li><a href="jaxws.html" title="JAXWS">JAXWS </a></li>
 											<li><a href="websockets.html" title="WebSockets">WebSockets </a></li>
 											<li><a href="ajp.html" title="AJP">AJP </a></li>
-											<li><a href="spdy.html" title="SPDY">SPDY </a></li>
-										</ul>
-									</li>
-									<li class="dropdown-submenu">
-										<a href="hack" title="Javadocs/XREF">Javadocs/XREF </a>
-										<ul class="dropdown-menu">
-											<li><a href="https://grizzly.java.net/docs/2.3/apidocs" title="Grizzly 2.3 Javadoc" class="externalLink">Grizzly 2.3 Javadoc </a></li>
-											<li><a href="https://grizzly.java.net/docs/2.3/xref" title="Grizzly 2.3 XRef" class="externalLink">Grizzly 2.3 XRef </a></li>
-											<li><a href="https://grizzly.java.net/docs/2.2/apidocs" title="Grizzly 2.2 Javadoc" class="externalLink">Grizzly 2.2 Javadoc </a></li>
-											<li><a href="https://grizzly.java.net/docs/2.2/xref" title="Grizzly 2.2 XRef" class="externalLink">Grizzly 2.2 XRef </a></li>
-											<li><a href="https://grizzly.java.net/docs/1.9/apidocs" title="Grizzly 1.9 Javadoc" class="externalLink">Grizzly 1.9 Javadoc </a></li>
-											<li><a href="https://grizzly.java.net/docs/1.9/xref" title="Grizzly 1.9 XRef" class="externalLink">Grizzly 1.9 XRef </a></li>
 										</ul>
 									</li>
 								</ul>
@@ -256,43 +244,11 @@
 &lt;/dependency&gt;
 </pre> 
 </div>
-<div class="section">        
+<div class="section">    
 </div>
 		</div>
 	</div>
 	<div class="row">
-		<div class="span6">
-			<h2 id="SPDY">SPDY</h2>
-<p><tt>grizzly-spdy</tt> provides the ability to create both server and client side applications using the SPDY/3 protocol.</p>
-<div class="source"> 
- <pre>&lt;dependency&gt;
-    &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
-    &lt;artifactId&gt;grizzly-spdy&lt;/artifactId&gt;
-    &lt;version&gt;@VERSION@&lt;/version&gt;
-&lt;/dependency&gt;
-</pre> 
-</div>
-<p>The SPDY module, for normal use cases, will also require the Next Protocol Negotiation (NPN) JAR to be on the bootclasspath of the JVM providing leveraging SPDY support.</p>
-<div class="source"> 
- <pre>&lt;dependency&gt;
-  &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
-  &lt;artifactId&gt;grizzly-npn-bootstrap&lt;/artifactId&gt;
-  &lt;version&gt;1.0&lt;/version&gt;
-&lt;/dependency&gt;
-</pre> 
-</div>
-<p>There is also a version of the NPN jar for those using SPDY in an OSGi environment.</p>
-<div class="source"> 
- <pre>&lt;dependency&gt;
-  &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
-  &lt;artifactId&gt;grizzly-npn-osgi&lt;/artifactId&gt;
-  &lt;version&gt;1.0&lt;/version&gt;
-&lt;/dependency&gt;
-</pre> 
-</div>
-<div class="section">    
-</div>
-		</div>
 		<div class="span6">
 			<h2 id="JAX-WS">JAX-WS</h2>
 <p><tt>grizzly-http-server-jaxws</tt>, building on top of <tt>grizzly-http-server</tt>, provides the ability to create JAX-WS applications.</p>
@@ -307,8 +263,6 @@
 <div class="section">      
 </div>
 		</div>
-	</div>
-	<div class="row">
 		<div class="span6">
 			<h2 id="Monitoring">Monitoring</h2>
 <p><tt>grizzly-monitory</tt> allows developers to leverage JMX monitoring within their applications.</p>
@@ -339,6 +293,8 @@
 <div class="section">    
 </div>
 		</div>
+	</div>
+	<div class="row">
 		<div class="span6">
 			<h2 id="Connection_Pool">Connection Pool</h2>
 <p><tt>connection-pool</tt> provides a robust client-side connection pool implementation.</p>
@@ -353,8 +309,6 @@
 <div class="section">   
 </div>
 		</div>
-	</div>
-	<div class="row">
 		<div class="span6">
 			<h2 id="Server_Name_Indication_SNI_TLS_extension_support">Server Name Indication (SNI) TLS extension support</h2>
 <div class="source"> 
@@ -368,6 +322,8 @@
 <div class="section">    
 </div>
 		</div>
+	</div>
+	<div class="row">
 		<div class="span6">
 			<h2 id="OSGi_HTTP_Service">OSGi HTTP Service</h2>
 <p><tt>grizzly-httpservice</tt> provides an OSGi HTTP Service implementation. This JAR includes the Grizzly Servlet, Websocket, port unification, and comet libraries allowing developers to build common types of HTTP server applications within an OSGi environment.</p>
@@ -382,8 +338,6 @@
 <div class="section">    
 </div>
 		</div>
-	</div>
-	<div class="row">
 		<div class="span6">
 			<h2 id="HTTP_Server_Multipart">HTTP Server Multipart</h2>
 <p><tt>grizzly-http-server-multipart</tt> provides a non-blocking API for processing multipart requests.</p>
@@ -398,6 +352,8 @@
 <div class="section">    
 </div>
 		</div>
+	</div>
+	<div class="row">
 		<div class="span6">
 			<h2 id="Grizzly_HTTP_Servlet_Extras">Grizzly HTTP Servlet Extras</h2>
 <p><tt>grizzly-http-servlet-extras</tt>; a drop-in Servlet Filter that builds on the HTTP Server Multipart library providing non-blocking multipart handling.</p>
@@ -410,8 +366,6 @@
 </pre> 
 </div>
 		</div>
-	</div>
-	<div class="row">
 	</div>
 	<div class="row">
 		<div class="span12">
@@ -440,7 +394,7 @@
 		</div>
 		<div class="span6">
 			<h2 id="The_HTTP_Server_Core_Bundle">The HTTP Server Core Bundle</h2>
-<p>The <tt>grizzly-http-server-core' bundle aggregates the</tt>grizzly-core<tt>bundle with the</tt>grizzly-http-server<tt>,</tt>grizzly-http-ajp<tt>,</tt>grizzly-spdy<tt>, and </tt>grizzly-http-server-multipart` modules.</p>
+<p>The <tt>grizzly-http-server-core' bundle aggregates the</tt>grizzly-core<tt>bundle with the</tt>grizzly-http-server<tt>,</tt>grizzly-http-ajp<tt>, and </tt>grizzly-http-server-multipart` modules.</p>
 <div class="source"> 
  <pre>&lt;dependency&gt;
     &lt;groupId&gt;org.glassfish.grizzly&lt;/groupId&gt;
@@ -561,10 +515,10 @@
 					<ul class="nav nav-list">
 						<li class="nav-header">Project Info</li>
 						<li>
-							<a href="scm.html" title="Source Control">Source Control </a>
+							<a href="./" title="Source Control">Source Control </a>
 						</li>
 						<li>
-							<a href="https://java.net/jira/browse/GRIZZLY/" title="Issue Tracking" class="externalLink">Issue Tracking </a>
+							<a href="issues" title="Issue Tracking">Issue Tracking </a>
 						</li>
 						<li>
 							<a href="mailing.html" title="Mailing Lists">Mailing Lists </a>
@@ -597,18 +551,18 @@
 	<script type="text/javascript">
 		if (typeof jQuery == 'undefined')
 		{
-			document.write(unescape("%3Cscript src='https://grizzly.java.net/js/jquery-1.8.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+			document.write(unescape("%3Cscript src='https://javaee.github.io/grizzly//js/jquery-1.8.3.min.js' type='text/javascript'%3E%3C/script%3E"));
 		}
 	</script>
 	
 	<script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
-	<script src="https://grizzly.java.net/js/lightbox.js"></script>
-	<script src="https://grizzly.java.net/js/jquery.smooth-scroll.min.js"></script>
+	<script src="https://javaee.github.io/grizzly//js/lightbox.js"></script>
+	<script src="https://javaee.github.io/grizzly//js/jquery.smooth-scroll.min.js"></script>
 	<!-- back button support for smooth scroll -->
-	<script src="https://grizzly.java.net/js/jquery.ba-bbq.min.js"></script>
+	<script src="https://javaee.github.io/grizzly//js/jquery.ba-bbq.min.js"></script>
 	<script src="//yandex.st/highlightjs/7.3/highlight.min.js"></script>
 
-	<script src="https://grizzly.java.net/js/reflow-skin.js"></script>
+	<script src="https://javaee.github.io/grizzly//js/reflow-skin.js"></script>
 	
 	</body>
 </html>
