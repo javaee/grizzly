@@ -659,7 +659,7 @@ public class Http2Session {
         outputSink.writeDownStream(f);
     }
     
-    boolean sendPreface() {
+    void sendPreface() {
         if (!isPrefaceSent) {
             synchronized (sessionLock) {
                 if (!isPrefaceSent) {
@@ -678,12 +678,9 @@ public class Http2Session {
                         // more data if needed.
                         ackConsumedData(getStream(0), 0);
                     }
-                    return true;
                 }
             }
         }
-        
-        return false;
     }
     
     protected void sendServerPreface() {
@@ -1102,12 +1099,11 @@ public class Http2Session {
     /**
      * Initializes HTTP2 communication (if not initialized before) by forming
      * HTTP2 connection and stream {@link FilterChain}s.
-     * 
-     * @param context the current {@link FilterChainContext}
+     *  @param context the current {@link FilterChainContext}
      * @param isUpStream flag denoting the direction of the chain
      */
-    boolean setupFilterChains(final FilterChainContext context,
-            final boolean isUpStream) {
+    void setupFilterChains(final FilterChainContext context,
+                           final boolean isUpStream) {
 
         if (htt2SessionChain == null) {
             synchronized(this) {
@@ -1125,13 +1121,9 @@ public class Http2Session {
                         htt2SessionChain = (FilterChain) context.getFilterChain().subList(
                                 context.getEndIdx() + 1, context.getFilterIdx());
                     }
-                    
-                    return true;
                 }
             }
         }
-        
-        return false;
     }
     
     FilterChain getHttp2SessionChain() {
@@ -1264,15 +1256,8 @@ public class Http2Session {
     }
 
     protected SettingsFrameBuilder prepareSettings() {
-        return prepareSettings(null);
-    }
-
-    protected SettingsFrameBuilder prepareSettings(
-            SettingsFrameBuilder builder) {
         
-        if (builder == null) {
-            builder = SettingsFrame.builder();
-        }
+        final SettingsFrameBuilder builder = SettingsFrame.builder();
         
         if (getLocalMaxConcurrentStreams() != getDefaultMaxConcurrentStreams()) {
             builder.setting(SETTINGS_MAX_CONCURRENT_STREAMS, getLocalMaxConcurrentStreams());
