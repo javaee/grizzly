@@ -45,7 +45,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -57,13 +56,17 @@ import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.Futures;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
+
 import static org.junit.Assert.*;
 /**
  * {@link NetworkListener} tests.
  * 
  * @author Alexey Stashok
  */
+@FixMethodOrder(MethodSorters.JVM)
 public class NetworkListenerTest {
     public static final int PORT = 18897;
 
@@ -131,7 +134,7 @@ public class NetworkListenerTest {
         final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         final NetworkListener listener = server.getListener("grizzly");
         listener.setTransactionTimeout(5);
-        final AtomicReference<Exception> timeoutFailed = new AtomicReference<Exception>();
+        final AtomicReference<Exception> timeoutFailed = new AtomicReference<>();
         server.getServerConfiguration().addHttpHandler(
                 new HttpHandler() {
                     @Override
@@ -185,19 +188,7 @@ public class NetworkListenerTest {
         final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
         
         final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
-        server.getServerConfiguration().addHttpHandler(
-                new HttpHandler() {
-                    @Override
-                    public void service(Request request, Response response) throws Exception {
-                        response.setContentType("text/plain");
-                        response.setCharacterEncoding(Charsets.UTF8_CHARSET.name());
-                        response.setContentLength(msgBytes.length);
-                        response.flush();
-                        Thread.sleep(2000);
-                        response.getOutputStream().write(msgBytes);
-                    }
-                }, "/test"
-        );
+        addTestHandler(msgBytes, server);
         try {
             server.start();
             URL url = new URL("http://localhost:" + PORT + "/test");
@@ -222,20 +213,14 @@ public class NetworkListenerTest {
         }
     }
 
-    @Test
-    public void testGracefulShutdownGracePeriod() throws IOException {
-        final String msg = "Hello World";
-        final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
-
-        final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+    private void addTestHandler(final byte[] msgBytes, final HttpServer server) {
         server.getServerConfiguration().addHttpHandler(
                 new HttpHandler() {
+                    @SuppressWarnings("Duplicates")
                     @Override
-                    public void service(Request request, Response response)
-                    throws Exception {
+                    public void service(Request request, Response response) throws Exception {
                         response.setContentType("text/plain");
-                        response.setCharacterEncoding(
-                                Charsets.UTF8_CHARSET.name());
+                        response.setCharacterEncoding(Charsets.UTF8_CHARSET.name());
                         response.setContentLength(msgBytes.length);
                         response.flush();
                         Thread.sleep(2000);
@@ -243,6 +228,15 @@ public class NetworkListenerTest {
                     }
                 }, "/test"
         );
+    }
+
+    @Test
+    public void testGracefulShutdownGracePeriod() throws IOException {
+        final String msg = "Hello World";
+        final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
+
+        final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+        addTestHandler(msgBytes, server);
         try {
             server.start();
             URL url = new URL("http://localhost:" + PORT + "/test");
@@ -273,21 +267,7 @@ public class NetworkListenerTest {
         final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
 
         final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
-        server.getServerConfiguration().addHttpHandler(
-                new HttpHandler() {
-                    @Override
-                    public void service(Request request, Response response)
-                    throws Exception {
-                        response.setContentType("text/plain");
-                        response.setCharacterEncoding(
-                                Charsets.UTF8_CHARSET.name());
-                        response.setContentLength(msgBytes.length);
-                        response.flush();
-                        Thread.sleep(2000);
-                        response.getOutputStream().write(msgBytes);
-                    }
-                }, "/test"
-        );
+        addTestHandler(msgBytes, server);
         try {
             server.start();
             URL url = new URL("http://localhost:" + PORT + "/test");
