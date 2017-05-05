@@ -777,8 +777,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
                                               headersFrame.getStreamId(),
                                               headersFrame.getStreamDependency(),
                                               headersFrame.isExclusive(),
-                                              0,
-                                              Http2StreamState.IDLE);
+                                              0);
         if (stream == null) { // GOAWAY has been sent, so ignoring this request
             request.recycle();
             return;
@@ -900,8 +899,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 pushStream = h2c.openStream(
                         request,
                         h2c.getNextLocalStreamId(), parentStream.getId(),
-                        false, 0,
-                        Http2StreamState.RESERVED_LOCAL);
+                        false, 0);
                 pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
 
                 h2c.getDeflaterLock().lock();
@@ -911,7 +909,9 @@ public class Http2ServerFilter extends Http2BaseFilter {
                                     ctx, pushStream.getRequest(), parentStream.getId(),
                                     pushStream.getId(), null);
                     h2c.getOutputSink().writeDownStream(pushPromiseFrames);
+
                 } finally {
+                    pushStream.onSendPushPromise();
                     h2c.getDeflaterLock().unlock();
                 }
             } finally {

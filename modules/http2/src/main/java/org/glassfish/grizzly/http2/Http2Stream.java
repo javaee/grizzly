@@ -89,6 +89,16 @@ import static org.glassfish.grizzly.http2.Termination.UNEXPECTED_FRAME_TERMINATI
  */
 public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
 
+    public enum State {
+        IDLE,
+        OPEN,
+        RESERVED_LOCAL,
+        RESERVED_REMOTE,
+        HALF_CLOSED_LOCAL,
+        HALF_CLOSED_REMOTE,
+        CLOSED
+    }
+
     private static final Logger LOGGER = Grizzly.logger(Http2Stream.class);
 
     public static final String HTTP2_STREAM_ATTRIBUTE =
@@ -100,10 +110,8 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     
     private static final Attribute<Http2Stream> HTTP_RQST_HTTP2_STREAM_ATTR =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("http2.request.stream");
-    
-    private static final AtomicReferenceFieldUpdater<Http2Stream, Http2StreamState> stateUpdater =
-            AtomicReferenceFieldUpdater.newUpdater(Http2Stream.class, Http2StreamState.class, "state");
-    private volatile Http2StreamState state;
+
+    State state = State.IDLE;
     
     private final HttpRequestPacket request;
     private final int streamId;
@@ -175,20 +183,18 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      * @param streamId this stream's ID.
      * @param parentStreamId the parent stream, if any.
      * @param priority the priority of this stream.
-     * @param initState the initial stream state.
      */
     protected Http2Stream(final Http2Session http2Session,
             final HttpRequestPacket request,
             final int streamId, final int parentStreamId,
-            final boolean exclusive, final int priority,
-            final Http2StreamState initState) {
+            final boolean exclusive, final int priority) {
         this.http2Session = http2Session;
         this.request = request;
         this.streamId = streamId;
         this.parentStreamId = parentStreamId;
         this.exclusive = exclusive;
         this.priority = priority;
-        this.state = initState;
+        this.state = State.IDLE;
 
         inputBuffer = new DefaultInputBuffer(this);
         outputSink = new DefaultOutputSink(this);
@@ -202,17 +208,15 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      * @param http2Session the {@link Http2Session} for this {@link Http2Stream}.
      * @param request the {@link HttpRequestPacket} initiating the stream.
      * @param priority the priority of this stream.
-     * @param initState the initial stream state.
      */
     protected Http2Stream(final Http2Session http2Session,
             final HttpRequestPacket request,
-            final int priority, final Http2StreamState initState) {
+            final int priority) {
         this.http2Session = http2Session;
         this.request = request;
         this.streamId = UPGRADE_STREAM_ID;
         this.parentStreamId = 0;
         this.priority = priority;
-        this.state = initState;
 
         this.exclusive = false;
         inputBuffer = http2Session.isServer()
@@ -230,19 +234,6 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         return http2Session;
     }
 
-    public Http2StreamState getState() {
-        return state;
-    }
-
-    private boolean compareAndSetState(final Http2StreamState expectedState,
-            final Http2StreamState newState) {
-        return stateUpdater.compareAndSet(this, expectedState, newState);
-    }
-
-    boolean isState(final Http2StreamState streamState) {
-        return state == streamState;
-    }
-    
     public int getPeerWindowSize() {
         return http2Session.getPeerStreamWindowSize();
     }
@@ -442,6 +433,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     void resetRemotely() {
         if (closeReasonUpdater.compareAndSet(this, null,
                 new CloseReason(CloseType.REMOTELY, null))) {
+            onReset();
             // initial graceful shutdown for input, so user is able to read
             // the buffered data
             inputBuffer.terminate(RESET_TERMINATION);
@@ -561,16 +553,11 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
             case 1: // first header block to process
                 
                 // change the state
-                final Http2StreamState s = state;
-                if (s == Http2StreamState.IDLE) {
-                    compareAndSetState(Http2StreamState.IDLE,
-                            isEOS ? Http2StreamState.HALF_CLOSED_REMOTE
-                                  : Http2StreamState.OPEN);
-                } else if (s == Http2StreamState.RESERVED_REMOTE) {
-                    compareAndSetState(Http2StreamState.RESERVED_REMOTE,
-                            Http2StreamState.HALF_CLOSED_LOCAL);
+                onReceiveHeaders();
+                if (isEOS) {
+                    onReceiveEndOfStream();
                 }
-                
+
                 break;
             case 2: {   // might be a trailing headers, which is ok
                 if (isEOS) {
@@ -594,17 +581,12 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
      */
     void onSndHeaders(final boolean isEOS) {
         // change the state
-        final Http2StreamState s = state;
-        if (s == Http2StreamState.IDLE) {
-            compareAndSetState(Http2StreamState.IDLE,
-                    isEOS ? Http2StreamState.HALF_CLOSED_LOCAL
-                          : Http2StreamState.OPEN);
-        } else if (s == Http2StreamState.RESERVED_LOCAL) {
-            compareAndSetState(Http2StreamState.RESERVED_LOCAL,
-                    Http2StreamState.HALF_CLOSED_REMOTE);
+        onSendHeaders();
+        if (isEOS) {
+            onSendEndOfStream();
         }
     }
-    
+
     private Buffer cachedInputBuffer;
     private boolean cachedIsLast;
     
@@ -615,7 +597,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
                     "Data frame received on a push-stream");
         }
 
-        if (stateUpdater.get(this) == Http2StreamState.HALF_CLOSED_REMOTE) {
+        if (getState() == State.HALF_CLOSED_REMOTE) {
 
             close0(null, CloseType.LOCALLY,
                     new IOException("Received DATA frame on HALF_CLOSED_REMOTE stream."), false);
@@ -681,7 +663,8 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     }
     
     private void closeStream() {
-        stateUpdater.set(this, Http2StreamState.CLOSED);
+        // TODO ensure stream proper transitions to CLOSED state
+        //Http2StreamState.close(this);
         http2Session.deregisterStream();
     }
     
@@ -709,6 +692,179 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
             try {
                 closeListener.onClosed(this, cr.getType());
             } catch (IOException ignored) {
+            }
+        }
+    }
+
+    /**
+     * The state of the specified stream.
+     *
+     * @return the current State.
+     */
+     State getState() {
+        synchronized (this) {
+            return state;
+        }
+    }
+
+    /**
+     * Checks if the specified stream is closed.
+     *
+     * @return true if the stream is closed, otherwise false.
+     */
+    boolean isClosed() {
+        synchronized (this) {
+            return (state == State.CLOSED);
+        }
+    }
+
+    /**
+     * Checks if the specified stream is idle.
+     *
+     * @return true if the stream is idle, otherwise false.
+     */
+
+    boolean isIdle() {
+        synchronized (this) {
+            return (state == State.IDLE);
+        }
+    }
+
+    /**
+     * Checks if the specified stream is can send frames.
+     *
+     * @return true if the stream can send frames, otherwise false.
+     */
+     boolean canSendFrames() {
+        synchronized (this) {
+            return (state != State.CLOSED && state != State.HALF_CLOSED_LOCAL);
+        }
+    }
+
+    /**
+     * Checks if the specified stream is can receive frames.
+     *
+     * @return true if the stream can receive frames, otherwise false.
+     */
+    boolean canReceiveFrames() {
+        synchronized (this) {
+            return (state != State.CLOSED && state != State.HALF_CLOSED_REMOTE);
+        }
+    }
+
+
+    /**
+     * Transition the stream from IDLE to RESERVED_LOCAL.
+     */
+    void onSendPushPromise() {
+        synchronized (this) {
+            if (state == State.IDLE) {
+                state = State.RESERVED_LOCAL;
+            }
+        }
+    }
+
+    /**
+     * Transition the stream from IDLE to RESERVED_REMOTE.
+     */
+    void onReceivePushPromise() {
+        synchronized (this) {
+            if (state == State.IDLE) {
+                state = State.RESERVED_REMOTE;
+            }
+        }
+    }
+
+    /**
+     * Transition the stream from:
+     *   - IDLE           -> OPEN
+     *   - RESERVED_LOCAL -> HALF_CLOSED_REMOTE
+     */
+    private void onSendHeaders() {
+        synchronized (this) {
+            switch (state) {
+                case IDLE:
+                    state = State.OPEN;
+                    break;
+                case RESERVED_LOCAL:
+                    state = State.HALF_CLOSED_REMOTE;
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Transition the stream from:
+     *   - IDLE            -> OPEN
+     *   - RESERVED_REMOTE -> HALF_CLOSED_LOCAL
+     */
+    private void onReceiveHeaders() {
+        synchronized (this) {
+            switch (state) {
+                case IDLE:
+                    state = State.OPEN;
+                    break;
+                case RESERVED_REMOTE:
+                    state = State.HALF_CLOSED_LOCAL;
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Transition the stream from:
+     *   - OPEN               -> HALF_CLOSED_LOCAL
+     *   - HALF_CLOSED_REMOTE -> CLOSED
+     */
+    private void onSendEndOfStream() {
+        synchronized (this) {
+            switch (state) {
+                case OPEN:
+                    state = State.HALF_CLOSED_LOCAL;
+                    break;
+                case HALF_CLOSED_REMOTE:
+                    state = State.CLOSED;
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Transition the stream from:
+     *   - OPEN               -> HALF_CLOSED_REMOTE
+     *   - HALF_CLOSED_LOCAL  -> CLOSED
+     */
+    private void onReceiveEndOfStream() {
+        synchronized (this) {
+            switch (state) {
+                case OPEN:
+                    state = State.HALF_CLOSED_REMOTE;
+                    break;
+                case HALF_CLOSED_LOCAL:
+                    state = State.CLOSED;
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Transition the stream from:
+     *   - OPEN               -> CLOSED
+     *   - RESERVED_LOCAL     -> CLOSED
+     *   - RESERVED_REMOTE    -> CLOSED
+     *   - HALF_CLOSED_LOCAL  -> CLOSED
+     *   - HALF_CLOSED_REMOTE -> CLOSED
+     */
+    private void onReset() {
+        synchronized (this) {
+            switch (state) {
+                case OPEN:
+                case RESERVED_LOCAL:
+                case RESERVED_REMOTE:
+                case HALF_CLOSED_LOCAL:
+                case HALF_CLOSED_REMOTE:
+                    state = State.CLOSED;
+                    break;
             }
         }
     }

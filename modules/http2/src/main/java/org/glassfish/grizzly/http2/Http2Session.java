@@ -362,17 +362,15 @@ public class Http2Session {
     
     protected Http2Stream newStream(final HttpRequestPacket request,
             final int streamId, final int refStreamId,
-            final boolean exclusive, final int priority,
-            final Http2StreamState initialState) {
+            final boolean exclusive, final int priority) {
         
         return new Http2Stream(this, request, streamId, refStreamId,
-                               exclusive, priority, initialState);
+                               exclusive, priority);
     }
 
-    protected Http2Stream newUpgradeStream(final HttpRequestPacket request,
-            final int priority, final Http2StreamState initialState) {
+    protected Http2Stream newUpgradeStream(final HttpRequestPacket request, final int priority) {
         
-        return new Http2Stream(this, request, priority, initialState);
+        return new Http2Stream(this, request, priority);
     }
 
     protected void checkFrameSequenceSemantics(final Http2Frame frame)
@@ -482,8 +480,8 @@ public class Http2Session {
             
             this.peerStreamWindowSize = peerStreamWindowSize;
 
-            for (Http2Stream stream : streamsMap.values()) {
-                if (stream.isState(Http2StreamState.CLOSED)) {
+            for (final Http2Stream stream : streamsMap.values()) {
+                if (stream.isClosed()) {
                     continue;
                 }
                 try {
@@ -958,12 +956,11 @@ public class Http2Session {
     @SuppressWarnings("SameParameterValue")
     Http2Stream acceptStream(final HttpRequestPacket request,
                              final int streamId, final int parentStreamId,
-                             final boolean exclusive, final int priority,
-                             final Http2StreamState initState)
+                             final boolean exclusive, final int priority)
     throws Http2SessionException {
         
         final Http2Stream stream = newStream(request,
-                streamId, parentStreamId, exclusive, priority, initState);
+                streamId, parentStreamId, exclusive, priority);
         
         synchronized(sessionLock) {
             if (isClosed()) {
@@ -992,7 +989,6 @@ public class Http2Session {
      * @param streamId the ID of this new stream
      * @param parentStreamId the parent stream
      * @param priority the priority of this stream
-     * @param initState the initial {@link Http2StreamState}
      *
      * @return a new {@link Http2Stream} for this request
      *
@@ -1001,13 +997,12 @@ public class Http2Session {
     public Http2Stream openStream(final HttpRequestPacket request,
             final int streamId, final int parentStreamId,
             final boolean exclusive,
-            final int priority,
-            final Http2StreamState initState)
+            final int priority)
             throws Http2StreamException {
         
         final Http2Stream stream = newStream(request,
                 streamId, parentStreamId, exclusive,
-                priority, initState);
+                priority);
         
         synchronized(sessionLock) {
             if (isClosed()) {
@@ -1051,8 +1046,7 @@ public class Http2Session {
             throws Http2StreamException {
         
         request.setExpectContent(!fin);
-        final Http2Stream stream = newUpgradeStream(request, priority,
-                Http2StreamState.IDLE);
+        final Http2Stream stream = newUpgradeStream(request, priority);
         stream.onRcvHeaders(fin);
         
         synchronized (sessionLock) {
@@ -1083,8 +1077,7 @@ public class Http2Session {
             throws Http2StreamException {
         
         // we already sent headers - so the initial state is OPEN
-        final Http2Stream stream = newUpgradeStream(request, priority,
-                Http2StreamState.OPEN);
+        final Http2Stream stream = newUpgradeStream(request, priority);
         
         synchronized(sessionLock) {
             if (isClosed()) {
@@ -1174,7 +1167,7 @@ public class Http2Session {
                     int count = 0;
                     for (final Iterator<Map.Entry<Integer,Http2Stream>> streamIds = streamsMap.entrySet().iterator(); (streamIds.hasNext() && count < maxCount);) {
                         final Map.Entry<Integer,Http2Stream> entry = streamIds.next();
-                        if (entry.getValue().isState(Http2StreamState.CLOSED)) {
+                        if (entry.getValue().isClosed()) {
                             streamIds.remove();
                         }
                         count++;

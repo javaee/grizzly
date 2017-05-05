@@ -566,7 +566,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             }
             return;
         }
-        if (stream.isState(Http2StreamState.IDLE)) {
+        if (stream.isIdle()) {
             http2Session.goAway(ErrorCode.PROTOCOL_ERROR);
             http2Session.getConnection().closeSilently();
             return;

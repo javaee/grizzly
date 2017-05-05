@@ -375,7 +375,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
             final Http2Stream stream = http2Session.openStream(
                     request,
                     http2Session.getNextLocalStreamId(),
-                    0, false, 0, Http2StreamState.IDLE);
+                    0, false, 0);
 
             if (stream == null) {
                 throw new IOException("Http2Session is closed");
@@ -632,8 +632,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
         }
 
         final Http2Stream stream = http2Session.acceptStream(request,
-                pushPromiseFrame.getPromisedStreamId(), refStreamId, false, 0,
-                Http2StreamState.RESERVED_REMOTE);
+                pushPromiseFrame.getPromisedStreamId(), refStreamId, false, 0);
         
         if (stream == null) { // GOAWAY has been sent, so ignoring this request
             request.recycle();
@@ -646,7 +645,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
         prepareIncomingRequest(stream, request);
         
         stream.outputSink.terminate(OUT_FIN_TERMINATION);
-
+        stream.onReceivePushPromise();
         // send the push request upstream only in case, when user explicitly wants it
         if (sendPushRequestUpstream) {
             sendUpstream(http2Session,
