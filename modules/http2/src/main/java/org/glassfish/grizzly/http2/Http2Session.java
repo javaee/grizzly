@@ -765,6 +765,7 @@ public class Http2Session {
      * @return the HTTP2 header frames sequence
      * @throws IOException if an error occurs encoding the header
      */
+    @SuppressWarnings("SameParameterValue")
     protected List<Http2Frame> encodeHttpHeaderAsHeaderFrames(
             final FilterChainContext ctx,
             final HttpHeader httpHeader,
@@ -819,6 +820,7 @@ public class Http2Session {
      * 
      * @throws IOException if an error occurs encoding the request
      */
+    @SuppressWarnings("SameParameterValue")
     protected List<Http2Frame> encodeHttpRequestAsPushPromiseFrames(
             final FilterChainContext ctx,
             final HttpRequestPacket httpRequest,
@@ -953,10 +955,11 @@ public class Http2Session {
         return newClientStreamLock;
     }
 
+    @SuppressWarnings("SameParameterValue")
     Http2Stream acceptStream(final HttpRequestPacket request,
-            final int streamId, final int parentStreamId,
-            final boolean exclusive, final int priority,
-            final Http2StreamState initState)
+                             final int streamId, final int parentStreamId,
+                             final boolean exclusive, final int priority,
+                             final Http2StreamState initState)
     throws Http2SessionException {
         
         final Http2Stream stream = newStream(request,
