@@ -39,6 +39,8 @@
  */
 package org.glassfish.grizzly.utils;
 
+import java.util.function.Supplier;
+
 /**
  * The object holder, which might be used for lazy object initialization.
  * 
@@ -65,22 +67,22 @@ public abstract class Holder<E> {
         };
     }
 
-    public static <T> LazyHolder<T> lazyHolder(final NullaryFunction<T> factory) {
+    public static <T> LazyHolder<T> lazyHolder(final Supplier<T> factory) {
         return new LazyHolder<T>() {
 
             @Override
             protected T evaluate() {
-                return factory.evaluate();
+                return factory.get();
             }
         };
     }
     
-    public static LazyIntHolder lazyIntHolder(final NullaryFunction<Integer> factory) {
+    public static LazyIntHolder lazyIntHolder(final Supplier<Integer> factory) {
         return new LazyIntHolder() {
 
             @Override
             protected int evaluate() {
-                return factory.evaluate();
+                return factory.get();
             }
         };
     }

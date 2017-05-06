@@ -64,7 +64,6 @@ import org.glassfish.grizzly.nio.SelectorRunner;
 import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.JdkVersion;
-import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -491,21 +490,8 @@ public class UDPNIOConnection extends NIOConnection {
                     getWriteBufferSize() * 4 :
                     transportMaxAsyncWriteQueueSize);
             
-            localSocketAddressHolder = Holder.lazyHolder(
-                    new NullaryFunction<SocketAddress>() {
-                        @Override
-                        public SocketAddress evaluate() {
-                            return ((DatagramChannel) channel).socket().getLocalSocketAddress();
-                        }
-                    });
-
-            peerSocketAddressHolder = Holder.lazyHolder(
-                    new NullaryFunction<SocketAddress>() {
-                        @Override
-                        public SocketAddress evaluate() {
-                            return ((DatagramChannel) channel).socket().getRemoteSocketAddress();
-                        }
-                    });
+            localSocketAddressHolder = Holder.lazyHolder(((DatagramChannel) channel).socket()::getLocalSocketAddress);
+            peerSocketAddressHolder = Holder.lazyHolder(((DatagramChannel) channel).socket()::getRemoteSocketAddress);
         }
     }
 

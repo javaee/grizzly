@@ -45,7 +45,6 @@ import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.memory.DefaultMemoryManagerFactory;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
-import org.glassfish.grizzly.utils.NullaryFunction;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

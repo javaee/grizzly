@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.attributes;
 
-import org.glassfish.grizzly.utils.NullaryFunction;
+import java.util.function.Supplier;
 
 /** 
  * The interface declares, that {@link AttributeHolder} supports
@@ -64,11 +64,11 @@ public interface IndexedAttributeAccessor {
      * the attribute with such index is not set, set it to the
      * default value, using the <tt>initializer</tt>, and return the default.
      * @param index the attribute index
-     * @param initializer the default value {@link NullaryFunction}
+     * @param initializer the default value {@link Supplier}
      * @return the value of the attribute by index
      * @since 2.3.18
      */
-    public Object getAttribute(int index, NullaryFunction initializer);
+    public Object getAttribute(int index, Supplier initializer);
     
     /** 
      * Internal method for dynamic attribute support.

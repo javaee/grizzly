@@ -69,13 +69,7 @@ public class ActivityCheckFilter extends BaseFilter {
     
     public static final String ACTIVE_ATTRIBUTE_NAME = "connection-active-attribute";
     private static final Attribute<ActiveRecord> IDLE_ATTR =
-            Attribute.create(ACTIVE_ATTRIBUTE_NAME,
-            new NullaryFunction<ActiveRecord>() {
-                @Override
-                public ActiveRecord evaluate() {
-                    return new ActiveRecord();
-                }
-            });
+            Attribute.create(ACTIVE_ATTRIBUTE_NAME, () -> new ActiveRecord());
     
     private final long timeoutMillis;
     private final DelayedExecutor.DelayQueue<Connection> queue;

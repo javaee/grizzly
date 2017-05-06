@@ -41,7 +41,6 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
-import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
@@ -63,7 +62,6 @@ import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.Exceptions;
 import org.glassfish.grizzly.utils.Holder;
-import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  *
@@ -265,15 +263,7 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
     @Override
     @SuppressWarnings("unchecked")
     protected void resetProperties() {
-        localSocketAddressHolder = Holder.lazyHolder(
-                new NullaryFunction<SocketAddress>() {
-
-                    @Override
-                    public SocketAddress evaluate() {
-                        return ((ServerSocketChannel) channel).socket().getLocalSocketAddress();
-                    }
-                });
-
+        localSocketAddressHolder = Holder.lazyHolder(((ServerSocketChannel) channel).socket()::getLocalSocketAddress);
         peerSocketAddressHolder = Holder.staticHolder(null);
     }
     
