@@ -44,7 +44,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import org.glassfish.grizzly.utils.NullaryFunction;
+import java.util.function.Supplier;
 
 /**
  * {@link AttributeHolder}, which supports indexed access to stored
@@ -93,7 +93,7 @@ final class IndexedAttributeHolder implements AttributeHolder {
      */
     @Override
     public Object getAttribute(final String name,
-            final NullaryFunction initializer) {
+            final Supplier initializer) {
         final Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
             return indexedAttributeAccessor.getAttribute(
@@ -323,7 +323,7 @@ final class IndexedAttributeHolder implements AttributeHolder {
          */
         @Override
         public Object getAttribute(final int index,
-                final NullaryFunction initializer) {
+                final Supplier initializer) {
             Object value = weakGet(index);
 
             if (value == null && initializer != null) {
@@ -333,7 +333,7 @@ final class IndexedAttributeHolder implements AttributeHolder {
                     value = weakGet(index);
                     
                     if (value == null) {
-                        value = initializer.evaluate();
+                        value = initializer.get();
                         setAttribute(index, value);
                     }
                 }

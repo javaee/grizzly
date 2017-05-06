@@ -44,7 +44,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.glassfish.grizzly.utils.NullaryFunction;
+import java.util.function.Supplier;
 
 /**
  * Default {@link AttributeBuilder} implementation.
@@ -88,7 +88,7 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
     @Override
     @SuppressWarnings("unchecked")
     public synchronized <T> Attribute<T> createAttribute(final String name,
-            final NullaryFunction<T> initializer) {
+            final Supplier<T> initializer) {
         Attribute<T> attribute = name2Attribute.get(name);
         if (attribute == null) {
             attribute = new Attribute<T>(this, name, attributes.size(), initializer);

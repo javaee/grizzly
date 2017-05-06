@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.attributes;
 
-import org.glassfish.grizzly.utils.NullaryFunction;
+import java.util.function.Supplier;
 
 /**
  * <tt>AttributeBuilder</tt> is responsible for creating and indexing
@@ -97,12 +97,12 @@ public interface AttributeBuilder {
      * 
      * @param <T> Type of attribute value
      * @param name attribute name
-     * @param initializer NullaryFunction, which will be called, if Attribute's
+     * @param initializer Supplier, which will be called, if Attribute's
      *                    value is null on a AttributedObject 
      * 
      * @return Attribute<T>
      */
-    public <T> Attribute<T> createAttribute(String name, NullaryFunction<T> initializer);
+    public <T> Attribute<T> createAttribute(String name, Supplier<T> initializer);
 
     /**
      * Creates and returns new thread-safe {@link AttributeHolder}

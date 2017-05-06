@@ -74,14 +74,7 @@ public class IdleTimeoutFilter extends BaseFilter {
     
     public static final String IDLE_ATTRIBUTE_NAME = "connection-idle-attribute";
     private static final Attribute<IdleRecord> IDLE_ATTR =
-            Attribute.create(
-            IDLE_ATTRIBUTE_NAME, new NullaryFunction<IdleRecord>() {
-
-        @Override
-        public IdleRecord evaluate() {
-            return new IdleRecord();
-        }
-    });
+            Attribute.create(IDLE_ATTRIBUTE_NAME, () -> new IdleRecord());
     
     private final TimeoutResolver timeoutResolver;
     private final DelayedExecutor.DelayQueue<Connection> queue;

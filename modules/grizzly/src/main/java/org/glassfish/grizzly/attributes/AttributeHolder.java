@@ -41,7 +41,7 @@
 package org.glassfish.grizzly.attributes;
 
 import java.util.Set;
-import org.glassfish.grizzly.utils.NullaryFunction;
+import java.util.function.Supplier;
 
 /**
  * Interface declares common functionality for objects, which have associated
@@ -80,14 +80,14 @@ public interface AttributeHolder {
     /**
      * Return an object based on a name.
      * @param name - name of an attribute
-     * @param initializer the initializer to be used to assign a default attribute value,
+     * @param initializer the supplier to be used to assign a default attribute value,
      *          in case it hasn't been assigned
      * @return - attribute value for the <tt>name</tt>, null if <tt>name</tt>
      *           does not exist in <tt>attributes</tt>
      * 
      * @since 2.3.18
      */
-    public Object getAttribute(String name, NullaryFunction initializer);
+    public Object getAttribute(String name, Supplier initializer);
 
     /**
      * Return a {@link Set} of attribute names.

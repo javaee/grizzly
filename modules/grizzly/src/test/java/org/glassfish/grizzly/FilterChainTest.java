@@ -73,7 +73,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.Futures;
-import org.glassfish.grizzly.utils.NullaryFunction;
 import org.glassfish.grizzly.utils.StringFilter;
 
 /**
@@ -91,14 +90,7 @@ public class FilterChainTest extends TestCase {
     
     private static final Attribute<CompositeBuffer> bufferAttr =
             Attribute.create(
-            FilterChainTest.class.getName() + ".buffer",
-            new NullaryFunction<CompositeBuffer>() {
-
-                @Override
-                public CompositeBuffer evaluate() {
-                    return CompositeBuffer.newBuffer();
-                }
-            });
+            FilterChainTest.class.getName() + ".buffer", () -> CompositeBuffer.newBuffer());
 
     private static final Event INC_EVENT = new Event() {
         @Override

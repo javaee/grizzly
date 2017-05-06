@@ -54,7 +54,6 @@ import org.glassfish.grizzly.localization.LogMessages;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.SelectorRunner;
 import org.glassfish.grizzly.utils.Holder;
-import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -138,21 +137,8 @@ public class TCPNIOConnection extends NIOConnection {
                     ? getWriteBufferSize() * 4
                     : transportMaxAsyncWriteQueueSize);
 
-            localSocketAddressHolder = Holder.lazyHolder(
-                    new NullaryFunction<SocketAddress>() {
-                        @Override
-                        public SocketAddress evaluate() {
-                            return ((SocketChannel) channel).socket().getLocalSocketAddress();
-                        }
-                    });
-
-            peerSocketAddressHolder = Holder.lazyHolder(
-                    new NullaryFunction<SocketAddress>() {
-                        @Override
-                        public SocketAddress evaluate() {
-                            return ((SocketChannel) channel).socket().getRemoteSocketAddress();
-                        }
-                    });
+            localSocketAddressHolder = Holder.lazyHolder(((SocketChannel) channel).socket()::getLocalSocketAddress);
+            peerSocketAddressHolder = Holder.lazyHolder(((SocketChannel) channel).socket()::getRemoteSocketAddress);
         }
     }
 

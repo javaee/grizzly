@@ -43,7 +43,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.glassfish.grizzly.utils.NullaryFunction;
+import java.util.function.Supplier;
 
 /**
  * A non thread-safe {@link AttributeHolder} implementation.
@@ -80,7 +80,7 @@ final class UnsafeAttributeHolder implements AttributeHolder {
 
     @Override
     public Object getAttribute(final String name,
-            final NullaryFunction initializer) {
+            final Supplier initializer) {
         
         if (!isSet) {
             return null;
@@ -91,7 +91,7 @@ final class UnsafeAttributeHolder implements AttributeHolder {
             return indexedAttributeAccessor.getAttribute(attribute, initializer);
         }
         
-        return initializer != null ? initializer.evaluate() : null;
+        return initializer != null ? initializer.get() : null;
     }
     
     @Override
@@ -263,7 +263,7 @@ final class UnsafeAttributeHolder implements AttributeHolder {
 
         @Override
         public Object getAttribute(final int index,
-                final NullaryFunction initializer) {
+                final Supplier initializer) {
             if (!isSet) {
                 return null;
             }
@@ -284,14 +284,14 @@ final class UnsafeAttributeHolder implements AttributeHolder {
         }
         
         private Object getAttribute(final Attribute attribute,
-                final NullaryFunction initializer) {
+                final Supplier initializer) {
             final int idx = attribute.index();
             
             final Holder h = holderByIdx(idx);
             
             if (h != null) {
                 if (h.value == null && initializer != null) {
-                    h.value = initializer.evaluate();
+                    h.value = initializer.get();
                 }
                 
                 return h.value;
@@ -303,7 +303,7 @@ final class UnsafeAttributeHolder implements AttributeHolder {
                     : null;
                     
             if (value == null && initializer != null) {
-                value = initializer.evaluate();
+                value = initializer.get();
                 setAttribute(attribute, value);
             }
             

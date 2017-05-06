@@ -40,7 +40,7 @@
 
 package org.glassfish.grizzly.attributes;
 
-import org.glassfish.grizzly.utils.NullaryFunction;
+import java.util.function.Supplier;
 
 /** 
  * Class used to define dynamic typed attributes on {@link AttributeHolder}
@@ -132,13 +132,13 @@ public final class Attribute<T> {
      * 
      * @param <T> Type of attribute value
      * @param name attribute name
-     * @param initializer NullaryFunction, which will be called, if Attribute's
+     * @param initializer Supplier, which will be called, if Attribute's
      *                    value is null on a AttributedObject 
      * 
      * @return Attribute<T>
      */
     public static <T> Attribute<T> create(final String name,
-            final NullaryFunction<T> initializer) {
+            final Supplier<T> initializer) {
         return create(AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER,
                 name, initializer);
     }
@@ -158,7 +158,7 @@ public final class Attribute<T> {
      * @return Attribute<T>
      */
     public static <T> Attribute<T> create(final AttributeBuilder builder,
-            final String name, final NullaryFunction<T> initializer) {
+            final String name, final Supplier<T> initializer) {
         return builder.createAttribute(name, initializer);
     }
 
@@ -171,9 +171,9 @@ public final class Attribute<T> {
      */
     private final String name;
     /**
-     * Attribute initializer, which will be called, if attribute is not set.
+     * Attribute supplier, which will be called, if attribute is not set.
      */
-    private final NullaryFunction<T> initializer;
+    private final Supplier<T> initializer;
     /**
      * Attribute index in AttributeBuilder
      */
@@ -186,17 +186,17 @@ public final class Attribute<T> {
 
     protected Attribute(final AttributeBuilder builder, final String name,
             final int index, final T defaultValue) {
-        this(builder, name, index, new NullaryFunction<T>() {
+        this(builder, name, index, new Supplier<T>() {
 
             @Override
-            public T evaluate() {
+            public T get() {
                 return defaultValue;
             }
         });
     }
 
     protected Attribute(final AttributeBuilder builder, final String name,
-            final int index, final NullaryFunction<T> initializer) {
+            final int index, final Supplier<T> initializer) {
         this.builder = builder;
         this.name = name;
         this.attributeIndex = index;
@@ -360,7 +360,7 @@ public final class Attribute<T> {
     
     @SuppressWarnings("unchecked")
     private T get0(final AttributeHolder attributeHolder,
-            final NullaryFunction<T> initializer) {
+            final Supplier<T> initializer) {
         final IndexedAttributeAccessor indexedAccessor =
                 attributeHolder.getIndexedAttributeAccessor();
         
