@@ -328,8 +328,8 @@ final class IndexedAttributeHolder implements AttributeHolder {
 
             if (value == null && initializer != null) {
                 synchronized (sync) {
-                    // we want to make sure that parallel getAttribute(int, NullaryFunction)
-                    // won't create multiple value instances (everyone will call NullaryFunction.evaluate())
+                    // we want to make sure that parallel getAttribute(int, Supplier)
+                    // won't create multiple value instances (everyone will call Supplier#get())
                     value = weakGet(index);
                     
                     if (value == null) {

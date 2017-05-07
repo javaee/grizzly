@@ -64,7 +64,6 @@ import org.glassfish.grizzly.impl.SafeFutureImpl;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.NullaryFunction;
 import org.glassfish.grizzly.utils.StringFilter;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -301,14 +300,8 @@ public class AsyncPUTest {
         private static Attribute<AtomicInteger> responseCounterAttr =
                 Attribute.create(
                 ClientResultFilter.class.getName() + ".responseCounter",
-                new NullaryFunction<AtomicInteger>() {
+                () -> new AtomicInteger());
 
-                    @Override
-                    public AtomicInteger evaluate() {
-                        return new AtomicInteger();
-                    }
-                });
-        
         private final String expectedResponse;
         private final FutureImpl<Boolean> resultFuture;
         private final int expectedResponseCount;
@@ -344,13 +337,7 @@ public class AsyncPUTest {
         private static final Attribute<AtomicInteger> duplicationsCounterAttribute =
                 Attribute.create(
                 StringDuplicatorFilter.class.getName() + ".duplicationsCounterAttribute",
-                new NullaryFunction<AtomicInteger>() {
-
-                    @Override
-                    public AtomicInteger evaluate() {
-                        return new AtomicInteger();
-                    }
-                });
+                () -> new AtomicInteger());
         private final int duplications;
         
         private StringDuplicatorFilter(int duplications) {
