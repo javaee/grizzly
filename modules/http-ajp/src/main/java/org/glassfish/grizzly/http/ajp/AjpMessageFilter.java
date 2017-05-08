@@ -49,7 +49,6 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * Filter, responsible for parsing Ajp requests and making sure the request
@@ -63,12 +62,7 @@ public class AjpMessageFilter extends BaseFilter {
 
     private final Attribute<ParsingState> parsingStateAttribute =
             Attribute.create(AjpMessageFilter.class + ".parsingStateAttribute",
-            new NullaryFunction<ParsingState>() {
-                @Override
-                public ParsingState evaluate() {
-                    return new ParsingState();
-                }
-            });
+            () ->  new ParsingState());
 
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {

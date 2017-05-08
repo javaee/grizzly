@@ -128,7 +128,7 @@ public final class Attribute<T> {
      * with name and initializer, which will be called, if
      * Attribute's value is null on a AttributedObject.
      * 
-     * Equivalent of {@link AttributeBuilder#createAttribute(java.lang.String, org.glassfish.grizzly.utils.NullaryFunction)}.
+     * Equivalent of {@link AttributeBuilder#createAttribute(java.lang.String, java.util.Supplier)}.
      * 
      * @param <T> Type of attribute value
      * @param name attribute name
@@ -147,12 +147,12 @@ public final class Attribute<T> {
      * Create Attribute with name and initializer, which will be called, if
      * Attribute's value is null on a AttributedObject
      * 
-     * Equivalent of {@link AttributeBuilder#createAttribute(java.lang.String, org.glassfish.grizzly.utils.NullaryFunction)}.
+     * Equivalent of {@link AttributeBuilder#createAttribute(java.lang.String, java.util.Supplier)}.
      * 
      * @param <T> Type of attribute value
      * @param builder {@link AttributeBuilder} to be used
      * @param name attribute name
-     * @param initializer NullaryFunction, which will be called, if Attribute's
+     * @param initializer Supplier, which will be called, if Attribute's
      *                    value is null on a AttributedObject 
      * 
      * @return Attribute<T>
@@ -206,7 +206,7 @@ public final class Attribute<T> {
     /**
      * Get attribute value, stored on the {@link AttributeHolder},
      * the difference from {@link #get(org.glassfish.grizzly.attributes.AttributeHolder)} is
-     * that default value or {@link NullaryFunction} won't be invoked.
+     * that default value or {@link Supplier} won't be invoked.
      *
      * @param attributeHolder {@link AttributeHolder}.
      * @return attribute value
@@ -218,7 +218,7 @@ public final class Attribute<T> {
     /**
      * Get attribute value, stored on the {@link AttributeStorage},
      * the difference from {@link #get(AttributeStorage)} is
-     * that default value or {@link NullaryFunction} won't be invoked.
+     * that default value or {@link Supplier} won't be invoked.
      *
      * @param storage {@link AttributeStorage}.
      * @return attribute value

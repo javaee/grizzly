@@ -47,7 +47,6 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.utils.NullaryFunction;
 
 /**
  * Client side AJP filter, which deserializes AJP message by parsing magic bytes
@@ -59,13 +58,7 @@ public class AjpClientMessageFilter extends BaseFilter {
     private final Attribute<ParsingState> parsingStateAttribute =
             Attribute.create(
             AjpClientMessageFilter.class + ".parsingStateAttribute",
-            new NullaryFunction<ParsingState>() {
-
-                @Override
-                public ParsingState evaluate() {
-                    return new ParsingState();
-                }
-            });
+            () -> new ParsingState());
 
     @Override
     public NextAction handleRead(final FilterChainContext ctx) throws IOException {
