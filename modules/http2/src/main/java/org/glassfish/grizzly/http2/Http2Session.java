@@ -62,6 +62,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.IOEventLifeCycleListener;
 import org.glassfish.grizzly.ProcessorExecutor;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.util.MimeHeaders;
@@ -129,7 +130,7 @@ public class Http2Session {
     @SuppressWarnings("unused")
     private volatile int concurrentStreamsCount;
 
-    private final Map<Integer, Http2Stream> streamsMap = new TreeMap<>();
+    private final TreeMap<Integer, Http2Stream> streamsMap = new TreeMap<>();
     
     // (Optimization) We may read several DataFrames belonging to the same
     // Http2Stream, so in order to not process every DataFrame separately -
@@ -143,7 +144,7 @@ public class Http2Session {
     
     private final Object sessionLock = new Object();
     
-    private CloseType closeFlag;
+    private volatile CloseType closeFlag;
     
     private int peerStreamWindowSize = getDefaultStreamWindowSize();
     private volatile int localStreamWindowSize = getDefaultStreamWindowSize();
@@ -161,6 +162,8 @@ public class Http2Session {
 
     private volatile int streamsHighWaterMark;
     private int checkCount;
+
+    private int goingAwayLastStreamId = Integer.MIN_VALUE;
 
     // true, if this connection is ready to accept frames or false if the first
     // HTTP/1.1 Upgrade is still in progress
@@ -557,6 +560,9 @@ public class Http2Session {
      * @param pushEnabled flag toggling push support.
      */
     public void setPushEnabled(final boolean pushEnabled) {
+        if (isGoingAway()) {
+            return;
+        }
         this.pushEnabled = pushEnabled;
     }
 
@@ -610,42 +616,116 @@ public class Http2Session {
     }
     
     /**
-     * If the session is still open - closes it and sends GOAWAY frame to a peer,
-     * otherwise if the session was already closed - does nothing.
-     * 
-     * @param errorCode GOAWAY status code.
+     * Terminate the HTTP2 session sending a GOAWAY frame using the specified
+     * error code and optional detail.  Once the GOAWAY frame is on the wire, the
+     * underlying TCP connection will be closed.
+     *
+     * @param errorCode an RFC 7540 error code.
+     * @param detail optional details.
      */
-    public void goAway(final ErrorCode errorCode) {
-        goAway(errorCode, null);
+    void terminate(final ErrorCode errorCode, final String detail) {
+        sendGoAwayAndClose(setGoAwayLocally(errorCode, detail));
+    }
+
+    private void sendGoAwayAndClose(final Http2Frame frame) {
+        if (frame != null) {
+            outputSink.writeDownStream(frame, new EmptyCompletionHandler<WriteResult>() {
+
+                private void close() {
+                    connection.closeSilently();
+                    outputSink.close();
+                }
+
+                @Override
+                public void failed(final Throwable throwable) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "Unable to write GOAWAY.  Terminating session.", throwable);
+                    }
+                    close();
+                }
+
+                @Override
+                public void completed(final WriteResult result) {
+                    close();
+                }
+
+                @Override
+                public void cancelled() {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        LOGGER.log(Level.FINE, "GOAWAY write cancelled.  Terminating session.");
+                    }
+                    close();
+                }
+            }, null);
+        }
+    }
+
+    private GoAwayFrame setGoAwayLocally(final ErrorCode errorCode,
+                                         final String detail) {
+        synchronized (sessionLock) {
+
+            if (goingAwayLastStreamId == Integer.MIN_VALUE) {
+                closeFlag = CloseType.LOCALLY;
+                goingAwayLastStreamId = ((lastPeerStreamId > 0)
+                                            ? lastPeerStreamId
+                                            : 0);
+
+                if (concurrentStreamsCount != 0) {
+                    pruneStreams();
+                }
+                return GoAwayFrame.builder()
+                        .lastStreamId(goingAwayLastStreamId)
+                        .additionalDebugData(((detail != null)
+                                ? Buffers.wrap(getMemoryManager(), detail)
+                                : null))
+                        .errorCode(errorCode)
+                        .build();
+            }
+            return null; // already in GOAWAY state.
+        }
+    }
+
+    // Must be locked by sessionLock
+    private void pruneStreams() {
+        // close streams that rank above the last stream ID specified by the GOAWAY frame.
+        // Allow other streams to continue processing.  Once the concurrent stream count reaches zero,
+        // the session will be closed.
+        Map<Integer, Http2Stream> invalidStreams =
+                streamsMap.subMap(goingAwayLastStreamId,
+                        false,
+                        Integer.MAX_VALUE,
+                        true);
+        if (!invalidStreams.isEmpty()) {
+            for (final Http2Stream stream : invalidStreams.values()) {
+                stream.closedRemotely();
+                deregisterStream();
+            }
+        }
     }
 
     /**
-     * If the session is still open - closes it and sends GOAWAY frame to a peer,
-     * otherwise if the session was already closed - does nothing.
-     *
-     * @param errorCode GOAWAY status code.
-     * @param detail details of cause, if any.
+     * Method is called, when GOAWAY is initiated by peer
      */
-    public void goAway(final ErrorCode errorCode, String detail) {
-        final Http2Frame goAwayFrame = setGoAwayLocally(errorCode, detail);
-        if (goAwayFrame != null) {
-            outputSink.writeDownStream(goAwayFrame);
+    void setGoAwayByPeer(final int lastStreamId) {
+        synchronized (sessionLock) {
+            pushEnabled = false;
+            goingAwayLastStreamId = lastStreamId;
+            closeFlag = CloseType.REMOTELY;
+            pruneStreams();
+            sendGoAwayAndClose(GoAwayFrame.builder()
+                    .lastStreamId(goingAwayLastStreamId)
+                    .additionalDebugData(Buffers.wrap(getMemoryManager(), "Peer Requested."))
+                    .errorCode(ErrorCode.NO_ERROR)
+                    .build());
         }
     }
 
-    GoAwayFrame setGoAwayLocally(final ErrorCode errorCode, final String detail) {
-        final int lastPeerStreamIdLocal = close();
-        if (lastPeerStreamIdLocal == -1) {
-            return null; // Http2Session is already in go-away state
-        }
-        
-        return GoAwayFrame.builder()
-                .lastStreamId(lastPeerStreamIdLocal)
-                .additionalDebugData(((detail != null)
-                        ? Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER, detail)
-                        : Buffers.EMPTY_BUFFER))
-                .errorCode(errorCode)
-                .build();
+    boolean isGoingAway() {
+        return (closeFlag != null);
+    }
+
+    public int getGoingAwayLastStreamId() {
+        return goingAwayLastStreamId;
     }
 
     protected void sendWindowUpdate(final int streamId, final int delta) {
@@ -1127,30 +1207,6 @@ public class Http2Session {
     }
     
     /**
-     * Method is called, when the session closing is initiated locally.
-     */
-    private int close() {
-        synchronized (sessionLock) {
-            if (isClosed()) {
-                return -1;
-            }
-            
-            closeFlag = CloseType.LOCALLY;
-            return lastPeerStreamId > 0 ? lastPeerStreamId : 0;
-        }
-    }
-    
-    /**
-     * Method is called, when GOAWAY is initiated by peer
-     */
-    void setGoAwayByPeer(final int lastGoodStreamId) {
-        synchronized (sessionLock) {
-            // @TODO Notify pending SYNC_STREAMS if streams were aborted
-            closeFlag = CloseType.REMOTELY;
-        }
-    }
-    
-    /**
      * Called from {@link Http2Stream} once stream is completely closed.
      */
     void deregisterStream() {
@@ -1159,7 +1215,7 @@ public class Http2Session {
         final boolean isCloseSession;
         synchronized (sessionLock) {
             // If we're in GOAWAY state and there are no streams left - close this session
-            isCloseSession = isClosed() && concurrentStreamsCount == 0;
+            isCloseSession = isGoingAway() && concurrentStreamsCount == 0;
             if (!isCloseSession) {
                 if (checkCount++ > http2Configuration.getCleanFrequencyCheck() && streamsMap.size() > streamsHighWaterMark) {
                     checkCount = 0;
@@ -1177,16 +1233,8 @@ public class Http2Session {
         }
         
         if (isCloseSession) {
-            closeSession();
+            terminate(ErrorCode.NO_ERROR, "Going Away");
         }
-    }
-
-    /**
-     * Close the session
-     */
-    private void closeSession() {
-        connection.closeSilently();
-        outputSink.close();
     }
 
     private boolean isClosed() {

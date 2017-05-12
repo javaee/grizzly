@@ -549,14 +549,16 @@ public class Http2ClientFilter extends Http2BaseFilter {
             final FilterChainContext context,
             final HeaderBlockHead firstHeaderFrame) throws IOException {
 
-        switch (firstHeaderFrame.getType()) {
-            case PushPromiseFrame.TYPE:
-                processInPushPromise(http2Session, context,
-                        (PushPromiseFrame) firstHeaderFrame);
-                break;
-            default:
-                processInResponse(http2Session, context,
-                    (HeadersFrame) firstHeaderFrame);
+        if (!ignoreFrameForStreamId(http2Session, firstHeaderFrame.getStreamId())) {
+            switch (firstHeaderFrame.getType()) {
+                case PushPromiseFrame.TYPE:
+                    processInPushPromise(http2Session, context,
+                            (PushPromiseFrame) firstHeaderFrame);
+                    break;
+                default:
+                    processInResponse(http2Session, context,
+                            (HeadersFrame) firstHeaderFrame);
+            }
         }
     }
 

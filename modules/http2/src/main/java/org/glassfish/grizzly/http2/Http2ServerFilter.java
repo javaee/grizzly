@@ -42,8 +42,11 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -379,6 +382,9 @@ public class Http2ServerFilter extends Http2BaseFilter {
     private final Attribute<Connection> CIPHER_CHECKED =
             AttributeBuilder.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("BLACK_LIST_CIPHER_SUITE_CHEKCED");
 
+    private Collection<Connection> activeConnections = new HashSet<>(1024);
+    private AtomicBoolean shuttingDown = new AtomicBoolean();
+
     /**
      * Create a new {@link Http2ServerFilter} using the specified {@link Http2Configuration}.
      * Configuration may be changed post-construction by calling {@link #getConfiguration()}.
@@ -411,7 +417,23 @@ public class Http2ServerFilter extends Http2BaseFilter {
     public void setAllowPayloadForUndefinedHttpMethods(boolean allowPayloadForUndefinedHttpMethods) {
         this.allowPayloadForUndefinedHttpMethods = allowPayloadForUndefinedHttpMethods;
     }
-    
+
+    @Override
+    public NextAction handleAccept(final FilterChainContext ctx) throws IOException {
+        if (!shuttingDown.get()) {
+            activeConnections.add(ctx.getConnection());
+        }
+        return ctx.getInvokeAction();
+    }
+
+    @Override
+    public NextAction handleClose(final FilterChainContext ctx) throws IOException {
+        if (!shuttingDown.get()) {
+            activeConnections.remove(ctx.getConnection());
+        }
+        return ctx.getInvokeAction();
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public NextAction handleRead(final FilterChainContext ctx)
@@ -470,8 +492,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
             final SSLEngine engine = SSLUtils.getSSLEngine(connection);
             if (engine != null) {
                 if (Arrays.binarySearch(CIPHER_SUITE_BLACK_LIST, engine.getSession().getCipherSuite()) >= 0) {
-                    http2Session.goAway(ErrorCode.INADEQUATE_SECURITY);
-                    ctx.getConnection().closeSilently();
+                    http2Session.terminate(ErrorCode.INADEQUATE_SECURITY, null);
                     return ctx.getStopAction();
                 }
             }
@@ -616,9 +637,14 @@ public class Http2ServerFilter extends Http2BaseFilter {
         
         return http2State;
     }
-    
+
+    Collection<Connection> shuttingDown() {
+        shuttingDown.compareAndSet(false, true);
+        return activeConnections;
+    }
+
     private boolean tryHttpUpgrade(final FilterChainContext ctx,
-            final HttpRequestPacket httpRequest, final boolean isLast)
+                                   final HttpRequestPacket httpRequest, final boolean isLast)
             throws Http2StreamException {
         
         if (!checkHttpMethodOnUpgrade(httpRequest)) {
@@ -740,7 +766,9 @@ public class Http2ServerFilter extends Http2BaseFilter {
             final FilterChainContext context,
             final HeaderBlockHead firstHeaderFrame) throws IOException {
 
-        processInRequest(http2Session, context, (HeadersFrame) firstHeaderFrame);
+        if (!ignoreFrameForStreamId(http2Session, firstHeaderFrame.getStreamId())) {
+            processInRequest(http2Session, context, (HeadersFrame) firstHeaderFrame);
+        }
     }
     
     private void processInRequest(final Http2Session http2Session,
@@ -990,8 +1018,6 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
     private static void handleDecodingError(final Http2Session http2Session,
                                             final IOException ioe) throws IOException {
-        http2Session.goAway(ErrorCode.COMPRESSION_ERROR, ioe.getCause().getMessage());
-        http2Session.getConnection().close();
-        //}
+        http2Session.terminate(ErrorCode.COMPRESSION_ERROR, ioe.getCause().getMessage());
     }
 }

@@ -168,7 +168,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         if (framesList == null || framesList.isEmpty()) {
             return true;
         }
-        
+
         try {
             try {
                 for (Http2Frame inFrame : framesList) {
@@ -209,13 +209,13 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 LOGGER.log(Level.FINE, "Http2SessionException occurred on connection=" +
                         ctx.getConnection() + " during Http2Frame processing", e);
             }
-            sendGoAwayAndClose(ctx, http2Session, e.getErrorCode(), e.getMessage());
+            http2Session.terminate(e.getErrorCode(), e.getMessage());
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "IOException occurred on connection=" +
                         ctx.getConnection() + " during Http2Frame processing", e);
             }
-            sendGoAwayAndClose(ctx, http2Session, ErrorCode.INTERNAL_ERROR, e.getMessage());
+            http2Session.terminate(ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
         
         return false;
@@ -488,23 +488,26 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             if (stream != null) {
                 stream.getOutputSink().onPeerWindowUpdate(delta);
             } else {
-                http2Session.goAway(ErrorCode.PROTOCOL_ERROR);
-                http2Session.getConnection().closeSilently();
+                http2Session.terminate(ErrorCode.PROTOCOL_ERROR, null);
             }
         }
     }
 
     private void processGoAwayFrame(final Http2Session http2Session,
-                                    final Http2Frame frame) {
+                                    final Http2Frame frame)
+    throws Http2SessionException {
 
-        GoAwayFrame goAwayFrame = (GoAwayFrame) frame;
-        http2Session.setGoAwayByPeer(goAwayFrame.getLastStreamId());
+        if (frame.getStreamId() != 0) {
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "GOAWAY frame for non-zero stream ID.");
+        }
+
+        http2Session.setGoAwayByPeer(((GoAwayFrame) frame).getLastStreamId());
     }
     
     private void processSettingsFrame(final Http2Session http2Session,
             final FilterChainContext context, final Http2Frame frame)
             throws Http2SessionException {
-        
+
         final SettingsFrame settingsFrame = (SettingsFrame) frame;
         
         if (settingsFrame.isAck()) {
@@ -557,9 +560,13 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     private void processRstStreamFrame(final Http2Session http2Session,
                                   final Http2Frame frame) {
 
-        final RstStreamFrame rstFrame = (RstStreamFrame) frame;
-        final int streamId = rstFrame.getStreamId();
+
+        final int streamId = frame.getStreamId();
+        if (ignoreFrameForStreamId(http2Session, streamId)) {
+            return;
+        }
         final Http2Stream stream = http2Session.getStream(streamId);
+        // @TODO null stream may happen if stream state has been cleaned up.  Need to deal with this better.
         if (stream == null) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.fine("Received RST frame on on existent stream.  Ignoring frame.");
@@ -567,8 +574,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             return;
         }
         if (stream.isIdle()) {
-            http2Session.goAway(ErrorCode.PROTOCOL_ERROR);
-            http2Session.getConnection().closeSilently();
+            http2Session.terminate(ErrorCode.PROTOCOL_ERROR, "Illegal attempt to RST IDLE stream.");
             return;
         }
         
@@ -842,20 +848,6 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         ctx.write(frameCodec.serializeAndRecycle(http2Session, rstStreamFrame));
     }
 
-    @SuppressWarnings("unchecked")
-    private void sendGoAwayAndClose(final FilterChainContext ctx,
-                                    final Http2Session http2Session, final ErrorCode errorCode, final String detail) {
-
-        final Http2Frame goAwayFrame = 
-                http2Session.setGoAwayLocally(errorCode, detail);
-
-        if (goAwayFrame != null) {
-            final Connection connection = ctx.getConnection();
-            ctx.write(frameCodec.serializeAndRecycle(http2Session, goAwayFrame));
-            connection.closeSilently();
-        }
-    }
-
     /**
      * Obtain {@link Http2Session} associated with the {@link Connection}
      * and prepare it for use.
@@ -927,34 +919,39 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
         final Buffer data = dataFrame.getData();
-        final Http2Stream stream = http2Session.getStream(dataFrame.getStreamId());
+        final int streamId = dataFrame.getStreamId();
+        final boolean fin = dataFrame.isFlagSet(DataFrame.END_STREAM);
+        dataFrame.recycle();
 
+        // Always ACK the data to maintain flow-control state
+        http2Session.ackConsumedData(data.remaining());
+
+        // If we're going away, ignore any frames for streams greater than the last stream ID from the goaway frame.
+        if (ignoreFrameForStreamId(http2Session, streamId)) {
+            return;
+        }
+
+        final Http2Stream stream = http2Session.getStream(streamId);
+        // @TODO null stream may happen if stream state has been cleaned up.  Need to deal with this better.
         if (stream == null) {
-
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "Data frame received for non-existent stream: connection={0}, frame={1}, stream={2}",
-                        new Object[]{context.getConnection(), dataFrame, dataFrame.getStreamId()});
+                        new Object[]{context.getConnection(), dataFrame, streamId});
             }
-
-            final int dataSize = data.remaining();
-
-            dataFrame.recycle();
-
-            http2Session.ackConsumedData(dataSize);
-
-            throw new Http2StreamException(dataFrame.getStreamId(), ErrorCode.STREAM_CLOSED);
+            throw new Http2StreamException(streamId, ErrorCode.STREAM_CLOSED);
         }
 
+        // @TODO Is there a better spot for this check?
+        // Check stream state to ensure we can send this upstream
         final Http2StreamException error = stream.assertCanAcceptData();
-        
         if (error != null) {
-            final int dataSize = data.remaining();
-            dataFrame.recycle();
-            http2Session.ackConsumedData(dataSize);
-            
             throw error;
         }
-        
-        stream.offerInputData(data, dataFrame.isFlagSet(DataFrame.END_STREAM));
+
+        stream.offerInputData(data, fin);
+    }
+
+    protected static boolean ignoreFrameForStreamId(final Http2Session session, final int streamId) {
+        return (session.isGoingAway() && streamId > session.getGoingAwayLastStreamId());
     }
 }
