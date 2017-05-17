@@ -44,7 +44,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http2.Http2Session;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
@@ -176,15 +175,14 @@ public class DataFrame extends Http2Frame {
     }
 
     @Override
-    public Buffer toBuffer(final Http2Session http2Session) {
-        final MemoryManager memoryManager = http2Session.getMemoryManager();
-        
+    public Buffer toBuffer(final MemoryManager memoryManager) {
+
         final boolean isPadded = isFlagSet(PADDED);
         final int extraHeaderLen = isPadded ? 1 : 0;
         final Buffer buffer = memoryManager.allocate(
-                http2Session.getFrameHeaderSize() + extraHeaderLen);
-        
-        http2Session.serializeHttp2FrameHeader(this, buffer);
+                FRAME_HEADER_SIZE + extraHeaderLen);
+
+        serializeFrameHeader(buffer);
 
         if (isPadded) {
             buffer.put((byte) (padLength & 0xff));

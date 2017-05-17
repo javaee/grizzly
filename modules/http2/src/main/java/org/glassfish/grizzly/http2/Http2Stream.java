@@ -220,7 +220,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
 
         this.exclusive = false;
         inputBuffer = http2Session.isServer()
-                ? new UpgradeInputBuffer()
+                ? new UpgradeInputBuffer(this)
                 : new DefaultInputBuffer(this);
         
         outputSink = http2Session.isServer()
@@ -375,7 +375,6 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         close0(null, CloseType.LOCALLY, cause, false);
     }
 
-    @SuppressWarnings("Duplicates")
     void close0(
             final CompletionHandler<Closeable> completionHandler,
             final CloseType closeType,
@@ -447,14 +446,15 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     
     void onProcessingComplete() {
         isProcessingComplete = true;
-        if (closeReasonUpdater.compareAndSet(this, null,
-                new CloseReason(CloseType.LOCALLY, null))) {
-            
-            inputBuffer.terminate(LOCAL_CLOSE_TERMINATION);
-            outputSink.close();
-            
-            notifyCloseListeners();
-        }
+        close();
+//        if (closeReasonUpdater.compareAndSet(this, null,
+//                new CloseReason(CloseType.LOCALLY, null))) {
+//
+//            inputBuffer.terminate(LOCAL_CLOSE_TERMINATION);
+//            outputSink.close();
+//
+//            notifyCloseListeners();
+//        }
     }
     
     @Override

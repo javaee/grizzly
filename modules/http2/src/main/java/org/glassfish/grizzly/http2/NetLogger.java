@@ -64,7 +64,7 @@ final class NetLogger {
     private static final Logger LOGGER = Grizzly.logger(NetLogger.class);
     private static final Level LEVEL = Level.FINE;
 
-    private static final String CLOSE_FMT           = "'{' \"session\":\"{0}\", \"event\":\"CLOSE\" '}'";
+    private static final String CLOSE_FMT           = "'{' \"session\":\"{0}\", \"event\":\"SESSION_CLOSE\" '}'";
     private static final String DATA                = "DATA";
     private static final String DATA_FMT            = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"fin\":\"{3}\", \"len\":\"{4}\" '}'";
     private static final String CONTINUATION        = "CONTINUATION";
@@ -73,6 +73,7 @@ final class NetLogger {
     private static final String GOAWAY_FMT          = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"last-stream\":\"{3}\", \"error-code\":\"{4}\", \"detail\":\"{5}\" '}'";
     private static final String HEADERS             = "HEADERS";
     private static final String HEADERS_FMT         = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"parent-stream\":\"{3}\", \"prioritized\":\"{4}\", \"exclusive\":\"{5}\", \"weight\":\"{6}\", \"fin\":\"{7}\", \"len\":\"{8}\" '}'";
+    private static final String OPEN_FMT            = "'{' \"session\":\"{0}\", \"event\":\"SESSION_OPEN\" '}'";
     private static final String PING                = "PING";
     private static final String PING_FMT            = "'{' session=\"{0}\", event=\"{1}\", is-ack=\"{2}\", opaque-data=\"{3}\" '}'";
     private static final String PRIORITY            = "PRIORITY";
@@ -289,11 +290,19 @@ final class NetLogger {
     }
 
     static void logClose(final Http2Session c) {
+        logSessionEvent(CLOSE_FMT, c);
+    }
+
+    static void logOpen(final Http2Session c) {
+        logSessionEvent(OPEN_FMT, c);
+    }
+
+    private static void logSessionEvent(final String msg, final Http2Session c) {
         if (c == null) {
             throw new NullPointerException("Http2Session cannot be null");
         }
         if (LOGGER.isLoggable(LEVEL)) {
-            LOGGER.log(LEVEL, CLOSE_FMT, new Object[]{escape(c.getConnection().toString())});
+            LOGGER.log(LEVEL, msg, new Object[]{escape(c.getConnection().toString())});
         }
     }
 

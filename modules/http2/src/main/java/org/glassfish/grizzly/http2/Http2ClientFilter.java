@@ -473,6 +473,10 @@ public class Http2ClientFilter extends Http2BaseFilter {
         
         // create a virtual stream for this request
 
+        if (http2Session.isGoingAway()) {
+            return false;
+        }
+
         final Http2Stream stream = http2Session.openUpgradeStream(
                 httpRequest, 0);
         
@@ -623,6 +627,10 @@ public class Http2ClientFilter extends Http2BaseFilter {
             final PushPromiseFrame pushPromiseFrame)
             throws Http2StreamException, IOException {
 
+        if (http2Session.isGoingAway()) {
+            return;
+        }
+
         final Http2Request request = Http2Request.create();
         request.setConnection(context.getConnection());
 
@@ -636,11 +644,6 @@ public class Http2ClientFilter extends Http2BaseFilter {
         final Http2Stream stream = http2Session.acceptStream(request,
                 pushPromiseFrame.getPromisedStreamId(), refStreamId, false, 0);
         
-        if (stream == null) { // GOAWAY has been sent, so ignoring this request
-            request.recycle();
-            return;
-        }
-
         DecoderUtils.decodeRequestHeaders(http2Session, request);
         onHttpHeadersParsed(request, context);
 

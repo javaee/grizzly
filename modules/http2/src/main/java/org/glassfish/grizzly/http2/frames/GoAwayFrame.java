@@ -44,8 +44,8 @@ import java.util.Collections;
 import java.util.Map;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http2.Http2Session;
 import org.glassfish.grizzly.memory.CompositeBuffer;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 public class GoAwayFrame extends Http2Frame {
     private static final ThreadCache.CachedTypeIndex<GoAwayFrame> CACHE_IDX =
@@ -131,11 +131,10 @@ public class GoAwayFrame extends Http2Frame {
     }
 
     @Override
-    public Buffer toBuffer(final Http2Session http2Session) {
-        final Buffer buffer = http2Session.getMemoryManager()
-                .allocate(http2Session.getFrameHeaderSize() + 8);
-        
-        http2Session.serializeHttp2FrameHeader(this, buffer);
+    public Buffer toBuffer(final MemoryManager memoryManager) {
+        final Buffer buffer = memoryManager.allocate(FRAME_HEADER_SIZE + 8);
+
+        serializeFrameHeader(buffer);
         buffer.putInt(lastStreamId & 0x7fffffff);
         buffer.putInt(errorCode.getCode());
         
@@ -146,7 +145,7 @@ public class GoAwayFrame extends Http2Frame {
         }
         
         final CompositeBuffer cb = CompositeBuffer.newBuffer(
-                http2Session.getMemoryManager(),
+                memoryManager,
                 buffer, additionalDebugData);
 
         cb.allowBufferDispose(true);
@@ -156,7 +155,7 @@ public class GoAwayFrame extends Http2Frame {
 
     @Override
     protected int calcLength() {
-        return 64 +
+        return 8 +
                 (additionalDebugData != null
                         ? additionalDebugData.remaining()
                         : 0);

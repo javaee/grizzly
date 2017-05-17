@@ -87,7 +87,7 @@ public class Http2FrameCodec {
 
         Buffer remainder = parsingResult.remainder();
 
-        while (remainder.remaining() >= http2Session.getFrameHeaderSize()) {
+        while (remainder.remaining() >= Http2Frame.FRAME_HEADER_SIZE) {
             parsingResult = parseFrame(http2Session, parsingState, remainder);
 
             if (!parsingResult.isReady()) {
@@ -120,7 +120,7 @@ public class Http2FrameCodec {
 
         NetLogger.log(NetLogger.Context.TX, http2Session, frame);
 
-        final Buffer resultBuffer = frame.toBuffer(http2Session);
+        final Buffer resultBuffer = frame.toBuffer(http2Session.getMemoryManager());
         frame.recycle();
         return resultBuffer;
     }
@@ -135,7 +135,7 @@ public class Http2FrameCodec {
         for (int i = 0; i < framesCount; i++) {
             final Http2Frame frame = frames.get(i);
             NetLogger.log(NetLogger.Context.TX, http2Session, frame);
-            final Buffer buffer = frame.toBuffer(http2Session);
+            final Buffer buffer = frame.toBuffer(http2Session.getMemoryManager());
             frame.recycle();
 
             resultBuffer = Buffers.appendBuffers(http2Session.getMemoryManager(),
@@ -153,23 +153,22 @@ public class Http2FrameCodec {
             final FrameParsingState state,
             final Buffer buffer) throws Http2SessionException {
         
-        final int frameHeaderSize = http2Session.getFrameHeaderSize();
         final int bufferSize = buffer.remaining();
         final ParsingResult parsingResult = state.parsingResult();
         
         
-        if (bufferSize < frameHeaderSize) {
+        if (bufferSize < Http2Frame.FRAME_HEADER_SIZE) {
             return parsingResult.setNeedMore(buffer);
         }
         
         final int len = http2Session.getFrameSize(buffer);
         
-        if (len > http2Session.getLocalMaxFramePayloadSize() + frameHeaderSize) {
+        if (len > http2Session.getLocalMaxFramePayloadSize() + Http2Frame.FRAME_HEADER_SIZE) {
             
             http2Session.onOversizedFrame(buffer);
 
             // skip the frame header
-            buffer.position(buffer.position() + frameHeaderSize);
+            buffer.position(buffer.position() + Http2Frame.FRAME_HEADER_SIZE);
             
             // figure out what to do with the remainder
             final Buffer remainder;

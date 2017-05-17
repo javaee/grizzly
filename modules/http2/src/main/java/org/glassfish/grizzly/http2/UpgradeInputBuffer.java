@@ -52,7 +52,12 @@ import org.glassfish.grizzly.http.HttpContent;
 class UpgradeInputBuffer implements StreamInputBuffer {
 
     private boolean isClosed;
-    
+    private final Http2Stream stream;
+
+    UpgradeInputBuffer(final Http2Stream stream) {
+        this.stream = stream;
+    }
+
     @Override
     public void onReadEventComplete() {
         throw new UnsupportedOperationException("Not supported");
@@ -81,6 +86,7 @@ class UpgradeInputBuffer implements StreamInputBuffer {
             }
             
             isClosed = true;
+            stream.onInputClosed();
         }
         
         termination.doTask();

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -71,7 +71,7 @@ public class NetworkListenerTest {
     public static final int PORT = 18897;
 
     @Test
-    public void testSetPort() throws IOException {
+    public void testSetPort() throws Exception {
         NetworkListener listener = new NetworkListener("set-port", "0.0.0.0", PORT);
         HttpServer httpServer = new HttpServer();
         httpServer.addListener(listener);
@@ -86,7 +86,7 @@ public class NetworkListenerTest {
     }
 
     @Test
-    public void testAutoPort() throws IOException {
+    public void testAutoPort() throws Exception {
         NetworkListener listener = new NetworkListener("auto-port", "0.0.0.0", 0);
         HttpServer httpServer = new HttpServer();
         httpServer.addListener(listener);
@@ -101,7 +101,7 @@ public class NetworkListenerTest {
     }
 
     @Test
-    public void testPortRange() throws IOException {
+    public void testPortRange() throws Exception {
         final int RANGE = 10;
         final PortRange portRange = new PortRange(PORT, PORT + RANGE);
         NetworkListener listener = new NetworkListener("set-port", "0.0.0.0",
@@ -120,7 +120,7 @@ public class NetworkListenerTest {
     }
 
     @Test
-    public void testTransactionTimeoutGetSet() throws IOException {
+    public void testTransactionTimeoutGetSet() throws Exception {
         NetworkListener l = new NetworkListener("test");
         assertEquals(-1, l.getTransactionTimeout());
         l.setTransactionTimeout(Integer.MIN_VALUE);
@@ -130,7 +130,7 @@ public class NetworkListenerTest {
     }
 
     @Test
-    public void testTransactionTimeout() throws IOException {
+    public void testTransactionTimeout() throws Exception {
         final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         final NetworkListener listener = server.getListener("grizzly");
         listener.setTransactionTimeout(5);
@@ -154,8 +154,6 @@ public class NetworkListenerTest {
             final long stop = System.currentTimeMillis();
             assertNull(timeoutFailed.get());
             assertTrue((stop - start) < 15000);
-        } catch (Exception e) {
-            e.printStackTrace();
         } finally {
             server.shutdownNow();
         }
@@ -183,7 +181,7 @@ public class NetworkListenerTest {
     }
     
     @Test
-    public void testGracefulShutdown() throws IOException {
+    public void testGracefulShutdown() throws Exception {
         final String msg = "Hello World";
         final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
         
@@ -206,8 +204,6 @@ public class NetworkListenerTest {
             assertEquals(msg, content);
 
             assertNotNull(gracefulFuture.get(5, TimeUnit.SECONDS));
-        } catch (Exception e) {
-            e.printStackTrace();
         } finally {
             server.shutdownNow();
         }
@@ -231,7 +227,7 @@ public class NetworkListenerTest {
     }
 
     @Test
-    public void testGracefulShutdownGracePeriod() throws IOException {
+    public void testGracefulShutdownGracePeriod() throws Exception {
         final String msg = "Hello World";
         final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
 
@@ -254,15 +250,13 @@ public class NetworkListenerTest {
             assertEquals(msg, content);
 
             assertNotNull(gracefulFuture.get(5, TimeUnit.SECONDS));
-        } catch (Exception e) {
-            e.printStackTrace();
         } finally {
             server.shutdownNow();
         }
     }
 
     @Test
-    public void testGracefulShutdownGracePeriodExpired() throws IOException {
+    public void testGracefulShutdownGracePeriodExpired() throws Exception {
         final String msg = "Hello World";
         final byte[] msgBytes = msg.getBytes(Charsets.UTF8_CHARSET);
 
@@ -286,8 +280,6 @@ public class NetworkListenerTest {
             assertNull(content);
 
             assertNotNull(gracefulFuture.get(5, TimeUnit.SECONDS));
-        } catch (Exception e) {
-            e.printStackTrace();
         } finally {
             server.shutdownNow();
         }
@@ -302,7 +294,7 @@ public class NetworkListenerTest {
         testCookeName("CookieMonster");
     }
 
-    private void testCookeName(final String cookieName) {
+    private void testCookeName(final String cookieName) throws Exception {
         final AtomicBoolean passed = new AtomicBoolean(false);
 
         final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
@@ -336,8 +328,6 @@ public class NetworkListenerTest {
                     server.shutdown(1, TimeUnit.SECONDS);
 
             assertNotNull(gracefulFuture.get(5, TimeUnit.SECONDS));
-        } catch (Exception e) {
-            e.printStackTrace();
         } finally {
             server.shutdownNow();
         }

@@ -51,7 +51,7 @@ import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.http.util.BufferChunk;
 import org.glassfish.grizzly.http.util.ByteChunk;
 import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http2.Http2Session;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  * TODO: Need to implement handling of per-setting flags.
@@ -284,12 +284,11 @@ public class SettingsFrame extends Http2Frame {
 
 
     @Override
-    public Buffer toBuffer(final Http2Session http2Session) {
+    public Buffer toBuffer(final MemoryManager memoryManager) {
         
-        final Buffer buffer = http2Session.getMemoryManager()
-                .allocate(http2Session.getFrameHeaderSize() + numberOfSettings * 6);
-        
-        http2Session.serializeHttp2FrameHeader(this, buffer);
+        final Buffer buffer = memoryManager.allocate(FRAME_HEADER_SIZE + numberOfSettings * 6);
+
+        serializeFrameHeader(buffer);
         
         if (numberOfSettings > 0) {
             for (int i = 0; i < numberOfSettings; i++) {

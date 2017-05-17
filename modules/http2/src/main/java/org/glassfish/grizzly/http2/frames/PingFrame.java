@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,7 +44,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http2.Http2Session;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 public class PingFrame extends Http2Frame {
 
@@ -145,11 +145,10 @@ public class PingFrame extends Http2Frame {
     }
 
     @Override
-    public Buffer toBuffer(final Http2Session http2Session) {
-        final Buffer buffer = http2Session.getMemoryManager().allocate(
-                http2Session.getFrameHeaderSize() + 8);
-        
-        http2Session.serializeHttp2FrameHeader(this, buffer);
+    public Buffer toBuffer(final MemoryManager memoryManager) {
+        final Buffer buffer = memoryManager.allocate(FRAME_HEADER_SIZE + 8);
+
+        serializeFrameHeader(buffer);
         buffer.putLong(opaqueData);
         buffer.trim();
         

@@ -70,6 +70,7 @@ import org.glassfish.grizzly.http2.frames.DataFrame;
 import org.glassfish.grizzly.http2.frames.PingFrame;
 import org.glassfish.grizzly.http2.frames.PriorityFrame;
 import org.glassfish.grizzly.http2.frames.UnknownFrame;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
@@ -90,6 +91,7 @@ import org.glassfish.grizzly.http2.frames.RstStreamFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLBaseFilter;
+import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.Holder;
 import org.glassfish.grizzly.utils.NullaryFunction;
 
@@ -164,6 +166,7 @@ public class Http2Session {
     private int checkCount;
 
     private int goingAwayLastStreamId = Integer.MIN_VALUE;
+    private FutureImpl<Http2Session> sessionClosed;
 
     // true, if this connection is ready to accept frames or false if the first
     // HTTP/1.1 Upgrade is still in progress
@@ -244,14 +247,12 @@ public class Http2Session {
         connection.addCloseListener(new ConnectionCloseListener());
         
         this.outputSink = newOutputSink();
+
+        NetLogger.logOpen(this);
     }
 
     protected Http2SessionOutputSink newOutputSink() {
         return new Http2SessionOutputSink(this);
-    }
-
-    public int getFrameHeaderSize() {
-        return 9;
     }
 
     protected int getSpecDefaultFramePayloadSize() {
@@ -308,7 +309,7 @@ public class Http2Session {
     protected int getFrameSize(final Buffer buffer) {
         return buffer.remaining() < 4 // even though we need just 3 bytes - we require 4 for simplicity
                 ? -1
-                : (buffer.getInt(buffer.position()) >>> 8) + getFrameHeaderSize();
+                : (buffer.getInt(buffer.position()) >>> 8) + Http2Frame.FRAME_HEADER_SIZE;
     }
 
     public Http2Frame parseHttp2FrameHeader(final Buffer buffer)
@@ -352,17 +353,6 @@ public class Http2Session {
         }
     }
 
-    public void serializeHttp2FrameHeader(final Http2Frame frame,
-                                          final Buffer buffer) {
-        assert buffer.remaining() >= getFrameHeaderSize();
-
-        buffer.putInt(
-                ((frame.getLength() & 0xffffff) << 8) |
-                        frame.getType());
-        buffer.put((byte) frame.getFlags());
-        buffer.putInt(frame.getStreamId());
-    }
-    
     protected Http2Stream newStream(final HttpRequestPacket request,
             final int streamId, final int refStreamId,
             final boolean exclusive, final int priority) {
@@ -614,6 +604,21 @@ public class Http2Session {
     protected Http2SessionOutputSink getOutputSink() {
         return outputSink;
     }
+
+    /**
+     * TODO
+     */
+    FutureImpl<Http2Session> terminateGracefully() {
+        if (!isServer) {
+            throw new IllegalStateException("Illegal use of graceful termination on client.");
+        }
+        final GoAwayFrame frame = setGoAwayLocally(ErrorCode.NO_ERROR, "Shutting Down", true);
+        if (frame != null) {
+            sessionClosed = Futures.createSafeFuture();
+            outputSink.writeDownStream(frame);
+        }
+        return sessionClosed;
+    }
     
     /**
      * Terminate the HTTP2 session sending a GOAWAY frame using the specified
@@ -624,7 +629,7 @@ public class Http2Session {
      * @param detail optional details.
      */
     void terminate(final ErrorCode errorCode, final String detail) {
-        sendGoAwayAndClose(setGoAwayLocally(errorCode, detail));
+        sendGoAwayAndClose(setGoAwayLocally(errorCode, detail, false));
     }
 
     private void sendGoAwayAndClose(final Http2Frame frame) {
@@ -661,17 +666,28 @@ public class Http2Session {
     }
 
     private GoAwayFrame setGoAwayLocally(final ErrorCode errorCode,
-                                         final String detail) {
+                                         final String detail,
+                                         final boolean graceful) {
         synchronized (sessionLock) {
 
-            if (goingAwayLastStreamId == Integer.MIN_VALUE) {
+            // If sending a GOAWAY for the first time, goingAwayLastStreamId will be
+            // Integer.MIN_VALUE.  It won't be possible to send another GOAWAY frame
+            // Unless a graceful session termination was attempted.  In this case,
+            // the value will be Integer.MAX_VALUE and it will be possible to send
+            // another GO_AWAY if a change of state is necessary i.e., the graceful
+            // termination timed out and the session is being forcefully terminated.
+            if (goingAwayLastStreamId == Integer.MIN_VALUE
+                    || (goingAwayLastStreamId == Integer.MAX_VALUE && !graceful)) {
                 closeFlag = CloseType.LOCALLY;
-                goingAwayLastStreamId = ((lastPeerStreamId > 0)
-                                            ? lastPeerStreamId
-                                            : 0);
-
-                if (concurrentStreamsCount != 0) {
-                    pruneStreams();
+                goingAwayLastStreamId = ((graceful)
+                        ? Integer.MAX_VALUE
+                        : ((lastPeerStreamId > 0)
+                        ? lastPeerStreamId
+                        : 0));
+                if (goingAwayLastStreamId != Integer.MAX_VALUE) {
+                    if (concurrentStreamsCount != 0) {
+                        pruneStreams();
+                    }
                 }
                 return GoAwayFrame.builder()
                         .lastStreamId(goingAwayLastStreamId)
@@ -680,6 +696,7 @@ public class Http2Session {
                                 : null))
                         .errorCode(errorCode)
                         .build();
+
             }
             return null; // already in GOAWAY state.
         }
@@ -712,11 +729,13 @@ public class Http2Session {
             goingAwayLastStreamId = lastStreamId;
             closeFlag = CloseType.REMOTELY;
             pruneStreams();
-            sendGoAwayAndClose(GoAwayFrame.builder()
-                    .lastStreamId(goingAwayLastStreamId)
-                    .additionalDebugData(Buffers.wrap(getMemoryManager(), "Peer Requested."))
-                    .errorCode(ErrorCode.NO_ERROR)
-                    .build());
+            if (isServer || lastStreamId != Integer.MAX_VALUE) {
+                sendGoAwayAndClose(GoAwayFrame.builder()
+                        .lastStreamId(goingAwayLastStreamId)
+                        .additionalDebugData(Buffers.wrap(getMemoryManager(), "Peer Requested."))
+                        .errorCode(ErrorCode.NO_ERROR)
+                        .build());
+            }
         }
     }
 
@@ -768,7 +787,7 @@ public class Http2Session {
 
         // server preface
         //noinspection unchecked
-        connection.write(settingsFrame.toBuffer(this), ((sslFilter != null) ? new EmptyCompletionHandler() {
+        connection.write(settingsFrame.toBuffer(getMemoryManager()), ((sslFilter != null) ? new EmptyCompletionHandler() {
             @Override
             public void completed(Object result) {
                 sslFilter.setRenegotiationDisabled(true);
@@ -789,7 +808,7 @@ public class Http2Session {
                 Buffers.wrap(connection.getMemoryManager(), PRI_PAYLOAD);
         
         final SettingsFrame settingsFrame = prepareSettings().build();        
-        final Buffer settingsBuffer = settingsFrame.toBuffer(this);
+        final Buffer settingsBuffer = settingsFrame.toBuffer(getMemoryManager());
         
         final Buffer payload = Buffers.appendBuffers(
                 connection.getMemoryManager(), priPayload, settingsBuffer);
@@ -1233,7 +1252,11 @@ public class Http2Session {
         }
         
         if (isCloseSession) {
-            terminate(ErrorCode.NO_ERROR, "Going Away");
+            if (sessionClosed != null) {
+                sessionClosed.result(this);
+            } else {
+                terminate(ErrorCode.NO_ERROR, "Session closed");
+            }
         }
     }
 

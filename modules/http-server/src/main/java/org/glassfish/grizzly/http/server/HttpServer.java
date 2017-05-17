@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,6 +68,7 @@ import org.glassfish.grizzly.TransportProbe;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
+import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.CompressionConfig;
 import org.glassfish.grizzly.http.CompressionConfig.CompressionMode;
@@ -75,6 +76,7 @@ import org.glassfish.grizzly.http.ContentEncoding;
 import org.glassfish.grizzly.http.GZipContentEncoding;
 import org.glassfish.grizzly.http.LZMAContentEncoding;
 import org.glassfish.grizzly.http.server.filecache.FileCache;
+import org.glassfish.grizzly.http.server.http2.PushEvent;
 import org.glassfish.grizzly.http.server.jmxbase.JmxEventListener;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.MemoryProbe;
@@ -125,7 +127,7 @@ public class HttpServer {
      *  instance.
      */
     private final Map<String, NetworkListener> listeners =
-            new HashMap<String, NetworkListener>(2);
+            new HashMap<>(2);
 
     private volatile ExecutorService auxExecutorService;
 
@@ -218,6 +220,7 @@ public class HttpServer {
      * @return {@link NetworkListener}, that has been removed, or <tt>null</tt>
      *      if the listener with the given name doesn't exist
      */
+    @SuppressWarnings("UnusedReturnValue")
     public synchronized NetworkListener removeListener(final String name) {
 
         final NetworkListener listener = listeners.remove(name);
@@ -253,7 +256,7 @@ public class HttpServer {
             return;
         } else if (state == State.STOPPING) {
             throw new IllegalStateException("The server is currently in pending"
-                    + " shutdown state. You have to either wait for shutdown to"
+                    + " shutdown state. Wait for the shutdown to"
                     + " complete or force it by calling shutdownNow()");
         }
         state = State.RUNNING;
@@ -382,7 +385,7 @@ public class HttpServer {
                     public void completed(final NetworkListener networkListener) {
                         if (counter.decrementAndGet() == 0) {
                             try {
-                                shutdownNow();
+                                //shutdownNow();
                                 shutdownFutureLocal.result(HttpServer.this);
                             } catch (Throwable e) {
                                 shutdownFutureLocal.failure(e);
@@ -658,6 +661,7 @@ public class HttpServer {
 
             // Passing null value for the delayed executor, because IdleTimeoutFilter should
             // handle idle connections for us
+            @SuppressWarnings("deprecation")
             final org.glassfish.grizzly.http.HttpServerFilter httpServerCodecFilter =
                     new org.glassfish.grizzly.http.HttpServerFilter(listener.isChunkingEnabled(),
                                          maxHeaderSize,
@@ -767,7 +771,7 @@ public class HttpServer {
             final ContentEncoding lzmaEncoding = new LZMAContentEncoding(
                     new CompressionEncodingFilter(compressionConfig,
                     LZMAContentEncoding.getLzmaAliases()));
-            final Set<ContentEncoding> set = new HashSet<ContentEncoding>(2);
+            final Set<ContentEncoding> set = new HashSet<>(2);
             set.add(gzipContentEncoding);
             set.add(lzmaEncoding);
             return set;

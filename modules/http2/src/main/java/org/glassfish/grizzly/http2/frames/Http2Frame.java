@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,9 +43,12 @@ package org.glassfish.grizzly.http2.frames;
 import java.util.Map;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Cacheable;
-import org.glassfish.grizzly.http2.Http2Session;
+import org.glassfish.grizzly.memory.MemoryManager;
 
 public abstract class Http2Frame implements Cacheable {
+
+    public static final int FRAME_HEADER_SIZE = 9;
+
     protected static final boolean DONT_RECYCLE =
             Boolean.getBoolean(Http2Frame.class.getName() + ".dont-recycle");
     
@@ -64,7 +67,11 @@ public abstract class Http2Frame implements Cacheable {
 
     // ---------------------------------------------------------- Public Methods
 
-    public abstract Buffer toBuffer(Http2Session connection);
+    public Buffer toBuffer() {
+        return toBuffer(MemoryManager.DEFAULT_MEMORY_MANAGER);
+    }
+
+    public abstract Buffer toBuffer(final MemoryManager memoryManager);
     
     public boolean isFlagSet(final int flag) {
         return (flags & flag) == flag;
@@ -155,12 +162,18 @@ public abstract class Http2Frame implements Cacheable {
         return sb.toString();
     }
 
-    protected Buffer getFrameBuffer() {
-        return frameBuffer;
-    }
-
     protected void setFrameBuffer(Buffer frameBuffer) {
         this.frameBuffer = frameBuffer;
+    }
+
+    protected void serializeFrameHeader(final Buffer buffer) {
+        assert buffer.remaining() >= Http2Frame.FRAME_HEADER_SIZE;
+
+        buffer.putInt(
+                ((getLength() & 0xffffff) << 8) |
+                        getType());
+        buffer.put((byte) getFlags());
+        buffer.putInt(getStreamId());
     }
     
     // -------------------------------------------------- Methods from Cacheable
@@ -228,6 +241,7 @@ public abstract class Http2Frame implements Cacheable {
             return getThis();
         }
 
+        @SuppressWarnings("unused")
         public T clearFlag(final int flag) {
             flags &= ~flag;
             return getThis();

@@ -38,44 +38,82 @@
  * holder.
  */
 
-package org.glassfish.grizzly.http2.frames;
+package org.glassfish.grizzly.filterchain;
 
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.memory.MemoryManager;
 
 import java.util.Collections;
-import java.util.Map;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Holder class when we encounter frames of an unknown type.
+ * An event that {@link Filter} implementations may listen for if special processing is required
+ * during a graceful shutdown.
+ *
+ * @since 2.4.0
  */
-public class UnknownFrame extends Http2Frame {
+public class ShutdownEvent implements FilterChainEvent {
 
-    private final int type;
-    private final int length;
+    public static final Object TYPE = ShutdownEvent.class.getName();
+    private Set<Callable<Filter>> shutdownFutures;
+    private long gracePeriod;
+    private TimeUnit timeUnit;
 
-    public UnknownFrame(final int type, final int length) {
-        this.type = type;
-        this.length = length;
+
+    // ----------------------------------------------------------- Constructors
+
+
+    /**
+     * Create a new {@link ShutdownEvent} with the grace period for the shutdown.
+     */
+    public ShutdownEvent(final long gracePeriod, final TimeUnit timeUnit) {
+        this.gracePeriod = gracePeriod;
+        this.timeUnit = timeUnit;
     }
 
+    /**
+     * @inheritDoc
+     */
     @Override
-    public Buffer toBuffer(final MemoryManager memoryManager) {
-        throw new UnsupportedOperationException();
+    public Object type() {
+        return TYPE;
     }
 
-    @Override
-    protected int calcLength() {
-        return length;
+
+    /**
+     * Adds a task to this event.  Tasks should be called on separate threads after all {@link Filter}s in the
+     * chain have been notified of the impending shutdown.
+     */
+    public void addShutdownTask(final Callable<Filter> future) {
+        if (future == null) {
+            return;
+        }
+        if (shutdownFutures == null) {
+            shutdownFutures = new LinkedHashSet<>(4);
+        }
+        shutdownFutures.add(future);
     }
 
-    @Override
-    protected Map<Integer, String> getFlagNamesMap() {
-        return Collections.emptyMap();
+    /**
+     * @return a {@link Set} of {@link Callable<Filter>} instances that need to be
+     *  checked in order to proceed with terminating processing.
+     */
+    public Set<Callable<Filter>> getShutdownTasks() {
+        return ((shutdownFutures != null) ? shutdownFutures : Collections.emptySet());
     }
 
-    @Override
-    public int getType() {
-        return type;
+    /**
+     * @return the shutdown grace period.
+     */
+    public long getGracePeriod() {
+        return gracePeriod;
+    }
+
+    /**
+     * @return the {@link TimeUnit} of the grace period.
+     */
+    public TimeUnit getTimeUnit() {
+        return timeUnit;
     }
 }

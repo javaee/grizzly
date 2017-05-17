@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,8 +45,10 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
+import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.ShutdownEvent;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -55,9 +57,12 @@ import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.Method;
 import org.glassfish.grizzly.http.server.util.HtmlHelper;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -74,6 +79,7 @@ import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringAware;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.MonitoringUtils;
+import org.glassfish.grizzly.utils.Futures;
 
 
 /**
@@ -114,11 +120,12 @@ public class HttpServerFilter extends BaseFilter
     /**
      * The flag, which indicates if the server is currently in the shutdown phase
      */
-    private volatile boolean isShuttingDown;
+    private AtomicBoolean shuttingDown = new AtomicBoolean();
+
     /**
      * CompletionHandler to be notified, when shutdown could be gracefully completed
      */
-    private AtomicReference<CompletionHandler<HttpServerFilter>> shutdownCompletionHandlerRef;
+    private AtomicReference<FutureImpl<HttpServerFilter>> shutdownCompletionFuture;
     
     /**
      * The number of requests, which are currently in process.
@@ -212,7 +219,7 @@ public class HttpServerFilter extends BaseFilter
                 try {
                     ctx.setMessage(handlerResponse);
 
-                    if (isShuttingDown) { // if we're in the shutting down phase - serve shutdown page and exit
+                    if (shuttingDown.get()) { // if we're in the shutting down phase - serve shutdown page and exit
                         handlerResponse.getResponse().getProcessingState().setError(true);
                         HtmlHelper.setErrorAndSendErrorPage(
                                 handlerRequest, handlerResponse,
@@ -314,6 +321,29 @@ public class HttpServerFilter extends BaseFilter
         }
     }
 
+    @Override
+    public NextAction handleEvent(final FilterChainContext ctx, final FilterChainEvent event) throws IOException {
+        if (event.type() == ShutdownEvent.TYPE) {
+            if (shuttingDown.compareAndSet(false, true)) {
+                final ShutdownEvent shutDownEvent = (ShutdownEvent) event;
+                final FutureImpl<HttpServerFilter> future = Futures.createSafeFuture();
+
+
+                shutDownEvent.addShutdownTask(new Callable<Filter>() {
+                    @Override
+                    public Filter call() throws Exception {
+                        return future.get();
+                    }
+                });
+
+                shutdownCompletionFuture = new AtomicReference<>(future);
+                if (activeRequestsCounter.get() == 0) {
+                    future.result(this);
+                }
+            }
+        }
+        return ctx.getInvokeAction();
+    }
 
     // ---------------------------------------------------------- Public Methods
 
@@ -326,23 +356,6 @@ public class HttpServerFilter extends BaseFilter
         return monitoringConfig;
     }
 
-    /**
-     * Method, which might be optionally called to prepare the filter for
-     * shutdown.
-     * @param shutdownCompletionHandler {@link CompletionHandler} to be notified,
-     *        when shutdown could be gracefully completed
-     */
-    public void prepareForShutdown(
-            final CompletionHandler<HttpServerFilter> shutdownCompletionHandler) {
-        this.shutdownCompletionHandlerRef =
-                new AtomicReference<CompletionHandler<HttpServerFilter>>(shutdownCompletionHandler);
-        isShuttingDown = true;
-        
-        if (activeRequestsCounter.get() == 0 &&
-                shutdownCompletionHandlerRef.getAndSet(null) != null) {
-            shutdownCompletionHandler.completed(this);
-        }
-    }
     
     // ------------------------------------------------------- Protected Methods
 
@@ -416,20 +429,19 @@ public class HttpServerFilter extends BaseFilter
      */
     private void onRequestCompleteAndResponseFlushed() {
         final int count = activeRequestsCounter.decrementAndGet();
-        if (count == 0 && isShuttingDown) {
-            final CompletionHandler<HttpServerFilter> shutdownHandler =
-                    shutdownCompletionHandlerRef != null
-                    ? shutdownCompletionHandlerRef.getAndSet(null)
+        if (count == 0 && shuttingDown.get()) {
+            final FutureImpl<HttpServerFilter> shutdownFuture =
+                    shutdownCompletionFuture != null
+                    ? shutdownCompletionFuture.getAndSet(null)
                     : null;
             
-            if (shutdownHandler != null) {
-                shutdownHandler.completed(this);
+            if (shutdownFuture != null) {
+                shutdownFuture.result(this);
             }
         }
     }
 
     /**
-     * @param requestContentLength
      * @return <tt>true</tt> if request content-length doesn't exceed
      *      the max post size limit, or <tt>false</tt> otherwise
      */

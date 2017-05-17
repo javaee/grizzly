@@ -42,7 +42,6 @@ package org.glassfish.grizzly.http2.frames;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ThreadCache;
-import org.glassfish.grizzly.http2.Http2Session;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
@@ -106,13 +105,12 @@ public class ContinuationFrame extends HeaderBlockFragment {
     }
     
     @Override
-    public Buffer toBuffer(final Http2Session http2Session) {
-        final MemoryManager memoryManager = http2Session.getMemoryManager();
-        
+    public Buffer toBuffer(final MemoryManager memoryManager) {
+
         final Buffer buffer = memoryManager.allocate(
-                http2Session.getFrameHeaderSize());
+                FRAME_HEADER_SIZE);
         
-        http2Session.serializeHttp2FrameHeader(this, buffer);
+        serializeFrameHeader(buffer);
 
         buffer.trim();
         final CompositeBuffer cb = CompositeBuffer.newBuffer(memoryManager,

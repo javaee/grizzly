@@ -41,10 +41,12 @@
 package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -55,9 +57,11 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
+import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainEvent;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.ShutdownEvent;
 import org.glassfish.grizzly.http.HttpBrokenContentException;
 import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContext;
@@ -77,6 +81,7 @@ import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.ssl.SSLUtils;
 
@@ -562,6 +567,32 @@ public class Http2ServerFilter extends Http2BaseFilter {
             final FilterChainEvent event) throws IOException {
         
         final Object type = event.type();
+
+        if (type == ShutdownEvent.TYPE) {
+            if (shuttingDown.compareAndSet(false, true)) {
+                ((ShutdownEvent) event).addShutdownTask(new Callable<Filter>() {
+                    @Override
+                    public Filter call() throws Exception {
+                        final Collection<Connection> activeConnections = shuttingDown();
+                        if (!activeConnections.isEmpty()) {
+                            final List<FutureImpl> futures = new ArrayList<>(activeConnections.size());
+                            for (final Connection c : activeConnections) {
+                                if (c.isOpen()) {
+                                    final Http2Session session = Http2Session.get(c);
+                                    if (session != null) {
+                                        futures.add(session.terminateGracefully());
+                                    }
+                                }
+                            }
+                            for (final FutureImpl f : futures) {
+                                f.get();
+                            }
+                        }
+                        return Http2ServerFilter.this;
+                    }
+                });
+            }
+        }
         
         if (type == HttpEvents.IncomingHttpUpgradeEvent.TYPE) {
             final HttpHeader header
@@ -609,7 +640,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
             // it's pure HTTP/2.0 request processing
             return ctx.getStopAction();
         }
-        
+
         return super.handleEvent(ctx, event);
     }
 
@@ -714,7 +745,11 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
         httpRequest.getUpgradeDC().recycle();
         httpResponse.getProcessingState().setKeepAlive(true);
-        
+
+        if (http2Session.isGoingAway()) {
+            Http2State.remove(connection);
+            return false;
+        }
         // create a virtual stream for this request
         final Http2Stream stream = http2Session.acceptUpgradeStream(
                 httpRequest, 0, !httpRequest.isExpectContent());
