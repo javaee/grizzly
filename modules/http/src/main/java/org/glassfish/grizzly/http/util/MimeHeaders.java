@@ -58,6 +58,7 @@
 
 package org.glassfish.grizzly.http.util;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import org.glassfish.grizzly.Buffer;
 
@@ -134,6 +135,9 @@ servlet needs direct access to headers).
      *  XXX  make it configurable ( fine-tuning of web-apps )
      */
     public static final int DEFAULT_HEADER_SIZE = 8;
+
+    public static DataChunk NOOP_CHUNK = new DataChunk.Immutable(null);
+
     /**
      * The header fields.
      */
@@ -144,6 +148,8 @@ servlet needs direct access to headers).
     private int count;
 
     private int maxNumHeaders = MAX_NUM_HEADERS_DEFAULT;
+
+    protected String[] filteredNames;
 
     /**
      * The header names {@link Iterable}.
@@ -160,6 +166,11 @@ servlet needs direct access to headers).
      * Creates a new MimeHeaders object using a default buffer size.
      */
     public MimeHeaders() {
+        this(null);
+    }
+
+    protected MimeHeaders(final String[] filteredNames) {
+        this.filteredNames = filteredNames;
     }
 
     /**
@@ -206,7 +217,6 @@ servlet needs direct access to headers).
         this.maxNumHeaders = source.maxNumHeaders;
         this.count = source.count;
         if (headers.length < count) {
-
             MimeHeaderField tmp[] = new MimeHeaderField[count * 2];
             System.arraycopy(headers, 0, tmp, 0, headers.length);
             headers = tmp;
@@ -214,6 +224,10 @@ servlet needs direct access to headers).
 
         for (int i = 0, len = source.count; i < len; i++) {
             MimeHeaderField sourceField = source.headers[i];
+            if (!isValidName(sourceField.getName().toString())) {
+                continue;
+            }
+
             MimeHeaderField f = headers[i];
             if (f == null) {
                 f = new MimeHeaderField();
@@ -418,6 +432,9 @@ servlet needs direct access to headers).
     container for the new value
      */
     public DataChunk addValue(String name) {
+        if (!isValidName(name)) {
+            return NOOP_CHUNK;
+        }
         MimeHeaderField mh = createHeader();
         mh.getName().setString(name);
         return mh.getValue();
@@ -427,6 +444,9 @@ servlet needs direct access to headers).
     container for the new value
      */
     public DataChunk addValue(final Header header) {
+        if (!isValidName(header)) {
+            return NOOP_CHUNK;
+        }
         MimeHeaderField mh = createHeader();
         mh.getName().setBytes(header.toByteArray());
         return mh.getValue();
@@ -438,6 +458,9 @@ servlet needs direct access to headers).
      */
     public DataChunk addValue(final byte[] buffer, final int startN,
             final int len) {
+        if (!isValidName(buffer)) {
+            return NOOP_CHUNK;
+        }
         MimeHeaderField mhf = createHeader();
         mhf.getName().setBytes(buffer, startN, startN + len);
         return mhf.getValue();
@@ -449,6 +472,9 @@ servlet needs direct access to headers).
      */
     public DataChunk addValue(final Buffer buffer, final int startN,
             final int len) {
+        if (!isValidName(buffer)) {
+            return NOOP_CHUNK;
+        }
         MimeHeaderField mhf = createHeader();
         mhf.getName().setBuffer(buffer, startN, startN + len);
         return mhf.getValue();
@@ -461,6 +487,9 @@ servlet needs direct access to headers).
      * if this .
      */
     public DataChunk setValue(final String name) {
+        if (!isValidName(name)) {
+            return NOOP_CHUNK;
+        }
         for (int i = 0; i < count; i++) {
             if (headers[i].getName().equalsIgnoreCase(name)) {
                 for (int j = i + 1; j < count; j++) {
@@ -483,6 +512,9 @@ servlet needs direct access to headers).
      * if this .
      */
     public DataChunk setValue(final Header header) {
+        if (!isValidName(header)) {
+            return NOOP_CHUNK;
+        }
         final byte[] bytes = header.getLowerCaseBytes();
         for (int i = 0; i < count; i++) {
             if (headers[i].getName().equalsIgnoreCaseLowerCase(bytes)) {
@@ -660,6 +692,23 @@ servlet needs direct access to headers).
         }
 
     } // END MaxHeaderCountExceededException
+
+
+    private boolean isValidName(final String name) {
+        return (filteredNames == null || Arrays.binarySearch(filteredNames, name.toLowerCase()) < 0);
+    }
+
+    private boolean isValidName(final Header name) {
+        return (filteredNames == null || Arrays.binarySearch(filteredNames, name.getLowerCase()) < 0);
+    }
+
+    private boolean isValidName(final byte[] name) {
+        return (filteredNames == null || Arrays.binarySearch(filteredNames, new String(name).toLowerCase()) < 0);
+    }
+
+    private boolean isValidName(final Buffer name) {
+        return (filteredNames == null || Arrays.binarySearch(filteredNames, name.toStringContent().toLowerCase()) < 0);
+    }
 
 }
 

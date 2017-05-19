@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http.server;
 
 import org.glassfish.grizzly.http.ChunkedTransferEncoding;
 import org.glassfish.grizzly.http.FixedLengthTransferEncoding;
+import org.glassfish.grizzly.http.MimeTrailers;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -49,7 +50,6 @@ import java.util.List;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
-import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.junit.After;
 import org.junit.Before;
 import org.glassfish.grizzly.http.HttpPacket;
@@ -314,9 +314,9 @@ public class ChunkedTransferEncodingTest {
         }
         
         final HttpTrailer.Builder trailerBuilder = HttpTrailer.builder(requestPacket);
-        final MimeHeaders headers = new MimeHeaders();
-        headers.setMaxNumHeaders(-1);
-        trailerBuilder.headers(headers);
+        final MimeTrailers trailers = new MimeTrailers();
+        trailers.setMaxNumHeaders(-1);
+        trailerBuilder.headers(trailers);
 
         for (Entry<String, Pair<String, String>> entry : trailerHeaders.entrySet()) {
             final String value = entry.getValue().getFirst();

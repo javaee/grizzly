@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.http;
 
 import org.glassfish.grizzly.ThreadCache;
+import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.http.util.MimeHeaders;
@@ -56,9 +57,6 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
             ThreadCache.obtainIndex(HttpTrailer.class, 16);
 
     /**
-     * Returns <tt>true</tt> if passed {@link HttpContent} is a <tt>HttpTrailder</tt>.
-     *
-     * @param httpContent
      * @return <tt>true</tt> if passed {@link HttpContent} is a <tt>HttpTrailder</tt>.
      */
     public static boolean isTrailer(HttpContent httpContent) {
@@ -89,12 +87,12 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         return new Builder().httpHeader(httpHeader);
     }
 
-    private MimeHeaders headers;
+    private MimeTrailers trailers;
 
 
     protected HttpTrailer(HttpHeader httpHeader) {
         super(httpHeader);
-        headers = new MimeHeaders();
+        trailers = new MimeTrailers();
     }
 
     /**
@@ -113,7 +111,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     public MimeHeaders getHeaders() {
-        return headers;
+        return trailers;
     }
 
     /**
@@ -121,7 +119,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     public String getHeader(final String name) {
-        return headers.getHeader(name);
+        return trailers.getHeader(name);
     }
 
     /**
@@ -129,7 +127,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     public String getHeader(final Header header) {
-        return headers.getHeader(header);
+        return trailers.getHeader(header);
     }
 
     /**
@@ -140,7 +138,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         if (name == null || value == null) {
             return;
         }
-        headers.setValue(name).setString(value);
+        trailers.setValue(name).setString(value);
     }
 
     /**
@@ -151,7 +149,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         if (name == null || value == null || !value.isSet()) {
             return;
         }
-        value.serializeToDataChunk(headers.setValue(name));
+        value.serializeToDataChunk(trailers.setValue(name));
     }
 
     /**
@@ -162,7 +160,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         if (header == null || value == null) {
             return;
         }
-        headers.setValue(header).setString(value);
+        trailers.setValue(header).setString(value);
     }
 
     /**
@@ -173,7 +171,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         if (header == null || value == null || !value.isSet()) {
             return;
         }
-        value.serializeToDataChunk(headers.setValue(header));
+        value.serializeToDataChunk(trailers.setValue(header));
     }
     
     /**
@@ -184,7 +182,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         if (name == null || value == null) {
             return;
         }
-        headers.addValue(name).setString(value);
+        trailers.addValue(name).setString(value);
     }
 
     /**
@@ -195,7 +193,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         if (name == null || value == null || !value.isSet()) {
             return;
         }
-        value.serializeToDataChunk(headers.setValue(name));
+        value.serializeToDataChunk(trailers.setValue(name));
     }
     
     /**
@@ -206,7 +204,10 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         if (header == null || value == null) {
             return;
         }
-        headers.addValue(header).setString(value);
+        final DataChunk c = trailers.addValue(header);
+        if (c != null) {
+            c.setString(value);
+        }
     }
 
     /**
@@ -217,7 +218,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         if (header == null || value == null || !value.isSet()) {
             return;
         }
-        value.serializeToDataChunk(headers.setValue(header));
+        value.serializeToDataChunk(trailers.setValue(header));
     }
 
     /**
@@ -225,7 +226,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     public boolean containsHeader(final String name) {
-        return headers.contains(name);
+        return trailers.contains(name);
     }
 
     /**
@@ -233,15 +234,16 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     public boolean containsHeader(final Header header) {
-        return headers.contains(header);
+        return trailers.contains(header);
     }
 
     /**
-     * Set the mime headers.
-     * @param mimeHeaders {@link MimeHeaders}.
+     * Set the mime trailers.
+     * @param trailers {@link MimeHeaders}.
      */
-    protected void setHeaders(final MimeHeaders mimeHeaders) {
-        this.headers = mimeHeaders;
+    @SuppressWarnings("unused")
+    protected void setTrailers(final MimeTrailers trailers) {
+        this.trailers = trailers;
     }
 
     /**
@@ -249,7 +251,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     protected void reset() {
-        this.headers.recycle();
+        this.trailers.recycle();
         super.reset();
     }
     
@@ -267,21 +269,21 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     public static final class Builder extends HttpContent.Builder<Builder> {
 
-        private MimeHeaders mimeHeaders;
+        private MimeTrailers mimeTrailers;
 
         protected Builder() {
         }
 
         /**
-         * Set the mime headers.
+         * Set the mime trailers.
          *
-         * This method will overwrite any headers provided via
+         * This method will overwrite any trailers provided via
          * {@link #header(String, String)} before this invocation.
          *
-         * @param mimeHeaders {@link MimeHeaders}.
+         * @param mimeTrailers {@link MimeTrailers}.
          */
-        public final Builder headers(MimeHeaders mimeHeaders) {
-            this.mimeHeaders = mimeHeaders;
+        public final Builder headers(MimeTrailers mimeTrailers) {
+            this.mimeTrailers = mimeTrailers;
             return this;
         }
 
@@ -292,10 +294,13 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
          * @param value the mime header value.
          */
         public final Builder header(String name, String value) {
-            if (mimeHeaders == null) {
-                mimeHeaders = new MimeHeaders();
+            if (mimeTrailers == null) {
+                mimeTrailers = new MimeTrailers();
             }
-            mimeHeaders.addValue(name).setString(value);
+            final DataChunk c = mimeTrailers.addValue(name);
+            if (c != null) {
+                c.setString(value);
+            }
             return this;
         }
 
@@ -307,8 +312,8 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         @Override
         public final HttpTrailer build() {
             HttpTrailer trailer = (HttpTrailer) super.build();
-            if (mimeHeaders != null) {
-                trailer.headers = mimeHeaders;
+            if (mimeTrailers != null) {
+                trailer.trailers = mimeTrailers;
             }
             return trailer;
         }
