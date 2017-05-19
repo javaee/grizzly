@@ -862,7 +862,6 @@ public class Http2ServerFilter extends Http2BaseFilter {
             return;
         }
         onHttpHeadersParsed(request, context);
-        request.getHeaders().mark();
 
         prepareIncomingRequest(stream, request);
         

@@ -118,14 +118,13 @@ servlet needs direct access to headers).
  *  XXX remove unused methods
  *  XXX External enumerations, with 0 GC.
  *  XXX use HeaderName ID
- *  
- * 
+ *
+ *
  * @author dac@eng.sun.com
  * @author James Todd [gonzo@eng.sun.com]
  * @author Costin Manolache
  * @author kevin seguin
- */
-public class MimeHeaders {
+ */public class MimeHeaders {
 
     public static final int MAX_NUM_HEADERS_UNBOUNDED = -1;
 
@@ -144,8 +143,6 @@ public class MimeHeaders {
      */
     private int count;
 
-    int mark;
-
     private int maxNumHeaders = MAX_NUM_HEADERS_DEFAULT;
 
     /**
@@ -155,7 +152,7 @@ public class MimeHeaders {
 
         @Override
         public Iterator<String> iterator() {
-            return new NamesIterator(MimeHeaders.this, false);
+            return new NamesIterator(MimeHeaders.this);
         }
     };
 
@@ -181,13 +178,6 @@ public class MimeHeaders {
             headers[i].recycle();
         }
         count = 0;
-        mark = 0;
-    }
-
-    public void mark() {
-        if (mark == 0) {
-            mark = count;
-        }
     }
 
     /**
@@ -196,7 +186,7 @@ public class MimeHeaders {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        
+
         sb.append("=== MimeHeaders ===\n");
 
         for (int i = 0; i < count; i++) {
@@ -205,7 +195,7 @@ public class MimeHeaders {
                     .append(headers[i].valueB)
                     .append('\n');
         }
-        
+
         return sb.toString();
     }
 
@@ -264,13 +254,6 @@ public class MimeHeaders {
      */
     public int size() {
         return count;
-    }
-
-    public int trailerSize() {
-        if (mark > 0) {
-            return (count - mark);
-        }
-        return 0;
     }
 
     /**
@@ -382,42 +365,24 @@ public class MimeHeaders {
         return namesIterable;
     }
 
-    public Iterable<String> trailerNames() {
-        return new Iterable<String>() {
-
-            @Override
-            public Iterator<String> iterator() {
-                return new NamesIterator(MimeHeaders.this, true);
-            }
-        };
-    }
-
     public Iterable<String> values(final String name) {
         return new Iterable<String>() {
 
             @Override
             public Iterator<String> iterator() {
-                return new ValuesIterator(MimeHeaders.this, name, false);
+                return new ValuesIterator(MimeHeaders.this, name);
             }
         };
     }
 
     public Iterable<String> values(final Header name) {
-        return values(name.toString());
-    }
-
-    public Iterable<String> trailerValues(final String name) {
         return new Iterable<String>() {
 
             @Override
             public Iterator<String> iterator() {
-                return new ValuesIterator(MimeHeaders.this, name, true);
+                return new ValuesIterator(MimeHeaders.this, name.toString());
             }
         };
-    }
-
-    public Iterable<String> trailerValues(final Header name) {
-        return values(name.toString());
     }
 
     // -------------------- Adding headers --------------------
@@ -489,8 +454,8 @@ public class MimeHeaders {
         return mhf.getValue();
     }
 
-    /** 
-     * Allow "set" operations - 
+    /**
+     * Allow "set" operations -
      * return a DataChunk container for the
      * header value ( existing header or new
      * if this .
@@ -531,7 +496,7 @@ public class MimeHeaders {
         }
         MimeHeaderField mh = createHeader();
         mh.getName().setBytes(header.toByteArray());
-        
+
         return mh.getValue();
     }
 
@@ -683,6 +648,7 @@ public class MimeHeaders {
         this.maxNumHeaders = maxNumHeaders;
     }
 
+    @SuppressWarnings("unused")
     public int getMaxNumHeaders() {
         return maxNumHeaders;
     }
@@ -697,28 +663,48 @@ public class MimeHeaders {
 
 }
 
-/**
- * Enumerate the distinct header names.
- * Each nextElement() is O(n) ( a comparation is
- * done with all previous elements ).
- * This is less frequesnt than add() - we want to keep add O(1).
- */
-class NamesIterator implements Iterator<String> {
-
+abstract class BaseIterator implements Iterator<String> {
     int pos;
     int size;
     int currentPos;
-    String next;
+
     final MimeHeaders headers;
 
-    NamesIterator(MimeHeaders headers, final boolean trailersOnly) {
+    public BaseIterator(final MimeHeaders headers) {
         this.headers = headers;
-        pos = ((trailersOnly) ? headers.mark : 0);
+    }
+
+    protected abstract void findNext();
+
+    @Override
+    public void remove() {
+        if (currentPos < 0) throw new IllegalStateException("No current element");
+        headers.removeHeader(currentPos);
+        pos = currentPos;
+        currentPos = -1;
+        size--;
+        findNext();
+    }
+}
+
+/**
+ * Enumerate the distinct header names.
+ * Each nextElement() is O(n) ( a comparison is
+ * done with all previous elements ).
+ * This is less frequent than add() - we want to keep add O(1).
+ */
+class NamesIterator extends BaseIterator {
+
+    String next;
+
+    NamesIterator(MimeHeaders headers) {
+        super(headers);
+        pos = 0;
         size = headers.size();
         findNext();
     }
 
-    private void findNext() {
+    protected void findNext() {
         next = null;
         for (; pos < size; pos++) {
             next = headers.getName(pos).toString();
@@ -752,40 +738,25 @@ class NamesIterator implements Iterator<String> {
         return current;
     }
 
-    @Override
-    public void remove() {
-        if (currentPos < 0) throw new IllegalStateException("No current element");
-        headers.removeHeader(currentPos);
-        pos = currentPos;
-        currentPos = -1;
-        size--;
-        findNext();
-    }
-}
+} // END NamesIterator
 
 /** Enumerate the values for a (possibly ) multiple
 value element.
  */
-final class ValuesIterator implements Iterator<String> {
+class ValuesIterator extends BaseIterator {
 
-    int pos;
-    int size;
-    int currentPos;
     DataChunk next;
-    final MimeHeaders headers;
     final String name;
 
-    ValuesIterator(final MimeHeaders headers,
-                   final String name,
-                   final boolean trailersOnly) {
+    ValuesIterator(MimeHeaders headers, String name) {
+        super(headers);
         this.name = name;
-        this.headers = headers;
-        pos = ((trailersOnly) ? headers.mark : 0);
+        pos = 0;
         size = headers.size();
         findNext();
     }
 
-    private void findNext() {
+    protected void findNext() {
         next = null;
         for (; pos < size; pos++) {
             final DataChunk n1 = headers.getName(pos);
@@ -810,21 +781,12 @@ final class ValuesIterator implements Iterator<String> {
         return current;
     }
 
-    @Override
-    public void remove() {
-        if (currentPos < 0) throw new IllegalStateException("No current element");
-        headers.removeHeader(currentPos);
-        pos = currentPos;
-        currentPos = -1;
-        size--;
-        findNext();
-    }
-}
+} // END ValuesIterator
 
-final class MimeHeaderField {
+class MimeHeaderField {
 
-    final DataChunk nameB = DataChunk.newInstance();
-    final DataChunk valueB = DataChunk.newInstance();
+    protected final DataChunk nameB = DataChunk.newInstance();
+    protected final DataChunk valueB = DataChunk.newInstance();
 
     private boolean isSerialized;
     /**
@@ -854,4 +816,4 @@ final class MimeHeaderField {
     public void setSerialized(boolean isSerialized) {
         this.isSerialized = isSerialized;
     }
-}
+} // END MimeHeadersField

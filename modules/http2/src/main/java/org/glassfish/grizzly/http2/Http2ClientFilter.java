@@ -598,18 +598,13 @@ public class Http2ClientFilter extends Http2BaseFilter {
             }
             DecoderUtils.decodeResponseHeaders(http2Session, response);
             onHttpHeadersParsed(response, context);
-            response.getHeaders().mark();
             content = response.httpContentBuilder().content(Buffers.EMPTY_BUFFER).last(isEOS).build();
         } else {
             DecoderUtils.decodeTrailerHeaders(http2Session, response);
             final HttpTrailer trailer = response.httpTrailerBuilder().content(Buffers.EMPTY_BUFFER).last(isEOS).build();
+            trailer.getHeaders().copyFrom(response.getTrailers());
             content = trailer;
-            final MimeHeaders mimeHeaders = response.getHeaders();
-            if (mimeHeaders.trailerSize() > 0) {
-                for (final String name : mimeHeaders.trailerNames()) {
-                    trailer.addHeader(name, mimeHeaders.getHeader(name));
-                }
-            }
+
             stream.flushInputData();
             //stream.inputBuffer.terminate(IN_FIN_TERMINATION);
         }
