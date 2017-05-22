@@ -1754,6 +1754,17 @@ public class Request {
 
 
     /**
+     * @return <code>true</code> if trailers are available to be accessed otherwise
+     *  returns <code>false</code>.
+     *
+     * @since 2.4.0
+     */
+    public boolean areTrailersAvailable() {
+        return (trailers != null);
+    }
+
+
+    /**
      * Return the names of all headers received with this request.
      */
     public Iterable<String> getHeaderNames() {
