@@ -115,7 +115,8 @@ public class ChunkedTransferEncodingTest {
     private HttpServer httpServer;
     private EchoHandler echoHandler;
     private Connection connection;
-    
+    private boolean hasContent;
+
     @Parameters
     public static Collection<Object[]> getMode() {
         return Arrays.asList(new Object[][]{
@@ -251,7 +252,7 @@ public class ChunkedTransferEncodingTest {
             }
             
             if (expectedResponseCode < 400) {
-                final HttpContent responseHttpContent = queue.poll(10, TimeUnit.SECONDS);
+                final HttpContent responseHttpContent = queue.poll(10000000, TimeUnit.SECONDS);
                 assertNotNull("timeout. packet#" + i, responseHttpContent);
 
                 final HttpResponsePacket responsePacket =
@@ -279,6 +280,8 @@ public class ChunkedTransferEncodingTest {
             final Map<String, Pair<String, String>> trailerHeaders,
             final boolean isAddCloseHeader) {
 
+        this.hasContent = hasContent;
+
         final List<HttpPacket> packetList = new ArrayList<>();
         
         final Builder requestPacketBuilder = HttpRequestPacket.builder();
@@ -296,8 +299,6 @@ public class ChunkedTransferEncodingTest {
         
         final HttpRequestPacket requestPacket = requestPacketBuilder.build();
         requestPacket.getHeaders().setMaxNumHeaders(-1);
-        
-        packetList.add(requestPacket);
         
         if (hasContent) {
             final HttpContent contentPacket1 = HttpContent.builder(requestPacket)
@@ -458,21 +459,24 @@ public class ChunkedTransferEncodingTest {
 
         private void doSync(Request request, Response response) throws IOException {
             try {
-                final InputStream is = request.getInputStream();
-                final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                response.addHeader(Header.TransferEncoding, "chunked");
+                if (hasContent) {
+                    final InputStream is = request.getInputStream();
+                    final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-                int b;
-                while((b = is.read()) != -1) {
-                    bos.write(b);
+                    int b;
+                    while ((b = is.read()) != -1) {
+                        bos.write(b);
+                    }
+
+                    bos.close();
+                    final byte[] output = bos.toByteArray();
+
+                    final OutputStream os = response.getOutputStream();
+
+                    os.write(output);
+                    os.flush(); // force the headers to be committed.
                 }
-
-                bos.close();
-                final byte[] output = bos.toByteArray();
-
-                final OutputStream os = response.getOutputStream();
-
-                os.write(output);
-                os.flush(); // force the headers to be committed.
             } catch (Throwable t) {
                 errors.offer(t);
                 throw new IOException(t);
