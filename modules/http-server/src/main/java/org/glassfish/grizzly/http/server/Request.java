@@ -1721,8 +1721,9 @@ public class Request {
      * While headers are typical case insensitive, the headers stored in the
      * returned <code>Map</code> will be done so in <b>lower-case</b>.
      *
-     * This method can only be called after the application reads all
-     * the request content.
+     * This method should typically be called after the application has
+     * read the request body.  It is safe to invoke this method if
+     * there is no body content.
      *
      * @return A {@link Map} of trailers headers, if any were present.
      *
@@ -1730,6 +1731,8 @@ public class Request {
      *  {@link ReadHandler#onAllDataRead} has been called or an EOF indication has
      *  been returned from the {@link #getReader}, {@link #getNIOReader()},
      *  {@link #getInputStream}, {@link #getNIOInputStream()}.
+     *
+     * @see #areTrailersAvailable()
      *
      * @since 2.4.0
      */
@@ -1748,6 +1751,9 @@ public class Request {
                 }
             }
             return trailers;
+        } else if (!request.isChunked()) {
+            trailers = Collections.emptyMap();
+            return trailers;
         }
         throw new IllegalStateException();
     }
@@ -1760,7 +1766,7 @@ public class Request {
      * @since 2.4.0
      */
     public boolean areTrailersAvailable() {
-        return (trailers != null);
+        return (request.isChunked() || trailers != null);
     }
 
 
