@@ -550,8 +550,23 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
 
     private void processPingFrame(final Http2Session http2Session,
-                             final Http2Frame frame) {
+                                  final Http2Frame frame) {
+
+        if (frame.getStreamId() != 0) {
+            http2Session.terminate(ErrorCode.PROTOCOL_ERROR, null);
+            return;
+        }
+
+        if (frame.getLength() != 8) {
+            http2Session.terminate(ErrorCode.FRAME_SIZE_ERROR, null);
+        }
+
         PingFrame pingFrame = (PingFrame) frame;
+
+        if (pingFrame.isAckSet()) {
+            return;
+        }
+
         // Send the same ping message back, but set the ack flag
         pingFrame.setFlag(PingFrame.ACK_FLAG);
         http2Session.getOutputSink().writeDownStream(pingFrame);

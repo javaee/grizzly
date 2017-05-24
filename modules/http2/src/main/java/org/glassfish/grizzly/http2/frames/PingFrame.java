@@ -81,11 +81,16 @@ public class PingFrame extends Http2Frame {
         return frame;
     }
 
-    public static Http2Frame fromBuffer(final int flags, final Buffer frameBuffer) {
+    public static Http2Frame fromBuffer(final int flags, final int streamId, final Buffer frameBuffer) {
         PingFrame frame = create();
         frame.setFlags(flags);
+        frame.setStreamId(streamId);
         frame.setFrameBuffer(frameBuffer);
-        frame.opaqueData = frameBuffer.getLong();
+        if (frameBuffer.remaining() != 8) {
+            frame.length = frameBuffer.remaining();
+        } else {
+            frame.opaqueData = frameBuffer.getLong();
+        }
         
         return frame;
     }

@@ -341,7 +341,7 @@ public class Http2Session {
             case PushPromiseFrame.TYPE:
                 return PushPromiseFrame.fromBuffer(flags, streamId, buffer);
             case PingFrame.TYPE:
-                return PingFrame.fromBuffer(flags, buffer);
+                return PingFrame.fromBuffer(flags, streamId, buffer);
             case GoAwayFrame.TYPE:
                 return GoAwayFrame.fromBuffer(buffer);
             case WindowUpdateFrame.TYPE:
