@@ -473,6 +473,8 @@ public class Http2Session {
             
             this.peerStreamWindowSize = peerStreamWindowSize;
 
+            sendWindowUpdate(0, peerStreamWindowSize);
+
             for (final Http2Stream stream : streamsMap.values()) {
                 if (stream.isClosed()) {
                     continue;
@@ -488,6 +490,7 @@ public class Http2Session {
                     sendRstFrame(e.getErrorCode(), e.getStreamId());
                 }
             }
+
         }
     }
 

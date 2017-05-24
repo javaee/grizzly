@@ -54,7 +54,7 @@ abstract class Source {
     /**
      * Returns the number of bytes remaining to be written.
      */
-    public abstract long remaining();
+    public abstract int remaining();
     
     /**
      * Returns the number of bytes to be written.
@@ -126,7 +126,7 @@ abstract class Source {
             }
 
             @Override
-            public long remaining() {
+            public int remaining() {
                 return buffer.remaining();
             }
 

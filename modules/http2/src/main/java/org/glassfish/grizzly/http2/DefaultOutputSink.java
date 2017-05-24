@@ -659,6 +659,14 @@ class DefaultOutputSink implements StreamOutputSink {
                 } else if (isZeroSizeData && outputQueueRecord == null) {
                     // if it's atomic and no remainder left - don't forget to release ATOMIC_QUEUE_RECORD_SIZE
                     releaseWriteQueueSpace(0, true, true);
+                } else if (dataChunkToSend != null && !dataChunkToSend.hasRemaining()) {
+                    // current window won't allow the data to be sent.  Will be written once the
+                    // window changes.
+                    if (outputQueueRecord != null) {
+                        reserveWriteQueueSpace(outputQueueRecord.resource.remaining());
+                        outputQueue.offer(outputQueueRecord);
+                    }
+                    break;
                 }
             } else {
                 break; // will be (or already) written asynchronously
