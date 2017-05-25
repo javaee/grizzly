@@ -86,7 +86,6 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.threadpool.Threads;
 import org.glassfish.grizzly.utils.Charsets;
 
-import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.PriorityFrame;
 
@@ -552,7 +551,6 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                     http2Session.setPeerMaxConcurrentStreams(setting.getValue());
                     break;
                 case SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE:
-                    System.out.println(setting.getValue());
                     if (setting.getValue() == Integer.MIN_VALUE) {
                         throw new Http2SessionException(ErrorCode.FLOW_CONTROL_ERROR, "SETTINGS_INITIAL_WINDOW_SIZE greater than 2^31-1.");
                     }
@@ -618,13 +616,15 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     private void processHeadersFrame(final Http2Session http2Session,
                                   final FilterChainContext context,
                                   final Http2Frame frame) throws IOException {
-        final HeaderBlockFragment headerFragment = (HeaderBlockFragment) frame;
-        
+        final HeadersFrame headersFrame = (HeadersFrame) frame;
+        if (headersFrame.isPadded() && headersFrame.getPadLength() >= headersFrame.getLength()) {
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Pad length greater than or equal to the payload length.");
+        }
         final HeadersDecoder headersDecoder = http2Session.getHeadersDecoder();
         
-        if (headerFragment.getCompressedHeaders().hasRemaining()) {
-            if (!headersDecoder.append(headerFragment.takePayload())) {
-                headersDecoder.setFirstHeaderFrame((HeaderBlockHead) headerFragment);
+        if (headersFrame.getCompressedHeaders().hasRemaining()) {
+            if (!headersDecoder.append(headersFrame.takePayload())) {
+                headersDecoder.setFirstHeaderFrame(headersFrame);
                 final HeaderBlockHead firstHeaderFrame =
                         headersDecoder.finishHeader();
                 firstHeaderFrame.setTruncated();
@@ -638,12 +638,12 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             }
         }
 
-        final boolean isEOH = headerFragment.isEndHeaders();
+        final boolean isEOH = headersFrame.isEndHeaders();
         
         if (!headersDecoder.isProcessingHeaders()) { // first headers frame (either HeadersFrame or PushPromiseFrame)
-            headersDecoder.setFirstHeaderFrame((HeaderBlockHead) headerFragment);
+            headersDecoder.setFirstHeaderFrame(headersFrame);
         } else {
-            headerFragment.recycle();
+            headersFrame.recycle();
         }
         
         if (!isEOH) {
@@ -948,13 +948,24 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     
     private static void processDataFrame(final Http2Session http2Session,
             final FilterChainContext context,
-            final DataFrame dataFrame) throws Http2StreamException {
+            final DataFrame dataFrame) throws Http2StreamException, Http2SessionException {
 
 
-        final Buffer data = dataFrame.getData();
-        final int streamId = dataFrame.getStreamId();
-        final boolean fin = dataFrame.isFlagSet(DataFrame.END_STREAM);
-        dataFrame.recycle();
+        final Buffer data;
+        final int streamId;
+        final boolean fin;
+        try {
+            if (dataFrame.isPadded() && dataFrame.getPadLength() >= dataFrame.getLength()) {
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Pad length greater than or equal to the payload length.");
+            }
+            dataFrame.normalize();
+            data = dataFrame.getData();
+            streamId = dataFrame.getStreamId();
+            fin = dataFrame.isFlagSet(DataFrame.END_STREAM);
+
+        } finally {
+            dataFrame.recycle();
+        }
 
         // Always ACK the data to maintain flow-control state
         http2Session.ackConsumedData(data.remaining());

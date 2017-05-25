@@ -327,11 +327,9 @@ public class Http2Session {
 
         switch (type) {
             case DataFrame.TYPE:
-                return DataFrame.fromBuffer(flags, streamId, buffer)
-                        .normalize(); // remove padding
+                return DataFrame.fromBuffer(flags, streamId, buffer);
             case HeadersFrame.TYPE:
-                return HeadersFrame.fromBuffer(flags, streamId, buffer)
-                        .normalize(); // remove padding
+                return HeadersFrame.fromBuffer(flags, streamId, buffer);
             case PriorityFrame.TYPE:
                 return PriorityFrame.fromBuffer(streamId, buffer);
             case RstStreamFrame.TYPE:

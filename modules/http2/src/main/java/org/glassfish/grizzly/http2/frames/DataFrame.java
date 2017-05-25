@@ -127,6 +127,10 @@ public class DataFrame extends Http2Frame {
         return data;
     }
 
+    public int getPadLength() {
+        return padLength;
+    }
+
     public boolean isEndStream() {
         return isFlagSet(END_STREAM);
     }
