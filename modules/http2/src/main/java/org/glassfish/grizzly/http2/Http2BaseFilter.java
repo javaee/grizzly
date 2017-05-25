@@ -475,6 +475,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     private void processPriorityFrame(final Http2Frame frame)
     throws Http2SessionException {
         final int streamId = frame.getStreamId();
+        frame.recycle();
         if (streamId == 0) {
             throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "PRIORITY frame on stream ID zero.");
         }
@@ -489,6 +490,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         WindowUpdateFrame updateFrame = (WindowUpdateFrame) frame;
         final int streamId = updateFrame.getStreamId();
         final int delta = updateFrame.getWindowSizeIncrement();
+        updateFrame.recycle();
 
         if (streamId == 0) {
             http2Session.getOutputSink().onPeerWindowUpdate(delta);
@@ -513,6 +515,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         }
 
         http2Session.setGoAwayByPeer(((GoAwayFrame) frame).getLastStreamId());
+        frame.recycle();
     }
     
     private void processSettingsFrame(final Http2Session http2Session,
@@ -524,19 +527,23 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         }
 
         final SettingsFrame settingsFrame = (SettingsFrame) frame;
-        
-        if (settingsFrame.isAck()) {
-            if (settingsFrame.getLength() != 0) {
-                throw new Http2SessionException(ErrorCode.FRAME_SIZE_ERROR, "SETTINGS frame ack with a non-zero length.");
+
+        try {
+            if (settingsFrame.isAck()) {
+                if (settingsFrame.getLength() != 0) {
+                    throw new Http2SessionException(ErrorCode.FRAME_SIZE_ERROR, "SETTINGS frame ack with a non-zero length.");
+                }
+                return;
             }
-            return;
-        }
 
-        if (settingsFrame.getLength() % 6 != 0) {
-            throw new Http2SessionException(ErrorCode.FRAME_SIZE_ERROR, "SETTINGS frame length not multiple of six.");
-        }
+            if (settingsFrame.getLength() % 6 != 0) {
+                throw new Http2SessionException(ErrorCode.FRAME_SIZE_ERROR, "SETTINGS frame length not multiple of six.");
+            }
 
-        applySettings(http2Session, settingsFrame);
+            applySettings(http2Session, settingsFrame);
+        } finally {
+            frame.recycle();
+        }
         
         sendSettingsAck(http2Session, context);
     }
@@ -606,6 +613,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
         final int streamId = frame.getStreamId();
+        frame.recycle();
         if (streamId == 0) {
             throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "RST frame on stream ID zero.");
         }
@@ -616,7 +624,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         final Http2Stream stream = http2Session.getStream(streamId);
         // @TODO null stream may happen if stream state has been cleaned up.  Need to deal with this better.
         if (stream == null) {
-            if (frame.getStreamId() > http2Session.lastPeerStreamId) {
+            if (streamId > http2Session.lastPeerStreamId) {
                 // consider this case an idle stream without creating one
                 throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Received RST frame on IDLE stream.");
             }
