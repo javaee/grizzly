@@ -431,7 +431,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 break;
             }
             case PriorityFrame.TYPE: {
-                //processPriorityFrame(http2Session, frame);
+                processPriorityFrame(http2Session, frame);
                 break;
             }
             case HeadersFrame.TYPE:
@@ -469,6 +469,14 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             }
         }
 
+    }
+
+    private void processPriorityFrame(final Http2Session session,
+                                      final Http2Frame frame)
+    throws Http2SessionException {
+        if (frame.getStreamId() == 0) {
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "PRIORITY frame on stream ID zero.");
+        }
     }
 
     private void processWindowUpdateFrame(final Http2Session http2Session,
@@ -617,9 +625,13 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                                   final FilterChainContext context,
                                   final Http2Frame frame) throws IOException {
         final HeadersFrame headersFrame = (HeadersFrame) frame;
+        if (headersFrame.getStreamId() == 0) {
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "HEADERS frame received on stream 0.");
+        }
         if (headersFrame.isPadded() && headersFrame.getPadLength() >= headersFrame.getLength()) {
             throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Pad length greater than or equal to the payload length.");
         }
+
         final HeadersDecoder headersDecoder = http2Session.getHeadersDecoder();
         
         if (headersFrame.getCompressedHeaders().hasRemaining()) {
