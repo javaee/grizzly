@@ -128,15 +128,21 @@ public class SettingsFrame extends Http2Frame {
     }
 
     public static SettingsFrame fromBuffer(final int flags,
+                                           final int streamId,
                                            final Buffer frameBuffer) {
+
         SettingsFrame frame = create();
+        frame.setStreamId(streamId);
         frame.setFlags(flags);
         frame.setFrameBuffer(frameBuffer);
-        
-        while (frameBuffer.hasRemaining()) {
-            frame.addSetting(frameBuffer.getShort(), frameBuffer.getInt());
+        if (frameBuffer.remaining() % 6 == 0) {
+            while (frameBuffer.hasRemaining()) {
+                frame.addSetting(frameBuffer.getShort(), frameBuffer.getInt());
+            }
+        } else {
+            frame.numberOfSettings = -1;
         }
-        
+
         return frame;
     }
 
@@ -259,6 +265,10 @@ public class SettingsFrame extends Http2Frame {
 
     @Override
     protected int calcLength() {
+        if (numberOfSettings == -1) {
+            // invalid settings frame
+            return frameBuffer.remaining();
+        }
         return numberOfSettings * 6;
     }
 

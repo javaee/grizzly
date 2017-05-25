@@ -74,8 +74,9 @@ public class GoAwayFrame extends Http2Frame {
         return frame;
     }
 
-    public static Http2Frame fromBuffer(final Buffer frameBuffer) {
+    public static Http2Frame fromBuffer(final int streamId, final Buffer frameBuffer) {
         GoAwayFrame frame = create();
+        frame.setStreamId(streamId);
         frame.lastStreamId = frameBuffer.getInt() & 0x7fffffff;
         frame.errorCode = ErrorCode.lookup(frameBuffer.getInt());
         frame.additionalDebugData = frameBuffer.hasRemaining()

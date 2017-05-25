@@ -473,7 +473,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
 
     private void processWindowUpdateFrame(final Http2Session http2Session,
-            final Http2Frame frame) throws Http2StreamException {
+            final Http2Frame frame) throws Http2StreamException, Http2SessionException {
         
         WindowUpdateFrame updateFrame = (WindowUpdateFrame) frame;
         final int streamId = updateFrame.getStreamId();
@@ -488,7 +488,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             if (stream != null) {
                 stream.getOutputSink().onPeerWindowUpdate(delta);
             } else {
-                http2Session.terminate(ErrorCode.PROTOCOL_ERROR, null);
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR);
             }
         }
     }
@@ -506,22 +506,32 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     
     private void processSettingsFrame(final Http2Session http2Session,
             final FilterChainContext context, final Http2Frame frame)
-            throws Http2SessionException {
+    throws Http2SessionException {
+
+        if (frame.getStreamId() != 0) {
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "SETTINGS frame with non-zero stream ID.");
+        }
 
         final SettingsFrame settingsFrame = (SettingsFrame) frame;
         
         if (settingsFrame.isAck()) {
-            // ignore for now
+            if (settingsFrame.getLength() != 0) {
+                throw new Http2SessionException(ErrorCode.FRAME_SIZE_ERROR, "SETTINGS frame ack with a non-zero length.");
+            }
             return;
         }
-        
+
+        if (settingsFrame.getLength() % 6 != 0) {
+            throw new Http2SessionException(ErrorCode.FRAME_SIZE_ERROR, "SETTINGS frame length not multiple of six.");
+        }
+
         applySettings(http2Session, settingsFrame);
         
         sendSettingsAck(http2Session, context);
     }
     
-    void applySettings(final Http2Session http2Session,
-            final SettingsFrame settingsFrame) throws Http2SessionException {
+    void applySettings(final Http2Session http2Session, final SettingsFrame settingsFrame)
+    throws Http2SessionException {
 
         for (int i = 0, numberOfSettings = settingsFrame.getNumberOfSettings(); i < numberOfSettings; i++) {
             final SettingsFrame.Setting setting = settingsFrame.getSettingByIndex(i);
@@ -530,7 +540,11 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 case SettingsFrame.SETTINGS_HEADER_TABLE_SIZE:
                     break;
                 case SettingsFrame.SETTINGS_ENABLE_PUSH:
-                    final boolean pushEnabled = (setting.getValue() == 1);
+                    final int val = setting.getValue();
+                    if (val < 0 || val > 1) {
+                        throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Invalid value for SETTINGS_ENABLE_PUSH.");
+                    }
+                    final boolean pushEnabled = (val == 1);
                     http2Session.getConnection().getAttributes().setAttribute(HTTP2_PUSH_ENABLED, pushEnabled);
                     http2Session.setPushEnabled(pushEnabled);
                     break;
@@ -538,6 +552,10 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                     http2Session.setPeerMaxConcurrentStreams(setting.getValue());
                     break;
                 case SettingsFrame.SETTINGS_INITIAL_WINDOW_SIZE:
+                    System.out.println(setting.getValue());
+                    if (setting.getValue() == Integer.MIN_VALUE) {
+                        throw new Http2SessionException(ErrorCode.FLOW_CONTROL_ERROR, "SETTINGS_INITIAL_WINDOW_SIZE greater than 2^31-1.");
+                    }
                     http2Session.setPeerStreamWindowSize(setting.getValue());
                     break;
                 case SettingsFrame.SETTINGS_MAX_FRAME_SIZE:
@@ -550,15 +568,15 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
 
     private void processPingFrame(final Http2Session http2Session,
-                                  final Http2Frame frame) {
+                                  final Http2Frame frame)
+    throws Http2SessionException {
 
         if (frame.getStreamId() != 0) {
-            http2Session.terminate(ErrorCode.PROTOCOL_ERROR, null);
-            return;
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "PING frame with non-zero stream ID.");
         }
 
         if (frame.getLength() != 8) {
-            http2Session.terminate(ErrorCode.FRAME_SIZE_ERROR, null);
+            throw new Http2SessionException(ErrorCode.FRAME_SIZE_ERROR, "PING frame with invalid length.");
         }
 
         PingFrame pingFrame = (PingFrame) frame;
@@ -573,7 +591,8 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
 
     private void processRstStreamFrame(final Http2Session http2Session,
-                                  final Http2Frame frame) {
+                                       final Http2Frame frame)
+    throws Http2SessionException {
 
 
         final int streamId = frame.getStreamId();
@@ -589,8 +608,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             return;
         }
         if (stream.isIdle()) {
-            http2Session.terminate(ErrorCode.PROTOCOL_ERROR, "Illegal attempt to RST IDLE stream.");
-            return;
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Illegal attempt to RST IDLE stream.");
         }
         
         // Notify the stream that it has been reset remotely

@@ -337,13 +337,13 @@ public class Http2Session {
             case RstStreamFrame.TYPE:
                 return RstStreamFrame.fromBuffer(flags, streamId, buffer);
             case SettingsFrame.TYPE:
-                return SettingsFrame.fromBuffer(flags, buffer);
+                return SettingsFrame.fromBuffer(flags, streamId, buffer);
             case PushPromiseFrame.TYPE:
                 return PushPromiseFrame.fromBuffer(flags, streamId, buffer);
             case PingFrame.TYPE:
                 return PingFrame.fromBuffer(flags, streamId, buffer);
             case GoAwayFrame.TYPE:
-                return GoAwayFrame.fromBuffer(buffer);
+                return GoAwayFrame.fromBuffer(streamId, buffer);
             case WindowUpdateFrame.TYPE:
                 return WindowUpdateFrame.fromBuffer(flags, streamId, buffer);
             case ContinuationFrame.TYPE:

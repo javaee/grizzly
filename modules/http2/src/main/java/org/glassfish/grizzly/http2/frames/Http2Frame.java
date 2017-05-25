@@ -57,7 +57,7 @@ public abstract class Http2Frame implements Cacheable {
     private int streamId = 0;
     protected int length = -1;
 
-    private Buffer frameBuffer;
+    protected Buffer frameBuffer;
     
     // ------------------------------------------------------------ Constructors
 
