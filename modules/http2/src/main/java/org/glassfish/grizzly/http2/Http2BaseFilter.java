@@ -74,6 +74,7 @@ import org.glassfish.grizzly.http2.frames.ContinuationFrame;
 import org.glassfish.grizzly.http2.frames.DataFrame;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.GoAwayFrame;
+import org.glassfish.grizzly.http2.frames.HeaderBlockFragment;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.frames.PingFrame;
@@ -431,7 +432,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                 break;
             }
             case PriorityFrame.TYPE: {
-                processPriorityFrame(http2Session, frame);
+                processPriorityFrame(frame);
                 break;
             }
             case HeadersFrame.TYPE:
@@ -471,8 +472,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
     }
 
-    private void processPriorityFrame(final Http2Session session,
-                                      final Http2Frame frame)
+    private void processPriorityFrame(final Http2Frame frame)
     throws Http2SessionException {
         if (frame.getStreamId() == 0) {
             throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "PRIORITY frame on stream ID zero.");
@@ -627,19 +627,22 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     private void processHeadersFrame(final Http2Session http2Session,
                                   final FilterChainContext context,
                                   final Http2Frame frame) throws IOException {
-        final HeadersFrame headersFrame = (HeadersFrame) frame;
-        if (headersFrame.getStreamId() == 0) {
+        final HeaderBlockFragment headerBlockFragment = (HeaderBlockFragment) frame;
+        if (headerBlockFragment.getStreamId() == 0) {
             throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "HEADERS frame received on stream 0.");
         }
-        if (headersFrame.isPadded() && headersFrame.getPadLength() >= headersFrame.getLength()) {
-            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Pad length greater than or equal to the payload length.");
+        if (frame instanceof HeaderBlockHead) {
+            final HeaderBlockHead blockHead = (HeaderBlockHead) frame;
+            if (blockHead.isPadded() && blockHead.getPadLength() >= headerBlockFragment.getLength()) {
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Pad length greater than or equal to the payload length.");
+            }
         }
 
         final HeadersDecoder headersDecoder = http2Session.getHeadersDecoder();
         
-        if (headersFrame.getCompressedHeaders().hasRemaining()) {
-            if (!headersDecoder.append(headersFrame.takePayload())) {
-                headersDecoder.setFirstHeaderFrame(headersFrame);
+        if (headerBlockFragment.getCompressedHeaders().hasRemaining()) {
+            if (!headersDecoder.append(headerBlockFragment.takePayload())) {
+                headersDecoder.setFirstHeaderFrame((HeaderBlockHead) headerBlockFragment);
                 final HeaderBlockHead firstHeaderFrame =
                         headersDecoder.finishHeader();
                 firstHeaderFrame.setTruncated();
@@ -653,12 +656,12 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             }
         }
 
-        final boolean isEOH = headersFrame.isEndHeaders();
+        final boolean isEOH = headerBlockFragment.isEndHeaders();
         
         if (!headersDecoder.isProcessingHeaders()) { // first headers frame (either HeadersFrame or PushPromiseFrame)
-            headersDecoder.setFirstHeaderFrame(headersFrame);
+            headersDecoder.setFirstHeaderFrame((HeaderBlockHead) headerBlockFragment);
         } else {
-            headersFrame.recycle();
+            headerBlockFragment.recycle();
         }
         
         if (!isEOH) {
