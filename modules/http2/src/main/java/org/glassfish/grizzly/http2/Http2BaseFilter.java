@@ -971,7 +971,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     
     private static void processDataFrame(final Http2Session http2Session,
             final FilterChainContext context,
-            final Http2Frame frame) throws Http2StreamException, Http2SessionException {
+            final Http2Frame frame) throws IOException {
 
         final DataFrame dataFrame = (DataFrame) frame;
         final Buffer data;
@@ -1014,7 +1014,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
         // @TODO Is there a better spot for this check?
         // Check stream state to ensure we can send this upstream
-        final Http2StreamException error = stream.assertCanAcceptData();
+        final IOException error = stream.assertCanAcceptData(fin);
         if (error != null) {
             throw error;
         }

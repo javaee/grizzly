@@ -590,7 +590,7 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
     private Buffer cachedInputBuffer;
     private boolean cachedIsLast;
     
-    Http2StreamException assertCanAcceptData() {
+    IOException assertCanAcceptData(final boolean fin) {
         if (isPushStream() && isLocallyInitiatedStream()) {
             return new Http2StreamException(getId(),
                     ErrorCode.PROTOCOL_ERROR,
@@ -601,9 +601,12 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         if (state == State.HALF_CLOSED_REMOTE || getState() == State.CLOSED) {
 
             close0(null, CloseType.LOCALLY,
-                    new IOException("Received DATA frame on HALF_CLOSED_REMOTE stream."), false);
-            return new Http2StreamException(getId(),
-                    ErrorCode.STREAM_CLOSED, "Received DATA frame on HALF_CLOSED_REMOTE stream.");
+                    new IOException("Received DATA frame on " + state + " stream."), false);
+            return ((fin)
+                        ? new Http2SessionException(ErrorCode.STREAM_CLOSED)
+                        : new Http2StreamException(getId(),
+                                                   ErrorCode.STREAM_CLOSED,
+                                                   "Received DATA frame on " + state + " stream."));
         }
 
         if (inboundHeaderFramesCounter != 1) { // we accept data only if we received one HeadersFrame
@@ -614,6 +617,22 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
                     ErrorCode.PROTOCOL_ERROR, "DATA frame came before HEADERS frame.");
         }
         
+        return null;
+    }
+
+    IOException assertCanAcceptHeader(final boolean fin) {
+        final Http2Stream.State state = getState();
+        if (state == State.HALF_CLOSED_REMOTE || getState() == State.CLOSED) {
+
+            close0(null, CloseType.LOCALLY,
+                    new IOException("Received HEADER frame on " + state + " stream."), false);
+            return ((fin)
+                    ? new Http2SessionException(ErrorCode.STREAM_CLOSED)
+                    : new Http2StreamException(getId(),
+                    ErrorCode.STREAM_CLOSED,
+                    "Received HEADER frame on " + state + " stream."));
+        }
+
         return null;
     }
     
