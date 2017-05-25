@@ -119,7 +119,7 @@ public class Http2Session {
     private final ReentrantLock deflaterLock = new ReentrantLock();
     
     private int lastPeerStreamId;
-    private int lastLocalStreamId;
+    AtomicInteger lastLocalStreamId;
     private boolean pushEnabled = true;
 
     private final ReentrantLock newClientStreamLock = new ReentrantLock();
@@ -230,10 +230,10 @@ public class Http2Session {
         maxHeaderListSize = handlerFilter.getConfiguration().getMaxHeaderListSize();
 
         if (isServer) {
-            lastLocalStreamId = 0;
+            lastLocalStreamId = new AtomicInteger();
             lastPeerStreamId = -1;
         } else {
-            lastLocalStreamId = -1;
+            lastLocalStreamId = new AtomicInteger(-1);
             lastPeerStreamId = 0;
         }
         
@@ -559,8 +559,7 @@ public class Http2Session {
 
     
     public int getNextLocalStreamId() {
-        lastLocalStreamId += 2;
-        return lastLocalStreamId;
+        return lastLocalStreamId.addAndGet(2);
     }
     
     public Connection getConnection() {
@@ -1123,7 +1122,7 @@ public class Http2Session {
             }
             
             registerStream(streamId, stream);
-            lastLocalStreamId = streamId;
+            lastLocalStreamId.set(streamId);
         }
         
         return stream;
@@ -1155,7 +1154,7 @@ public class Http2Session {
                         ErrorCode.REFUSED_STREAM, "Session is closed");
             }
             registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
-            lastLocalStreamId = Http2Stream.UPGRADE_STREAM_ID;
+            lastLocalStreamId.set(Http2Stream.UPGRADE_STREAM_ID);
         }
         
         return stream;
@@ -1186,7 +1185,7 @@ public class Http2Session {
             }
 
             registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
-            lastLocalStreamId = Http2Stream.UPGRADE_STREAM_ID;
+            lastLocalStreamId.set(Http2Stream.UPGRADE_STREAM_ID);
         }
         
         return stream;

@@ -425,7 +425,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
      throws Http2StreamException, Http2SessionException, IOException {
 
         http2Session.checkFrameSequenceSemantics(frame);
-        
+
         switch (frame.getType()) {
             case DataFrame.TYPE: {
                 processDataFrame(http2Session, context, frame);
@@ -605,12 +605,17 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         if (streamId == 0) {
             throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "RST frame on stream ID zero.");
         }
+
         if (ignoreFrameForStreamId(http2Session, streamId)) {
             return;
         }
         final Http2Stream stream = http2Session.getStream(streamId);
         // @TODO null stream may happen if stream state has been cleaned up.  Need to deal with this better.
         if (stream == null) {
+            if (frame.getStreamId() > http2Session.lastLocalStreamId.get()) {
+                // consider this case an idle stream without creating one
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Received DATA frame on IDLE stream.");
+            }
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.fine("Received RST frame on on existent stream.  Ignoring frame.");
             }
@@ -968,7 +973,6 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             final FilterChainContext context,
             final Http2Frame frame) throws Http2StreamException, Http2SessionException {
 
-
         final DataFrame dataFrame = (DataFrame) frame;
         final Buffer data;
         final int streamId;
@@ -995,6 +999,10 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         }
 
         final Http2Stream stream = http2Session.getStream(streamId);
+        if (stream == null && streamId > http2Session.lastLocalStreamId.get()) {
+            // consider this case an idle stream without creating one
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Received DATA frame on IDLE stream.");
+        }
         // @TODO null stream may happen if stream state has been cleaned up.  Need to deal with this better.
         if (stream == null) {
             if (LOGGER.isLoggable(Level.FINE)) {

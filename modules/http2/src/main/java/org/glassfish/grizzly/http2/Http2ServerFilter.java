@@ -815,6 +815,9 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
         Http2Stream stream = http2Session.getStream(headersFrame.getStreamId());
         if (stream != null) {
+            if (stream.getState() == Http2Stream.State.HALF_CLOSED_REMOTE) {
+                throw new Http2StreamException(stream.getId(), ErrorCode.STREAM_CLOSED);
+            }
             // trailers
             assert headersFrame.isEndStream();
             try {

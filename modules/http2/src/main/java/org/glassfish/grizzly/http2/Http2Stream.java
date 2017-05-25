@@ -597,7 +597,8 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
                     "Data frame received on a push-stream");
         }
 
-        if (getState() == State.HALF_CLOSED_REMOTE) {
+        final Http2Stream.State state = getState();
+        if (state == State.HALF_CLOSED_REMOTE || getState() == State.CLOSED) {
 
             close0(null, CloseType.LOCALLY,
                     new IOException("Received DATA frame on HALF_CLOSED_REMOTE stream."), false);
