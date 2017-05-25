@@ -474,8 +474,12 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
     private void processPriorityFrame(final Http2Frame frame)
     throws Http2SessionException {
-        if (frame.getStreamId() == 0) {
+        final int streamId = frame.getStreamId();
+        if (streamId == 0) {
             throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "PRIORITY frame on stream ID zero.");
+        }
+        if (streamId == ((PriorityFrame) frame).getStreamDependency()) {
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "PRIORITY frame dependent on itself.");
         }
     }
 
@@ -640,6 +644,12 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             final HeaderBlockHead blockHead = (HeaderBlockHead) frame;
             if (blockHead.isPadded() && blockHead.getPadLength() >= headerBlockFragment.getLength()) {
                 throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Pad length greater than or equal to the payload length.");
+            }
+        }
+        if (frame instanceof HeadersFrame) {
+            final HeadersFrame headersFrame = (HeadersFrame) frame;
+            if (headersFrame.getStreamId() == headersFrame.getStreamDependency()) {
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "HEADER frame dependent upon itself.");
             }
         }
 
