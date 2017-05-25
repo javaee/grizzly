@@ -602,6 +602,9 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
 
 
         final int streamId = frame.getStreamId();
+        if (streamId == 0) {
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "RST frame on stream ID zero.");
+        }
         if (ignoreFrameForStreamId(http2Session, streamId)) {
             return;
         }
