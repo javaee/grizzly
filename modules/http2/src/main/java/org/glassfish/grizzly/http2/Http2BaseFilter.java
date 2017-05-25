@@ -492,9 +492,16 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         final int delta = updateFrame.getWindowSizeIncrement();
         updateFrame.recycle();
 
+
         if (streamId == 0) {
+            if (delta == 0) {
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Illegal WINDOW_UPDATE with a delta of 0.");
+            }
             http2Session.getOutputSink().onPeerWindowUpdate(delta);
         } else {
+            if (delta == 0) {
+                throw new Http2StreamException(streamId, ErrorCode.PROTOCOL_ERROR, "Illegal WINDOW_UPDATE with a delta of 0.");
+            }
             final Http2Stream stream = http2Session.getStream(streamId);
 
             //noinspection Duplicates
