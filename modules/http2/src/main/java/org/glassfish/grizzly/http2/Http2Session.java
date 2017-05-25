@@ -118,8 +118,8 @@ public class Http2Session {
 
     private final ReentrantLock deflaterLock = new ReentrantLock();
     
-    private int lastPeerStreamId;
-    AtomicInteger lastLocalStreamId;
+    int lastPeerStreamId;
+    private int lastLocalStreamId;
     private boolean pushEnabled = true;
 
     private final ReentrantLock newClientStreamLock = new ReentrantLock();
@@ -230,10 +230,10 @@ public class Http2Session {
         maxHeaderListSize = handlerFilter.getConfiguration().getMaxHeaderListSize();
 
         if (isServer) {
-            lastLocalStreamId = new AtomicInteger();
+            lastLocalStreamId = 0;
             lastPeerStreamId = -1;
         } else {
-            lastLocalStreamId = new AtomicInteger(-1);
+            lastLocalStreamId = -1;
             lastPeerStreamId = 0;
         }
         
@@ -364,7 +364,8 @@ public class Http2Session {
         return new Http2Stream(this, request, priority);
     }
 
-    protected void checkFrameSequenceSemantics(final Http2Frame frame)
+    protected void checkFrameSequenceSemantics(final Http2Session session,
+                                               final Http2Frame frame)
             throws Http2SessionException {
         
         final int frameType = frame.getType();
@@ -559,7 +560,8 @@ public class Http2Session {
 
     
     public int getNextLocalStreamId() {
-        return lastLocalStreamId.addAndGet(2);
+        lastLocalStreamId += 2;
+        return lastLocalStreamId;
     }
     
     public Connection getConnection() {
@@ -1071,6 +1073,19 @@ public class Http2Session {
                 // so compression context is lost
                 throw new Http2SessionException(ErrorCode.REFUSED_STREAM);
             }
+            if (isServer()) {
+                if (streamId > 0 && (streamId & 1) == 0) {
+                    throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR);
+                }
+            } else {
+                if (streamId > 0 && (streamId & 1) != 0) {
+                    throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR);
+                }
+            }
+
+            if (streamId < lastPeerStreamId) {
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR);
+            }
             
             registerStream(streamId, stream);
             lastPeerStreamId = streamId;
@@ -1122,7 +1137,7 @@ public class Http2Session {
             }
             
             registerStream(streamId, stream);
-            lastLocalStreamId.set(streamId);
+            lastLocalStreamId = streamId;
         }
         
         return stream;
@@ -1154,7 +1169,7 @@ public class Http2Session {
                         ErrorCode.REFUSED_STREAM, "Session is closed");
             }
             registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
-            lastLocalStreamId.set(Http2Stream.UPGRADE_STREAM_ID);
+            lastLocalStreamId= Http2Stream.UPGRADE_STREAM_ID;
         }
         
         return stream;
@@ -1185,7 +1200,7 @@ public class Http2Session {
             }
 
             registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
-            lastLocalStreamId.set(Http2Stream.UPGRADE_STREAM_ID);
+            lastLocalStreamId = Http2Stream.UPGRADE_STREAM_ID;
         }
         
         return stream;

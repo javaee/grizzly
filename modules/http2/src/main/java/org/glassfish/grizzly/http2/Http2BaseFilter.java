@@ -424,7 +424,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                                 final Http2Frame frame)
      throws Http2StreamException, Http2SessionException, IOException {
 
-        http2Session.checkFrameSequenceSemantics(frame);
+        http2Session.checkFrameSequenceSemantics(http2Session, frame);
 
         switch (frame.getType()) {
             case DataFrame.TYPE: {
@@ -612,7 +612,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         final Http2Stream stream = http2Session.getStream(streamId);
         // @TODO null stream may happen if stream state has been cleaned up.  Need to deal with this better.
         if (stream == null) {
-            if (frame.getStreamId() > http2Session.lastLocalStreamId.get()) {
+            if (frame.getStreamId() > http2Session.lastPeerStreamId) {
                 // consider this case an idle stream without creating one
                 throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Received DATA frame on IDLE stream.");
             }
@@ -999,7 +999,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         }
 
         final Http2Stream stream = http2Session.getStream(streamId);
-        if (stream == null && streamId > http2Session.lastLocalStreamId.get()) {
+        if (stream == null && streamId > http2Session.lastPeerStreamId) {
             // consider this case an idle stream without creating one
             throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Received DATA frame on IDLE stream.");
         }
