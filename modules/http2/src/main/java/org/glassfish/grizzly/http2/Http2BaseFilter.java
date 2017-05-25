@@ -618,7 +618,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         if (stream == null) {
             if (frame.getStreamId() > http2Session.lastPeerStreamId) {
                 // consider this case an idle stream without creating one
-                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Received DATA frame on IDLE stream.");
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Received RST frame on IDLE stream.");
             }
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.fine("Received RST frame on on existent stream.  Ignoring frame.");
