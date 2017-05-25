@@ -428,7 +428,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
         
         switch (frame.getType()) {
             case DataFrame.TYPE: {
-                processDataFrame(http2Session, context, (DataFrame) frame);
+                processDataFrame(http2Session, context, frame);
                 break;
             }
             case PriorityFrame.TYPE: {
@@ -966,9 +966,10 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     
     private static void processDataFrame(final Http2Session http2Session,
             final FilterChainContext context,
-            final DataFrame dataFrame) throws Http2StreamException, Http2SessionException {
+            final Http2Frame frame) throws Http2StreamException, Http2SessionException {
 
 
+        final DataFrame dataFrame = (DataFrame) frame;
         final Buffer data;
         final int streamId;
         final boolean fin;
