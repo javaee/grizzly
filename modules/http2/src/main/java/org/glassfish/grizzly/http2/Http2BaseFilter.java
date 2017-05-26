@@ -666,6 +666,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             if (headersFrame.getStreamId() == headersFrame.getStreamDependency()) {
                 throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "HEADER frame dependent upon itself.");
             }
+            headersFrame.normalize();
         }
 
         final HeadersDecoder headersDecoder = http2Session.getHeadersDecoder();
