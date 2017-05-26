@@ -552,13 +552,13 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             if (settingsFrame.getLength() % 6 != 0) {
                 throw new Http2SessionException(ErrorCode.FRAME_SIZE_ERROR, "SETTINGS frame length not multiple of six.");
             }
-
+            sendSettingsAck(http2Session, context);
             applySettings(http2Session, settingsFrame);
         } finally {
             frame.recycle();
         }
         
-        sendSettingsAck(http2Session, context);
+
     }
     
     void applySettings(final Http2Session http2Session, final SettingsFrame settingsFrame)
