@@ -527,7 +527,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     
     private void processSettingsFrame(final Http2Session http2Session,
             final FilterChainContext context, final Http2Frame frame)
-    throws Http2SessionException {
+    throws Http2SessionException, Http2StreamException {
 
         if (frame.getStreamId() != 0) {
             throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "SETTINGS frame with non-zero stream ID.");
@@ -556,7 +556,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
     
     void applySettings(final Http2Session http2Session, final SettingsFrame settingsFrame)
-    throws Http2SessionException {
+    throws Http2SessionException, Http2StreamException {
 
         for (int i = 0, numberOfSettings = settingsFrame.getNumberOfSettings(); i < numberOfSettings; i++) {
             final SettingsFrame.Setting setting = settingsFrame.getSettingByIndex(i);

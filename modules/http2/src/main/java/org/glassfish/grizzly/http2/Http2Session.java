@@ -466,7 +466,7 @@ public class Http2Session {
         return peerStreamWindowSize;
     }
     
-    void setPeerStreamWindowSize(final int peerStreamWindowSize) {
+    void setPeerStreamWindowSize(final int peerStreamWindowSize) throws Http2StreamException {
         synchronized (sessionLock) {
             final int delta = peerStreamWindowSize - this.peerStreamWindowSize;
             
@@ -478,16 +478,7 @@ public class Http2Session {
                 if (stream.isClosed()) {
                     continue;
                 }
-                try {
-                    stream.getOutputSink().onPeerWindowUpdate(delta);
-                } catch (Http2StreamException e) {
-                    if (LOGGER.isLoggable(Level.SEVERE)) {
-                        LOGGER.log(Level.SEVERE, "Http2StreamException occurred on stream="
-                                + stream + " during stream window update", e);
-                    }
-
-                    sendRstFrame(e.getErrorCode(), e.getStreamId());
-                }
+                stream.getOutputSink().onPeerWindowUpdate(delta);
             }
 
         }
