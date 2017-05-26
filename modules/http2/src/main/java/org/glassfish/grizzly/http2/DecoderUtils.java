@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http2;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
@@ -78,6 +79,7 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
             throws IOException, HeaderDecodingException {
 
         final Set<String> serviceHeaders = new HashSet<>();
+        final AtomicBoolean noMoreServiceHeaders = new AtomicBoolean();
         try {
             http2Session.getHeadersDecoder().decode(new DecodingCallback() {
 
@@ -89,8 +91,12 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
                     }
 
                     if (name.charAt(0) == ':') {
+                        if (noMoreServiceHeaders.get()) {
+                            throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM);
+                        }
                         processServiceRequestHeader(request, serviceHeaders, name.toString(), value.toString());
                     } else {
+                        noMoreServiceHeaders.compareAndSet(false, true);
                         processNormalHeader(request, name.toString(), value.toString());
                     }
                 }
