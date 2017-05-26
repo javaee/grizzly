@@ -76,7 +76,8 @@ public class PriorityFrame extends Http2Frame {
     public static Http2Frame fromBuffer(final int streamId, final Buffer frameBuffer) {
         PriorityFrame frame = create();
         frame.setStreamId(streamId);
-        
+
+        frame.length = frameBuffer.remaining();
         final int dependency = frameBuffer.getInt();
 
         frame.streamDependency = dependency & 0x7fffffff;

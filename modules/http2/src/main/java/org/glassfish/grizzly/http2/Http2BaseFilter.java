@@ -473,14 +473,20 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
     }
 
     private void processPriorityFrame(final Http2Frame frame)
-    throws Http2SessionException {
+    throws Http2SessionException, Http2StreamException {
         final int streamId = frame.getStreamId();
-        frame.recycle();
-        if (streamId == 0) {
-            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "PRIORITY frame on stream ID zero.");
-        }
-        if (streamId == ((PriorityFrame) frame).getStreamDependency()) {
-            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "PRIORITY frame dependent on itself.");
+        try {
+            if (streamId == 0) {
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "PRIORITY frame on stream ID zero.");
+            }
+            if (frame.getLength() != 5) {
+                throw new Http2StreamException(streamId, ErrorCode.FRAME_SIZE_ERROR);
+            }
+            if (streamId == ((PriorityFrame) frame).getStreamDependency()) {
+                throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "PRIORITY frame dependent on itself.");
+            }
+        } finally {
+            frame.recycle();
         }
     }
 
