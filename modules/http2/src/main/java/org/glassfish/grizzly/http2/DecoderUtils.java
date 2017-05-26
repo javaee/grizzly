@@ -41,6 +41,8 @@
 package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
@@ -72,19 +74,28 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
                                      final HttpRequestPacket request)
             throws IOException {
 
+        final Set<String> serviceHeaders = new HashSet<>();
         try {
             http2Session.getHeadersDecoder().decode(new DecodingCallback() {
 
+
                 @Override
                 public void onDecoded(CharSequence name, CharSequence value) {
+                    if (name.chars().anyMatch(Character::isUpperCase)) {
+                        throw new UpperCaseHeaderException();
+                    }
+
                     if (name.charAt(0) == ':') {
-                        processServiceRequestHeader(request, name.toString(), value.toString());
+                        processServiceRequestHeader(request, serviceHeaders, name.toString(), value.toString());
                     } else {
                         processNormalHeader(request, name.toString(), value.toString());
                     }
                 }
 
             });
+            if (serviceHeaders.size() != 3) {
+                throw new MissingServiceHeaderException();
+            }
         } catch (RuntimeException re) {
             throw new IOException(re);
         } finally {
@@ -138,14 +149,21 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
         }
     }
 
-    private static void processServiceRequestHeader(
-            final HttpRequestPacket request,
-            final String name, final String value) {
+    private static void processServiceRequestHeader(final HttpRequestPacket request,
+                                                    final Set<String> serviceHeaders,
+                                                    final String name,
+                                                    final String value) {
 
         final int valueLen = value.length();
-        
+
         switch (name) {
             case PATH_HEADER: {
+                if (!serviceHeaders.add(name)) {
+                    throw new DuplicateServiceHeaderException(PATH_HEADER);
+                }
+                if (value.isEmpty()) {
+                    throw new EmptyServiceHeaderValueException(PATH_HEADER);
+                }
                 int questionIdx = value.indexOf('?');
 
                 if (questionIdx == -1) {
@@ -160,10 +178,16 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
                 return;
             }
             case METHOD_HEADER: {
+                if (!serviceHeaders.add(name)) {
+                    throw new DuplicateServiceHeaderException(METHOD_HEADER);
+                }
                 request.getMethodDC().setString(value);
                 return;
             }
             case SCHEMA_HEADER: {
+                if (!serviceHeaders.add(name)) {
+                    throw new DuplicateServiceHeaderException(SCHEMA_HEADER);
+                }
                 request.setSecure(valueLen == 5); // support http and https only
                 return;
             }

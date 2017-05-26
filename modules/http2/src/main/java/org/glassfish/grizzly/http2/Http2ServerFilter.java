@@ -861,7 +861,15 @@ public class Http2ServerFilter extends Http2BaseFilter {
         try {
             DecoderUtils.decodeRequestHeaders(http2Session, request);
         } catch (IOException ioe) {
-            handleDecodingError(http2Session, ioe);
+            final Throwable root = ioe.getCause();
+            if (root instanceof DuplicateServiceHeaderException
+                    || root instanceof UpperCaseHeaderException
+                    || root instanceof EmptyServiceHeaderValueException
+                    || root instanceof MissingServiceHeaderException) {
+                throw new Http2StreamException(stream.getId(), ErrorCode.PROTOCOL_ERROR, root.getMessage());
+            } else {
+                handleDecodingError(http2Session, ioe);
+            }
             return;
         }
         if (headersFrame.isTruncated()) {
