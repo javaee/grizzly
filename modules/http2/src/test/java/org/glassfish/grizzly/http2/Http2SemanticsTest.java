@@ -70,6 +70,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 @RunWith(Parameterized.class)
 public class Http2SemanticsTest extends AbstractHttp2Test {
@@ -133,7 +134,9 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
         request.setHeader(new String(temp, Charsets.ASCII_CHARSET), "value");
         c.write(HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build());
         Thread.sleep(1000);
-        assertFalse(c.isOpen());
+        final Http2Stream stream = Http2Stream.getStreamFor(request);
+        assertNotNull(stream);
+        assertFalse(stream.isOpen());
     }
 
 

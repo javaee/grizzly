@@ -833,8 +833,13 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 stream.onRcvHeaders(true);
                 DecoderUtils.decodeTrailerHeaders(http2Session, stream.getRequest());
             } catch (IOException ioe) {
-                handleDecodingError(http2Session, ioe);
-                return;
+                throw new Http2SessionException(ErrorCode.COMPRESSION_ERROR, ioe.getCause().getMessage());
+            } catch (HeaderDecodingException hde) {
+                if (hde.getErrorType() == HeaderDecodingException.ErrorType.SESSION) {
+                    throw new Http2SessionException(hde.getErrorCode(), hde.getMessage());
+                } else {
+                    throw new Http2StreamException(stream.getId(), hde.getErrorCode(), hde.getMessage());
+                }
             }
             if (headersFrame.isTruncated()) {
                 if (LOGGER.isLoggable(Level.WARNING)) {
@@ -861,16 +866,13 @@ public class Http2ServerFilter extends Http2BaseFilter {
         try {
             DecoderUtils.decodeRequestHeaders(http2Session, request);
         } catch (IOException ioe) {
-            final Throwable root = ioe.getCause();
-            if (root instanceof DuplicateServiceHeaderException
-                    || root instanceof UpperCaseHeaderException
-                    || root instanceof EmptyServiceHeaderValueException
-                    || root instanceof MissingServiceHeaderException) {
-                throw new Http2StreamException(stream.getId(), ErrorCode.PROTOCOL_ERROR, root.getMessage());
+            throw new Http2SessionException(ErrorCode.COMPRESSION_ERROR, ioe.getCause().getMessage());
+        } catch (HeaderDecodingException hde) {
+            if (hde.getErrorType() == HeaderDecodingException.ErrorType.SESSION) {
+                throw new Http2SessionException(hde.getErrorCode(), hde.getMessage());
             } else {
-                handleDecodingError(http2Session, ioe);
+                throw new Http2StreamException(stream.getId(), hde.getErrorCode(), hde.getMessage());
             }
-            return;
         }
         if (headersFrame.isTruncated()) {
             final HttpResponsePacket response = request.getResponse();
@@ -1070,8 +1072,4 @@ public class Http2ServerFilter extends Http2BaseFilter {
         newContext.resume(newContext.getStopAction());
     }
 
-    private static void handleDecodingError(final Http2Session http2Session,
-                                            final IOException ioe) throws IOException {
-        http2Session.terminate(ErrorCode.COMPRESSION_ERROR, ioe.getCause().getMessage());
-    }
 }

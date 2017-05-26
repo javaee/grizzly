@@ -53,7 +53,10 @@ import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.hpack.DecodingCallback;
+
+import static org.glassfish.grizzly.http2.HeaderDecodingException.ErrorType;
 
 /**
  * Http2Frames -> HTTP Packet decoder utils.
@@ -72,7 +75,7 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
     static void decodeRequestHeaders(final Http2Session http2Session,
                                      final HttpRequestPacket request)
-            throws IOException {
+            throws IOException, HeaderDecodingException {
 
         final Set<String> serviceHeaders = new HashSet<>();
         try {
@@ -82,7 +85,7 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
                 @Override
                 public void onDecoded(CharSequence name, CharSequence value) {
                     if (name.chars().anyMatch(Character::isUpperCase)) {
-                        throw new UpperCaseHeaderException();
+                        throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM);
                     }
 
                     if (name.charAt(0) == ':') {
@@ -94,9 +97,12 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
             });
             if (serviceHeaders.size() != 3) {
-                throw new MissingServiceHeaderException();
+                throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM);
             }
         } catch (RuntimeException re) {
+            if (re instanceof HeaderDecodingException) {
+                throw re;
+            }
             throw new IOException(re);
         } finally {
             request.setProtocol(Protocol.HTTP_2_0);
@@ -159,10 +165,14 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
         switch (name) {
             case PATH_HEADER: {
                 if (!serviceHeaders.add(name)) {
-                    throw new DuplicateServiceHeaderException(PATH_HEADER);
+                    throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR,
+                                                      ErrorType.STREAM,
+                                                      "Duplicate " + PATH_HEADER);
                 }
                 if (value.isEmpty()) {
-                    throw new EmptyServiceHeaderValueException(PATH_HEADER);
+                    throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR,
+                            ErrorType.STREAM,
+                            "Empty " + PATH_HEADER);
                 }
                 int questionIdx = value.indexOf('?');
 
@@ -179,14 +189,18 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
             }
             case METHOD_HEADER: {
                 if (!serviceHeaders.add(name)) {
-                    throw new DuplicateServiceHeaderException(METHOD_HEADER);
+                    throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR,
+                            ErrorType.STREAM,
+                            "Duplicate " + METHOD_HEADER);
                 }
                 request.getMethodDC().setString(value);
                 return;
             }
             case SCHEMA_HEADER: {
                 if (!serviceHeaders.add(name)) {
-                    throw new DuplicateServiceHeaderException(SCHEMA_HEADER);
+                    throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR,
+                            ErrorType.STREAM,
+                            "Duplicate " + SCHEMA_HEADER);
                 }
                 request.setSecure(valueLen == 5); // support http and https only
                 return;
@@ -197,10 +211,11 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
                 return;
             }
         }
-        
-        LOGGER.log(Level.FINE, "Skipping unknown service header[{0}={1}",
-                new Object[]{name, value});
-    }    
+
+        throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR,
+                                          ErrorType.STREAM,
+                                          "Unknown service header: " + name);
+    }
     
     private static void processServiceResponseHeader(
             final HttpResponsePacket response,
@@ -257,6 +272,16 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
             case "expect": {
                 ((Http2Request) httpHeader).requiresAcknowledgement(true);
             }
+
+            case "connection": {
+                throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM, "Invalid use of connection header.");
+            }
+
+            case "te": {
+                if (!"trailers".equals(value)) {
+                    throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM, "TE header only allowed a value of trailers.");
+                }
+            }
         }
     }
 
@@ -266,12 +291,12 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
         int idx = ensureRange(name);
         if (idx != -1) {
             final String msg = String.format(INVALID_CHARACTER_MESSAGE, (int) name.charAt(idx), idx, "name", name, value);
-            throw new RuntimeException(msg);
+            throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM, msg);
         }
         idx = ensureRange(value);
         if (idx != -1) {
             final String msg = String.format(INVALID_CHARACTER_MESSAGE, (int) name.charAt(idx), idx, "value", name, value);
-            throw new RuntimeException(msg);
+            throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM, msg);
         }
     }
 
