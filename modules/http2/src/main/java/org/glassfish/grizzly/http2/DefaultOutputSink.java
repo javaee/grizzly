@@ -157,7 +157,8 @@ class DefaultOutputSink implements StreamOutputSink {
     @Override
     public void onPeerWindowUpdate(final int delta) throws Http2StreamException {
 
-        if (delta > 0 && availStreamWindowSize.get() + delta < 0) {
+        final int currentWindow = availStreamWindowSize.get();
+        if (delta > 0 && currentWindow > 0 && currentWindow + delta < 0) {
             throw new Http2StreamException(stream.getId(),
                                            ErrorCode.FLOW_CONTROL_ERROR,
                                            "Session flow-control window overflow.");

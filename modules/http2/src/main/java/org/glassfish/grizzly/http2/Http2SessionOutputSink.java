@@ -149,7 +149,8 @@ public class Http2SessionOutputSink {
     }
 
     protected void onPeerWindowUpdate(final int delta) throws Http2SessionException {
-        if (delta > 0 && availConnectionWindowSize.get() + delta < 0) {
+        final int currentWindow = availConnectionWindowSize.get();
+        if (delta > 0 && currentWindow > 0 && currentWindow + delta < 0) {
             throw new Http2SessionException(ErrorCode.FLOW_CONTROL_ERROR, "Session flow-control window overflow.");
         }
         final int newWindowSize = availConnectionWindowSize.addAndGet(delta);
