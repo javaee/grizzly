@@ -57,6 +57,7 @@ import org.glassfish.grizzly.asyncqueue.AsyncQueueRecord;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
 import org.glassfish.grizzly.http2.frames.DataFrame;
+import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
 import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
 
@@ -147,8 +148,10 @@ public class Http2SessionOutputSink {
         outputQueue.notifyWritePossible(writeHandler, MAX_OUTPUT_QUEUE_SIZE);
     }
 
-    protected void onPeerWindowUpdate(final int delta) {
-        // @TODO check overflow
+    protected void onPeerWindowUpdate(final int delta) throws Http2SessionException {
+        if (delta > 0 && availConnectionWindowSize.get() + delta < 0) {
+            throw new Http2SessionException(ErrorCode.FLOW_CONTROL_ERROR, "Session flow-control window overflow.");
+        }
         final int newWindowSize = availConnectionWindowSize.addAndGet(delta);
         if (LOGGER.isLoggable(LOGGER_LEVEL)) {
             LOGGER.log(LOGGER_LEVEL, "Http2Session. Expand connection window size by {0} bytes. Current connection window size is: {1}",
