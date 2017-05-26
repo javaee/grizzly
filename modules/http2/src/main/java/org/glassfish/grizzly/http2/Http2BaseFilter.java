@@ -424,7 +424,7 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
                                 final Http2Frame frame)
      throws Http2StreamException, Http2SessionException, IOException {
 
-        http2Session.checkFrameSequenceSemantics(http2Session, frame);
+        http2Session.checkFrameSequenceSemantics(frame);
 
         switch (frame.getType()) {
             case DataFrame.TYPE: {

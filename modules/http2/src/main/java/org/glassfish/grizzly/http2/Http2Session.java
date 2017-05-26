@@ -364,8 +364,7 @@ public class Http2Session {
         return new Http2Stream(this, request, priority);
     }
 
-    protected void checkFrameSequenceSemantics(final Http2Session session,
-                                               final Http2Frame frame)
+    protected void checkFrameSequenceSemantics(final Http2Frame frame)
             throws Http2SessionException {
         
         final int frameType = frame.getType();
@@ -813,14 +812,6 @@ public class Http2Session {
         NetLogger.log(NetLogger.Context.TX, this, settingsFrame);
 
         connection.write(content);
-    }
-    
-    protected void sendRstFrame(final ErrorCode errorCode, final int streamId) {
-        outputSink.writeDownStream(
-                RstStreamFrame.builder()
-                        .errorCode(errorCode)
-                        .streamId(streamId)
-                        .build());
     }
     
     HeadersDecoder getHeadersDecoder() {
