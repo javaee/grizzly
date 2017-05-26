@@ -822,8 +822,13 @@ public class Http2ServerFilter extends Http2BaseFilter {
                 }
                 throw new Http2StreamException(stream.getId(), ErrorCode.STREAM_CLOSED);
             }
-            // trailers
-            assert headersFrame.isEndStream();
+
+            if (!headersFrame.isEndStream()) {
+                throw new Http2StreamException(stream.getId(),
+                                               ErrorCode.PROTOCOL_ERROR,
+                                               "Received second HEADERS frame, but was not marked fin.");
+            }
+
             try {
                 stream.onRcvHeaders(true);
                 DecoderUtils.decodeTrailerHeaders(http2Session, stream.getRequest());
