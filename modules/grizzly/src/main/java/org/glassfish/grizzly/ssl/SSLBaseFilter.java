@@ -422,7 +422,14 @@ public class SSLBaseFilter extends BaseFilter {
 
             final SslResult result =
                     sslCtx.unwrap(len, input, output, MM_ALLOCATOR);
-            
+
+            output = result.getOutput();
+
+            if (result.isError()) {
+                output.dispose();
+                throw result.getError();
+            }
+
             if (isHandshaking(sslCtx.getSslEngine())) {
                 // is it re-handshake or graceful ssl termination
                 if (result.getSslEngineResult().getStatus() != Status.CLOSED) {
@@ -435,13 +442,6 @@ public class SSLBaseFilter extends BaseFilter {
                 if (input == null) {
                     break;
                 }
-            }
-            
-            output = result.getOutput();
-
-            if (result.isError()) {
-                output.dispose();
-                throw result.getError();
             }
             
             switch (result.getSslEngineResult().getStatus()) {
