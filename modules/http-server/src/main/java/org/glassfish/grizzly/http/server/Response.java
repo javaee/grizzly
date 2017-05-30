@@ -88,6 +88,7 @@ import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.Cookies;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.io.NIOOutputStream;
 import org.glassfish.grizzly.http.io.NIOWriter;
@@ -334,9 +335,28 @@ public class Response {
      *
      * @param trailerSupplier the supplier of trailer headers
      *
+     * @throws IllegalStateException if it is invoked after the response has
+     *         has been committed, or trailers cannot be supported given
+     *         the current protocol and/or configuration (chunked transfer
+     *         encoding disabled in HTTP/1.1 as an example).
+
+     *
      * @since 2.4.0
      */
     public void setTrailers(Supplier<Map<String, String>> trailerSupplier) {
+        if (isCommitted()) {
+            throw new IllegalStateException("Response has already been committed.");
+        }
+        final Protocol protocol = response.getProtocol();
+        if (protocol.equals(Protocol.HTTP_0_9) || protocol.equals(Protocol.HTTP_1_0)) {
+            throw new IllegalStateException("Trailers not supported by response protocol version " + protocol);
+        }
+        if (protocol.equals(Protocol.HTTP_1_1)) {
+            if (!response.isChunkingAllowed()) {
+                throw new IllegalStateException("Chunked transfer-encoding disabled.");
+            }
+            response.setChunked(true);
+        }
         outputBuffer.setTrailers(trailerSupplier);
     }
 
