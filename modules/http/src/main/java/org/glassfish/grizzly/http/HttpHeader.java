@@ -624,7 +624,7 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public String getHeader(final String name) {
-        if (name == null) {
+        if (name == null || name.isEmpty()) {
             return null;
         }
         
@@ -649,7 +649,7 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void setHeader(final String name, final String value) {
-        if (name == null || value == null) {
+        if (name == null || value == null || name.isEmpty()) {
             return;
         }
         if (handleSetSpecialHeaders(name, value)) return;
@@ -662,7 +662,7 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void setHeader(final String name, final HeaderValue value) {
-        if (name == null || value == null || !value.isSet()) {
+        if (name == null || value == null || name.isEmpty() || !value.isSet()) {
             return;
         }
         if (handleSetSpecialHeaders(name, value)) return;
@@ -705,7 +705,7 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void addHeader(final String name, final String value) {
-        if (name == null || value == null) {
+        if (name == null || value == null || name.isEmpty()) {
             return;
         }
         if (handleSetSpecialHeaders(name, value)) {
@@ -720,7 +720,7 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public void addHeader(final String name, final HeaderValue value) {
-        if (name == null || value == null || !value.isSet()) {
+        if (name == null || value == null || name.isEmpty() || !value.isSet()) {
             return;
         }
         if (handleSetSpecialHeaders(name, value)) {
@@ -765,7 +765,7 @@ public abstract class HttpHeader extends HttpPacket
      */
     @Override
     public boolean containsHeader(final String name) {
-        if (name == null) {
+        if (name == null || name.isEmpty()) {
             return false;
         }
         final String result = handleGetSpecialHeader(name);
