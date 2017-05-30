@@ -236,8 +236,8 @@ public abstract class StaticHttpHandlerBase extends HttpHandler {
     // ------------------------------------------------------- Protected Methods
     
 
-    protected String getRelativeURI(final Request request) {
-        String uri = request.getRequestURI();
+    protected String getRelativeURI(final Request request) throws Exception {
+        String uri = request.getDecodedRequestURI();
         if (uri.contains("..")) {
             return null;
         }
