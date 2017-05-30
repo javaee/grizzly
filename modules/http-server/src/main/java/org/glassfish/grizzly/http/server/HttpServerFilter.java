@@ -227,7 +227,7 @@ public class HttpServerFilter extends BaseFilter
                         HtmlHelper.setErrorAndSendErrorPage(
                                 handlerRequest, handlerResponse,
                                 config.getDefaultErrorPageGenerator(),
-                                400, HttpStatus.BAD_REQUEST_400.getReasonPhrase(),
+                                413, HttpStatus.BAD_REQUEST_400.getReasonPhrase(),
                                 "The request payload size exceeds the max post size limitation", null);
                     } else {
                         final HttpHandler httpHandlerLocal = httpHandler;
