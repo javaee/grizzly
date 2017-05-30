@@ -86,10 +86,11 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
                 @Override
                 public void onDecoded(CharSequence name, CharSequence value) {
-                    if (name.chars().anyMatch(Character::isUpperCase)) {
-                        throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM);
+                    for (int i = 0, len = name.length(); i < len; i++) {
+                        if (Character.isUpperCase(name.charAt(i))) {
+                            throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM);
+                        }
                     }
-
                     if (name.charAt(0) == ':') {
                         if (noMoreServiceHeaders.get()) {
                             throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM);
