@@ -55,17 +55,13 @@
     <version>2.3.31-SNAPSHOT</version>
     <url>http://grizzly.java.net</url>
     <issueManagement>
-        <system>JIRA</system>
-        <url>http://java.net/jira/browse/GRIZZLY</url>
+        <system>GitHub</system>
+        <url>https://github.com/javaee/grizzly/issues</url>
     </issueManagement>
     <mailingLists>
         <mailingList>
-            <name>Grizzly Dev List</name>
-            <archive>dev@grizzly.java.net</archive>
-        </mailingList>
-        <mailingList>
-            <name>Grizzly Support List</name>
-            <archive>users@grizzly.java.net</archive>
+            <name>Grizzly Discussion Group</name>
+            <archive>https://javaee.groups.io/g/grizzly</archive>
         </mailingList>
     </mailingLists>
     <developers>
@@ -121,13 +117,12 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:git://java.net/grizzly~git</connection>
+        <connection>scm:git:https://github.com/javaee/grizzly.git</connection>
         <developerConnection>
-            scm:git:ssh://${user.name}@git.java.net/grizzly~git
+            scm:git:git@github.com:javaee/grizzly.git
         </developerConnection>
-        <url>http://java.net/projects/grizzly/sources/git/show</url>
-      <tag>HEAD</tag>
-  </scm>
+        <url>https://github.com/javaee/grizzly</url>
+    </scm>
     <organization>
         <name>Oracle Corporation</name>
         <url>http://www.oracle.com</url>
