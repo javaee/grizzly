@@ -141,7 +141,7 @@ public class MaxPostSizeTest {
 
         final Future<HttpContent> responseFuture2 = send("localhost", PORT, content2);
         final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
-        assertEquals(400, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+        assertEquals(413, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
     }
     
     @Test
