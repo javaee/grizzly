@@ -913,6 +913,10 @@ public class OutputBuffer {
         this.trailersSupplier = trailersSupplier;
     }
 
+    public Supplier<Map<String, String>> getTrailers() {
+        return trailersSupplier;
+    }
+
     /**
      * @return {@link Executor}, which will be used for notifying user
      * registered {@link WriteHandler}.

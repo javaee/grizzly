@@ -339,7 +339,6 @@ public class Response {
      *         has been committed, or trailers cannot be supported given
      *         the current protocol and/or configuration (chunked transfer
      *         encoding disabled in HTTP/1.1 as an example).
-
      *
      * @since 2.4.0
      */
@@ -358,6 +357,15 @@ public class Response {
             response.setChunked(true);
         }
         outputBuffer.setTrailers(trailerSupplier);
+    }
+
+    /**
+     * @return the trailers supplier, if any.
+     *
+     * @since 2.4.0
+     */
+    public Supplier<Map<String, String>> getTrailers() {
+        return outputBuffer.getTrailers();
     }
 
     /**
