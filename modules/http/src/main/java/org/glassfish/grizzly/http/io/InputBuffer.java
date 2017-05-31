@@ -50,6 +50,7 @@ import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.HttpContent;
+import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.threadpool.Threads;
 import org.glassfish.grizzly.utils.Charsets;
 
@@ -1411,8 +1412,17 @@ public class InputBuffer {
      */
     private static void checkHttpTrailer(final HttpContent httpContent) {
         if (HttpTrailer.isTrailer(httpContent)) {
+
             final HttpTrailer httpTrailer = (HttpTrailer) httpContent;
-            httpContent.getHttpHeader().getTrailers().copyFrom(httpTrailer.getHeaders());
+            final HttpHeader httpHeader = httpContent.getHttpHeader();
+            httpHeader.getHeaders().mark();
+            final MimeHeaders trailerHeaders = httpTrailer.getHeaders();
+            final int size = trailerHeaders.size();
+            for (int i = 0; i < size; i++) {
+                httpHeader.addHeader(
+                        trailerHeaders.getName(i).toString(),
+                        trailerHeaders.getValue(i).toString());
+            }
         }
     }    
     

@@ -127,6 +127,35 @@ servlet needs direct access to headers).
  * @author kevin seguin
  */public class MimeHeaders {
 
+    private static final String[] INVALID_TRAILER_NAMES = {
+            Header.CacheControl.getLowerCase(),
+            Header.Expect.getLowerCase(),
+            Header.Host.getLowerCase(),
+            Header.MaxForwards.getLowerCase(),
+            Header.Pragma.getLowerCase(),
+            Header.Range.getLowerCase(),
+            Header.TE.getLowerCase(),
+            Header.SetCookie.getLowerCase(),
+            Header.Authorization.getLowerCase(),
+            Header.WWWAuthenticate.getLowerCase(),
+            Header.ProxyAuthenticate.getLowerCase(),
+            Header.ProxyAuthorization.getLowerCase(),
+            Header.Age.getLowerCase(),
+            Header.Date.getLowerCase(),
+            Header.Location.getLowerCase(),
+            Header.RetryAfter.getLowerCase(),
+            Header.Vary.getLowerCase(),
+            Header.Warnings.getLowerCase(),
+            Header.IfMatch.getLowerCase(),
+            Header.IfNoneMatch.getLowerCase(),
+            Header.IfModifiedSince.getLowerCase(),
+            Header.IfUnmodifiedSince.getLowerCase(),
+            Header.IfRange.getLowerCase()
+    };
+    static {
+        Arrays.sort(INVALID_TRAILER_NAMES);
+    }
+
     public static final int MAX_NUM_HEADERS_UNBOUNDED = -1;
 
     public static final int MAX_NUM_HEADERS_DEFAULT = 100;
@@ -146,10 +175,10 @@ servlet needs direct access to headers).
      * The current number of header fields.
      */
     private int count;
+    private boolean marked;
+    protected int mark;
 
     private int maxNumHeaders = MAX_NUM_HEADERS_DEFAULT;
-
-    protected String[] filteredNames;
 
     /**
      * The header names {@link Iterable}.
@@ -158,7 +187,7 @@ servlet needs direct access to headers).
 
         @Override
         public Iterator<String> iterator() {
-            return new NamesIterator(MimeHeaders.this);
+            return new NamesIterator(MimeHeaders.this, false);
         }
     };
 
@@ -166,11 +195,13 @@ servlet needs direct access to headers).
      * Creates a new MimeHeaders object using a default buffer size.
      */
     public MimeHeaders() {
-        this(null);
     }
 
-    protected MimeHeaders(final String[] filteredNames) {
-        this.filteredNames = filteredNames;
+    public void mark() {
+        if (!marked) {
+            marked = true;
+            mark = count;
+        }
     }
 
     /**
@@ -189,6 +220,9 @@ servlet needs direct access to headers).
             headers[i].recycle();
         }
         count = 0;
+        mark = 0;
+        marked = false;
+
     }
 
     /**
@@ -268,6 +302,10 @@ servlet needs direct access to headers).
      */
     public int size() {
         return count;
+    }
+
+    public int trailerSize() {
+        return ((marked) ? (count - mark) : 0);
     }
 
     /**
@@ -379,24 +417,43 @@ servlet needs direct access to headers).
         return namesIterable;
     }
 
+    public Iterable<String> trailerNames() {
+        return new Iterable<String>() {
+
+            @Override
+            public Iterator<String> iterator() {
+                return new NamesIterator(MimeHeaders.this, true);
+            }
+        };
+    }
+
     public Iterable<String> values(final String name) {
         return new Iterable<String>() {
 
             @Override
             public Iterator<String> iterator() {
-                return new ValuesIterator(MimeHeaders.this, name);
+                return new ValuesIterator(MimeHeaders.this, name, false);
             }
         };
     }
 
     public Iterable<String> values(final Header name) {
+        return values(name.toString());
+    }
+
+    public Iterable<String> trailerValues(final String name) {
         return new Iterable<String>() {
 
             @Override
             public Iterator<String> iterator() {
-                return new ValuesIterator(MimeHeaders.this, name.toString());
+                return new ValuesIterator(MimeHeaders.this, name, true);
             }
         };
+    }
+
+    @SuppressWarnings("unused")
+    public Iterable<String> trailerValues(final Header name) {
+        return trailerValues(name.toString());
     }
 
     // -------------------- Adding headers --------------------
@@ -695,19 +752,19 @@ servlet needs direct access to headers).
 
 
     private boolean isValidName(final String name) {
-        return (filteredNames == null || Arrays.binarySearch(filteredNames, name.toLowerCase()) < 0);
+        return (!marked || Arrays.binarySearch(INVALID_TRAILER_NAMES, name.toLowerCase()) < 0);
     }
 
     private boolean isValidName(final Header name) {
-        return (filteredNames == null || Arrays.binarySearch(filteredNames, name.getLowerCase()) < 0);
+        return (!marked || Arrays.binarySearch(INVALID_TRAILER_NAMES, name.getLowerCase()) < 0);
     }
 
     private boolean isValidName(final byte[] name) {
-        return (filteredNames == null || Arrays.binarySearch(filteredNames, new String(name).toLowerCase()) < 0);
+        return (!marked || Arrays.binarySearch(INVALID_TRAILER_NAMES, new String(name).toLowerCase()) < 0);
     }
 
     private boolean isValidName(final Buffer name) {
-        return (filteredNames == null || Arrays.binarySearch(filteredNames, name.toStringContent().toLowerCase()) < 0);
+        return (!marked || Arrays.binarySearch(INVALID_TRAILER_NAMES, name.toStringContent().toLowerCase()) < 0);
     }
 
 }
@@ -717,7 +774,7 @@ abstract class BaseIterator implements Iterator<String> {
     int size;
     int currentPos;
 
-    final MimeHeaders headers;
+    protected final MimeHeaders headers;
 
     public BaseIterator(final MimeHeaders headers) {
         this.headers = headers;
@@ -746,9 +803,9 @@ class NamesIterator extends BaseIterator {
 
     String next;
 
-    NamesIterator(MimeHeaders headers) {
+    NamesIterator(MimeHeaders headers, final boolean trailersOnly) {
         super(headers);
-        pos = 0;
+        pos = ((trailersOnly) ? headers.mark : 0);
         size = headers.size();
         findNext();
     }
@@ -792,15 +849,17 @@ class NamesIterator extends BaseIterator {
 /** Enumerate the values for a (possibly ) multiple
 value element.
  */
-class ValuesIterator extends BaseIterator {
+final class ValuesIterator extends BaseIterator {
 
     DataChunk next;
     final String name;
 
-    ValuesIterator(MimeHeaders headers, String name) {
+    ValuesIterator(final MimeHeaders headers,
+                   final String name,
+                   final boolean trailersOnly) {
         super(headers);
         this.name = name;
-        pos = 0;
+        pos = ((trailersOnly) ? headers.mark : 0);
         size = headers.size();
         findNext();
     }
@@ -832,7 +891,7 @@ class ValuesIterator extends BaseIterator {
 
 } // END ValuesIterator
 
-class MimeHeaderField {
+final class MimeHeaderField {
 
     protected final DataChunk nameB = DataChunk.newInstance();
     protected final DataChunk valueB = DataChunk.newInstance();

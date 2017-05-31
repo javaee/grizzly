@@ -87,12 +87,13 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         return new Builder().httpHeader(httpHeader);
     }
 
-    private MimeTrailers trailers;
+    private MimeHeaders trailers;
 
 
     protected HttpTrailer(HttpHeader httpHeader) {
         super(httpHeader);
-        trailers = new MimeTrailers();
+        trailers = new MimeHeaders();
+        trailers.mark();
     }
 
     /**
@@ -242,8 +243,9 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      * @param trailers {@link MimeHeaders}.
      */
     @SuppressWarnings("unused")
-    protected void setTrailers(final MimeTrailers trailers) {
+    protected void setTrailers(final MimeHeaders trailers) {
         this.trailers = trailers;
+        this.trailers.mark();
     }
 
     /**
@@ -251,7 +253,8 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     protected void reset() {
-        this.trailers.recycle();
+        trailers.recycle();
+        trailers.mark();
         super.reset();
     }
     
@@ -269,7 +272,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     public static final class Builder extends HttpContent.Builder<Builder> {
 
-        private MimeTrailers mimeTrailers;
+        private MimeHeaders mimeTrailers;
 
         protected Builder() {
         }
@@ -280,10 +283,11 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
          * This method will overwrite any trailers provided via
          * {@link #header(String, String)} before this invocation.
          *
-         * @param mimeTrailers {@link MimeTrailers}.
+         * @param mimeTrailers {@link MimeHeaders}.
          */
-        public final Builder headers(MimeTrailers mimeTrailers) {
+        public final Builder headers(MimeHeaders mimeTrailers) {
             this.mimeTrailers = mimeTrailers;
+            mimeTrailers.mark(); // this is idempotent
             return this;
         }
 
@@ -295,7 +299,8 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
          */
         public final Builder header(String name, String value) {
             if (mimeTrailers == null) {
-                mimeTrailers = new MimeTrailers();
+                mimeTrailers = new MimeHeaders();
+                mimeTrailers.mark();
             }
             final DataChunk c = mimeTrailers.addValue(name);
             if (c != null) {

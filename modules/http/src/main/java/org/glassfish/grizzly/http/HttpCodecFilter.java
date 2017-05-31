@@ -2113,17 +2113,22 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         // the payload bytes read after processing was complete
         public long remainderBytesRead;
         
-        public final MimeTrailers trailerHeaders = new MimeTrailers();
+        public final MimeHeaders trailerHeaders = new MimeHeaders();
 
         private Buffer[] contentDecodingRemainders = new Buffer[1];
-        
+
+        public ContentParsingState() {
+            trailerHeaders.mark();
+        }
+
         public void recycle() {
             isLastChunk = false;
             chunkContentStart = -1;
             chunkLength = -1;
             chunkRemainder = -1;
             remainderBytesRead = 0;
-            trailerHeaders.clear();
+            trailerHeaders.recycle();
+            trailerHeaders.mark();
             contentDecodingRemainders = null;
 //            Arrays.fill(contentDecodingRemainders, null);
         }

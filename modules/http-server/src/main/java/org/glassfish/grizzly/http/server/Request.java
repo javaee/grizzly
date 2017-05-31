@@ -1739,11 +1739,11 @@ public class Request {
     public Map<String,String> getTrailers() {
         if (inputBuffer.isFinished()) {
             if (trailers == null) {
-                final MimeHeaders headers = request.getTrailers();
-                final int trailerSize = headers.size();
+                final MimeHeaders headers = request.getHeaders();
+                final int trailerSize = headers.trailerSize();
                 if (trailerSize > 0) {
                     trailers = new HashMap<>(trailerSize);
-                    for (String name : headers.names()) {
+                    for (String name : headers.trailerNames()) {
                         trailers.put(name.toLowerCase(), headers.getHeader(name));
                     }
                 } else {

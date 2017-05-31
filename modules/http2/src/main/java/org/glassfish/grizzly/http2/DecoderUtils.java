@@ -147,7 +147,7 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
                                      final HttpHeader header)
             throws IOException {
         try {
-            final MimeHeaders headers = header.getTrailers();
+            final MimeHeaders headers = header.getHeaders();
             http2Session.getHeadersDecoder().decode(new DecodingCallback() {
 
                 @Override

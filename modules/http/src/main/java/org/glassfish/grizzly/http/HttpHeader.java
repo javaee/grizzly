@@ -75,8 +75,7 @@ public abstract class HttpHeader extends HttpPacket
 
     protected boolean isCommitted;
     protected final MimeHeaders headers;
-    protected final MimeTrailers trailers;
-    
+
     protected final DataChunk protocolC = DataChunk.newInstance();
     protected Protocol parsedProtocol;
 
@@ -126,12 +125,11 @@ public abstract class HttpHeader extends HttpPacket
     private boolean chunkingAllowed;
 
     public HttpHeader() {
-        this(new MimeHeaders(), new MimeTrailers());
+        this(new MimeHeaders());
     }
 
-    protected HttpHeader(final MimeHeaders headers, final MimeTrailers trailers) {
+    protected HttpHeader(final MimeHeaders headers) {
         this.headers = headers;
-        this.trailers = trailers;
     }
     
     void setHeaderBuffer(final Buffer headerBuffer) {
@@ -621,10 +619,6 @@ public abstract class HttpHeader extends HttpPacket
         return headers;
     }
 
-    public MimeHeaders getTrailers() {
-        return trailers;
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -889,7 +883,6 @@ public abstract class HttpHeader extends HttpPacket
         parsedProtocol = null;
         contentEncodings.clear();
         headers.clear();
-        trailers.clear();
         isCommitted = false;
         isChunked = false;
         contentLength = -1;
