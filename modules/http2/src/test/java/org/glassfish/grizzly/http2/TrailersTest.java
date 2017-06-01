@@ -112,6 +112,9 @@ public class TrailersTest extends AbstractHttp2Test {
                 response.setTrailers(new Supplier<Map<String, String>>() {
                     @Override
                     public Map<String, String> get() {
+                        if (!request.areTrailersAvailable()) {
+                            throw new RuntimeException("Trailers aren't available");
+                        }
                         return request.getTrailers();
                     }
                 });

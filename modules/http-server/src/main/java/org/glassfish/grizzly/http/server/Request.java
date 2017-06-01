@@ -1738,22 +1738,7 @@ public class Request {
      */
     public Map<String,String> getTrailers() {
         if (inputBuffer.isFinished()) {
-            if (trailers == null) {
-                final MimeHeaders headers = request.getHeaders();
-                final int trailerSize = headers.trailerSize();
-                if (trailerSize > 0) {
-                    trailers = new HashMap<>(trailerSize);
-                    for (String name : headers.trailerNames()) {
-                        trailers.put(name.toLowerCase(), headers.getHeader(name));
-                    }
-                } else {
-                    trailers = Collections.emptyMap();
-                }
-            }
-            return trailers;
-        } else if (!request.isChunked()) {
-            trailers = Collections.emptyMap();
-            return trailers;
+            return inputBuffer.getTrailers();
         }
         throw new IllegalStateException();
     }
@@ -1766,7 +1751,7 @@ public class Request {
      * @since 2.4.0
      */
     public boolean areTrailersAvailable() {
-        return (request.isChunked() || trailers != null);
+        return inputBuffer.areTrailersAvailable();
     }
 
 

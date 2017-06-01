@@ -45,6 +45,7 @@ import org.glassfish.grizzly.http.FixedLengthTransferEncoding;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ReadHandler;
@@ -391,6 +392,10 @@ public class ChunkedTransferEncodingTest {
             response.setTrailers(new Supplier<Map<String, String>>() {
                 @Override
                 public Map<String, String> get() {
+                    if (!request.areTrailersAvailable()) {
+                        errors.add(new RuntimeException("Trailers not available"));
+                        return Collections.emptyMap();
+                    }
                     return request.getTrailers();
                 }
             });
@@ -450,7 +455,7 @@ public class ChunkedTransferEncodingTest {
                 }
                 
                 private void echo() throws IOException {
-                    response.flush(); // force the headers to be committed.
+
                     writer.write(baos.toByteArray());
                 }
             });
@@ -459,7 +464,6 @@ public class ChunkedTransferEncodingTest {
 
         private void doSync(Request request, Response response) throws IOException {
             try {
-                response.addHeader(Header.TransferEncoding, "chunked");
                 if (hasContent) {
                     final InputStream is = request.getInputStream();
                     final ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -475,7 +479,6 @@ public class ChunkedTransferEncodingTest {
                     final OutputStream os = response.getOutputStream();
 
                     os.write(output);
-                    os.flush(); // force the headers to be committed.
                 }
             } catch (Throwable t) {
                 errors.offer(t);

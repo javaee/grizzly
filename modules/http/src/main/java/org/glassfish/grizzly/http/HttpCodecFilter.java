@@ -1320,6 +1320,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
         final HttpContent httpContent = result.getHttpContent();
         final Buffer remainderBuffer = result.getRemainderBuffer();
+        final boolean sendHeaderUpstream = result.isSendHeaderUpstream();
 
         final boolean hasRemainder = remainderBuffer != null &&
                 remainderBuffer.hasRemaining();
@@ -1382,10 +1383,13 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         }
 
         if (!wasHeaderParsed || isLast) {
-            final HttpContent emptyContent = HttpContent.create(httpHeader, isLast);
-            HttpProbeNotifier.notifyContentChunkParse(this, connection, emptyContent);
-            ctx.setMessage(emptyContent);
-            return ctx.getInvokeAction(hasRemainder ? remainderBuffer : null);
+            if (sendHeaderUpstream) {
+                final HttpContent emptyContent = HttpContent.create(httpHeader, isLast);
+                HttpProbeNotifier.notifyContentChunkParse(this, connection, emptyContent);
+                ctx.setMessage(emptyContent);
+                return ctx.getInvokeAction(hasRemainder ? remainderBuffer : null);
+            }
+            return ctx.getStopAction(hasRemainder ? remainderBuffer : null);
         } else {
             return ctx.getStopAction(hasRemainder ? remainderBuffer : null);
         }

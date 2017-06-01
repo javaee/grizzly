@@ -61,6 +61,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
@@ -187,7 +188,13 @@ public class InputBuffer {
      * (is OP_READ enabled for the Connection)
      */
     private boolean isWaitingDataAsynchronously;
-    
+
+    /**
+     * Trailer headers, if any.
+     */
+    protected Map<String,String> trailers;
+
+
     // ------------------------------------------------------------ Constructors
 
 
@@ -219,6 +226,9 @@ public class InputBuffer {
             checkHttpTrailer(content);
             updateInputContentBuffer(content.getContent());
             contentRead = content.isLast();
+            if (contentRead) {
+                processTrailers();
+            }
             content.recycle();
             
             if (LOGGER.isLoggable(LOGGER_LEVEL)) {
@@ -256,6 +266,7 @@ public class InputBuffer {
         decoder = null;
         ctx = null;
         handler = null;
+        trailers = null;
 
         processingChars = false;
         closed = false;
@@ -739,6 +750,13 @@ public class InputBuffer {
 
     }
 
+    public Map<String, String> getTrailers() {
+        return trailers;
+    }
+
+    public boolean areTrailersAvailable() {
+        return trailers != null;
+    }
 
     /**
      * When invoked, this method will call {@link org.glassfish.grizzly.ReadHandler#onAllDataRead()}
@@ -750,6 +768,7 @@ public class InputBuffer {
         if (!contentRead) {
             contentRead = true;
             final ReadHandler localHandler = handler;
+            processTrailers();
             if (localHandler != null) {
                 handler = null;
                 invokeHandlerAllRead(localHandler, getThreadPool());
@@ -760,6 +779,7 @@ public class InputBuffer {
     private void finishedInTheCurrentThread(final ReadHandler readHandler) {
         if (!contentRead) {
             contentRead = true;
+            processTrailers();
             if (readHandler != null) {
                 invokeHandlerAllRead(readHandler, null);
             }
@@ -784,6 +804,21 @@ public class InputBuffer {
                 readHandler.onAllDataRead();
             } catch (Throwable t) {
                 readHandler.onError(t);
+            }
+        }
+    }
+
+    private void processTrailers() {
+        if (trailers == null) {
+            final MimeHeaders headers = httpHeader.getHeaders();
+            final int trailerSize = headers.trailerSize();
+            if (trailerSize > 0) {
+                trailers = new HashMap<>(trailerSize);
+                for (String name : headers.trailerNames()) {
+                    trailers.put(name.toLowerCase(), headers.getHeader(name));
+                }
+            } else {
+                trailers = Collections.emptyMap();
             }
         }
     }

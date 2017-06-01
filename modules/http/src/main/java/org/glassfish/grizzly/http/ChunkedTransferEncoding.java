@@ -138,7 +138,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
                 // if not a HEAD request and we don't have enough data to
                 // parse chunk length - stop execution
-                return ParsingResult.create(null, buffer);
+                return ParsingResult.create(null, buffer, false);
             }
         } else {
             // HTTP content starts from position 0 in the input Buffer (HTTP chunk header is not part of the input Buffer)
@@ -330,7 +330,6 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
     }
 
     /**
-     * @param value
      * @return <tt>false</tt> if next left bit-shift by 4 bits will cause overflow,
      *          or <tt>true</tt> otherwise
      */
