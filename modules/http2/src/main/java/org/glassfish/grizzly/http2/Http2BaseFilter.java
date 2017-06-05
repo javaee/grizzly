@@ -635,7 +635,6 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             return;
         }
         final Http2Stream stream = http2Session.getStream(streamId);
-        // @TODO null stream may happen if stream state has been cleaned up.  Need to deal with this better.
         if (stream == null) {
             if (streamId > http2Session.lastPeerStreamId) {
                 // consider this case an idle stream without creating one

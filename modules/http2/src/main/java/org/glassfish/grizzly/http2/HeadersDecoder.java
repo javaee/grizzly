@@ -40,7 +40,6 @@
 
 package org.glassfish.grizzly.http2;
 
-import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.hpack.Decoder;
