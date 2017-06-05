@@ -41,6 +41,7 @@
 package org.glassfish.grizzly;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -48,6 +49,7 @@ import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -76,6 +78,8 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
+import org.glassfish.grizzly.strategies.SameThreadIOStrategy;
+import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.BufferInQueueFilter;
 import org.glassfish.grizzly.utils.ClientCheckFilter;
 import org.glassfish.grizzly.utils.EchoFilter;
@@ -755,6 +759,48 @@ public class TCPNIOTransportTest {
         doTestParallelWrites(100, 100000, true);
     }
 
+    @Test
+    public void testThreadInterruptionElsewhereDoesNotMakeServerDeaf() throws Exception {
+        final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
+        transport.setSelectorRunnersCount(1);
+        transport.setKernelThreadPoolConfig(ThreadPoolConfig.newConfig().setCorePoolSize(1).setMaxPoolSize(1));
+        transport.setIOStrategy(new SameThreadIOStrategyInterruptWrapper(false));
+        transport.bind(PORT);
+        transport.start();
+
+        final TCPNIOTransport clientTransport = TCPNIOTransportBuilder.newInstance().build();
+        clientTransport.setIOStrategy(SameThreadIOStrategy.getInstance());
+
+        try {
+
+            clientTransport.start();
+            SocketConnectorHandler connectorHandler = TCPNIOConnectorHandler
+                    .builder(clientTransport)
+                    .filterChain(FilterChainBuilder.newInstance().add(new TransportFilter()).build())
+                    .build();
+
+            int successfulAttempts = 0;
+
+            for (int i = 0; i < 10; i++) {
+                try {
+                    final Future f2 = connectorHandler.connect("localhost", PORT);
+                    f2.get(5, TimeUnit.SECONDS);
+                    System.out.println("Successful connection (" + ++successfulAttempts + ").");
+                } catch (Exception e2) {
+                    e2.printStackTrace();
+                    fail();
+                }
+            }
+
+        } catch (Exception e) {
+            fail("Unexpected Error: " + e.toString());
+            e.printStackTrace();
+        } finally {
+            clientTransport.shutdownNow();
+            transport.shutdownNow();
+        }
+    }
+
 
     // --------------------------------------------------------- Private Methods
 
@@ -834,6 +880,56 @@ public class TCPNIOTransportTest {
     }
     
     // ---------------------------------------------------------- Nested Classes
+
+
+    static class SameThreadIOStrategyInterruptWrapper implements IOStrategy {
+        private final IOStrategy delegate = SameThreadIOStrategy.getInstance();
+        private volatile boolean interruptedOnce = false;
+        private final boolean interruptBefore;
+
+        SameThreadIOStrategyInterruptWrapper(boolean interruptBefore) {
+            this.interruptBefore = interruptBefore;
+        }
+
+        @Override
+        public boolean executeIOEvent(final Connection connection, final IOEvent ioEvent, final EventLifeCycleListener lifeCycleListener) throws IOException {
+            return delegate.executeIOEvent(connection, ioEvent, lifeCycleListener);
+        }
+
+        @Override
+        public boolean executeIOEvent(final Connection connection, final IOEvent ioEvent) throws IOException {
+            if (interruptBefore) {
+                if (!interruptedOnce && ioEvent.equals(IOEvent.ACCEPT)) {
+                    Thread.currentThread().interrupt();
+                    interruptedOnce = true;
+                }
+                return delegate.executeIOEvent(connection, ioEvent);
+            } else {
+                boolean result = delegate.executeIOEvent(connection, ioEvent);
+                if (ioEvent.equals(IOEvent.ACCEPT)) {
+                    Thread.currentThread().interrupt();
+                }
+                return result;
+            }
+        }
+
+        @Override
+        public boolean executeIOEvent(final Connection connection, final IOEvent ioEvent, final DecisionListener listener) throws IOException {
+            return delegate.executeIOEvent(connection, ioEvent, listener);
+        }
+
+        @Override
+        public Executor getThreadPoolFor(final Connection connection, final IOEvent ioEvent) {
+            return delegate.getThreadPoolFor(connection, ioEvent);
+        }
+
+        @Override
+        public ThreadPoolConfig createDefaultWorkerPoolConfig(final Transport transport) {
+            return delegate.createDefaultWorkerPoolConfig(transport);
+        }
+    }
+
+
     public static class CustomChannelDistributor extends AbstractNIOConnectionDistributor {
 
         private final AtomicInteger counter;

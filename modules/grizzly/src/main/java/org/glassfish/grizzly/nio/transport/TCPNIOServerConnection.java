@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,6 +68,10 @@ import org.glassfish.grizzly.utils.Holder;
  * @author oleksiys
  */
 public class TCPNIOServerConnection extends TCPNIOConnection {
+
+    private static boolean DISABLE_INTERRUPT_CLEAR =
+            Boolean.valueOf(System.getProperty(
+                    TCPNIOServerConnection.class.getName() + "_DISABLE_INTERRUPT_CLEAR", "false"));
 
     private static final Logger LOGGER = Grizzly.logger(TCPNIOServerConnection.class);
     private FutureImpl<Connection> acceptListener;
@@ -184,6 +188,9 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
     }
     
     private SocketChannel doAccept() throws IOException {
+        if (!DISABLE_INTERRUPT_CLEAR && Thread.currentThread().isInterrupted()) {
+            Thread.interrupted();
+        }
         final ServerSocketChannel serverChannel =
                 (ServerSocketChannel) getChannel();
         final SelectionKey key = getSelectionKey();
