@@ -372,6 +372,7 @@ public class OutputBuffer {
         isNonBlockingWriteGuaranteed = false;
         isLastWriteNonBlocking = false;
         asyncWriteHandler = null;
+        trailersSupplier = null;
 
         committed = false;
         finished = false;
