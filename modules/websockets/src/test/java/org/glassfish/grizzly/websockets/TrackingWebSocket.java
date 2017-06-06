@@ -44,15 +44,14 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.glassfish.grizzly.GrizzlyFuture;
-import org.glassfish.grizzly.utils.DataStructures;
 
 public class TrackingWebSocket extends WebSocketClient {
-    final Set<String> sent = Collections.<String>newSetFromMap(
-            DataStructures.<String, Boolean>getConcurrentMap());
+    final Set<String> sent = Collections.newSetFromMap(new ConcurrentHashMap<>());
     
     private final CountDownLatch received;
     private String name;

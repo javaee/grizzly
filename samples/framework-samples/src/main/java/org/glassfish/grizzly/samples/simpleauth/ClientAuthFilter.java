@@ -47,8 +47,8 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Client authentication filter, which intercepts client<->server communication,
@@ -66,8 +66,7 @@ public class ClientAuthFilter extends BaseFilter {
             MultiLinePacket.create("authentication-request");
 
     // Map of authenticated connections
-    private final ConcurrentMap<Connection, ConnectionAuthInfo> authenticatedConnections =
-            DataStructures.<Connection, ConnectionAuthInfo>getConcurrentMap();
+    private final ConcurrentMap<Connection, ConnectionAuthInfo> authenticatedConnections =new ConcurrentHashMap<>();
 
     /**
      * The method is called once we have received {@link MultiLinePacket}.

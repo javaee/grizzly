@@ -66,9 +66,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.glassfish.grizzly.utils.DataStructures;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 import org.glassfish.grizzly.utils.Charsets;
@@ -170,15 +170,15 @@ public final class FastHttpDateFormat {
     /**
      * Formatter cache.
      */
-    private static final ConcurrentMap<Long, String> formatCache = 
-        DataStructures.<Long, String>getConcurrentMap(CACHE_SIZE, 0.75f, 64);
+    private static final ConcurrentMap<Long, String> formatCache =
+            new ConcurrentHashMap<>(CACHE_SIZE, 0.75f, 64);
 
 
     /**
      * Parser cache.
      */
-    private static final ConcurrentMap<String, Long> parseCache = 
-        DataStructures.<String, Long>getConcurrentMap(CACHE_SIZE, 0.75f, 64);
+    private static final ConcurrentMap<String, Long> parseCache =
+            new ConcurrentHashMap<>(CACHE_SIZE, 0.75f, 64);
 
 
     // --------------------------------------------------------- Public Methods

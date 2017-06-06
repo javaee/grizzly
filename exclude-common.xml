@@ -122,15 +122,6 @@
         </Or>
     </Match>
 
-    <!-- These classes are copied from OpenJDK.  Ignore the issues. -->
-    <Match>
-        <Or>
-            <Class name="org.glassfish.grizzly.utils.LinkedTransferQueue$QNode"/>
-            <Class name="org.glassfish.grizzly.utils.ConcurrentHashMapV8"/>
-            <Class name="org.glassfish.grizzly.utils.ConcurrentHashMapV8$TreeBin"/>
-        </Or>
-    </Match>
-
     <!-- We're not worried about this. -->
     <Match>
         <Or>

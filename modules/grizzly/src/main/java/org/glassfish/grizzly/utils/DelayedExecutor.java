@@ -42,6 +42,7 @@ package org.glassfish.grizzly.utils;
 
 import java.util.Iterator;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -59,7 +60,7 @@ public class DelayedExecutor {
     private final DelayedRunnable runnable = new DelayedRunnable();
     
     private final Queue<DelayQueue> queues =
-             new ConcurrentLinkedQueue<DelayQueue>();
+            new ConcurrentLinkedQueue<>();
 
     private final Object sync = new Object();
 
@@ -114,7 +115,7 @@ public class DelayedExecutor {
     public <E> DelayQueue<E> createDelayQueue(final Worker<E> worker,
             final Resolver<E> resolver) {
         
-        final DelayQueue<E> queue = new DelayQueue<E>(worker, resolver);
+        final DelayQueue<E> queue = new DelayQueue<>(worker, resolver);
 
         queues.add(queue);
 
@@ -178,8 +179,7 @@ public class DelayedExecutor {
     }
 
     public class DelayQueue<E> {
-        final ConcurrentMap<E, DelayQueue> queue =
-                DataStructures.<E, DelayQueue>getConcurrentMap();
+        final ConcurrentMap<E, DelayQueue> queue = new ConcurrentHashMap<>();
 
         final Worker<E> worker;
         final Resolver<E> resolver;

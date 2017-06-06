@@ -50,9 +50,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Configuration options for a particular {@link HttpServer} instance.
@@ -67,14 +67,13 @@ public class ServerConfiguration extends ServerFilterConfiguration {
 
     // Non-exposed
 
-    final Map<HttpHandler, HttpHandlerRegistration[]> handlers =
-            DataStructures.<HttpHandler, HttpHandlerRegistration[]>getConcurrentMap();
+    final Map<HttpHandler, HttpHandlerRegistration[]> handlers = new ConcurrentHashMap<>();
     private final Map<HttpHandler, HttpHandlerRegistration[]> unmodifiableHandlers =
             Collections.unmodifiableMap(handlers);
     final List<HttpHandler> orderedHandlers =
-            new LinkedList<HttpHandler>();
+            new LinkedList<>();
 
-    private final Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<JmxEventListener>();
+    private final Set<JmxEventListener> jmxEventListeners = new CopyOnWriteArraySet<>();
 
     private final HttpServerMonitoringConfig monitoringConfig = new HttpServerMonitoringConfig();
 
@@ -194,10 +193,10 @@ public class ServerConfiguration extends ServerFilterConfiguration {
      * Please note, the returned map is read-only.
      *
      * @return the {@link HttpHandler} map.
-     * @deprecated please use {@link #getHttpHandlersMap()}
+     * @deprecated please use {@link #getHttpHandlersWithMapping()}
      */
     public Map<HttpHandler, String[]> getHttpHandlers() {
-        final Map<HttpHandler, String[]> map = new HashMap<HttpHandler, String[]>(
+        final Map<HttpHandler, String[]> map = new HashMap<>(
                 unmodifiableHandlers.size());
         
         for (Map.Entry<HttpHandler, HttpHandlerRegistration[]> entry : unmodifiableHandlers.entrySet()) {

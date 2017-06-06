@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.server.jmx;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
@@ -49,7 +50,6 @@ import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 
 import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * JMX management object for {@link org.glassfish.grizzly.http.server.HttpServer}.
@@ -64,10 +64,8 @@ public class HttpServer extends JmxObject {
     private final org.glassfish.grizzly.http.server.HttpServer gws;
 
     private GrizzlyJmxManager mom;
-    private final ConcurrentMap<String, NetworkListener> currentListeners =
-            DataStructures.<String, NetworkListener>getConcurrentMap(4);
-    private final ConcurrentMap<String, Object> listenersJmx =
-            DataStructures.<String, Object>getConcurrentMap(4);
+    private final ConcurrentMap<String, NetworkListener> currentListeners = new ConcurrentHashMap<>(4);
+    private final ConcurrentMap<String, Object> listenersJmx = new ConcurrentHashMap<>(4);
     
 
 

@@ -42,6 +42,7 @@ package org.glassfish.grizzly.nio.transport.jmx;
 
 import java.util.Date;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -62,7 +63,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * NIO Transport JMX object.
@@ -82,10 +82,9 @@ public class NIOTransport extends JmxObject {
     private volatile EventDate stateEvent;
     private volatile EventDate lastErrorEvent;
 
-    private final ConcurrentMap<Connection, String> boundConnections =
-            DataStructures.<Connection, String>getConcurrentMap(4);
+    private final ConcurrentMap<Connection, String> boundConnections =new ConcurrentHashMap<>(4);
 
-    private final Queue<String> boundAddresses = new ConcurrentLinkedQueue<String>();
+    private final Queue<String> boundAddresses = new ConcurrentLinkedQueue<>();
 
     private final AtomicInteger openConnectionsNum = new AtomicInteger();
     private final AtomicLong totalConnectionsNum = new AtomicLong();

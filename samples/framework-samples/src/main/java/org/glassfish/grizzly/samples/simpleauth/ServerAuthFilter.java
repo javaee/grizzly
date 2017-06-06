@@ -47,7 +47,8 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Random;
-import org.glassfish.grizzly.utils.DataStructures;
+import java.util.concurrent.ConcurrentHashMap;
+
 
 /**
  * Server authentication filter, which intercepts client<->server communication.
@@ -64,8 +65,7 @@ import org.glassfish.grizzly.utils.DataStructures;
 public class ServerAuthFilter extends BaseFilter {
 
     // Authenticated clients connection map
-    private Map<Connection, String> authenticatedConnections =
-            DataStructures.<Connection, String>getConcurrentMap();
+    private Map<Connection, String> authenticatedConnections = new ConcurrentHashMap<>();
 
     // Random, to generate client ids.
     private final Random random = new Random();

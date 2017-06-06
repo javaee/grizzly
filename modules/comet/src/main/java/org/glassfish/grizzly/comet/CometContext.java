@@ -42,6 +42,7 @@ package org.glassfish.grizzly.comet;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -58,7 +59,6 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.TimeoutHandler;
 import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * The main object used by {@link CometHandler} and Servlet to push information amongst suspended request/response. The
@@ -143,7 +143,7 @@ public class CometContext<E> {
      */
     public CometContext(CometEngine engine, String contextTopic) {
         topic = contextTopic;
-        attributes = DataStructures.<Object, Object>getConcurrentMap();
+        attributes = new ConcurrentHashMap<>();
         handlers = new CopyOnWriteArrayList<CometHandler>();
         eventInterrupt = new CometEvent<CometContext>(CometEvent.Type.INTERRUPT, this);
         eventInitialize = new CometEvent<CometContext>(CometEvent.Type.INITIALIZE, this);

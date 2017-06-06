@@ -43,13 +43,13 @@ package org.glassfish.grizzly.http.server;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.server.util.Globals;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Default {@link SessionManager} implementation.
@@ -72,8 +72,7 @@ public class DefaultSessionManager implements SessionManager {
      * Not Good. We need a better mechanism. TODO: Move Session Management out
      * of here
      */
-    private final ConcurrentMap<String, Session> sessions
-            = DataStructures.<String, Session>getConcurrentMap();
+    private final ConcurrentMap<String, Session> sessions = new ConcurrentHashMap<>();
 
     private final Random rnd = new Random();
 
@@ -179,6 +178,6 @@ public class DefaultSessionManager implements SessionManager {
      * Returns pseudorandom positive long value.
      */
     private long generateRandomLong() {
-        return (rnd.nextLong() & 0x7FFFFFFFFFFFFFFFl);
+        return (rnd.nextLong() & 0x7FFFFFFFFFFFFFFFL);
     }
 }

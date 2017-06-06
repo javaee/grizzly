@@ -41,11 +41,11 @@ package org.glassfish.grizzly.servlet;
 
 import java.util.Enumeration;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import org.glassfish.grizzly.http.server.util.Enumerator;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Basic {@link ServletConfig} implementation.
@@ -56,7 +56,7 @@ public class ServletConfigImpl implements ServletConfig {
 
     protected String name;
     protected final ConcurrentMap<String, String> initParameters =
-            DataStructures.<String, String>getConcurrentMap(16, 0.75f, 64);
+            new ConcurrentHashMap<>(16, 0.75f, 64);
     protected final WebappContext servletContextImpl;
 
     protected ServletConfigImpl(WebappContext servletContextImpl) {
