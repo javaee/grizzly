@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -69,9 +69,11 @@ import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -85,6 +87,7 @@ import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.Cookies;
 import org.glassfish.grizzly.http.HttpResponsePacket;
+import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.io.NIOOutputStream;
 import org.glassfish.grizzly.http.io.NIOWriter;
@@ -319,6 +322,50 @@ public class Response {
 
 
     // ------------------------------------------------------- Response Methods
+
+    /**
+     * Set the supplier of trailer headers.
+     * The supplier will be called within the scope of whatever thread/call
+     * causes the response content to be completed. Typically this will
+     * be any thread calling close() on the output stream or writer.
+     *
+     * The trailers that run afoul of the provisions of section 4.1.2 of
+     * RFC 7230 are ignored.
+     *
+     * @param trailerSupplier the supplier of trailer headers
+     *
+     * @throws IllegalStateException if it is invoked after the response has
+     *         has been committed, or trailers cannot be supported given
+     *         the current protocol and/or configuration (chunked transfer
+     *         encoding disabled in HTTP/1.1 as an example).
+     *
+     * @since 2.4.0
+     */
+    public void setTrailers(Supplier<Map<String, String>> trailerSupplier) {
+        if (isCommitted()) {
+            throw new IllegalStateException("Response has already been committed.");
+        }
+        final Protocol protocol = response.getProtocol();
+        if (protocol.equals(Protocol.HTTP_0_9) || protocol.equals(Protocol.HTTP_1_0)) {
+            throw new IllegalStateException("Trailers not supported by response protocol version " + protocol);
+        }
+        if (protocol.equals(Protocol.HTTP_1_1)) {
+            if (!response.isChunkingAllowed()) {
+                throw new IllegalStateException("Chunked transfer-encoding disabled.");
+            }
+            response.setChunked(true);
+        }
+        outputBuffer.setTrailers(trailerSupplier);
+    }
+
+    /**
+     * @return the trailers supplier, if any.
+     *
+     * @since 2.4.0
+     */
+    public Supplier<Map<String, String>> getTrailers() {
+        return outputBuffer.getTrailers();
+    }
 
     /**
      * Encode the session identifier associated with this response

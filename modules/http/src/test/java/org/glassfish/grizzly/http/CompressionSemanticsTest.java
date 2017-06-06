@@ -510,6 +510,7 @@ public class CompressionSemanticsTest extends TestCase {
     }
 
 
+    @SuppressWarnings("Duplicates")
     private class ClientFilter extends BaseFilter {
         private final Logger logger = Grizzly.logger(ClientFilter.class);
 

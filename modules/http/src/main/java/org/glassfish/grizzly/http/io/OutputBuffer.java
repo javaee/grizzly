@@ -59,6 +59,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
@@ -75,10 +76,13 @@ import org.glassfish.grizzly.Writer.Reentrant;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler;
 import org.glassfish.grizzly.asyncqueue.LifeCycleHandler.Adapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpContent.Builder;
 import org.glassfish.grizzly.http.HttpContext;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.http.HttpServerFilter;
+import org.glassfish.grizzly.http.HttpTrailer;
+import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.util.MimeType;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HeaderValue;
@@ -132,9 +136,11 @@ public class OutputBuffer implements OutputSink {
     private final ByteArrayCloner cloner = new ByteArrayCloner(temporaryWriteBuffer);
 
     private final List<LifeCycleListener> lifeCycleListeners =
-            new ArrayList<LifeCycleListener>(2);
+            new ArrayList<>(2);
     
     private boolean committed;
+
+    private boolean headersWritten;
 
     private boolean finished;
 
@@ -143,7 +149,7 @@ public class OutputBuffer implements OutputSink {
     private CharsetEncoder encoder;
 
     private final Map<String, CharsetEncoder> encoders =
-            new HashMap<String, CharsetEncoder>();
+            new HashMap<>();
 
     private char[] charsArray;
     private int charsArrayLength;
@@ -174,6 +180,8 @@ public class OutputBuffer implements OutputSink {
     private boolean isLastWriteNonBlocking;
 
     private HttpContext httpContext;
+
+    private Supplier<Map<String,String>> trailersSupplier;
     
     
     // ---------------------------------------------------------- Public Methods
@@ -330,10 +338,12 @@ public class OutputBuffer implements OutputSink {
         isNonBlockingWriteGuaranteed = false;
         isLastWriteNonBlocking = false;
         asyncWriteHandler = null;
+        trailersSupplier = null;
 
         committed = false;
         finished = false;
         closed = false;
+        headersWritten = false;
 
         lifeCycleListeners.clear();
     }
@@ -844,6 +854,14 @@ public class OutputBuffer implements OutputSink {
         }
     }
 
+    public void setTrailers(Supplier<Map<String,String>> trailersSupplier) {
+        this.trailersSupplier = trailersSupplier;
+    }
+
+    public Supplier<Map<String, String>> getTrailers() {
+        return trailersSupplier;
+    }
+
     /**
      * @return {@link Executor}, which will be used for notifying user
      * registered {@link WriteHandler}.
@@ -987,7 +1005,7 @@ public class OutputBuffer implements OutputSink {
             bufferToFlush = null;
         }
 
-        if (bufferToFlush != null) {
+        if (bufferToFlush != null || isLast) {
             doCommit();
             flushBuffer(bufferToFlush, isLast, null);
 
@@ -1000,10 +1018,23 @@ public class OutputBuffer implements OutputSink {
     private void flushBuffer(final Buffer bufferToFlush,
             final boolean isLast, final LifeCycleHandler lifeCycleHandler)
             throws IOException {
-        
-        builder.content(bufferToFlush).last(isLast);
+
+        final HttpContent content;
+        if (isLast && trailersSupplier != null && (outputHeader.isChunked() || outputHeader.getProtocol().equals(Protocol.HTTP_2_0))) {
+            forceCommitHeaders(false);
+            HttpTrailer.Builder tBuilder = outputHeader.httpTrailerBuilder().content(bufferToFlush).last(true);
+            final Map<String, String> trailers = trailersSupplier.get();
+            if (trailers != null && !trailers.isEmpty()) {
+                for (Map.Entry<String, String> entry : trailers.entrySet()) {
+                    tBuilder.header(entry.getKey(), entry.getValue());
+                }
+            }
+            content = tBuilder.build();
+        } else {
+            content = builder.content(bufferToFlush).last(isLast).build();
+        }
         ctx.write(null,
-                  builder.build(),
+                  content,
                   null,
                   lifeCycleHandler,
                   IS_BLOCKING);
@@ -1071,6 +1102,7 @@ public class OutputBuffer implements OutputSink {
         if (!committed) {
             notifyCommit();
             committed = true;
+            outputHeader.getHeaders().mark();
             return true;
         }
 
@@ -1078,14 +1110,17 @@ public class OutputBuffer implements OutputSink {
     }
 
     private void forceCommitHeaders(final boolean isLast) throws IOException {
-        if (isLast) {
-            if (outputHeader != null) {
-                builder.last(true).content(null);
-                ctx.write(builder.build(), IS_BLOCKING);
+        if (!headersWritten) {
+            if (isLast) {
+                if (outputHeader != null) {
+                    builder.last(true).content(null);
+                    ctx.write(builder.build(), IS_BLOCKING);
+                }
+            } else {
+                ctx.write(outputHeader, IS_BLOCKING);
             }
-        } else {
-            ctx.write(outputHeader, IS_BLOCKING);
         }
+        headersWritten = true;
     }
 
     private void checkCompositeBuffer() {

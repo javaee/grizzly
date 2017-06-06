@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -95,6 +95,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
     protected HttpTrailer(HttpHeader httpHeader) {
         super(httpHeader);
         headers = new MimeHeaders();
+        headers.mark();
     }
 
     /**
@@ -237,10 +238,10 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
     }
 
     /**
-     * Set the mime headers.
+     * Set the mime trailers.
      * @param mimeHeaders {@link MimeHeaders}.
      */
-    protected void setHeaders(final MimeHeaders mimeHeaders) {
+    protected void setTrailers(final MimeHeaders mimeHeaders) {
         this.headers = mimeHeaders;
     }
 
@@ -249,7 +250,8 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     @Override
     protected void reset() {
-        this.headers.recycle();
+        headers.recycle();
+        headers.mark();
         super.reset();
     }
     
@@ -267,7 +269,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      */
     public static final class Builder extends HttpContent.Builder<Builder> {
 
-        private MimeHeaders mimeHeaders;
+        private MimeHeaders mimeTrailers;
 
         protected Builder() {
         }
@@ -278,10 +280,11 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
          * This method will overwrite any headers provided via
          * {@link #header(String, String)} before this invocation.
          *
-         * @param mimeHeaders {@link MimeHeaders}.
+         * @param mimeTrailers {@link MimeHeaders}.
          */
-        public final Builder headers(MimeHeaders mimeHeaders) {
-            this.mimeHeaders = mimeHeaders;
+        public final Builder headers(MimeHeaders mimeTrailers) {
+            this.mimeTrailers = mimeTrailers;
+            mimeTrailers.mark(); // this is idempotent
             return this;
         }
 
@@ -292,10 +295,11 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
          * @param value the mime header value.
          */
         public final Builder header(String name, String value) {
-            if (mimeHeaders == null) {
-                mimeHeaders = new MimeHeaders();
+            if (mimeTrailers == null) {
+                mimeTrailers = new MimeHeaders();
+                mimeTrailers.mark();
             }
-            mimeHeaders.addValue(name).setString(value);
+            mimeTrailers.addValue(name).setString(value);
             return this;
         }
 
@@ -307,8 +311,8 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
         @Override
         public final HttpTrailer build() {
             HttpTrailer trailer = (HttpTrailer) super.build();
-            if (mimeHeaders != null) {
-                trailer.headers = mimeHeaders;
+            if (mimeTrailers != null) {
+                trailer.headers = mimeTrailers;
             }
             return trailer;
         }

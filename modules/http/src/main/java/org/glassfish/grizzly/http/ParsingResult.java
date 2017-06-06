@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,14 +54,23 @@ public final class ParsingResult implements Cacheable {
     private static final ThreadCache.CachedTypeIndex<ParsingResult> CACHE_IDX = ThreadCache.obtainIndex(ParsingResult.class, 1);
     private HttpContent httpContent;
     private Buffer remainderBuffer;
+    private boolean sendHeaderUpstream = true;
 
-    public static ParsingResult create(HttpContent httpContent, Buffer remainderBuffer) {
+    public static ParsingResult create(final HttpContent httpContent, final Buffer remainderBuffer) {
         ParsingResult resultObject = ThreadCache.takeFromCache(CACHE_IDX);
         if (resultObject == null) {
             resultObject = new ParsingResult();
         }
         resultObject.httpContent = httpContent;
         resultObject.remainderBuffer = remainderBuffer;
+        return resultObject;
+    }
+
+    public static ParsingResult create(final HttpContent httpContent,
+                                       final Buffer remainderBuffer,
+                                       final boolean sendHeaderUpstream) {
+        ParsingResult resultObject = create(httpContent, remainderBuffer);
+        resultObject.sendHeaderUpstream = sendHeaderUpstream;
         return resultObject;
     }
 
@@ -76,10 +85,15 @@ public final class ParsingResult implements Cacheable {
         return httpContent;
     }
 
+    public boolean isSendHeaderUpstream() {
+        return sendHeaderUpstream;
+    }
+
     @Override
     public void recycle() {
         remainderBuffer = null;
         httpContent = null;
+        sendHeaderUpstream = true;
 
         ThreadCache.putToCache(CACHE_IDX, this);
     }

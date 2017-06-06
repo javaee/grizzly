@@ -204,7 +204,7 @@ public class HttpRequestParseTest extends TestCase {
     
     public void testChunkedTransferEncodingCaseInsensitive() {
         HttpPacket packet = doTestDecoder(
-                "POST /index.html HTTP/1.1\nHost: localhost\nTransfer-Encoding: CHUNked\r\n\r\n", 4096);
+                "POST /index.html HTTP/1.1\nHost: localhost\nTransfer-Encoding: CHUNked\r\n\r\n0\r\n\r\n", 4096);
         assertTrue(((HttpRequestPacket) packet.getHttpHeader()).isChunked());
     }
     

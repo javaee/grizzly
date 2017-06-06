@@ -1318,6 +1318,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
 
         final HttpContent httpContent = result.getHttpContent();
         final Buffer remainderBuffer = result.getRemainderBuffer();
+        final boolean sendHeaderUpstream = result.isSendHeaderUpstream();
 
         final boolean hasRemainder = remainderBuffer != null &&
                 remainderBuffer.hasRemaining();
@@ -1380,10 +1381,13 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         }
 
         if (!wasHeaderParsed || isLast) {
-            final HttpContent emptyContent = HttpContent.create(httpHeader, isLast);
-            HttpProbeNotifier.notifyContentChunkParse(this, connection, emptyContent);
-            ctx.setMessage(emptyContent);
-            return ctx.getInvokeAction(hasRemainder ? remainderBuffer : null);
+            if (sendHeaderUpstream) {
+                final HttpContent emptyContent = HttpContent.create(httpHeader, isLast);
+                HttpProbeNotifier.notifyContentChunkParse(this, connection, emptyContent);
+                ctx.setMessage(emptyContent);
+                return ctx.getInvokeAction(hasRemainder ? remainderBuffer : null);
+            }
+            return ctx.getStopAction(hasRemainder ? remainderBuffer : null);
         } else {
             return ctx.getStopAction(hasRemainder ? remainderBuffer : null);
         }
@@ -2106,14 +2110,19 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
         public final MimeHeaders trailerHeaders = new MimeHeaders();
 
         private Buffer[] contentDecodingRemainders = new Buffer[1];
-        
+
+        public ContentParsingState() {
+            trailerHeaders.mark();
+        }
+
         public void recycle() {
             isLastChunk = false;
             chunkContentStart = -1;
             chunkLength = -1;
             chunkRemainder = -1;
             remainderBytesRead = 0;
-            trailerHeaders.clear();
+            trailerHeaders.recycle();
+            trailerHeaders.mark();
             contentDecodingRemainders = null;
 //            Arrays.fill(contentDecodingRemainders, null);
         }

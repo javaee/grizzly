@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -1598,6 +1598,48 @@ public class Request {
         return request.getHeaders().values(header);
     }
 
+    /**
+     * Get the request trailer headers.
+     * Values may only be returned in the case of HTTP/1.1 when the request is
+     * using the <code>transfer-encoding</code> <code>chunked</code> or in HTTP/2
+     * sends a second <code>HEADERS</code> frame terminating the stream.  An empty
+     * <code>Map</code> will be returned in all other cases.
+     *
+     * While headers are typical case insensitive, the headers stored in the
+     * returned <code>Map</code> will be done so in <b>lower-case</b>.
+     *
+     * This method should typically be called after the application has
+     * read the request body.  It is safe to invoke this method if
+     * there is no body content.
+     *
+     * @return A {@link Map} of trailers headers, if any were present.
+     *
+     * @throws IllegalStateException if neither
+     *  {@link ReadHandler#onAllDataRead} has been called or an EOF indication has
+     *  been returned from the {@link #getReader}, {@link #getNIOReader()},
+     *  {@link #getInputStream}, {@link #getNIOInputStream()}.
+     *
+     * @see #areTrailersAvailable()
+     *
+     * @since 2.4.0
+     */
+    public Map<String,String> getTrailers() {
+        if (inputBuffer.isFinished()) {
+            return inputBuffer.getTrailers();
+        }
+        throw new IllegalStateException();
+    }
+
+
+    /**
+     * @return <code>true</code> if trailers are available to be accessed otherwise
+     *  returns <code>false</code>.
+     *
+     * @since 2.4.0
+     */
+    public boolean areTrailersAvailable() {
+        return inputBuffer.areTrailersAvailable();
+    }
 
     /**
      * Return the names of all headers received with this request.

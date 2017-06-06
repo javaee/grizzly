@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -138,7 +138,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
                 // if not a HEAD request and we don't have enough data to
                 // parse chunk length - shutdownNow execution
-                return ParsingResult.create(null, buffer);
+                return ParsingResult.create(null, buffer, false);
             }
         } else {
             // HTTP content starts from position 0 in the input Buffer (HTTP chunk header is not part of the input Buffer)
@@ -330,7 +330,6 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
     }
 
     /**
-     * @param value
      * @return <tt>false</tt> if next left bit-shift by 4 bits will cause overflow,
      *          or <tt>true</tt> otherwise
      */

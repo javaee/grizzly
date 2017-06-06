@@ -96,7 +96,9 @@ public class DataChunk implements Chunk {
     }
 
     public void set(final DataChunk value) {
-//        reset();
+        if (value == null) {
+            return;
+        }
 
         switch (value.getType()) {
             case Bytes: {

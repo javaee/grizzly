@@ -37,42 +37,55 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.http.server;
 
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterReg;
+import org.glassfish.grizzly.http.ChunkedTransferEncoding;
+import org.glassfish.grizzly.http.FixedLengthTransferEncoding;
+import org.glassfish.grizzly.http.util.HttpStatus;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ReadHandler;
+import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
+import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.nio.NIOTransport;
+import org.junit.After;
+import org.junit.Before;
+import org.glassfish.grizzly.http.HttpPacket;
+import org.junit.runners.Parameterized;
+import org.junit.runner.RunWith;
 import java.util.Arrays;
 import java.util.Collection;
+import org.junit.runners.Parameterized.Parameters;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.filterchain.BaseFilter;
-import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainBuilder;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.FilterReg;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.http.HttpClientFilter;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.HttpContent;
-import org.glassfish.grizzly.http.HttpHeader;
-import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http.Method;
@@ -80,27 +93,20 @@ import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.io.NIOOutputStream;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.http.util.HttpStatus;
-import org.glassfish.grizzly.http.util.MimeHeaders;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.nio.NIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.ChunkingFilter;
 import org.glassfish.grizzly.utils.Pair;
-import org.junit.After;
-import static org.junit.Assert.*;
-import org.junit.Before;
+
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import static org.junit.Assert.*;
 
 /**
  * Chunked Transfer-Encoding and HttpHandler tests.
- * 
+ *
  * @author Alexey Stashok
  */
 @RunWith(Parameterized.class)
@@ -109,19 +115,20 @@ public class ChunkedTransferEncodingTest {
 
     private final boolean isChunkWhenParsing;
     private final boolean isAsyncHttpHandler;
-    
+
     private HttpServer httpServer;
     private EchoHandler echoHandler;
     private Connection connection;
-    
+    private boolean hasContent;
+
     @Parameters
     public static Collection<Object[]> getMode() {
         return Arrays.asList(new Object[][]{
-                    {Boolean.FALSE, Boolean.FALSE},
-                    {Boolean.FALSE, Boolean.TRUE},
-                    {Boolean.TRUE, Boolean.FALSE},
-                    {Boolean.TRUE, Boolean.TRUE},
-                });
+                {Boolean.FALSE, Boolean.FALSE},
+                {Boolean.FALSE, Boolean.TRUE},
+                {Boolean.TRUE, Boolean.FALSE},
+                {Boolean.TRUE, Boolean.TRUE},
+        });
     }
 
     @Before
@@ -131,7 +138,7 @@ public class ChunkedTransferEncodingTest {
         configureHttpServer();
         startHttpServer(echoHandler);
     }
-    
+
     @After
     public void after() throws Exception {
         if (connection != null) {
@@ -147,56 +154,56 @@ public class ChunkedTransferEncodingTest {
     }
 
     public ChunkedTransferEncodingTest(boolean isChunkWhenParsing,
-            boolean isAsyncHttpHandler) {
+                                       boolean isAsyncHttpHandler) {
         this.isChunkWhenParsing = isChunkWhenParsing;
         this.isAsyncHttpHandler = isAsyncHttpHandler;
     }
-        
+
     @Test
     public void testNoTrailerHeaders() throws Exception {
         Map<String, Pair<String, String>> headers =
-                new HashMap<String, Pair<String, String>>();
+                new HashMap<>();
 
         final int packetsNum = 5;
-        
+
         doHttpRequestTest(packetsNum, true, headers, 200);
     }
 
     @Test
     public void testTrailerHeaders() throws Exception {
         Map<String, Pair<String, String>> headers =
-                new HashMap<String, Pair<String, String>>();
-        headers.put("X-Host", new Pair<String,String>("localhost", "localhost"));
-        headers.put("X-Content-length", new Pair<String,String>("2345", "2345"));
-        
+                new HashMap<>();
+        headers.put("X-Host", new Pair<>("localhost", "localhost"));
+        headers.put("X-Content-length", new Pair<>("2345", "2345"));
+
         final int packetsNum = 5;
-        
+
         doHttpRequestTest(packetsNum, true, headers, 200);
     }
 
     @Test
     public void testTrailerHeadersWithoutContent() throws Exception {
         Map<String, Pair<String, String>> headers =
-                new HashMap<String, Pair<String, String>>();
-        headers.put("X-Host", new Pair<String,String>("localhost", "localhost"));
-        headers.put("X-Content-length", new Pair<String,String>("2345", "2345"));
-        
+                new HashMap<>();
+        headers.put("X-Host", new Pair<>("localhost", "localhost"));
+        headers.put("X-Content-length", new Pair<>("2345", "2345"));
+
         final int packetsNum = 10;
-        
+
         doHttpRequestTest(packetsNum, false, headers, 200);
     }
 
     @Test
     public void testTrailerHeadersOverflow() throws Exception {
         Map<String, Pair<String, String>> headers =
-                new HashMap<String, Pair<String, String>>();
+                new HashMap<>();
         // This number of headers should be enough to overflow socket's read buffer,
         // so trailer headers will not fit into socket read window
         final int headersNum = HttpCodecFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE / 2;
         for (int i = 0; i < headersNum; i++) {
-            headers.put("X-Host-" + i, new Pair<String,String>("localhost", "localhost"));
+            headers.put("X-Host-" + i, new Pair<>("localhost", "localhost"));
         }
-        
+
         doHttpRequestTest(1, true, headers, 500);
     }
 
@@ -207,13 +214,16 @@ public class ChunkedTransferEncodingTest {
             Map<String, Pair<String, String>> trailerHeaders,
             int expectedResponseCode)
             throws Exception {
-        
+
         final BlockingQueue<HttpContent> queue = new LinkedTransferQueue<>();
-                
+
         final NetworkListener networkListener = httpServer.getListener("grizzly");
         final TCPNIOTransport transport = networkListener.getTransport();
-        
+
         FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.newInstance();
+        final HttpClientFilter clientFilter = new HttpClientFilter();
+        clientFilter.addTransferEncoding(new FixedLengthTransferEncoding());
+        clientFilter.addTransferEncoding(new ChunkedTransferEncoding(HttpCodecFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE));
         clientFilterChainBuilder.add(new TransportFilter())
                 .add(new HttpClientFilter())
                 .add(new HTTPResponseFilter(queue));
@@ -231,20 +241,20 @@ public class ChunkedTransferEncodingTest {
             final Buffer content;
             if (hasContent) {
                 content = Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER,
-                    "a=0&b=1", Charsets.ASCII_CHARSET);
+                        "a=0&b=1", Charsets.ASCII_CHARSET);
             } else {
                 content = Buffers.EMPTY_BUFFER;
             }
 
             List<HttpPacket> httpPackets =
                     constructMessage(hasContent, trailerHeaders,
-                    i == packetsNum - 1);
+                            i == packetsNum - 1);
 
 
             for (HttpPacket packet : httpPackets) {
                 connection.write(packet);
             }
-            
+
             if (expectedResponseCode < 400) {
                 final HttpContent responseHttpContent = queue.poll(10, TimeUnit.SECONDS);
                 assertNotNull("timeout. packet#" + i, responseHttpContent);
@@ -253,13 +263,13 @@ public class ChunkedTransferEncodingTest {
                         (HttpResponsePacket) responseHttpContent.getHttpHeader();
 
                 assertEquals("packet#" + i, expectedResponseCode, responsePacket.getStatus());
-                
+
                 // if we don't expect error response - check the content
                 assertEquals("packet#" + i, content, responseHttpContent.getContent());
-                final HttpHeader responseHeader = responseHttpContent.getHttpHeader();
+                HttpTrailer trailer = (HttpTrailer) responseHttpContent;
                 for (Entry<String, Pair<String, String>> entry : trailerHeaders.entrySet()) {
                     assertEquals("packet#" + i, entry.getValue().getSecond(),
-                            responseHeader.getHeader(entry.getKey()));
+                            trailer.getHeader(entry.getKey()));
                 }
             } else {
                 Throwable t = echoHandler.errors.poll(10, TimeUnit.SECONDS);
@@ -274,8 +284,10 @@ public class ChunkedTransferEncodingTest {
             final Map<String, Pair<String, String>> trailerHeaders,
             final boolean isAddCloseHeader) {
 
-        final List<HttpPacket> packetList = new ArrayList<HttpPacket>();
-        
+        this.hasContent = hasContent;
+
+        final List<HttpPacket> packetList = new ArrayList<>();
+
         final Builder requestPacketBuilder = HttpRequestPacket.builder();
         requestPacketBuilder
                 .method(Method.POST)
@@ -288,44 +300,42 @@ public class ChunkedTransferEncodingTest {
         if (isAddCloseHeader) {
             requestPacketBuilder.header(Header.Connection, "close");
         }
-        
+
         final HttpRequestPacket requestPacket = requestPacketBuilder.build();
         requestPacket.getHeaders().setMaxNumHeaders(-1);
-        
-        packetList.add(requestPacket);
-        
+
         if (hasContent) {
             final HttpContent contentPacket1 = HttpContent.builder(requestPacket)
                     .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER,
-                                            "a=0", Charsets.ASCII_CHARSET))
+                            "a=0", Charsets.ASCII_CHARSET))
                     .build();
             final HttpContent contentPacket2 = HttpContent.builder(requestPacket)
                     .content(Buffers.wrap(MemoryManager.DEFAULT_MEMORY_MANAGER,
-                                            "&b=1", Charsets.ASCII_CHARSET))
+                            "&b=1", Charsets.ASCII_CHARSET))
                     .build();
 
             packetList.add(contentPacket1);
             packetList.add(contentPacket2);
         }
-        
+
         final HttpTrailer.Builder trailerBuilder = HttpTrailer.builder(requestPacket);
-        final MimeHeaders headers = new MimeHeaders();
-        headers.setMaxNumHeaders(-1);
-        trailerBuilder.headers(headers);
+        final MimeHeaders trailers = new MimeHeaders();
+        trailers.setMaxNumHeaders(-1);
+        trailerBuilder.headers(trailers);
 
         for (Entry<String, Pair<String, String>> entry : trailerHeaders.entrySet()) {
             final String value = entry.getValue().getFirst();
             trailerBuilder.header(entry.getKey(), value);
         }
-    
+
         final HttpTrailer trailer = trailerBuilder.build();
-        
+
         packetList.add(trailer);
 
         return packetList;
     }
-    
-    public class HTTPResponseFilter extends BaseFilter {
+
+    public static class HTTPResponseFilter extends BaseFilter {
         private final BlockingQueue<HttpContent> queue;
 
         public HTTPResponseFilter(
@@ -345,13 +355,13 @@ public class ChunkedTransferEncodingTest {
             return ctx.getStopAction();
         }
     }
-    
+
     private void configureHttpServer() throws Exception {
         httpServer = new HttpServer();
         final NetworkListener listener =
                 new NetworkListener("grizzly",
-                                    NetworkListener.DEFAULT_NETWORK_HOST,
-                                    PORT);
+                        NetworkListener.DEFAULT_NETWORK_HOST,
+                        PORT);
         listener.setMaxRequestHeaders(-1);
         listener.setMaxResponseHeaders(-1);
         ((NIOTransport) listener.getTransport()).setMaxAsyncWriteQueueSizeInBytes(-1);
@@ -360,10 +370,9 @@ public class ChunkedTransferEncodingTest {
 
                 @Override
                 public void setup(final NetworkListener networkListener,
-                        final FilterChain filterChain) {
-                    
-                    final FilterReg reg = filterChain.getRegByType(TransportFilter.class);
-                    filterChain.addAfter(reg.name(), new ChunkingFilter(2));
+                                  final FilterChain filterChain) {
+                    final FilterReg transportFilter = filterChain.getRegByType(TransportFilter.class);
+                    filterChain.addAfter(transportFilter.filter(), new ChunkingFilter(2));
                 }
             });
         }
@@ -375,13 +384,25 @@ public class ChunkedTransferEncodingTest {
         httpServer.getServerConfiguration().addHttpHandler(httpHandler);
         httpServer.start();
     }
-    
+
     private class EchoHandler extends HttpHandler {
         private final BlockingQueue<Throwable> errors =
                 new LinkedTransferQueue<>();
-        
+
         @Override
         public void service(Request request, Response response) throws Exception {
+
+            response.setTrailers(new Supplier<Map<String, String>>() {
+                @Override
+                public Map<String, String> get() {
+                    if (!request.areTrailersAvailable()) {
+                        errors.add(new RuntimeException("Trailers not available"));
+                        return Collections.emptyMap();
+                    }
+                    return request.getTrailers();
+                }
+            });
+
             if (isAsyncHttpHandler) {
                 doAsync(request, response);
             } else {
@@ -394,7 +415,7 @@ public class ChunkedTransferEncodingTest {
                 throws Exception {
 
             final NIOInputStream reader = request.getInputStream();
-            final NIOOutputStream writer = response.getOutputStream();                
+            final NIOOutputStream writer = response.getOutputStream();
 
             response.suspend();
 
@@ -419,14 +440,14 @@ public class ChunkedTransferEncodingTest {
                 @Override
                 public void onError(Throwable t) {
                     errors.offer(t);
-                    
+
                     response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500);
                     response.setDetailMessage("Internal Error");
                     if (response.isSuspended()) {
                         response.resume();
                     }
                 }
-                
+
                 private void buffer() throws IOException {
                     int available = reader.readyData();
                     if (available > 0) {
@@ -435,13 +456,9 @@ public class ChunkedTransferEncodingTest {
                         baos.write(b, 0, read);
                     }
                 }
-                
+
                 private void echo() throws IOException {
-                    for (String headerName : request.getHeaderNames()) {
-                        if (headerName.startsWith("x-"));
-                        response.addHeader(headerName, request.getHeader(headerName));
-                    }
-                    
+
                     writer.write(baos.toByteArray());
                 }
             });
@@ -450,30 +467,27 @@ public class ChunkedTransferEncodingTest {
 
         private void doSync(Request request, Response response) throws IOException {
             try {
-                final InputStream is = request.getInputStream();
-                final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                if (hasContent) {
+                    final InputStream is = request.getInputStream();
+                    final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-                int b;
-                while((b = is.read()) != -1) {
-                    bos.write(b);
+                    int b;
+                    while ((b = is.read()) != -1) {
+                        bos.write(b);
+                    }
+
+                    bos.close();
+                    final byte[] output = bos.toByteArray();
+
+                    final OutputStream os = response.getOutputStream();
+
+                    os.write(output);
                 }
-
-                bos.close();
-                final byte[] output = bos.toByteArray();
-
-                final OutputStream os = response.getOutputStream();
-
-                for (String headerName : request.getHeaderNames()) {
-                    if (headerName.startsWith("x-"));
-                    response.addHeader(headerName, request.getHeader(headerName));
-                }
-
-                os.write(output);
             } catch (Throwable t) {
                 errors.offer(t);
                 throw new IOException(t);
             }
         }
-        
+
     }
 }
