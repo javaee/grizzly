@@ -227,14 +227,10 @@ public abstract class AbstractNIOAsyncQueueWriter
                 final boolean isFinished = queueRecord.isFinished();
                 
                 final int pendingBytesAfterRelease =
-                        writeTaskQueue.releaseSpace(bytesToRelease);
+                        writeTaskQueue.releaseSpaceAndNotify(bytesToRelease);
                 
                 final boolean isQueueEmpty = (pendingBytesAfterRelease == 0);
 
-                if (bytesToRelease > 0) {
-                    writeTaskQueue.releaseSpaceAndNotify(bytesToRelease);
-                }
-                
                 if (isLogFine) {
                     doFineLog("AsyncQueueWriter.write directWrite connection={0}, record={1}, "
                             + "isFinished={2}, remaining={3}, isUncountable={4}, "
@@ -338,14 +334,11 @@ public abstract class AbstractNIOAsyncQueueWriter
 //                    // or stuck, when other thread tried to add data to the queue.
 //                    context.flushIOOptimizations();
 //                }
-                
-                
-                if (bytesToRelease > 0) {
-                    final int remaining = writeTaskQueue.releaseSpace(bytesToRelease);
-                    writeTaskQueue.releaseSpaceAndNotify(bytesToRelease);
-                    done = (remaining == 0);
-                }
-                
+
+
+                final int remaining = writeTaskQueue.releaseSpaceAndNotify(bytesToRelease);
+                done = (remaining == 0);
+
                 if (isFinished) {
                     finishQueueRecord(nioConnection, queueRecord);
                     
