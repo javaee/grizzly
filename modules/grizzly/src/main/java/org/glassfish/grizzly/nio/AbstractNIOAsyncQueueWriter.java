@@ -232,8 +232,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 final boolean isQueueEmpty = (pendingBytesAfterRelease == 0);
 
                 if (bytesToRelease > 0) {
-                    writeTaskQueue.onSizeDecreased(
-                            nioConnection.getMaxAsyncWriteQueueSize());
+                    writeTaskQueue.releaseSpaceAndNotify(bytesToRelease);
                 }
                 
                 if (isLogFine) {
@@ -343,8 +342,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 
                 if (bytesToRelease > 0) {
                     final int remaining = writeTaskQueue.releaseSpace(bytesToRelease);
-                    writeTaskQueue.onSizeDecreased(
-                            nioConnection.getMaxAsyncWriteQueueSize());
+                    writeTaskQueue.releaseSpaceAndNotify(bytesToRelease);
                     done = (remaining == 0);
                 }
                 

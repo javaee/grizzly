@@ -324,7 +324,7 @@ public class FilterChainContext implements AttributeStorage {
         this.filterReg = filterReg;
     }
 
-    protected FilterReg getStartFilterReg() {
+    public FilterReg getStartFilterReg() {
         return startFilterReg;
     }
 
@@ -332,7 +332,7 @@ public class FilterChainContext implements AttributeStorage {
         this.startFilterReg = startFilterReg;
     }
 
-    protected FilterReg getEndFilterReg() {
+    public FilterReg getEndFilterReg() {
         return endFilterReg;
     }
 

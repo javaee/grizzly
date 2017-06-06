@@ -93,6 +93,8 @@ public class HttpStatus {
     public static final HttpStatus UNSUPPORTED_MEDIA_TYPE_415 = register(415, "Unsupported Media Type");
     public static final HttpStatus REQUEST_RANGE_NOT_SATISFIABLE_416 = register(416, "Request Range Not Satisfiable");
     public static final HttpStatus EXPECTATION_FAILED_417 = register(417, "Expectation Failed");
+    public static final HttpStatus MISDIRECTED_REQUEST = register(421, "Misdirected Request");
+    public static final HttpStatus REQUEST_HEADER_FIELDS_TOO_LARGE = register(431, "Request Header Fields Too Large");
     public static final HttpStatus INTERNAL_SERVER_ERROR_500 = register(500, "Internal Server Error");
     public static final HttpStatus NOT_IMPLEMENTED_501 = register(501, "Not Implemented");
     public static final HttpStatus BAD_GATEWAY_502 = register(502, "Bad Gateway");

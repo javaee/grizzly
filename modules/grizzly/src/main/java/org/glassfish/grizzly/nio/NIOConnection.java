@@ -145,7 +145,14 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
-        asyncWriteQueue = TaskQueue.createTaskQueue();
+        asyncWriteQueue = TaskQueue.createTaskQueue(
+                new TaskQueue.MutableMaxQueueSize() {
+
+                    @Override
+                    public int getMaxQueueSize() {
+                        return maxAsyncWriteQueueSize;
+                    }
+                });
         
         attributes = transport.getAttributeBuilder().createSafeAttributeHolder();
     }

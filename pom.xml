@@ -402,36 +402,6 @@
                 <version>${felix-version}</version>
             </dependency>
             <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>core</artifactId>
-                <version>${hk2.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>hk2-locator</artifactId>
-                <version>${hk2.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>hk2-config</artifactId>
-                <version>${hk2.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>config-types</artifactId>
-                <version>${hk2.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>osgi-adapter</artifactId>
-                <version>${hk2.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cobertura-maven-plugin</artifactId>
                 <!--suppress MavenModelInspection -->
@@ -465,8 +435,7 @@
     </dependencies>
     <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hk2.version>2.1.57</hk2.version>
-        <junit-version>4.7</junit-version>
+        <junit-version>4.12</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>3.1.0</servlet-version>
         <felix-version>2.4.0</felix-version>
@@ -476,6 +445,7 @@
         </maven.compiler.argument>
         <findbugs.skip>false</findbugs.skip>
         <findbugs.common>exclude-common.xml</findbugs.common>
-        <jdk.compile.version>1.7</jdk.compile.version>
+        <jdk.compile.version>1.8</jdk.compile.version>
+        <grizzly.alpn.version>1.7</grizzly.alpn.version>
     </properties>
 </project>

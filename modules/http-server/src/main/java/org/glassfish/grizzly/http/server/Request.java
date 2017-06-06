@@ -76,6 +76,7 @@ import java.util.logging.Logger;
 import javax.security.auth.Subject;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.ThreadCache;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.http.Cookie;
@@ -87,6 +88,7 @@ import org.glassfish.grizzly.http.Protocol;
 import org.glassfish.grizzly.http.io.InputBuffer;
 import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.io.NIOReader;
+import org.glassfish.grizzly.http.server.http2.PushBuilder;
 import org.glassfish.grizzly.http.server.io.ServerInputBuffer;
 import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.http.server.util.MappingData;
@@ -122,6 +124,9 @@ public class Request {
     private static final Logger LOGGER = Grizzly.logger(Request.class);
     private static final ThreadCache.CachedTypeIndex<Request> CACHE_IDX =
             ThreadCache.obtainIndex(Request.class, 16);
+
+    // Duplicated in http2 Constants.  Keep values in sync.
+    private static final String HTTP2_PUSH_ENABLED = "http2-push-enabled";
 
     private static final LocaleParser localeParser;
     static {
@@ -515,6 +520,14 @@ public class Request {
     }
 
     /**
+     * @return <code>true</code> if HTTP/2 push is enabled, otherwise, <code>false</code>.
+     */
+    public boolean isPushEnabled() {
+        final Boolean result = (Boolean) getContext().getConnection().getAttributes().getAttribute(HTTP2_PUSH_ENABLED);
+        return ((result != null) ? result : false);
+    }
+
+    /**
      * @return session cookie name, if not set default JSESSIONID name will be used
      */
     public String getSessionCookieName() {
@@ -682,6 +695,17 @@ public class Request {
     }
 
     // ------------------------------------------------- Request Public Methods
+
+
+    /**
+     * @return a new {@link PushBuilder} for issuing server push responses
+     * from the current request.  If the current connection does not
+     * support server push, or server push has been disabled by the
+     * client, it will return <code>null</code>.
+     */
+    public PushBuilder newPushBuilder() {
+        return ((isPushEnabled()) ? new PushBuilder(this) : null);
+    }
 
 
     /**
@@ -1615,9 +1639,8 @@ public class Request {
      * @return A {@link Map} of trailers headers, if any were present.
      *
      * @throws IllegalStateException if neither
-     *  {@link ReadHandler#onAllDataRead} has been called or an EOF indication has
-     *  been returned from the {@link #getReader}, {@link #getNIOReader()},
-     *  {@link #getInputStream}, {@link #getNIOInputStream()}.
+     *  {@link ReadHandler#onAllDataRead()} has been called or an EOF indication has
+     *  been returned from the {@link #getReader}, or {@link #getInputStream}.
      *
      * @see #areTrailersAvailable()
      *

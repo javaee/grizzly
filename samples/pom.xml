@@ -60,6 +60,7 @@
         <module>websockets/chat</module>
         <module>websockets/chat-ssl</module>
         <module>http-server-samples</module>
+        <module>http2-samples</module>
         <module>http-multipart-samples</module>
         <module>portunif</module>
         <module>comet</module>
