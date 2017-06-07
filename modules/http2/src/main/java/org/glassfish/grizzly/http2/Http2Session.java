@@ -111,6 +111,7 @@ import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
  */
 public class Http2Session {
     private static final Logger LOGGER = Grizzly.logger(Http2Session.class);
+    private static final String SESSION_IS_CLOSED = "Session is closed";
 
     private final boolean isServer;
     private final Connection<?> connection;
@@ -603,7 +604,8 @@ public class Http2Session {
     }
 
     /**
-     * TODO
+     * Terminate the session gracefully by sending a GOAWAY frame and then allowing
+     * the streams to terminate properly.
      */
     FutureImpl<Http2Session> terminateGracefully() {
         if (!isServer) {
@@ -1108,7 +1110,7 @@ public class Http2Session {
         synchronized(sessionLock) {
             if (isClosed()) {
                 throw new Http2StreamException(streamId,
-                        ErrorCode.REFUSED_STREAM, "Session is closed");
+                        ErrorCode.REFUSED_STREAM, SESSION_IS_CLOSED);
             }
             
             if (concurrentStreamsCount >= getLocalMaxConcurrentStreams()) {
@@ -1153,7 +1155,7 @@ public class Http2Session {
         synchronized (sessionLock) {
             if (isClosed()) {
                 throw new Http2StreamException(Http2Stream.UPGRADE_STREAM_ID,
-                        ErrorCode.REFUSED_STREAM, "Session is closed");
+                        ErrorCode.REFUSED_STREAM, SESSION_IS_CLOSED);
             }
             registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
             lastLocalStreamId= Http2Stream.UPGRADE_STREAM_ID;
@@ -1183,7 +1185,7 @@ public class Http2Session {
         synchronized(sessionLock) {
             if (isClosed()) {
                 throw new Http2StreamException(Http2Stream.UPGRADE_STREAM_ID,
-                        ErrorCode.REFUSED_STREAM, "Session is closed");
+                        ErrorCode.REFUSED_STREAM, SESSION_IS_CLOSED);
             }
 
             registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
@@ -1305,12 +1307,6 @@ public class Http2Session {
         upstreamContext.getInternalContext().setEvent(IOEvent.READ);
         upstreamContext.getInternalContext().addLifeCycleListener(
                 new EventLifeCycleListener.Adapter() {
-
-
-//                    @Override
-//                    public void onReregister(final Context context) throws IOException {
-//                        stream.inputBuffer.onReadEventComplete();
-//                    }
 
                     @Override
                     public void onComplete(Context context) throws IOException {
