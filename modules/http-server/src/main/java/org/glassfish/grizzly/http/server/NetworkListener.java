@@ -43,6 +43,13 @@ package org.glassfish.grizzly.http.server;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,7 +66,10 @@ import org.glassfish.grizzly.PortRange;
 import org.glassfish.grizzly.ShutdownContext;
 import org.glassfish.grizzly.SocketBinder;
 import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.ShutdownEvent;
 import org.glassfish.grizzly.http.CompressionConfig;
 import org.glassfish.grizzly.http.HttpCodecFilter;
 import org.glassfish.grizzly.http.KeepAliveConfig;
@@ -111,7 +121,7 @@ public class NetworkListener {
     /**
      * The network port range to which the {@link HttpServer} will bind to
      * in order to service <code>HTTP</code> requests.
-     * If not explicitly set, the value of {@link #port} will be used.
+     * If not explicitly set, the value of {@link #getPort()} will be used.
      */
     private PortRange portRange;
 
@@ -198,6 +208,10 @@ public class NetworkListener {
      * Future to control graceful shutdown status
      */
     private FutureImpl<NetworkListener> shutdownFuture;
+    /**
+     * Shutdown event.
+     */
+    private ShutdownEvent shutdownEvent;
     /**
      * CompletionHandler for filter shutdown notification.
      */
@@ -314,7 +328,7 @@ public class NetworkListener {
      *
      * @param name the logical name of the listener.
      * @param localEndpoint generic endpoint, could be {@link SocketAddress} for
-     *        traditional {@link TCPTransport}, or any other endpoint type
+     *        traditional {@link TCPNIOTransport}, or any other endpoint type
      *        understandable by the underlying {@link Transport}
      */
     public NetworkListener(final String name, final Object localEndpoint) {
@@ -723,20 +737,59 @@ public class NetworkListener {
             @Override
             public void shutdownRequested(final ShutdownContext shutdownContext) {
                 final FutureImpl<NetworkListener> shutdownFutureLocal = shutdownFuture;
-                shutdownCompletionHandler =
-                        new EmptyCompletionHandler<HttpServerFilter>() {
+
+
+                filterChain.fireEventDownstream(serverConnection,
+                        shutdownEvent,
+                        new EmptyCompletionHandler<FilterChainContext>() {
+
                             @Override
-                            public void completed(final HttpServerFilter filter) {
-                                try {
-                                    shutdownContext.ready();
-                                    shutdownFutureLocal.result(NetworkListener.this);
-                                } catch (Throwable e) {
-                                    shutdownFutureLocal.failure(e);
+                            public void completed(final FilterChainContext result) {
+                                final Set<Callable<Filter>> tasks = shutdownEvent.getShutdownTasks();
+                                if (!tasks.isEmpty()) {
+                                    final ExecutorService shutdownService = Executors.newFixedThreadPool(Math.min(5, tasks.size()) + 1);
+
+                                    shutdownService.submit(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            try {
+
+                                                final List<Future<Filter>> futures;
+                                                if (shutdownEvent.getGracePeriod() == -1) {
+                                                    futures = shutdownService.invokeAll(tasks);
+                                                } else {
+                                                    futures = shutdownService.invokeAll(tasks,
+                                                            shutdownEvent.getGracePeriod(),
+                                                            shutdownEvent.getTimeUnit());
+                                                }
+
+                                                for (Future<Filter> future : futures) {
+                                                    try {
+                                                        future.get();
+                                                    } catch (ExecutionException e) {
+                                                        if (LOGGER.isLoggable(Level.SEVERE)) {
+                                                            LOGGER.log(Level.SEVERE,
+                                                                    "Error processing shutdown task filter.",
+                                                                    e);
+                                                        }
+                                                    }
+                                                }
+                                                shutdownFutureLocal.result(NetworkListener.this);
+                                                shutdownContext.ready();
+                                                shutdownService.shutdownNow();
+                                            } catch (InterruptedException e) {
+                                                if (LOGGER.isLoggable(Level.WARNING)) {
+                                                    LOGGER.warning("NetworkListener shutdown interrupted.");
+                                                }
+                                                if (LOGGER.isLoggable(Level.FINE)) {
+                                                    LOGGER.log(Level.FINE, e.toString(), e);
+                                                }
+                                            }
+                                        }
+                                    });
                                 }
                             }
-                        };
-
-                getHttpServerFilter().prepareForShutdown(shutdownCompletionHandler);
+                        });
             }
 
             @Override
@@ -770,14 +823,10 @@ public class NetworkListener {
             resume();
         }
 
+        shutdownEvent = new ShutdownEvent(gracePeriod, timeUnit);
         state = State.STOPPING;
-
         shutdownFuture = Futures.createSafeFuture();
-
-        getHttpServerFilter().prepareForShutdown(shutdownCompletionHandler);
-
         transport.shutdown(gracePeriod, timeUnit);
-
         return shutdownFuture;
     }
     
