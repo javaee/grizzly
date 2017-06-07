@@ -57,13 +57,17 @@ import org.glassfish.grizzly.http.server.util.Globals;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.Futures;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
+
 import static org.junit.Assert.*;
 /**
  * {@link NetworkListener} tests.
  * 
  * @author Alexey Stashok
  */
+@FixMethodOrder(MethodSorters.JVM)
 public class NetworkListenerTest {
     public static final int PORT = 18897;
 
