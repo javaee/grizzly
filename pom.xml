@@ -432,36 +432,6 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>${felix-version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>core</artifactId>
-                <version>${hk2.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>hk2-locator</artifactId>
-                <version>${hk2.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>hk2-config</artifactId>
-                <version>${hk2.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>config-types</artifactId>
-                <version>${hk2.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.hk2</groupId>
-                <artifactId>osgi-adapter</artifactId>
-                <version>${hk2.version}</version>
-                <scope>provided</scope>
-            </dependency>
             <!--
             <dependency>
                 <groupId>org.codehaus.mojo</groupId>
@@ -497,7 +467,6 @@
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hk2.version>2.3.0</hk2.version>
         <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>3.1.0</servlet-version>
