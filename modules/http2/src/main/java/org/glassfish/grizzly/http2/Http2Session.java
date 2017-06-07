@@ -1211,10 +1211,10 @@ public class Http2Session {
                     final FilterReg current = context.getFilterReg();
                     if (isUpStream) {
                         http2StreamChain = newChain(chain, current, end);
-                        htt2SessionChain = newChain(chain, start, current);
+                        htt2SessionChain = newChain(chain, start, current.prev());
                     } else {
                         http2StreamChain = newChain(chain, current, end);
-                        htt2SessionChain = newChain(chain, end.next(), current);
+                        htt2SessionChain = newChain(chain, end.next(), current.prev());
                     }
                 }
             }
