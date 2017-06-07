@@ -142,7 +142,7 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
         WebSocketClient socket = null;
         try {
-            WebSocketEngine.getEngine().register(app);
+            WebSocketEngine.getEngine().register("", "/echo", app);
             socket = new WebSocketClient("wss://localhost:" + PORT + "/echo", version);
             socket.connect();
 
@@ -161,12 +161,8 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
                 Assert.fail("A GET should never get here.");
             }
 
-            @Override
-            public boolean isApplicationRequest(HttpRequestPacket request) {
-                return true;
-            }
         };
-        WebSocketEngine.getEngine().register(app);
+        WebSocketEngine.getEngine().register("", "/echo", app);
 
         HttpServer httpServer = HttpServer.createSimpleServer(".", PORT);
         final ServerConfiguration configuration = httpServer.getServerConfiguration();
@@ -225,10 +221,6 @@ public class WebSocketsTest extends BaseWebSocketTestUtilities {
     @Test
     public void testCloseHandler() throws Exception {
         final WebSocketApplication app = new WebSocketApplication() {
-            @Override
-            public boolean isApplicationRequest(HttpRequestPacket request) {
-                return true;
-            }
         };
         
         final HttpServer server = HttpServer.createSimpleServer(".", 8051);

@@ -43,11 +43,6 @@ package org.glassfish.grizzly.websockets;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 
 public class EchoApplication extends WebSocketApplication {
-    @Override
-    public boolean isApplicationRequest(HttpRequestPacket request) {
-        return "/echo".equals(request.getRequestURI());
-    }
-
     public void onMessage(WebSocket socket, String data) {
         socket.send(data);
     }

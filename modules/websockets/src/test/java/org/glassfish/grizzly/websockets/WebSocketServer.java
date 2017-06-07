@@ -65,18 +65,6 @@ public class WebSocketServer {
     }
     
     /**
-     * @param port the network port to which this listener will bind.
-     *
-     * @return a <code>WebSocketServer</code> configured to listen to requests on {@link
-     *         NetworkListener#DEFAULT_NETWORK_HOST}:<code>port</code>.
-     * 
-     * @deprecated please use {@link #createServer(int)}.
-     */
-    public WebSocketServer(final int port) {
-        this(NetworkListener.DEFAULT_NETWORK_HOST, new PortRange(port));
-    }
-    
-    /**
      * @param host the network port to which this listener will bind.
      * @param portRange port range to attempt to bind to.
      *
@@ -99,18 +87,6 @@ public class WebSocketServer {
         config.setName("WebSocket Server");
         
         httpServer.addListener(networkListener);
-    }
-
-    /**
-     * @param port the network port to which this listener will bind.
-     *
-     * @return a <code>WebSocketServer</code> configured to listen to requests on {@link
-     *         NetworkListener#DEFAULT_NETWORK_HOST}:<code>port</code>.
-     * 
-     * @deprecated please use {@link #createServer(int)}.
-     */
-    public static WebSocketServer createSimpleServer(final int port) {
-        return createServer(port);
     }
 
     /**

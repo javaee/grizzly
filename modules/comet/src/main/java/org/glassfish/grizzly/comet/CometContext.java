@@ -160,17 +160,6 @@ public class CometContext<E> {
     }
 
     /**
-     * Get the context path associated with this instance.
-     *
-     * @return topic the context path associated with this instance
-     *
-     * @deprecated - use getTopic.
-     */
-    public String getContextPath() {
-        return getTopic();
-    }
-
-    /**
      * Get the topic representing this instance with this instance. This is the value to uses when invoking {@link
      * CometEngine#getCometContext}
      *

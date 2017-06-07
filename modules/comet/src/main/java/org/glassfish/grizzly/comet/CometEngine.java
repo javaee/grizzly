@@ -148,16 +148,6 @@ public class CometEngine {
     }
 
     /**
-     * Calls through to {@link #deregister(String)}.
-     *
-     * @deprecated
-     */
-    @Deprecated
-    public CometContext unregister(String topic) {
-        return deregister(topic);
-    }
-
-    /**
      * Deregister the {@link CometHandler} to the list of the {@link CometContext}. Invoking this method will invoke all
      * {@link CometHandler#onTerminate(CometEvent)} before removing the associated {@link CometContext}. Invoking that
      * method will also resume the underlying connection associated with the {@link CometHandler}, similar to what
@@ -169,20 +159,6 @@ public class CometEngine {
             cometContext.recycle();
         }
         return cometContext;
-    }
-
-    /**
-     * Register a context path with this {@link CometEngine}. The {@link CometContext} returned will be of type
-     * <code>type</code>.
-     *
-     * @param topic the context path used to create the {@link CometContext}
-     * @param type when the request will be suspended
-     *
-     * @return CometContext a configured {@link CometContext}.
-     * @deprecated Use {@link #register(String)} instead
-     */
-    public <E> CometContext<E> register(String topic, int type) {
-        return register(topic);
     }
 
     /**
@@ -247,46 +223,6 @@ public class CometEngine {
     @SuppressWarnings({"unchecked"})
     public <E> CometContext<E> getCometContext(String topic) {
         return activeContexts.get(topic);
-    }
-
-    /**
-     * Interrupt a {@link CometHandler} by invoking {@link CometHandler#onInterrupt}
-     *
-     * @param handler The {@link CometHandler} encapsulating the suspended connection.
-     * @param finishExecution Finish the current execution.
-     *
-     * @see CometContext#interrupt(CometHandler, boolean)
-     * @deprecated use the CometContext version
-     */
-    @SuppressWarnings({"deprecation"})
-    protected boolean interrupt(CometHandler handler, boolean finishExecution) throws IOException {
-        final CometContext cometContext = handler.getCometContext();
-        final boolean removed = cometContext.removeCometHandler(handler, finishExecution);
-        if (removed && !finishExecution) {
-            interrupt0(handler, finishExecution);
-        }
-        return removed;
-    }
-
-    /**
-     * Interrupt logic in its own method, so it can be executed either async or sync.<br> cometHandler.onInterrupt is
-     * performed async due to its functionality is unknown, hence not safe to run in the performance critical selector
-     * thread.
-     *
-     * @param handler The {@link CometHandler} encapsulating the suspended connection.
-     * @param finishExecution Finish the current execution.
-     *
-     * @see CometContext#interrupt0(CometHandler, boolean)
-     * @deprecated use the CometContext version
-     */
-    protected void interrupt0(CometHandler handler, boolean finishExecution) throws IOException {
-        if (finishExecution) {
-            try {
-                handler.onInterrupt(handler.getCometContext().eventInterrupt);
-            } catch (IOException e) {
-            }
-        }
-        handler.getResponse().finish();
     }
 
     /**

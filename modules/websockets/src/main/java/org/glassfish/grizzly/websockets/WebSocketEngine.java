@@ -309,15 +309,6 @@ public class WebSocketEngine {
         }
     }
 
-    /**
-     *
-     * @deprecated Use {@link #register(String, String, WebSocketApplication)}
-     */
-    @Deprecated
-    public synchronized void register(WebSocketApplication app) {
-        applications.add(app);
-    }
-
     public synchronized void unregister(WebSocketApplication app) {
         String fullPath = applicationMap.remove(app);
         if (fullPath != null) {

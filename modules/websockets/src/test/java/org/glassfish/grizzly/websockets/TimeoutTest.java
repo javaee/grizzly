@@ -69,7 +69,7 @@ public class TimeoutTest extends BaseWebSocketTestUtilities {
         WebSocketClient socket = null;
         try {
             httpServer.start();
-            WebSocketEngine.getEngine().register(app);
+            WebSocketEngine.getEngine().register("", "/echo", app);
             socket = new WebSocketClient("wss://localhost:" + PORT + "/echo");
             socket.connect();
             Thread.sleep(10000);
@@ -109,7 +109,7 @@ public class TimeoutTest extends BaseWebSocketTestUtilities {
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
         WebSocketClient socket = null;
         try {
-            WebSocketEngine.getEngine().register(app);
+            WebSocketEngine.getEngine().register("", "/echo", app);
             socket = new WebSocketClient("wss://localhost:" + PORT + "/echo");
             socket.connect();
             Thread.sleep(10000);

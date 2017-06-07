@@ -127,11 +127,6 @@ public class LifecycleTest extends BaseWebSocketTestUtilities {
             }
 
             @Override
-            public boolean isApplicationRequest(HttpRequestPacket request) {
-                return true;
-            }
-
-            @Override
             public void onClose(WebSocket socket, DataFrame frame) {
                 super.onClose(socket, frame);
                 closeLatch.countDown();

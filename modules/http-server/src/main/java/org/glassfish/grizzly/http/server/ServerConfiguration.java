@@ -193,43 +193,6 @@ public class ServerConfiguration extends ServerFilterConfiguration {
      * Please note, the returned map is read-only.
      *
      * @return the {@link HttpHandler} map.
-     * @deprecated please use {@link #getHttpHandlersWithMapping()}
-     */
-    public Map<HttpHandler, String[]> getHttpHandlers() {
-        final Map<HttpHandler, String[]> map = new HashMap<>(
-                unmodifiableHandlers.size());
-        
-        for (Map.Entry<HttpHandler, HttpHandlerRegistration[]> entry : unmodifiableHandlers.entrySet()) {
-            final HttpHandlerRegistration[] regs = entry.getValue();
-            final String[] strRegs = new String[regs.length];
-            
-            for (int i = 0; i < regs.length; i++) {
-                final String contextPath = regs[i].getContextPath();
-                final String urlPattern = regs[i].getUrlPattern();
-                
-                if (contextPath == null) {
-                    strRegs[i] = urlPattern;
-                } else if (urlPattern == null) {
-                    strRegs[i] = contextPath;
-                } else if (contextPath.endsWith("/") && urlPattern.startsWith("/")) {
-                    strRegs[i] = contextPath.substring(0, contextPath.length() - 1) + urlPattern;
-                } else {
-                    strRegs[i] = contextPath + urlPattern;
-                }
-            }
-            
-            map.put(entry.getKey(), strRegs);
-        }
-        
-        return Collections.unmodifiableMap(map);
-    }
-
-    /**
-     *
-     * Returns the {@link HttpHandler} map.
-     * Please note, the returned map is read-only.
-     *
-     * @return the {@link HttpHandler} map.
      */
     public Map<HttpHandler, HttpHandlerRegistration[]> getHttpHandlersWithMapping() {
         return unmodifiableHandlers;

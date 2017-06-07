@@ -55,11 +55,6 @@ public class EchoServlet extends HttpServlet {
 
     public EchoServlet() {
         app = new WebSocketApplication() {
-            @Override
-            public boolean isApplicationRequest(HttpRequestPacket request) {
-                return "/echo".equals(request.getRequestURI());
-            }
-
             public void onMessage(WebSocket socket, String data) {
                 socket.send(data);
             }

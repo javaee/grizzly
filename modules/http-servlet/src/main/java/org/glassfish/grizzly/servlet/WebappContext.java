@@ -60,6 +60,7 @@ package org.glassfish.grizzly.servlet;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.HttpHandler;
+import org.glassfish.grizzly.http.server.HttpHandlerRegistration;
 import org.glassfish.grizzly.http.server.ServerConfiguration;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.SessionManager;
@@ -1910,15 +1911,15 @@ public class WebappContext implements ServletContext {
 
     private void registerDefaultServlet(HttpServer server) {
         final ServerConfiguration serverConfig = server.getServerConfiguration();
-        Map<HttpHandler,String[]> handlers = serverConfig.getHttpHandlers();
-        for (final Map.Entry<HttpHandler,String[]> entry : handlers.entrySet()) {
+        Map<HttpHandler,HttpHandlerRegistration[]> handlers = serverConfig.getHttpHandlersWithMapping();
+        for (final Map.Entry<HttpHandler,HttpHandlerRegistration[]> entry : handlers.entrySet()) {
             final HttpHandler h = entry.getKey();
             if (!(h instanceof StaticHttpHandlerBase)) {
                 continue;
             }
-            String[] mappings = entry.getValue();
-            for (final String mapping : mappings) {
-                if ("/".equals(mapping)) {
+            HttpHandlerRegistration[] mappings = entry.getValue();
+            for (final HttpHandlerRegistration mapping : mappings) {
+                if ("/".equals(mapping.getUrlPattern())) {
                     final DefaultServlet s = new DefaultServlet((StaticHttpHandlerBase) h);
                     final ServletRegistration registration =
                             addServlet("DefaultServlet", s);

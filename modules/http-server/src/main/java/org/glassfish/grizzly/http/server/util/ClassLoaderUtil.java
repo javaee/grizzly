@@ -59,40 +59,6 @@ public class ClassLoaderUtil {
     private static final Logger LOGGER = Grizzly.logger(ClassLoaderUtil.class);
 
     /**
-     * Create a class loader that can load classes from the specified
-     * file directory. The file directory must contains .jar or .zip
-     *
-     * @param libDir Directory with jars.
-     * @param cl the parent {@link ClassLoader}, or null if none.
-     * @return A {@link URLClassLoader} that can load classes from a directory that
-     *         contains jar and zip files.
-     * @throws java.io.IOException I/O fail
-     * @deprecated removal candidate, never used
-     */
-    public static ClassLoader createClassloader(File libDir, ClassLoader cl)
-            throws IOException {
-        URLClassLoader urlClassloader = null;
-        if (libDir.exists()) {
-            if (libDir.isDirectory()) {
-                String[] jars = libDir.list(new FilenameFilter() {
-
-                    public boolean accept(File dir, String name) {
-                        return name.endsWith(".jar") || name.endsWith(".zip");
-                    }
-                });
-                URL[] urls = new URL[jars.length];
-                for (int i = 0; i < jars.length; i++) {
-                    String path = new File(libDir.getName()
-                            + File.separator + jars[i]).getCanonicalFile().toURI().toURL().toString();
-                    urls[i] = new URL(path);
-                }
-                urlClassloader = createClassLoaderWithSecCheck(urls, cl);
-            }
-        }
-        return urlClassloader;
-    }
-
-    /**
      * Construct a {@link URLClassLoader} based on a canonical file location.
      * @param dirPath a canonical path location
      * @return a {@link URLClassLoader}

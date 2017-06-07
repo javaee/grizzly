@@ -139,11 +139,6 @@ public class ServerSideBroadcastTest extends BaseWebSocketTestUtilities {
         }
 
         @Override
-        public boolean isApplicationRequest(HttpRequestPacket request) {
-            return "/broadcast".equals(request.getRequestURI());
-        }
-
-        @Override
         public WebSocket createSocket(ProtocolHandler handler,
                 HttpRequestPacket requestPacket, WebSocketListener... listeners) {
             final DefaultWebSocket ws =

@@ -58,7 +58,7 @@ public class ServletBasedTest {
     public void declarative() throws IOException, InstantiationException, InterruptedException, URISyntaxException {
         final CountDownLatch latch = new CountDownLatch(1);
         final EchoWebSocketApplication app = new EchoWebSocketApplication();
-        WebSocketEngine.getEngine().register(app);
+        WebSocketEngine.getEngine().register("", "/echo", app);
         HttpServer httpServer = HttpServer.createSimpleServer(".", WebSocketsTest.PORT);
         httpServer.getServerConfiguration().setHttpServerName("WebSocket Server");
         httpServer.getServerConfiguration().setName("WebSocket Server");

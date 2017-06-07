@@ -107,12 +107,7 @@ public final class MessageBytes implements Cloneable, Serializable {
     // strValue!=null is the same
     private boolean hasStrValue=false;
 
-    /**
-     * Creates a new, uninitialized MessageBytes object.
-     * @deprecated Use static newInstance() in order to allow
-     *   future hooks.
-     */
-    public MessageBytes() {
+    private MessageBytes() {
     }
 
     /** Construct a new MessageBytes instance

@@ -70,25 +70,6 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     /**
      * Factory method to create new {@link WebSocket} instances.  Developers may
      * wish to override this to return customized {@link WebSocket} implementations.
-     * 
-     * @param handler the {@link ProtocolHandler} to use with the newly created
-     *  {@link WebSocket}.
-     *                
-     * @param listeners the {@link WebSocketListener}s to associate with the new
-     *   {@link WebSocket}.
-     *                  
-     * @return a new {@link WebSocket} instance.
-     * 
-     * @deprecated Use {@link WebSocketApplication#createSocket(ProtocolHandler, org.glassfish.grizzly.http.HttpRequestPacket, WebSocketListener...)}
-     */
-    @Deprecated
-    public WebSocket createSocket(ProtocolHandler handler, WebSocketListener... listeners) {
-        return createSocket(handler, null, listeners);
-    }
-
-    /**
-     * Factory method to create new {@link WebSocket} instances.  Developers may
-     * wish to override this to return customized {@link WebSocket} implementations.
      * @param handler the {@link ProtocolHandler} to use with the newly created
      *  {@link WebSocket}.
      * @param requestPacket the {@link HttpRequestPacket} that triggered the
@@ -154,31 +135,13 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
      * 
      * The default implementation will check for the presence of the
      * <code>Upgrade</code> header with a value of <code>WebSocket</code>.
-     * If present, {@link #isApplicationRequest(org.glassfish.grizzly.http.HttpRequestPacket)}
-     * will be invoked to determine if the request is a valid websocket request.
      *
      * @return <code>true</code> if the request should be upgraded to a 
      *  WebSocket connection
      */
     public final boolean upgrade(HttpRequestPacket request) {
-        return "WebSocket".equalsIgnoreCase(request.getHeader(Header.Upgrade)) && isApplicationRequest(request);
+        return "WebSocket".equalsIgnoreCase(request.getHeader(Header.Upgrade));
     }
-
-    /**
-     * Checks application specific criteria to determine if this application can
-     * process the request as a WebSocket connection.
-     *
-     * @param request the incoming HTTP request.
-     * @return <code>true</code> if this application can service this request
-     *         <p/>
-     *         +* @deprecated URI mapping shouldn't be intrinsic to the application.
-     *         +*  WebSocketApplications should be registered using {@link WebSocketEngine#register(String, String, WebSocketApplication)}
-     *         +*  using standard Servlet url-pattern rules.
-     */
-    public boolean isApplicationRequest(HttpRequestPacket request) {
-        return false;
-    }
-
 
     /**
      * Return the websocket extensions supported by this <code>WebSocketApplication</code>.

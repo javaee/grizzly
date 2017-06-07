@@ -348,14 +348,6 @@ public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
         close0(null, CloseReason.LOCALLY_CLOSED_REASON, null, true);
     }
 
-    /**
-     * {@inheritDoc}
-     * @deprecated please use {@link #close()} with the following {@link GrizzlyFuture#addCompletionHandler(org.glassfish.grizzly.CompletionHandler)} call
-     */
-    public void close(final CompletionHandler<Closeable> completionHandler) {
-        close0(completionHandler, CloseReason.LOCALLY_CLOSED_REASON, null, true);
-    }
-
     @Override
     public void closeWithReason(final CloseReason reason) {
         close0(null, CloseReason.LOCALLY_CLOSED_REASON, null, false);
