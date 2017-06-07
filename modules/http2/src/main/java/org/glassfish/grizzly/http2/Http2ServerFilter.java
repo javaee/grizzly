@@ -91,7 +91,7 @@ import static org.glassfish.grizzly.http2.Termination.IN_FIN_TERMINATION;
 
 /**
  *
- * @author oleksiys
+ *
  */
 public class Http2ServerFilter extends Http2BaseFilter {
     private final static Logger LOGGER = Grizzly.logger(Http2ServerFilter.class);

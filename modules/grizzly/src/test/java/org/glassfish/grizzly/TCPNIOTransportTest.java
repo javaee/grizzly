@@ -99,7 +99,7 @@ import static org.junit.Assert.fail;
 /**
  * Unit test for {@link TCPNIOTransport}
  *
- * @author Alexey Stashok
+ *
  */
 @SuppressWarnings("unchecked")
 public class TCPNIOTransportTest {

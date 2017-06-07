@@ -57,7 +57,7 @@ import org.glassfish.grizzly.http2.HeadersEncoder;
  * 
  * @see HeadersFrame
  * 
- * @author Alexey Stashok
+ *
  */
 public final class CompressedHeadersBuilder {
     

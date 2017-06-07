@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * Simple session object.
  *
- * @author Jeanfrancois Arcand
+ *
  */
 public class Session {
 

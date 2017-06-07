@@ -84,7 +84,7 @@ import static org.glassfish.grizzly.http2.Termination.UNEXPECTED_FRAME_TERMINATI
 /**
  * The abstraction representing HTTP2 stream.
  * 
- * @author Grizzly team
+ *
  */
 public class Http2Stream implements AttributeStorage, OutputSink, Closeable {
 

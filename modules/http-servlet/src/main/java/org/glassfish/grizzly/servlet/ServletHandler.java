@@ -76,7 +76,7 @@ import org.glassfish.grizzly.http.util.HttpStatus;
  * HttpHandler implementation that provides an entry point for processing
  * a Servlet request.
  * 
- * @author Jeanfrancois Arcand
+ *
  */
 public class ServletHandler extends HttpHandler {
 

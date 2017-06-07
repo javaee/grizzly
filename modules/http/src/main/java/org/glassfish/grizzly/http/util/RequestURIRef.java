@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,7 +53,7 @@ import static org.glassfish.grizzly.utils.Charsets.*;
  *      2) Decoded, which has represents URI after being URI and String decoded (internally used by Mapper).
  *      3) Actual, which is supposed as URI value returned to user.
  * 
- * @author Alexey Stashok
+ *
  */
 public class RequestURIRef {
     private boolean isDecoded;

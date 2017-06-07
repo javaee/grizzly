@@ -70,7 +70,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
  * In other words it's responsible for decoding Ajp message to HttpRequestPacket,
  * and encoding HttpResponsePacket to Ajp message back.
  *
- * @author Alexey Stashok
+ *
  */
 public class AjpHandlerFilter extends BaseFilter {
     private static final Logger LOGGER =

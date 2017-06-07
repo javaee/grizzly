@@ -65,7 +65,7 @@ import org.glassfish.grizzly.utils.Charsets;
  * @see HttpRequestPacket
  * @see HttpResponsePacket
  * 
- * @author Alexey Stashok
+ *
  */
 public abstract class HttpHeader extends HttpPacket
         implements MimeHeadersPacket, AttributeStorage {

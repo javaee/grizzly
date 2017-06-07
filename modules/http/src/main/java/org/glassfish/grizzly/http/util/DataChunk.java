@@ -49,7 +49,7 @@ import org.glassfish.grizzly.Buffer;
  * {@link Buffer} chunk representation.
  * Helps HTTP module to avoid redundant String creation.
  * 
- * @author Alexey Stashok
+ *
  */
 public class DataChunk implements Chunk {
 

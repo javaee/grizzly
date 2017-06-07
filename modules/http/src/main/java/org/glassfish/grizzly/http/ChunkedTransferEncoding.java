@@ -61,7 +61,7 @@ import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
  *
  * @see TransferEncoding
  * 
- * @author Alexey Stashok
+ *
  */
 public final class ChunkedTransferEncoding implements TransferEncoding {
     private static final int MAX_HTTP_CHUNK_SIZE_LENGTH = 16;

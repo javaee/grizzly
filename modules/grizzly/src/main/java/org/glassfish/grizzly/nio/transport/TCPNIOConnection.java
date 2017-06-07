@@ -59,7 +59,7 @@ import org.glassfish.grizzly.utils.Holder;
  * {@link org.glassfish.grizzly.Connection} implementation
  * for the {@link TCPNIOTransport}
  *
- * @author Alexey Stashok
+ *
  */
 @SuppressWarnings("unchecked")
 public class TCPNIOConnection extends NIOConnection {

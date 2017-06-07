@@ -66,7 +66,7 @@ import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
  * Class represents an output sink associated with specific {@link Http2Session}
  * and is responsible for session (connection) level flow control.
  * 
- * @author Alexey Stashok
+ *
  */
 public class Http2SessionOutputSink {
     protected final Http2Session http2Session;

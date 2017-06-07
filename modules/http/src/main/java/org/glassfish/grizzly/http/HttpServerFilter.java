@@ -74,7 +74,7 @@ import org.glassfish.grizzly.http.util.HttpUtils;
  * @see HttpCodecFilter
  * @see HttpClientFilter
  *
- * @author Alexey Stashok
+ *
  */
 public class HttpServerFilter extends HttpCodecFilter {
     public static final String HTTP_SERVER_REQUEST_ATTR_NAME =

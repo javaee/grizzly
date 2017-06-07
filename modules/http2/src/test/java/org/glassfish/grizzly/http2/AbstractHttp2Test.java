@@ -69,7 +69,7 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 /**
  * General HTTP2 client/server init code.
  * 
- * @author Alexey Stashok
+ *
  */
 public abstract class AbstractHttp2Test {
     protected static final Logger LOGGER = Grizzly.logger(AbstractHttp2Test.class);

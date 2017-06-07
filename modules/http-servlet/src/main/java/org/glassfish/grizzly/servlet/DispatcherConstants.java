@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,6 +55,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.glassfish.grizzly.servlet;
 
 /**
@@ -62,7 +63,7 @@ package org.glassfish.grizzly.servlet;
  * This class will be able to be replaced by Servlet3.0 API
  * such as <code>javax.servlet.RequestDispatcher</code> and <code>javax.servlet.DispatcherType</code>
  *
- * @author Bongjae Chang
+ *
  */
 public class DispatcherConstants {
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,7 +45,7 @@ import org.glassfish.grizzly.ThreadCache;
 /**
  * The request/response suspend status bound to a specific thread.
  * 
- * @author Alexey Stashok
+ *
  */
 public final class SuspendStatus {
     private static final ThreadCache.CachedTypeIndex<SuspendStatus> CACHE_IDX =

@@ -63,7 +63,7 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
  * WebSockets engine implementation (singleton), which handles {@link WebSocketApplication}s registration, responsible
  * for client and server handshake validation.
  *
- * @author Alexey Stashok
+ *
  * @see WebSocket
  * @see WebSocketApplication
  */

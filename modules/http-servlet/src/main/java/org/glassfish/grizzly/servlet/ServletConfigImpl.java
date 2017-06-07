@@ -51,7 +51,7 @@ import org.glassfish.grizzly.http.server.util.Enumerator;
 /**
  * Basic {@link ServletConfig} implementation.
  * 
- * @author Jeanfrancois Arcand
+ *
  */
 public class ServletConfigImpl implements ServletConfig {
 

@@ -68,7 +68,7 @@ import org.glassfish.grizzly.localization.LogMessages;
  * information configured when invoking the {@link HttpHandlerChain#addHandler
  * (org.glassfish.grizzly.http.server.HttpHandler, java.lang.String[])}
  *
- * @author Jeanfrancois Arcand
+ *
  */
 public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -69,7 +69,7 @@ import java.util.Map;
  * to clone them in order to avoid modifications.  When first created, a
  * <code>ParameterMap</code> instance is not locked.
  *
- * @author Craig R. McClanahan
+ *
  * @version $Revision: 1.4 $ $Date: 2007/06/18 17:41:35 $
  */
 

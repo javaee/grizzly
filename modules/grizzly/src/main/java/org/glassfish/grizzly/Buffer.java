@@ -58,7 +58,7 @@ import org.glassfish.grizzly.memory.CompositeBuffer;
  * it's possible to prepend some data to a Buffer and release Buffer, when
  * it's not required any more.
  *
- * @author Alexey Stashok
+ *
  */
 public interface Buffer extends Comparable<Buffer>, WritableMessage {
 

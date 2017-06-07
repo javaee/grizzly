@@ -47,7 +47,7 @@ import org.glassfish.grizzly.http.HttpContent;
 
 /**
  *
- * @author oleksiys
+ *
  */
 interface StreamInputBuffer {
     /**

@@ -87,7 +87,7 @@ import static org.glassfish.grizzly.utils.Charsets.ASCII_CHARSET;
  * @see HttpServerFilter
  * @see HttpClientFilter
  * 
- * @author Alexey Stashok
+ *
  */
 public abstract class HttpCodecFilter extends HttpBaseFilter
         implements MonitoringAware<HttpProbe> {

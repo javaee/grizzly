@@ -89,7 +89,7 @@ import org.glassfish.grizzly.utils.Futures;
 /**
  * Common {@link Connection} implementation for Java NIO <tt>Connection</tt>s.
  *
- * @author Alexey Stashok
+ *
  */
 public abstract class NIOConnection implements Connection<SocketAddress> {
     protected static final Object NOTIFICATION_INITIALIZED = Boolean.TRUE;

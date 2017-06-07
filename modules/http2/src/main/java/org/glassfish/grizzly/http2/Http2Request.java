@@ -48,7 +48,7 @@ import org.glassfish.grizzly.http.util.Header;
 
 /**
  *
- * @author oleksiys
+ *
  */
 class Http2Request extends HttpRequestPacket implements Http2Header {
 

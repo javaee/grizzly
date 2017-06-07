@@ -51,7 +51,7 @@ import org.glassfish.grizzly.http.HttpPacket;
 /**
  * Interface represents an output sink associated with specific {@link Http2Stream}. 
  * 
- * @author Alexey Stashok
+ *
  */
 interface StreamOutputSink {
     boolean canWrite();

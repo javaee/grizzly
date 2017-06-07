@@ -63,7 +63,7 @@ import static org.glassfish.grizzly.http2.Termination.IN_FIN_TERMINATION;
 
 /**
  *
- * @author oleksiys
+ *
  */
 class DefaultInputBuffer implements StreamInputBuffer {
     private static final Logger LOGGER = Grizzly.logger(StreamInputBuffer.class);

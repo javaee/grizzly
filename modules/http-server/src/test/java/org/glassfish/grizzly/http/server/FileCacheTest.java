@@ -103,7 +103,7 @@ import static org.junit.Assert.*;
 /**
  * Test File Cache implementation
  * 
- * @author Alexey Stashok
+ *
  */
 @RunWith(Parameterized.class)
 @SuppressWarnings("unchecked")

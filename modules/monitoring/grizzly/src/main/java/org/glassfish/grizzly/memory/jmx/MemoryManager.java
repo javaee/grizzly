@@ -55,7 +55,7 @@ import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
 /**
  * {@link org.glassfish.grizzly.memory.MemoryManager} JMX object.
  *
- * @author Alexey Stashok
+ *
  */
 @ManagedObject
 @Description("Grizzly Memory Manager")

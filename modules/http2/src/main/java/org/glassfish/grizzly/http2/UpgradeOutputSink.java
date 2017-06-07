@@ -51,7 +51,7 @@ import org.glassfish.grizzly.http.HttpPacket;
  * The {@link StreamOutputSink} implementation, which is used when upgrading
  * HTTP -> HTTP/2 connections.
  * 
- * @author Alexey Stashok
+ *
  */
 public class UpgradeOutputSink implements StreamOutputSink {
     private final Http2Session session;

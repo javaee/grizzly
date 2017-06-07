@@ -56,7 +56,7 @@ import java.util.function.Supplier;
  * @see AttributeHolder
  * @see NamedAttributeHolder
  *
- * @author Alexey Stashok
+ *
  */
 final class IndexedAttributeHolder implements AttributeHolder {
     private final Object sync = new Object();

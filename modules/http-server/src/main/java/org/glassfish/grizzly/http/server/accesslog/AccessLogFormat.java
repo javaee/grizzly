@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,8 +50,8 @@ import org.glassfish.grizzly.http.server.Response;
  *
  * <p>Implementations of this class <b>must</b> be thread-safe.</p>
  *
- * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
- * @author <a href="http://www.usrz.com/">USRZ.com</a>
+ *
+ *
  */
 public interface AccessLogFormat {
 

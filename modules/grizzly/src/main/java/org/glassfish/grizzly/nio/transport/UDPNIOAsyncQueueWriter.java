@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,7 +54,7 @@ import org.glassfish.grizzly.nio.NIOConnection;
  * The UDP transport {@link AsyncQueueWriter} implementation, based on
  * the Java NIO
  *
- * @author Alexey Stashok
+ *
  */
 public final class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 

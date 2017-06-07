@@ -51,7 +51,7 @@ import org.glassfish.grizzly.WriteHandler;
 /**
  * Class represents common implementation of asynchronous processing queue.
  *
- * @author Alexey Stashok
+ *
  */
 public final class TaskQueue<E extends AsyncQueueRecord> {
     private volatile boolean isClosed;

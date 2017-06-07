@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,7 +51,7 @@ import org.glassfish.grizzly.Connection;
  * which allocates one SelectorRunner for OP_ACCEPT events and other
  * event will be assign to a next SelectorRunner from the array.
  * 
- * @author Alexey Stashok
+ *
  */
 public final class RoundRobinConnectionDistributor
         extends AbstractNIOConnectionDistributor {

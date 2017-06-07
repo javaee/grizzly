@@ -76,10 +76,10 @@ import org.glassfish.grizzly.utils.Charsets;
  * it is known to not be the most efficient solution - Strings are
  * designed as imutable and secure objects.
  *
- * @author dac@sun.com
- * @author James Todd [gonzo@sun.com]
- * @author Costin Manolache
- * @author Remy Maucherat
+ *
+ *
+ *
+ *
  */
 public final class CharChunk implements Chunk, Cloneable, Serializable {
     private static final UTF8Decoder UTF8_DECODER = new UTF8Decoder();

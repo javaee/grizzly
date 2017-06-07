@@ -85,7 +85,7 @@ import static org.glassfish.grizzly.connectionpool.SingleEndpointPool.*;
  * 
  * @param <E> the address type, for example for TCP transport it's {@link SocketAddress}
  * 
- * @author Alexey Stashok
+ *
  */
 public class MultiEndpointPool<E> {
 

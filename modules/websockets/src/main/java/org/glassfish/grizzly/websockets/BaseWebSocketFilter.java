@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,7 +66,7 @@ import org.glassfish.grizzly.utils.IdleTimeoutFilter;
  * <tt>BaseWebSocketFilter</tt> handles websocket connection, handshake phases and, when receives a websocket frame -
  * redirects it to appropriate connection ({@link WebSocketApplication}, {@link WebSocket}) for processing.
  *
- * @author Alexey Stashok
+ *
  */
 public abstract class BaseWebSocketFilter extends BaseFilter {
     

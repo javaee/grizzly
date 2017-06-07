@@ -107,7 +107,7 @@ import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
 /**
  * The HTTP2 session abstraction.
  * 
- * @author Alexey Stashok
+ *
  */
 public class Http2Session {
     private static final Logger LOGGER = Grizzly.logger(Http2Session.class);

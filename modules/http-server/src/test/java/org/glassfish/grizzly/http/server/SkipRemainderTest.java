@@ -87,7 +87,7 @@ import static org.junit.Assert.*;
  * Test how HttpServer skips HTTP packet remainder, if HttpHandler didn't read
  * the complete message.
  * 
- * @author Alexey Stashok
+ *
  */
 
 @SuppressWarnings("unchecked")

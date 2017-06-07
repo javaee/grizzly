@@ -47,7 +47,7 @@ import org.glassfish.grizzly.ThreadCache;
 /**
  * Class, which represents result of {@link TransferEncoding} or {@link ContentEncoding} parsing.
  * 
- * @author Alexey Stashok
+ *
  */
 public final class ParsingResult implements Cacheable {
 

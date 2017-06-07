@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -56,7 +56,7 @@ import java.util.logging.Logger;
  * Simple HTTP (Web) server, which listens on a specific TCP port and shares
  * static resources (files), located in a passed folder.
  * 
- * @author Alexey Stashok
+ *
  */
 public class Server {
     private static final Logger logger = Grizzly.logger(Server.class);

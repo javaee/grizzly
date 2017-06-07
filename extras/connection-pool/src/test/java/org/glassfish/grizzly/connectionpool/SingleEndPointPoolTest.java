@@ -72,7 +72,7 @@ import static org.junit.Assert.*;
 /**
  * The {@link SingleEndpointPool} tests.
  * 
- * @author Alexey Stashok
+ *
  */
 public class SingleEndPointPoolTest {
     private static final int PORT = 18333;

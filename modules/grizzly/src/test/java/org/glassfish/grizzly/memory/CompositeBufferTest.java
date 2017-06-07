@@ -57,7 +57,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * {@link CompositeBuffer} test set.
  * 
- * @author Alexey Stashok
+ *
  */
 @RunWith(Parameterized.class)
 public class CompositeBufferTest extends AbstractMemoryManagerTest {

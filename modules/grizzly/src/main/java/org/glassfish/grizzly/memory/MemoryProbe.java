@@ -43,7 +43,7 @@ package org.glassfish.grizzly.memory;
 /**
  * {@link MemoryManager} monitoring probe.
  * 
- * @author Alexey Stashok
+ *
  */
 public interface MemoryProbe {
     /**

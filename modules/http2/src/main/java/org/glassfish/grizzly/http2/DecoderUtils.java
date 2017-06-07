@@ -62,7 +62,7 @@ import static org.glassfish.grizzly.http2.HeaderDecodingException.ErrorType;
 /**
  * Http2Frames -> HTTP Packet decoder utils.
  * 
- * @author Grizzly team
+ *
  */
 class DecoderUtils extends EncoderDecoderUtilsBase {
     private final static Logger LOGGER = Grizzly.logger(DecoderUtils.class);

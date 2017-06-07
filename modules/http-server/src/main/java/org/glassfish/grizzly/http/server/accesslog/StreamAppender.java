@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -52,8 +52,8 @@ import java.nio.charset.Charset;
  *
  * <p>Log entries will <b>always</b> encoded in <em>UTF-8</em>.
  *
- * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
- * @author <a href="http://www.usrz.com/">USRZ.com</a>
+ *
+ *
  */
 public class StreamAppender implements AccessLogAppender {
 

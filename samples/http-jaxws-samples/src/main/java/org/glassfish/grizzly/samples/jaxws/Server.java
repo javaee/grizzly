@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.samples.jaxws;
 
 import org.glassfish.grizzly.samples.jaxws.service.AddService;
@@ -49,7 +50,7 @@ import org.glassfish.grizzly.jaxws.JaxwsHandler;
 /**
  * Basic Grizzly JAX-WS {@link HttpHandler} sample.
  * 
- * @author Alexey Stashok
+ *
  */
 public class Server {
     public static final String WEB_SERVICE_CONTEXT_ROOT = "/add";

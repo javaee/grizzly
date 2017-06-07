@@ -54,7 +54,7 @@ import org.glassfish.grizzly.Grizzly;
 /**
  * Simple {@link ClassLoader} utility.
  *
- * @author Jeanfrancois Arcand
+ *
  */
 public class ClassLoaderUtil {
     private static final Logger LOGGER = Grizzly.logger(ClassLoaderUtil.class);

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2012-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.memory.jmx;
 
 import org.glassfish.gmbal.Description;
@@ -48,7 +49,7 @@ import org.glassfish.gmbal.ManagedObject;
 /**
  * {@link org.glassfish.grizzly.memory.PooledMemoryManager} JMX object.
  *
- * @author Alexey Stashok
+ *
  */
 @ManagedObject
 @Description("Grizzly Heap Memory Manager, which uses thread local memory pool")

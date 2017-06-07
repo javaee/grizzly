@@ -67,7 +67,7 @@ import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
 /**
  * NIO Transport JMX object.
  *
- * @author Alexey Stashok
+ *
  */
 @ManagedObject
 @Description("Grizzly NIO Transport")

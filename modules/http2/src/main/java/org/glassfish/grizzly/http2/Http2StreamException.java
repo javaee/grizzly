@@ -46,7 +46,7 @@ import org.glassfish.grizzly.http2.frames.ErrorCode;
 /**
  * HTTP/2 Stream exception.
  * 
- * @author Alexey Stashok
+ *
  */
 public final class Http2StreamException extends IOException {
     private final int streamId;

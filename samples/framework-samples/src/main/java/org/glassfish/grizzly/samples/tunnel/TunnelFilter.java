@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -59,7 +59,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
  * Simple tunneling filter, which maps input of one connection to the output of
  * another and vise versa.
  *
- * @author Alexey Stashok
+ *
  */
 public class TunnelFilter extends BaseFilter {
     private static final Logger logger = Grizzly.logger(TunnelFilter.class);

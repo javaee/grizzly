@@ -114,8 +114,8 @@ import static org.glassfish.grizzly.http.util.Constants.*;
 /**
  * Wrapper object for the Coyote response.
  *
- * @author Remy Maucherat
- * @author Craig R. McClanahan
+ *
+ *
  * @version $Revision: 1.2 $ $Date: 2006/11/02 20:01:44 $
  */
 

@@ -51,7 +51,7 @@ import java.util.function.Supplier;
  *
  * @see AttributeBuilder
  * 
- * @author Alexey Stashok
+ *
  */
 public class DefaultAttributeBuilder implements AttributeBuilder {
     protected final List<Attribute> attributes = new ArrayList<Attribute>();

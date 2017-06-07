@@ -100,7 +100,7 @@ import org.glassfish.grizzly.http2.frames.PriorityFrame;
  * logic responsible for checking HTTP2 protocol semantics and fire correspondent
  * events and messages in case when HTTP2 semantics is broken.
  * 
- * @author Grizzly team
+ *
  */
 public abstract class Http2BaseFilter extends HttpBaseFilter {
     private final static Logger LOGGER = Grizzly.logger(Http2BaseFilter.class);

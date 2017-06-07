@@ -42,7 +42,7 @@ package org.glassfish.grizzly.http2;
 
 /**
  *
- * @author oleksiys
+ *
  */
 interface Http2Header extends Http2Packet {
     void setExpectContent(boolean isExpectContent);

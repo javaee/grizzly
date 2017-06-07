@@ -121,10 +121,10 @@ servlet needs direct access to headers).
  *  XXX use HeaderName ID
  *
  *
- * @author dac@eng.sun.com
- * @author James Todd [gonzo@eng.sun.com]
- * @author Costin Manolache
- * @author kevin seguin
+ *
+ *
+ *
+ *
  */public class MimeHeaders {
 
     private static final String[] INVALID_TRAILER_NAMES = {

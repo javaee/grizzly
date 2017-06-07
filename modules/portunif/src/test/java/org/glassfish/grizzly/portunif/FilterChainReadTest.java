@@ -71,7 +71,7 @@ import org.glassfish.grizzly.utils.StringFilter;
 /**
  * Test {@link FilterChain} blocking read.
  * 
- * @author Alexey Stashok
+ *
  */
 @SuppressWarnings("unchecked")
 public class FilterChainReadTest extends TestCase {

@@ -47,7 +47,7 @@ import org.glassfish.grizzly.localization.LogMessages;
 
 /**
  *
- * @author oleksiys
+ *
  */
 public final class ProcessorExecutor {
 

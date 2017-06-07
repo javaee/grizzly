@@ -80,7 +80,7 @@ import static org.junit.Assert.*;
 /**
  * Test the max post size limitation.
  * 
- * @author Alexey Stashok
+ *
  */
 public class MaxPostSizeTest {
     private static final int PORT = 18907;

@@ -72,7 +72,7 @@ import org.glassfish.grizzly.utils.Holder;
  * @see Context
  * @see FilterChain
  * 
- * @author Alexey Stashok
+ *
  */
 public class FilterChainContext implements AttributeStorage {
     private static final Logger logger = Grizzly.logger(FilterChainContext.class);

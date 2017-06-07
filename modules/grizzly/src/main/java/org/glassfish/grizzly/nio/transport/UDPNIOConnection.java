@@ -70,7 +70,7 @@ import org.glassfish.grizzly.utils.JdkVersion;
  * {@link org.glassfish.grizzly.Connection} implementation
  * for the {@link UDPNIOTransport}
  *
- * @author Alexey Stashok
+ *
  */
 @SuppressWarnings("unchecked")
 public class UDPNIOConnection extends NIOConnection {

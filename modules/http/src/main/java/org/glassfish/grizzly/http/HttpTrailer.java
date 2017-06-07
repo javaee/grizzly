@@ -49,7 +49,7 @@ import org.glassfish.grizzly.http.util.MimeHeaders;
  * {@link HttpContent} message, which represents HTTP trailer message.
  * Applicable only for chunked HTTP messages.
  * 
- * @author Alexey Stashok
+ *
  */
 public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
     private static final ThreadCache.CachedTypeIndex<HttpTrailer> CACHE_IDX =

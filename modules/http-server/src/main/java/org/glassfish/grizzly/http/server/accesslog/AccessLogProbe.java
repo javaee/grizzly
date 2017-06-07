@@ -57,8 +57,8 @@ import org.glassfish.grizzly.http.server.Response;
  * A {@linkplain HttpServerProbe Grizzly probe} used to provide
  * access logs generation.
  *
- * @author <a href="mailto:pier@usrz.com">Pier Fumagalli</a>
- * @author <a href="http://www.usrz.com/">USRZ.com</a>
+ *
+ *
  */
 public class AccessLogProbe extends HttpServerProbe.Adapter {
 

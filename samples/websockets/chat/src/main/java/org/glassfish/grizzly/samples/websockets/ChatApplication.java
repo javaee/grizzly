@@ -64,8 +64,8 @@ import org.glassfish.grizzly.websockets.WebSocketListener;
  * with {@link ChatWebSocket}, which includes some chat specific properties and
  * logic.
  *
- * @author Alexey Stashok
- * @author Justin Lee
+ *
+ *
  */
 public class ChatApplication extends WebSocketApplication {
     private static final Logger logger = Grizzly.logger(ChatApplication.class);

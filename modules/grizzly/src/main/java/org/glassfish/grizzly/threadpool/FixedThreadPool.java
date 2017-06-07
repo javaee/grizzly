@@ -48,7 +48,7 @@ import java.util.concurrent.RejectedExecutionException;
  * Minimalistic fixed thread pool to allow for nice scalability if a
  * good Queue impl is used.
  *
- * @author gustav trede
+ *
  */
 public class FixedThreadPool extends AbstractThreadPool {
 

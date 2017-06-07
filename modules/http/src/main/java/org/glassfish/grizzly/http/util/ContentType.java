@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,7 +49,7 @@ import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
  * This class serves as a Content-Type holder, plus it implements useful
  * utility methods to work with content-type.
  * 
- * @author Alexey Stashok
+ *
  */
 public class ContentType {
     private static final String CHARSET_STRING = ";charset=";

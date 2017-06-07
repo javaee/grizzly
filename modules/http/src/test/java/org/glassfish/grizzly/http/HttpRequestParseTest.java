@@ -76,7 +76,7 @@ import org.glassfish.grizzly.utils.Pair;
 /**
  * Testing HTTP request parsing
  * 
- * @author Alexey Stashok
+ *
  */
 public class HttpRequestParseTest extends TestCase {
     private static final Logger logger = Grizzly.logger(HttpRequestParseTest.class);

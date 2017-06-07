@@ -62,7 +62,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
  * 
  * @see IdleTimeoutFilter
  * 
- * @author Alexey Stashok
+ *
  */
 public class ActivityCheckFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(ActivityCheckFilter.class);

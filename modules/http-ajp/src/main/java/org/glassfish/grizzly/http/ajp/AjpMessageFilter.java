@@ -55,7 +55,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
  * Filter, responsible for parsing Ajp requests and making sure the request
  * packets are complete and properly constructed.
  * 
- * @author Alexey Stashok
+ *
  */
 public class AjpMessageFilter extends BaseFilter {
     private static final Logger LOGGER =

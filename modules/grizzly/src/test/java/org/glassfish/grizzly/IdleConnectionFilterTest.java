@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -57,7 +57,7 @@ import org.glassfish.grizzly.utils.IdleTimeoutFilter;
 /**
  * Test {@link IdleTimeoutFilter}
  * 
- * @author Alexey Stashok
+ *
  */
 public class IdleConnectionFilterTest extends GrizzlyTestCase {
     public static final int PORT = 7782;

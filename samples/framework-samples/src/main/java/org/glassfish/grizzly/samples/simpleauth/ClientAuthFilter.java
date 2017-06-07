@@ -57,7 +57,7 @@ import java.util.concurrent.ConcurrentMap;
  * is done - filter resumes all the suspended writes. If connection is authenticated -
  * filter adds "auth-id: <connection-id>" header to the outgoing message.
  *
- * @author Alexey Stashok
+ *
  */
 public class ClientAuthFilter extends BaseFilter {
 

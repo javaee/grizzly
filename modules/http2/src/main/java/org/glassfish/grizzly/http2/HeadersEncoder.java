@@ -47,7 +47,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  *
- * @author oleksiys
+ *
  */
 public class HeadersEncoder {
 

@@ -63,7 +63,7 @@ import org.glassfish.grizzly.ssl.SSLUtils;
 /**
  * HTTP Packet -> HTTP/2 frames encoder utils.
  * 
- * @author Grizzly team
+ *
  */
 class EncoderUtils extends EncoderDecoderUtilsBase {
     private static final String HTTP = "http";

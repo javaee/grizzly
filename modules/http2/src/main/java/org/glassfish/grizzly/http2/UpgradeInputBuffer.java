@@ -47,7 +47,7 @@ import org.glassfish.grizzly.http.HttpContent;
  * The {@link StreamInputBuffer} implementation, which is used when upgrading
  * HTTP -> HTTP/2 connections.
  * 
- * @author Alexey Stashok
+ *
  */
 class UpgradeInputBuffer implements StreamInputBuffer {
 

@@ -54,7 +54,7 @@ import org.glassfish.grizzly.ThreadCache.CachedTypeIndex;
 /**
  * Charset utility class.
  *
- * @author Alexey Stashok
+ *
  */
 public final class Charsets {
     static {

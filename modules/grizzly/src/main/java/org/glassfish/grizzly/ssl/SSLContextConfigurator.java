@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,9 +63,9 @@ import org.glassfish.grizzly.Grizzly;
 /**
  * Utility class, which helps to configure {@link SSLContext}.
  *
- * @author Alexey Stashok
- * @author Hubert Iwaniuk
- * @author Bruno Harbulot
+ *
+ *
+ *
  */
 public class SSLContextConfigurator {
     public static final String TRUST_STORE_PROVIDER = "javax.net.ssl.trustStoreProvider";

@@ -54,7 +54,7 @@ import org.glassfish.grizzly.utils.ArrayUtils;
 
 /**
  *
- * @author Alexey Stashok
+ *
  */
 public final class BuffersBuffer extends CompositeBuffer {
     public static volatile boolean DEBUG_MODE = false;

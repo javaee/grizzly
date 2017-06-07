@@ -51,7 +51,7 @@ import java.util.function.Supplier;
  *
  * @see DefaultAttributeBuilder
  * 
- * @author Alexey Stashok
+ *
  */
 public interface AttributeBuilder {
 

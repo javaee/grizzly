@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,8 +50,8 @@ import java.util.logging.Logger;
  * Default NotificationHandler that uses a thread pool dedicated to the CometEngine to execute the notification
  * process.<br>
  *
- * @author Jeanfrancois Arcand
- * @author Gustav Trede
+ *
+ *
  */
 public class DefaultNotificationHandler implements NotificationHandler {
     private final static Logger logger = Logger.getLogger(DefaultNotificationHandler.class.getName());

@@ -59,7 +59,7 @@ import org.glassfish.grizzly.http.server.http2.PushBuilder;
  * For example to request smileys with size 64x64 using HTTP/2 Push mode, the
  * request should look like: https://localhost:8080/getsmileys?size=64&push=true
  * 
- * @author Alexey Stashok
+ *
  */
 public class SmileysHandler extends HttpHandler {
 

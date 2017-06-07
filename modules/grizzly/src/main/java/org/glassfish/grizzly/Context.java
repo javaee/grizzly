@@ -51,7 +51,7 @@ import org.glassfish.grizzly.attributes.AttributeStorage;
 /**
  * Object, which is responsible for holding context during I/O event processing.
  *
- * @author Alexey Stashok
+ *
  */
 public class Context implements AttributeStorage, Cacheable {
 

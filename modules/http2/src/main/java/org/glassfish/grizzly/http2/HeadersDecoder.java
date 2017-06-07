@@ -49,7 +49,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
  *
- * @author oleksiys
+ *
  */
 public class HeadersDecoder {
     private final Decoder hpackDecoder;

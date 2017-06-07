@@ -94,7 +94,7 @@ import static org.glassfish.grizzly.ssl.SSLUtils.*;
 /**
  * SSL {@link Filter} to operate with SSL encrypted data.
  *
- * @author Alexey Stashok
+ *
  */
 public class SSLBaseFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(SSLBaseFilter.class);

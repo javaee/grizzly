@@ -74,7 +74,7 @@ import static org.junit.Assert.*;
 /**
  * Asynchronous port-unification tests
  * 
- * @author Alexey Stashok
+ *
  */
 @SuppressWarnings("unchecked")
 public class AsyncPUTest {

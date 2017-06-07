@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ import java.util.logging.Logger;
  * The silent connection is a connection, which didn't send/receive any byte
  * since it was accepted during specified period of time.
  * 
- * @author Alexey Stashok
+ *
  */
 public final class SilentConnectionFilter extends BaseFilter {
     private static final Logger LOGGER = Grizzly.logger(SilentConnectionFilter.class);

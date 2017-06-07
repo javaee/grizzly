@@ -42,7 +42,7 @@ package org.glassfish.grizzly.http2;
 
 /**
  *
- * @author oleksiys
+ *
  */
 public interface Http2Packet {
     Http2Stream getHttp2Stream();

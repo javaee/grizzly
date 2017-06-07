@@ -62,9 +62,9 @@ import org.glassfish.grizzly.asyncqueue.TaskQueue;
 /**
  * The {@link AsyncQueueWriter} implementation, based on the Java NIO
  * 
- * @author Alexey Stashok
- * @author Ryan Lubke
- * @author Gustav Trede
+ *
+ *
+ *
  */
 @SuppressWarnings("unchecked")
 public abstract class AbstractNIOAsyncQueueWriter

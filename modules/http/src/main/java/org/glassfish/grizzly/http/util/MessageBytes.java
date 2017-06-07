@@ -71,9 +71,9 @@ import java.nio.charset.Charset;
  * The object can represent a byte[], a char[], or a (sub) String. All
  * operations can be made in case sensitive mode or not.
  *
- * @author dac@eng.sun.com
- * @author James Todd [gonzo@eng.sun.com]
- * @author Costin Manolache
+ *
+ *
+ *
  */
 public final class MessageBytes implements Cloneable, Serializable {
     // primary type ( whatever is set as original value )

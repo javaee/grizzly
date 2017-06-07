@@ -49,7 +49,7 @@ import java.util.function.Supplier;
 /**
  * A non thread-safe {@link AttributeHolder} implementation.
  * 
- * @author Alexey Stashok
+ *
  */
 final class UnsafeAttributeHolder implements AttributeHolder {
     // the associated AttributeBuilder

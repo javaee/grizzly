@@ -87,10 +87,10 @@ import org.glassfish.grizzly.utils.Charsets;
  *
  * The buffer can be modified and used for both input and output.
  *
- * @author dac@sun.com
- * @author James Todd [gonzo@sun.com]
- * @author Costin Manolache
- * @author Remy Maucherat
+ *
+ *
+ *
+ *
  */
 public final class ByteChunk implements Chunk, Cloneable, Serializable {
 

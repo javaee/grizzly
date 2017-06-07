@@ -63,7 +63,7 @@ import org.glassfish.grizzly.utils.StringFilter;
 
 /**
  *
- * @author Alexey Stashok
+ *
  */
 @SuppressWarnings("unchecked")
 public class ProtocolChainCodecTest extends GrizzlyTestCase {

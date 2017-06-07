@@ -65,7 +65,7 @@ import org.glassfish.grizzly.utils.Holder;
 
 /**
  *
- * @author oleksiys
+ *
  */
 public class TCPNIOServerConnection extends TCPNIOConnection {
 

@@ -80,7 +80,7 @@ import static org.junit.Assert.*;
 /**
  * Testing SSL attributes.
  * 
- * @author Alexey Stashok
+ *
  */
 @SuppressWarnings("unchecked")
 public class SSLAttributesTest {

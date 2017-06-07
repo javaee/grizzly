@@ -76,7 +76,7 @@ import static org.glassfish.grizzly.http2.Termination.OUT_FIN_TERMINATION;
  * The implementation is aligned with HTTP/2 requirements with regards to message
  * flow control.
  * 
- * @author Alexey Stashok
+ *
  */
 class DefaultOutputSink implements StreamOutputSink {
     private static final Logger LOGGER = Grizzly.logger(StreamOutputSink.class);

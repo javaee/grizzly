@@ -56,7 +56,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
  * lifecycle.  The new connections could be either accepted if we have server,
  * or connected, if we establish client connection.
  *
- * @author Alexey Stashok
+ *
  */
 public class LifeCycleFilter extends BaseFilter {
     private Attribute<Integer> connectionIdAttribute =

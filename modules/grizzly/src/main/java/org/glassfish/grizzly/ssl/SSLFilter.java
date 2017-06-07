@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -70,7 +70,7 @@ import org.glassfish.grizzly.utils.JdkVersion;
 /**
  * SSL {@link Filter} to operate with SSL encrypted data.
  *
- * @author Alexey Stashok
+ *
  */
 public class SSLFilter extends SSLBaseFilter {
     private static final Logger LOGGER = Grizzly.logger(SSLFilter.class);

@@ -74,8 +74,8 @@ import org.glassfish.grizzly.localization.LogMessages;
  * So if you want to support <tt>HTTP pipelining</tt>, the closed connection
  * detection mechanism should be disabled via {@link CometContext#setDetectClosedConnections(boolean)}.
  * 
- * @author Jeanfrancois Arcand
- * @author Gustav Trede
+ *
+ *
  */
 public class CometEngine {
     // Disable suspended connection time out for a {@link CometContext#setExpirationDelay}

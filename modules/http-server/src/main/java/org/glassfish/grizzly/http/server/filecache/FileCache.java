@@ -80,8 +80,8 @@ import org.glassfish.grizzly.monitoring.MonitoringUtils;
 /**
  * This class implements a file caching mechanism used to cache static resources.
  *
- * @author Jeanfrancois Arcand
- * @author Scott Oaks
+ *
+ *
  */
 public class FileCache implements MonitoringAware<FileCacheProbe> {
     private static final File TMP_DIR =

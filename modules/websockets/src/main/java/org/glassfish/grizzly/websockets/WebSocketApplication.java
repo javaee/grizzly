@@ -53,7 +53,7 @@ import org.glassfish.grizzly.http.util.Header;
  * Abstract server-side {@link WebSocket} application, which will handle
  * application {@link WebSocket}s events.
  *
- * @author Alexey Stashok
+ *
  */
 public abstract class WebSocketApplication extends WebSocketAdapter {
 

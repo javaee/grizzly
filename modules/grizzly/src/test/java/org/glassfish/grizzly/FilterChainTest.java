@@ -78,7 +78,7 @@ import org.glassfish.grizzly.utils.StringFilter;
 /**
  * Test general {@link FilterChain} functionality.
  *
- * @author Alexey Stashok
+ *
  */
 @SuppressWarnings("unchecked")
 public class FilterChainTest extends TestCase {

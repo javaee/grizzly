@@ -50,7 +50,7 @@ import java.util.function.Supplier;
  * @see IndexedAttributeHolder
  * @see NamedAttributeHolder
  * 
- * @author Alexey Stashok
+ *
  */
 public interface AttributeHolder {
     /**

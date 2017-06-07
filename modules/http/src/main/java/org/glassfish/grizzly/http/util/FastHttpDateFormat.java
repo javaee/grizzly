@@ -76,8 +76,8 @@ import org.glassfish.grizzly.utils.Charsets;
 /**
  * Utility class to generate HTTP dates.
  *
- * @author Gustav Trede 
- * @author Remy Maucherat
+ *
+ *
  */
 public final class FastHttpDateFormat {
 

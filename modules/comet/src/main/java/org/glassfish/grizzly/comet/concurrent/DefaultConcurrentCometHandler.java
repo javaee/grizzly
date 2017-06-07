@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,7 +63,7 @@ import org.glassfish.grizzly.http.server.Response;
  * potential improvement is that only 1 worker thread is tied up to a client instead of several being blocked by
  * synchronized io wait for one CometHandler .<br>
  *
- * @author Gustav Trede
+ *
  */
 public abstract class DefaultConcurrentCometHandler<E> implements CometHandler<E> {
     protected final static Logger logger = Logger.getLogger(DefaultConcurrentCometHandler.class.getName());

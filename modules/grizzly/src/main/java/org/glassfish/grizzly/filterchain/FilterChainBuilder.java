@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,7 +50,7 @@ import java.util.Set;
  * {@link FilterChainBuilder} implementation, which is responsible for
  * constructing {@link FilterChain}s.
  * 
- * @author Alexey Stashok
+ *
  */
 public final class FilterChainBuilder {
     private final List<FilterRecord> patternFilterChain;

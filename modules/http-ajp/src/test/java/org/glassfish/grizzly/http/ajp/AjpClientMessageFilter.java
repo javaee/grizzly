@@ -52,7 +52,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
  * Client side AJP filter, which deserializes AJP message by parsing magic bytes
  * and message length.
  * 
- * @author Alexey Stashok
+ *
  */
 public class AjpClientMessageFilter extends BaseFilter {
     private final Attribute<ParsingState> parsingStateAttribute =

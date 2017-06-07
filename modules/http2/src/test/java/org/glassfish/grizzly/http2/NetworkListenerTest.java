@@ -68,7 +68,7 @@ import static org.junit.Assert.*;
 /**
  * {@link NetworkListener} tests.
  * 
- * @author Alexey Stashok
+ *
  */
 @SuppressWarnings("unchecked")
 public class NetworkListenerTest extends AbstractHttp2Test {

@@ -47,7 +47,7 @@ import org.glassfish.grizzly.Context;
  * Internal {@link Context} implementation, which is aware of associated
  * {@link FilterChainContext}.
  * 
- * @author Alexey Stashok
+ *
  */
 class InternalContextImpl extends Context {
     final FilterChainContext filterChainContext;

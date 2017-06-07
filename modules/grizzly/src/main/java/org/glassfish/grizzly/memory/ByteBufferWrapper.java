@@ -55,9 +55,9 @@ import org.glassfish.grizzly.Buffer;
  * @see MemoryManager
  * @see ByteBuffer
  *
- * @author Ken Cavanaugh
- * @author John Vieten
- * @author Alexey Stashok
+ *
+ *
+ *
  */
 public class ByteBufferWrapper implements Buffer {
     public static volatile boolean DEBUG_MODE = false;

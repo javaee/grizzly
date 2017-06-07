@@ -46,7 +46,7 @@ import org.glassfish.grizzly.WriteResult;
 
 /**
  *
- * @author oleksiys
+ *
  */
 class AggrCompletionHandler implements CompletionHandler<WriteResult> {
     private Record[] completionHandlerRecords = new Record[2];

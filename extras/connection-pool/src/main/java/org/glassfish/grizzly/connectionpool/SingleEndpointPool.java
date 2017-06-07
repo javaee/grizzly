@@ -97,7 +97,7 @@ import org.glassfish.grizzly.utils.Futures;
  * 
  * @param <E> the address type, for example for TCP transport it's {@link SocketAddress}
  * 
- * @author Alexey Stashok
+ *
  */
 public class SingleEndpointPool<E> {
     private static final Logger LOGGER = Grizzly.logger(SingleEndpointPool.class);

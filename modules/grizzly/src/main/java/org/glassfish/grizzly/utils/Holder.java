@@ -45,7 +45,7 @@ import java.util.function.Supplier;
 /**
  * The object holder, which might be used for lazy object initialization.
  * 
- * @author Alexey Stashok
+ *
  */
 public abstract class Holder<E> {
     public static <T> Holder<T> staticHolder(final T value) {

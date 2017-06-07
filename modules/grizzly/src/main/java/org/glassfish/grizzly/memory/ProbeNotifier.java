@@ -46,7 +46,7 @@ import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
  * Utility class, which has notification methods for different
  * {@link MemoryProbe} events.
  *
- * @author Alexey Stashok
+ *
  */
 final class ProbeNotifier {
 

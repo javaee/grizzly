@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2010 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,7 +44,7 @@ package org.glassfish.grizzly.filterchain;
  * {@link NextAction}, which instructs {@link FilterChain} to suspend filter
  * chain execution, both execute and post-execute phases.
  *
- * @author Alexey Stashok
+ *
  */
 final class SuspendAction extends AbstractNextAction {
     static final int TYPE = 2;

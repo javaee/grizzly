@@ -52,7 +52,7 @@ import org.glassfish.grizzly.http.util.HttpUtils;
 /**
  * Utility class used to generate HTML pages.
  *
- * @author Jean-Francois Arcand
+ *
  */
 public class HtmlHelper{
 

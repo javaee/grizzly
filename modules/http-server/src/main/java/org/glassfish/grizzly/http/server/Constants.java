@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,7 +62,7 @@ import org.glassfish.grizzly.http.util.ByteChunk;
  * Constants. Inspired from class com.glassfish.grizzly.tcp.http11.Constants
  * TODO: A lot of this is duplicated in com.glassfish.grizzly.Constants - clean up
  * 
- * @author Jean-Francois Arcand
+ *
  */
 public final class Constants {
 

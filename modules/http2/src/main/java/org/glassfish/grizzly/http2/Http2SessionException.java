@@ -49,7 +49,7 @@ import org.glassfish.grizzly.http2.frames.ErrorCode;
  * Unlike {@link Http2StreamException}, this exception means severe problem
  * related to the entire HTTP2 session.
  * 
- * @author Alexey Stashok
+ *
  */
 public final class Http2SessionException extends IOException {
     private final ErrorCode errorCode;

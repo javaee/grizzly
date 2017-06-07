@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,7 +51,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
  * The SUB-service message parser/serializer, which is responsible for parsing
  * {@link SubResponseMessage} and serializing {@link SubRequestMessage}.
  *
- * @author Alexey Stashok
+ *
  */
 public class SubClientMessageFilter extends BaseFilter {
     private final static int MESSAGE_SIZE = 4;  // BODY = RESULT(INT) = 4

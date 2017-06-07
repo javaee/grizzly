@@ -45,7 +45,7 @@ import org.glassfish.grizzly.WriteResult;
 
 /**
  *
- * @author oleksiys
+ *
  */
 public class ChunkedCompletionHandler implements CompletionHandler<WriteResult> {
     private final CompletionHandler<WriteResult> parentCompletionHandler;

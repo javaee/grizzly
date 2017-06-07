@@ -59,7 +59,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * @author oleksiys
+ *
  */
 @RunWith(Parameterized.class)
 public class ThreadLocalMemoryManagerTest extends AbstractThreadLocalMemoryManagerTest {

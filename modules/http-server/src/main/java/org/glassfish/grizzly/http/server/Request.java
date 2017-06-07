@@ -110,8 +110,8 @@ import static org.glassfish.grizzly.http.util.Constants.FORM_POST_CONTENT_TYPE;
 /**
  * Wrapper object for the Coyote request.
  *
- * @author Remy Maucherat
- * @author Craig R. McClanahan
+ *
+ *
  * @version $Revision: 1.2 $ $Date: 2007/03/14 02:15:42 $
  */
 

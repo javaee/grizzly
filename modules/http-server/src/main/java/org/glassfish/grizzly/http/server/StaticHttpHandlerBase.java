@@ -68,8 +68,8 @@ import org.glassfish.grizzly.utils.GenericAdapter;
  * The basic class for {@link HttpHandler} implementations,
  * which processes requests to a static resources.
  *
- * @author Jeanfrancois Arcand
- * @author Alexey Stashok
+ *
+ *
  */
 public abstract class StaticHttpHandlerBase extends HttpHandler {
     private static final Logger LOGGER = Grizzly.logger(StaticHttpHandlerBase.class);

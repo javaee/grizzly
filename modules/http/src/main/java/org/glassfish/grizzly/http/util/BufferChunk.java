@@ -48,7 +48,7 @@ import org.glassfish.grizzly.memory.Buffers;
  * {@link Buffer} chunk representation.
  * Helps HTTP module to avoid redundant String creation.
  *
- * @author Alexey Stashok
+ *
  */
 public class BufferChunk implements Chunk {
     /** Default encoding used to convert to strings. It should be UTF8,

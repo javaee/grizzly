@@ -59,7 +59,7 @@ import org.glassfish.grizzly.http2.Http2Configuration;
  * 
  * @see SmileysHandler
  *
- * @author Alexey Stashok
+ *
  */
 public class Http2Server {
     private static final Logger LOGGER = Grizzly.logger(Http2Server.class);

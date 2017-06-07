@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,7 +55,7 @@ import org.glassfish.grizzly.nio.SelectorRunner;
  * {@link org.glassfish.grizzly.IOStrategy}, which executes {@link org.glassfish.grizzly.Processor}s in a current threads, and
  * resumes selector thread logic in separate thread.
  *
- * @author Alexey Stashok
+ *
  */
 public final class LeaderFollowerNIOStrategy extends AbstractIOStrategy {
     private static final LeaderFollowerNIOStrategy INSTANCE = new LeaderFollowerNIOStrategy();

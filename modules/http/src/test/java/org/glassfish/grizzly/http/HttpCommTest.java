@@ -74,7 +74,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 /**
  * Test HTTP communication
  * 
- * @author Alexey Stashok
+ *
  */
 public class HttpCommTest extends TestCase {
 

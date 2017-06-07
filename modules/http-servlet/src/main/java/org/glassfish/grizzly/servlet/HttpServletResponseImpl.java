@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -80,8 +80,8 @@ import org.glassfish.grizzly.http.server.Response;
  * Facade class that wraps a {@link Response} object.
  * All methods are delegated to the wrapped response.
  *
- * @author Remy Maucherat
- * @author Jean-Francois Arcand
+ *
+ *
  * @version $Revision: 1.9 $ $Date: 2007/05/05 05:32:43 $
  */
 @SuppressWarnings("deprecation")

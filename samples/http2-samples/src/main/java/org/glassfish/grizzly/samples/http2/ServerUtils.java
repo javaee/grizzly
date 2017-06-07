@@ -54,7 +54,7 @@ import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 /**
  * Utility class, which contains helper methods for server initialization.
  * 
- * @author Alexey Stashok
+ *
  */
 public class ServerUtils {
     private static final String SMILEYS_ROOT = "./smileys";

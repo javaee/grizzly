@@ -60,7 +60,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * a message and pass control to a next filter in a chain, otherwise -
  * throws an Exception.
  *
- * @author Alexey Stashok
+ *
  */
 public class ServerAuthFilter extends BaseFilter {
 

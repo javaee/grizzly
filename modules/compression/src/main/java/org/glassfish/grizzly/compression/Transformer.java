@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -53,7 +53,7 @@ import org.glassfish.grizzly.attributes.AttributeStorage;
  * possible to reuse single instance of a stateful <tt>Transformer</tt> to
  * process lots of concurrent transformations.
  *
- * @author Alexey Stashok
+ *
  */
 public interface Transformer<K, L> {
     /**

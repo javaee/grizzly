@@ -48,7 +48,7 @@ import org.glassfish.grizzly.http.util.Header;
 
 /**
  *
- * @author oleksiys
+ *
  */
 class Http2Response extends HttpResponsePacket implements Http2Header {
     private static final ThreadCache.CachedTypeIndex<Http2ResponseRecyclable> CACHE_IDX =

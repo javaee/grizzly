@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -47,7 +47,7 @@ package org.glassfish.grizzly.filterchain;
  * won't be notified. But at the same time the {@link Conection} will be able to
  * process incoming data and respond.
  *
- * @author Alexey Stashok
+ *
  */
 final class SuspendConnectAction extends AbstractNextAction {
     static final int TYPE = 6;

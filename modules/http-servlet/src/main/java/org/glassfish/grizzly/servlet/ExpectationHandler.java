@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.servlet;
 
 import java.io.IOException;
@@ -47,7 +48,7 @@ import javax.servlet.http.HttpServletResponse;
  * Handler, responsible for processing Expect: header in a HTTP requests,
  * for example "Expect: 100-Continue"
  * 
- * @author Alexey Stashok
+ *
  */
 public interface ExpectationHandler {
     /**

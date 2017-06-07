@@ -65,7 +65,7 @@ import static org.junit.Assert.*;
 /**
  * {@link NetworkListener} tests.
  * 
- * @author Alexey Stashok
+ *
  */
 @FixMethodOrder(MethodSorters.JVM)
 public class NetworkListenerTest {

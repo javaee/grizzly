@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2012 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.http.util;
 
 import java.util.HashMap;
@@ -46,7 +47,7 @@ import java.util.Map;
  * Hardcoded mime-type supported by default.   Additional extension/mime-type mappings may be added by calling {@link
  * MimeType#add(String, String)}, however, keep in mind that these mappings are per-JVM.
  *
- * @author Jeanfrancois Arcand
+ *
  */
 public class MimeType {
     private final static Map<String, String> contentTypes = new HashMap<String, String>();

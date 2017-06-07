@@ -58,10 +58,10 @@ import org.glassfish.grizzly.Buffer;
  * @see MemoryManager
  * @see ByteBuffer
  *
- * @author Ken Cavanaugh
- * @author John Vieten
- * @author Alexey Stashok
- * @author Ryan Lubke
+ *
+ *
+ *
+ *
  *
  * @since 2.0
  */

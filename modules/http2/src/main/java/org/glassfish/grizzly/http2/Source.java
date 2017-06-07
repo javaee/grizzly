@@ -48,7 +48,7 @@ import org.glassfish.grizzly.memory.Buffers;
 /**
  * The class represents generic source of data to be sent on {@link Http2Stream}.
  * 
- * @author Alexey Stashok
+ *
  */
 abstract class Source {
     /**

@@ -67,7 +67,7 @@ import static org.junit.Assert.*;
 /**
  * The {@link MultiEndpointPool} tests.
  * 
- * @author Alexey Stashok
+ *
  */
 public class MultiEndPointPoolTest {
     private static final int PORT = 18334;

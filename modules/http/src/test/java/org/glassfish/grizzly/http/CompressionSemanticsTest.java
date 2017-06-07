@@ -74,7 +74,7 @@ import org.glassfish.grizzly.memory.Buffers;
 
 /**
  *
- * @author Alexey Stashok
+ *
  */
 public class CompressionSemanticsTest extends TestCase {
     private static final Logger logger = Grizzly.logger(CompressionSemanticsTest.class);

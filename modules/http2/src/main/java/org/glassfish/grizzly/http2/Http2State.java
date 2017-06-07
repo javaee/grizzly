@@ -50,7 +50,7 @@ import org.glassfish.grizzly.http2.Http2FrameCodec.FrameParsingState;
 
 /**
  *
- * @author oleksiys
+ *
  */
 class Http2State {
     private static final Attribute<Http2State> http2State =

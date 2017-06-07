@@ -50,7 +50,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 
- * @author Alexey Stashok
+ *
  */
 public class DelayedExecutor {
     public final static long UNSET_TIMEOUT = -1;

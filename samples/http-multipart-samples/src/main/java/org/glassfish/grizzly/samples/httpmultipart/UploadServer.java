@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2013 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.grizzly.samples.httpmultipart;
 
 import java.io.IOException;
@@ -54,7 +55,7 @@ import org.glassfish.grizzly.http.server.ServerConfiguration;
  * First one is responsible to serve simple HTML upload form and the second one
  * takes care of actual file/data uploading.
  *
- * @author Alexey Stashok
+ *
  */
 public class UploadServer {
     private static final Logger LOGGER = Grizzly.logger(UploadServer.class);

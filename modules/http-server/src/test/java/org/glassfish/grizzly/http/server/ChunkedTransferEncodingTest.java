@@ -107,7 +107,7 @@ import static org.junit.Assert.*;
 /**
  * Chunked Transfer-Encoding and HttpHandler tests.
  *
- * @author Alexey Stashok
+ *
  */
 @RunWith(Parameterized.class)
 public class ChunkedTransferEncodingTest {

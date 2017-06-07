@@ -90,7 +90,7 @@ import static org.glassfish.grizzly.http2.frames.SettingsFrame.SETTINGS_MAX_CONC
 
 /**
  *
- * @author oleksiys
+ *
  */
 public class Http2ClientFilter extends Http2BaseFilter {
     private final AlpnClientNegotiatorImpl defaultClientAlpnNegotiator;

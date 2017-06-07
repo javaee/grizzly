@@ -85,7 +85,7 @@ import static org.junit.Assert.*;
 /**
  * Chunked Transfer-Encoding tests.
  * 
- * @author Alexey Stashok
+ *
  */
 @RunWith(Parameterized.class)
 public class ChunkedTransferEncodingTest {
