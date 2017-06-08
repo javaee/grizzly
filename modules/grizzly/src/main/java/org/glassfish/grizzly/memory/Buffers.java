@@ -607,7 +607,7 @@ public class Buffers {
      * @param buffer the destination {@link Buffer}.
      * @return the number of bytes read, or <tt>-1</tt> if the end of file is reached.
      *
-     * @throws IOException
+     * @throws IOException if an error occurs reading the {@link FileChannel}.
      */
     public static long readFromFileChannel(final FileChannel fileChannel,
             final Buffer buffer) throws IOException {
@@ -642,7 +642,7 @@ public class Buffers {
      * @param buffer the source {@link Buffer}.
      * @return the number of bytes written, possibly zero.
      *
-     * @throws IOException
+     * @throws IOException if an error occurs writing to the {@link FileChannel}.
      */
     @SuppressWarnings("UnusedDeclaration")
     public static long writeToFileChannel(final FileChannel fileChannel,
