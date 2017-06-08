@@ -896,7 +896,7 @@ public class InputBuffer {
 
         if (!isWaitingDataAsynchronously) {
             isWaitingDataAsynchronously = true;
-            initiateAsyncronousDataReceiving();
+            initiateAsynchronousDataReceiving();
         }
     }
 
@@ -1003,7 +1003,7 @@ public class InputBuffer {
      *
      * This is service method, usually users don't have to call it explicitly.
      */
-    public void initiateAsyncronousDataReceiving() {
+    public void initiateAsynchronousDataReceiving() {
         // fork the FilterChainContext execution
         // keep the current FilterChainContext suspended, but make a copy and resume it
         ctx.fork(ctx.getStopAction());

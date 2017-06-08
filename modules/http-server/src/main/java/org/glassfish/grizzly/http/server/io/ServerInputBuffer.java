@@ -70,7 +70,7 @@ public class ServerInputBuffer extends InputBuffer {
      * This is service method, usually users don't have to call it explicitly.
      */
     @Override
-    public void initiateAsyncronousDataReceiving() {
+    public void initiateAsynchronousDataReceiving() {
         if (!checkChunkedMaxPostSize()) {
             final HttpContent brokenContent =
                     HttpBrokenContent.builder(serverRequest.getRequest())
@@ -84,7 +84,7 @@ public class ServerInputBuffer extends InputBuffer {
             return;
         }
         
-        super.initiateAsyncronousDataReceiving();
+        super.initiateAsynchronousDataReceiving();
     }
 
     @Override

@@ -237,7 +237,7 @@ public class CometContext<E> {
                 
                 // Initialize asynchronous reading to be notified when connection
                 // is getting closed by peer
-                response.getRequest().getInputBuffer().initiateAsyncronousDataReceiving();
+                response.getRequest().getInputBuffer().initiateAsynchronousDataReceiving();
             }
 
             handlers.add(handler);
