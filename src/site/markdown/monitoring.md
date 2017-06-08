@@ -150,7 +150,7 @@ footprint lighter, we separated out JMX related entities and logic into separate
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-framework-monitoring</artifactId>
-    <version>@VERSION@</version>
+    <version>2.3.31</version>
 </dependency>
 ```
 
@@ -159,7 +159,7 @@ footprint lighter, we separated out JMX related entities and logic into separate
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-monitoring</artifactId>
-    <version>@VERSION@</version>
+    <version>2.3.31</version>
 </dependency>
 ```
 
@@ -168,7 +168,7 @@ footprint lighter, we separated out JMX related entities and logic into separate
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-server-monitoring</artifactId>
-    <version>@VERSION@</version>
+    <version>2.3.31</version>
 </dependency>
 ```
 

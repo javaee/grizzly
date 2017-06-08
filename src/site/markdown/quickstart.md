@@ -13,7 +13,7 @@ pom:
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-framework</artifactId>
-    <version>@VERSION@</version>
+    <version>2.3.31</version>
 </dependency>
 ```
 

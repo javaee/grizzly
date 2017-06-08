@@ -122,7 +122,7 @@ and push requests.</td>
 
 ### HTTP/2 Server Push
 
-Starting with @VERSION@, Grizzly offers support for HTTP/2 server push mechanism
+Starting with 2.3.31, Grizzly offers support for HTTP/2 server push mechanism
 <https://tools.ietf.org/html/rfc7540#section-8.2>.
 
 > Quote:  

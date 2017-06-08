@@ -132,14 +132,14 @@ module. The following dependency needs to be added to the pom:
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http-server-multipart</artifactId>
-     <version>@VERSION@</version>
+     <version>2.3.31</version>
 </dependency>
 ```
 
 Non-maven developers: additional dependencies: [HTTP Server
 framework](#http-server-dep), required by:
 
--   [grizzly-http-server-multipart.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-servlet/@VERSION@/grizzly-http-server-multipart-@VERSION@.jar)
+-   [grizzly-http-server-multipart.jar](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/grizzly-http-servlet/2.3.31/grizzly-http-server-multipart-2.3.31.jar)
 
 ### Sample
 
@@ -394,4 +394,4 @@ is no more data to be processed, finish the upload by closing the local
 file output stream.
 
 The complete working sample could be downloaded
-[here](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-multipart-samples/@VERSION@/grizzly-http-multipart-samples-@VERSION@-sources.jar)
+[here](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-multipart-samples/2.3.31/grizzly-http-multipart-samples-2.3.31-sources.jar)

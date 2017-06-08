@@ -80,7 +80,7 @@ module in your project:
     <dependency>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-http-server</artifactId>
-        <version>@VERSION@</version>
+        <version>2.3.31</version>
     </dependency>
 </dependencies>
 ```
@@ -148,7 +148,7 @@ started.
 </tr>
 <tr class="odd">
 <td align="left">version</td>
-<td align="left">Set the version of this server instance. If not explicitly set, the version will be @VERSION@.</td>
+<td align="left">Set the version of this server instance. If not explicitly set, the version will be 2.3.31.</td>
 </tr>
 </tbody>
 </table>
@@ -1284,7 +1284,7 @@ actually output. It's been added to visualize the artificial delay added
 by the Filter used by the client.
 
 This example in its entirety is available within the samples section of
-the Grizzly @VERSION@ repository.
+the Grizzly 2.3.31 repository.
 
 ## Other samples
 
@@ -1300,6 +1300,6 @@ cd samples/http-server-samples
 ```
 
 -   Download the sample source bundle from:
-    <https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-server-samples/@VERSION@/grizzly-http-server-samples-@VERSION@-sources.jar>
+    <https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-http-server-samples/2.3.31/grizzly-http-server-samples-2.3.31-sources.jar>
 
 

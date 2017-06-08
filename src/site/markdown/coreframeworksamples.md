@@ -212,6 +212,6 @@ cd samples/framework-samples
 ```
 
 -   Download the sample source bundle from:
-    <https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-framework-samples/@VERSION@/grizzly-framework-samples-@VERSION@-sources.jar>
+    <https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-framework-samples/2.3.31/grizzly-framework-samples-2.3.31-sources.jar>
 
 
