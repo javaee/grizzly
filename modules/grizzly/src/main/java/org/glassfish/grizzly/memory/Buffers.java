@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -74,7 +74,7 @@ public class Buffers {
      * Get the {@link Appender} which knows how to append {@link Buffer}s.
      * Returned {@link Appender} uses the same {@link Buffer} appending rules as
      * described here {@link Buffers#appendBuffers(org.glassfish.grizzly.memory.MemoryManager, org.glassfish.grizzly.Buffer, org.glassfish.grizzly.Buffer, boolean)}.
-     * 
+     *
      * @param isCompositeBufferDisposable if as the result of {@link Buffer}s
      *      appending a new {@link CompositeBuffer} will be created - its
      *      {@link CompositeBuffer#allowBufferDispose(boolean)} value will be set
@@ -86,21 +86,21 @@ public class Buffers {
         return isCompositeBufferDisposable ?
                 APPENDER_DISPOSABLE : APPENDER_NOT_DISPOSABLE;
     }
-    
+
     private static class BuffersAppender implements Appender<Buffer> {
         private final boolean isCompositeBufferDisposable;
 
         public BuffersAppender(boolean isCompositeBufferDisposable) {
             this.isCompositeBufferDisposable = isCompositeBufferDisposable;
         }
-        
+
         @Override
         public Buffer append(final Buffer element1, final Buffer element2) {
             return Buffers.appendBuffers(null, element1, element2,
                     isCompositeBufferDisposable);
         }
     }
-    
+
     public static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
     @SuppressWarnings("unused")
     public static final ByteBuffer[] EMPTY_BYTE_BUFFER_ARRAY = new ByteBuffer[0];
@@ -272,7 +272,7 @@ public class Buffers {
         final int oldPosition = byteBuffer.position();
         final int oldLimit = byteBuffer.limit();
         setPositionLimit(byteBuffer, position, limit);
-        
+
         try {
             return charset.decode(byteBuffer).toString();
         } finally {
@@ -406,20 +406,20 @@ public class Buffers {
      * {@link CompositeBuffer}s - then new {@link CompositeBuffer} will be created
      * and both {@link Buffer}s will be added there. The resulting
      * {@link CompositeBuffer} will be disallowed for disposal.
-     * 
+     *
      * @param memoryManager the {@link MemoryManager} to use if a new {@link Buffer}
      *                      needs to be allocated in order to perform the requested
      *                      operation.
      * @param buffer1 the {@link Buffer} to append to.
      * @param buffer2 the {@link Buffer} to append.
-     * 
+     *
      * @return the result of appending of two {@link Buffer}s.
      */
     public static Buffer appendBuffers(final MemoryManager memoryManager,
             final Buffer buffer1, final Buffer buffer2) {
         return appendBuffers(memoryManager, buffer1, buffer2, false);
     }
-    
+
     /**
      * Append two {@link Buffer}s.
      * If one of the {@link Buffer}s is null - then another {@link Buffer} will
@@ -435,7 +435,7 @@ public class Buffers {
      * and both {@link Buffer}s will be added there. The resulting
      * {@link CompositeBuffer} will be assigned according to the
      * <code>isCompositeBufferDisposable</code> parameter.
-     * 
+     *
      * @param memoryManager the {@link MemoryManager} to use if a new {@link Buffer}
      *                      needs to be allocated in order to perform the requested
      *                      operation.
@@ -443,7 +443,7 @@ public class Buffers {
      * @param buffer2 the {@link Buffer} to append.
      * @param isCompositeBufferDisposable flag indicating whether or not the
      *                                    resulting composite buffer may be disposed.
-     * 
+     *
      * @return the result of appending of two {@link Buffer}s.
      */
     public static Buffer appendBuffers(final MemoryManager memoryManager,
@@ -455,13 +455,13 @@ public class Buffers {
         } else if (buffer2 == null) {
             return buffer1;
         }
-        
+
         if (buffer1.order() != buffer2.order()) {
             LOGGER.fine("Appending buffers with different ByteOrder."
                     + "The result Buffer's order will be the same as the first Buffer's ByteOrder");
             buffer2.order(buffer1.order());
         }
-        
+
         // we can only append to or prepend buffer1 if the limit()
         // is the same as capacity.  If it's not, then appending or
         // prepending effectively clobbers the limit causing an invalid
@@ -482,7 +482,7 @@ public class Buffers {
             compositeBuffer.append(buffer1);
             compositeBuffer.append(buffer2);
             compositeBuffer.allowBufferDispose(isCompositeBufferDisposable);
-            
+
             return compositeBuffer;
         }
     }
@@ -589,31 +589,31 @@ public class Buffers {
     public static Buffer cloneBuffer(final Buffer srcBuffer,
             final int position, final int limit) {
         final int srcLength = limit - position;
-        if (srcLength == 0) { // make sure clone doesn't return EMPTY_BUFFER 
+        if (srcLength == 0) { // make sure clone doesn't return EMPTY_BUFFER
             return wrap(getDefaultMemoryManager(), EMPTY_BYTE_BUFFER);
         }
-        
+
         final Buffer clone = getDefaultMemoryManager().allocate(srcLength);
         clone.put(srcBuffer, position, srcLength);
         clone.order(srcBuffer.order());
-        
+
         return clone.flip();
     }
 
     /**
      * Reads data from the {@link FileChannel} into the {@link Buffer}.
-     * 
+     *
      * @param fileChannel the {@link FileChannel} to read data from.
      * @param buffer the destination {@link Buffer}.
      * @return the number of bytes read, or <tt>-1</tt> if the end of file is reached.
-     * 
-     * @throws IOException 
+     *
+     * @throws IOExceptionif an error occurs reading the {@link FileChannel}.
      */
     public static long readFromFileChannel(final FileChannel fileChannel,
             final Buffer buffer) throws IOException {
 
         final long bytesRead;
-        
+
         if (!buffer.isComposite()) {
             final ByteBuffer bb = buffer.toByteBuffer();
             final int oldPos = bb.position();
@@ -627,29 +627,29 @@ public class Buffers {
             array.restore();
             array.recycle();
         }
-        
+
         if (bytesRead > 0) {
             buffer.position(buffer.position() + (int) bytesRead);
         }
-        
+
         return bytesRead;
     }
-    
+
     /**
      * Writes data from the {@link Buffer} into the {@link FileChannel}.
-     * 
+     *
      * @param fileChannel the {@link FileChannel} to write data to.
      * @param buffer the source {@link Buffer}.
      * @return the number of bytes written, possibly zero.
-     * 
-     * @throws IOException 
+     *
+     * @throws IOExceptionif an error occurs writing to the {@link FileChannel}.
      */
     @SuppressWarnings("UnusedDeclaration")
     public static long writeToFileChannel(final FileChannel fileChannel,
             final Buffer buffer) throws IOException {
 
         final long bytesWritten;
-        
+
         if (!buffer.isComposite()) {
             final ByteBuffer bb = buffer.toByteBuffer();
             final int oldPos = bb.position();
@@ -667,7 +667,7 @@ public class Buffers {
         if (bytesWritten > 0) {
             buffer.position(buffer.position() + (int) bytesWritten);
         }
-        
+
         return bytesWritten;
     }
 
@@ -676,7 +676,7 @@ public class Buffers {
      * {@link Buffer#toString()} + "[" + <head-chunk> + "..." + <tail-chunk> + "]"
      * For example:
      * <pre>HeapBuffer (1781633478) [pos=0 lim=285 cap=285][abcde...xyz]</pre>
-     * 
+     *
      * @param buffer the {@link Buffer}, could be <tt>null</tt>
      * @param headBytesCount the number of heading bytes to include (larger or equal to 0)
      * @param tailBytesCount the number of tailing bytes to include (larger or equal to 0)
@@ -692,13 +692,13 @@ public class Buffers {
         return toStringContent(buffer, headBytesCount, tailBytesCount,
                 Charset.defaultCharset());
     }
-    
+
     /**
      * Returns the {@link Buffer}'s {@link String} representation in a form:
      * {@link Buffer#toString()} + "[" + <head-chunk> + "..." + <tail-chunk> + "]"
      * For example:
      * <pre>HeapBuffer (1781633478) [pos=0 lim=285 cap=285][abcde...xyz]</pre>
-     * 
+     *
      * @param buffer the {@link Buffer}, could be <tt>null</tt>
      * @param headBytesCount the number of heading bytes to include (larger or equal to 0)
      * @param tailBytesCount the number of tailing bytes to include (larger or equal to 0)
@@ -713,17 +713,17 @@ public class Buffers {
         if (buffer == null) {
             return null;
         }
-        
+
         if (headBytesCount < 0 || tailBytesCount < 0) {
             throw new IllegalArgumentException("count can't be negative");
         }
-        
+
         final String toString = buffer.toString();
         final StringBuilder sb = new StringBuilder(
                 toString.length() + headBytesCount + tailBytesCount + 5);
-        
+
         sb.append(toString);
-        
+
         if (buffer.remaining() <= headBytesCount + tailBytesCount) {
             sb.append('[').append(buffer.toStringContent(charset)).append(']');
         } else {
@@ -739,7 +739,7 @@ public class Buffers {
             }
             sb.append(']');
         }
-        
+
         return sb.toString();
     }
 
