@@ -29,6 +29,8 @@ We have different JDK requirements depending on the branch in use:
 - Oracle JDK 1.8 for 2.4.x and master branches.
 - Oracle JDK 1.7 for 2.3.x.
 
+Apache Maven 3.3.9 or later in order to build and run the tests.
+
 ### Installing
 
 See https://javaee.github.io/grizzly/dependencies.html for the maven
