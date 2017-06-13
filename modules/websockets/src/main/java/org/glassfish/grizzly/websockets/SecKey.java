@@ -46,6 +46,8 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Random;
 
+import org.glassfish.grizzly.utils.Charsets;
+
 /**
  * Class represents {@link WebSocket}'s security key, used during the handshake phase.
  *
@@ -93,7 +95,7 @@ public class SecKey {
         final MessageDigest instance;
         try {
             instance = MessageDigest.getInstance("SHA-1");
-            instance.update(key.getBytes());
+            instance.update(key.getBytes(Charsets.ASCII_CHARSET));
             final byte[] digest = instance.digest();
             if(digest.length != 20) {
                 throw new HandshakeException("Invalid key length.  Should be 20: " + digest.length);
