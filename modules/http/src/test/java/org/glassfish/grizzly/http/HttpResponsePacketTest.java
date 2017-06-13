@@ -141,4 +141,28 @@ public class HttpResponsePacketTest extends TestCase {
             }
         }
     }
+
+    public void testToString() {
+        response = HttpResponsePacket.builder(
+          HttpRequestPacket.builder()
+            .uri("/")
+            .protocol(Protocol.HTTP_1_1)
+            .build())
+          .header("transfer-encoding", "chunked")
+          .header("some-header", "firstValue")
+          .header("some-header", "secondValue")
+          .build();
+
+        assertEquals(response.toString(), "HttpResponsePacket (\n"
+          + "  status=200\n"
+          + "  reason=OK\n"
+          + "  protocol=HTTP/0.9\n"
+          + "  content-length=-1\n"
+          + "  committed=false\n"
+          + "  headers=[\n"
+          + "      transfer-encoding=chunked\n"
+          + "      some-header=firstValue\n"
+          + "      some-header=secondValue]\n"
+          + ")");
+    }
 }
