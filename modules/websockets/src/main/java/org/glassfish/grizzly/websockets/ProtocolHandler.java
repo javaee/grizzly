@@ -58,6 +58,7 @@ import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.SafeFutureImpl;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.websockets.frametypes.BinaryFrameType;
 import org.glassfish.grizzly.websockets.frametypes.TextFrameType;
 
@@ -69,7 +70,7 @@ public abstract class ProtocolHandler {
     protected final boolean maskData;
     protected FilterChainContext ctx;
     protected boolean processingFragment;
-    protected Charset utf8 = new StrictUtf8();
+    protected Charset utf8 = Charsets.UTF8_CHARSET;
     protected CharsetDecoder currentDecoder = utf8.newDecoder();
     protected ByteBuffer remainder;
     protected WebSocketMappingData mappingData;
@@ -341,7 +342,7 @@ public abstract class ProtocolHandler {
                     cb.flip();
                     String res = cb.toString();
                     dataFrame.setPayload(res);
-                    dataFrame.setPayload(Utf8Utils.encode(new StrictUtf8(), res));
+                    dataFrame.setPayload(Utf8Utils.encode(Charsets.UTF8_CHARSET, res));
                     break;
                 }
                 if (result.isOverflow()) {

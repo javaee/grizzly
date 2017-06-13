@@ -40,6 +40,8 @@
 
 package org.glassfish.grizzly.websockets;
 
+import org.glassfish.grizzly.utils.Charsets;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -49,10 +51,7 @@ import java.io.OutputStream;
  * @see <a href="http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-05#section-4.3">Frame Definition</a>
  */
 public class DataFrame {
-    public static final StrictUtf8 STRICT_UTF8_CHARSET = new StrictUtf8();
-    public static final float STRICT_UTF8_MAX_BYTES_PER_CHAR =
-            STRICT_UTF8_CHARSET.newEncoder().maxBytesPerChar();
-    
+
     public static boolean isDataFrame(final Object o) {
         return o instanceof DataFrame;
     }
@@ -104,14 +103,14 @@ public class DataFrame {
 
     public byte[] getBytes() {
         if (payload != null) {
-            bytes = Utf8Utils.encode(STRICT_UTF8_CHARSET, payload);
+            bytes = Utf8Utils.encode(Charsets.UTF8_CHARSET, payload);
         }
         return bytes;
     }
 
     public void toStream(final OutputStream os) throws IOException {
         if (payload != null) {
-            Utf8Utils.encode(STRICT_UTF8_CHARSET, payload, os);
+            Utf8Utils.encode(Charsets.UTF8_CHARSET, payload, os);
         }
     }
 
