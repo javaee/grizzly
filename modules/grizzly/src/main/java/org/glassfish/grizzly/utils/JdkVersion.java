@@ -139,16 +139,6 @@ public class JdkVersion implements Comparable<JdkVersion> {
         return update;
     }
 
-    /**
-     * @return <tt>true</tt> if <code>sun.misc.Unsafe</code> is present in the
-     * current JDK version, or <tt>false</tt> otherwise.
-     * 
-     * @since 2.3.6
-     */
-    public boolean isUnsafeSupported() {
-        return IS_UNSAFE_SUPPORTED;
-    }
-    
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
