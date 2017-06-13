@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2009-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@ package org.glassfish.grizzly.utils;
 
 import java.util.Iterator;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -178,8 +179,7 @@ public class DelayedExecutor {
     }
 
     public class DelayQueue<E> {
-        final ConcurrentMap<E, DelayQueue> queue =
-                DataStructures.getConcurrentMap();
+        final ConcurrentMap<E, DelayQueue> queue = new ConcurrentHashMap<>();
 
         final Worker<E> worker;
         final Resolver<E> resolver;

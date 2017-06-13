@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -51,6 +51,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import java.util.Date;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -62,7 +63,6 @@ import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 import org.glassfish.gmbal.NameValue;
 import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * NIO Transport JMX object.
@@ -83,7 +83,7 @@ public class NIOTransport extends JmxObject {
     private volatile EventDate lastErrorEvent;
 
     private final ConcurrentMap<Connection, String> boundConnections =
-            DataStructures.getConcurrentMap(4);
+            new ConcurrentHashMap<>(4);
 
     private final Queue<String> boundAddresses = new ConcurrentLinkedQueue<String>();
 

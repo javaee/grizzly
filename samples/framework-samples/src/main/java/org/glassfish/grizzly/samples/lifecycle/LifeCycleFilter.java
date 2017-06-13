@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,6 +43,7 @@ package org.glassfish.grizzly.samples.lifecycle;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
@@ -50,7 +51,6 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.BaseFilter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Sample {@link org.glassfish.grizzly.filterchain.Filter}, which tracks the connections
@@ -68,7 +68,7 @@ public class LifeCycleFilter extends BaseFilter {
 
     public LifeCycleFilter() {
         totalConnectionNumber = new AtomicInteger();
-        activeConnectionsMap = DataStructures.getConcurrentMap();
+        activeConnectionsMap = new ConcurrentHashMap<>();
     }
 
     /**

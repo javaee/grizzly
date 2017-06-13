@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import java.io.CharConversionException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
@@ -59,7 +60,6 @@ import org.glassfish.grizzly.http.util.DataChunk;
 import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.grizzly.http.util.RequestURIRef;
 import org.glassfish.grizzly.localization.LogMessages;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * The HttpHandlerChain class allows the invocation of multiple {@link HttpHandler}s
@@ -89,7 +89,7 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
      * The name -> {@link HttpHandler} map.
      */
     private final ConcurrentMap<String, HttpHandler> handlersByName =
-            DataStructures.getConcurrentMap();
+            new ConcurrentHashMap<>();
 
     private final ReentrantReadWriteLock mapperUpdateLock =
             new ReentrantReadWriteLock();
@@ -98,9 +98,9 @@ public class HttpHandlerChain extends HttpHandler implements JmxEventListener {
      * The list of {@link HttpHandler} instance.
      */
     private final ConcurrentMap<HttpHandler, HttpHandlerRegistration[]> handlers =
-            DataStructures.getConcurrentMap();
+            new ConcurrentHashMap<>();
     private final ConcurrentMap<HttpHandler, Object> monitors =
-            DataStructures.getConcurrentMap();
+            new ConcurrentHashMap<>();
     
     /**
      * Number of registered HttpHandlers

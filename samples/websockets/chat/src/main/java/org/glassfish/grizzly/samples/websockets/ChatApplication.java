@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,12 +44,12 @@ import java.awt.Frame;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.HttpRequestPacket;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.websockets.Broadcaster;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.OptimizedBroadcaster;
@@ -71,8 +71,7 @@ public class ChatApplication extends WebSocketApplication {
     private static final Logger logger = Grizzly.logger(ChatApplication.class);
 
     // Logged in members
-    private final Set<WebSocket> members = Collections.newSetFromMap(
-            DataStructures.<WebSocket, Boolean>getConcurrentMap());
+    private final Set<WebSocket> members = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     // initialize optimized broadcaster
     private final Broadcaster broadcaster = new OptimizedBroadcaster();

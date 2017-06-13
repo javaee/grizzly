@@ -65,13 +65,13 @@ import java.io.Reader;
 import java.nio.CharBuffer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.strategies.WorkerThreadIOStrategy;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.DelayFilter;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.http.util.HeaderValue;
@@ -1028,8 +1028,7 @@ public class HttpInputStreamsTest {
             }
         };
 
-        final BlockingQueue<Future<Boolean>> testResultQueue =
-                DataStructures.getLTQInstance();
+        final BlockingQueue<Future<Boolean>> testResultQueue = new LinkedTransferQueue<>();
         
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         server.getListener("grizzly").getKeepAlive().setMaxRequestsCount(-1);
@@ -1313,9 +1312,8 @@ public class HttpInputStreamsTest {
                         int chunkSize,
                         int count) throws Throwable {
 
-        final BlockingQueue<Future<Boolean>> testResultQueue =
-                DataStructures.getLTQInstance();
-        
+        final BlockingQueue<Future<Boolean>> testResultQueue = new LinkedTransferQueue<>();
+
         HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
         ServerConfiguration sconfig = server.getServerConfiguration();
         sconfig.addHttpHandler(new SimpleResponseHttpHandler(strategy, testResultQueue), "/*");

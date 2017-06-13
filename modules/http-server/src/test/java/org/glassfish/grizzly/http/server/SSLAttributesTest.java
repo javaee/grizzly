@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -46,6 +46,7 @@ import java.net.URL;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,7 +72,6 @@ import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.utils.Charsets;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.junit.After;
 import org.junit.Test;
 
@@ -97,8 +97,7 @@ public class SSLAttributesTest {
         configureHttpServer(false);
         startHttpServer(new SSLAttrbitesHandler());
         
-        final BlockingQueue<HttpContent> resultQueue =
-                DataStructures.getLTQInstance(HttpContent.class);
+        final BlockingQueue<HttpContent> resultQueue = new LinkedTransferQueue<>();
         
         final Connection connection = connectClient(false, resultQueue);
         
@@ -151,9 +150,8 @@ public class SSLAttributesTest {
         configureHttpServer(true);
         startHttpServer(new SSLAttrbitesHandler());
         
-        final BlockingQueue<HttpContent> resultQueue =
-                DataStructures.getLTQInstance(HttpContent.class);
-        
+        final BlockingQueue<HttpContent> resultQueue = new LinkedTransferQueue<>();
+
         final Connection connection = connectClient(true, resultQueue);
         
         try {

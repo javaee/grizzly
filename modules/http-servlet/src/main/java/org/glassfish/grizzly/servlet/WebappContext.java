@@ -104,13 +104,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.SessionTrackingMode;
 import javax.servlet.descriptor.JspConfigDescriptor;
 import javax.servlet.http.HttpUpgradeHandler;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * <p>
@@ -188,7 +188,7 @@ public class WebappContext implements ServletContext {
 
     /* Servlet context attributes */
     private final ConcurrentMap<String,Object> attributes =
-            DataStructures.getConcurrentMap(16, 0.75f, 64);
+            new ConcurrentHashMap<>(16, 0.75f, 64);
 
     /* Server name; used in the Server entity header */
     private volatile String serverInfo = "grizzly/" + Grizzly.getDotedVersion();

@@ -71,6 +71,7 @@ import java.util.Random;
 import java.util.TimeZone;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -85,7 +86,6 @@ import org.glassfish.grizzly.http.server.StaticHttpHandler;
 
 import org.glassfish.grizzly.http.server.filecache.FileCacheProbe;
 import org.glassfish.grizzly.memory.Buffers;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -186,8 +186,7 @@ public class FileCacheTest extends AbstractHttp2Test {
 
         boolean isOk = false;
         try {
-            final BlockingQueue<HttpContent> inQueue =
-                    DataStructures.getLTQInstance(HttpContent.class);
+            final BlockingQueue<HttpContent> inQueue = new LinkedTransferQueue<>();
             final Connection c = getConnection("localhost", PORT, inQueue);
             c.write(request1);
             final HttpContent response1 = inQueue.poll(10, TimeUnit.SECONDS);

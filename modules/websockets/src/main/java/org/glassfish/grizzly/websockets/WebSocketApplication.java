@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,10 +43,10 @@ package org.glassfish.grizzly.websockets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.glassfish.grizzly.http.HttpRequestPacket;
 import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Abstract server-side {@link WebSocket} application, which will handle
@@ -59,8 +59,7 @@ public abstract class WebSocketApplication extends WebSocketAdapter {
     /*
      * WebSockets registered with this application.
      */
-    private final ConcurrentMap<WebSocket, Boolean> sockets =
-            DataStructures.getConcurrentMap();
+    private final ConcurrentMap<WebSocket, Boolean> sockets = new ConcurrentHashMap<>();
 
     private final List<Extension> supportedExtensions = new ArrayList<Extension>(2);
     private final List<String> supportedProtocols = new ArrayList<String>(2);

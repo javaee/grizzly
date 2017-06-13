@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -57,7 +58,6 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,8 +73,7 @@ public class MultiEndPointPoolTest {
     private static final int NUMBER_OF_PORTS_TO_BIND = 3;
     
     private final Set<Connection> serverSideConnections =
-            Collections.newSetFromMap(
-            DataStructures.<Connection, Boolean>getConcurrentMap());
+            Collections.newSetFromMap(new ConcurrentHashMap<>());
     
     private TCPNIOTransport transport;
     

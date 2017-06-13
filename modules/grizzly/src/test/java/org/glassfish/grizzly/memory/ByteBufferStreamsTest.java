@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -69,7 +70,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.GrizzlyTestCase;
 import org.glassfish.grizzly.StandaloneProcessor;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Basic idea:
@@ -92,7 +92,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
     private Connection clientconnection = null;
     private TCPNIOTransport servertransport = null;
     private StreamWriter clientWriter = null;
-    private final BlockingQueue<Checker> checkerQueue = DataStructures.getLTQInstance(Checker.class);
+    private final BlockingQueue<Checker> checkerQueue = new LinkedTransferQueue<>();
     private TCPNIOTransport clienttransport;
 
     interface Checker {

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2011-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,6 +58,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
@@ -76,7 +77,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransportBuilder;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.ChunkingFilter;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Pair;
 
 import org.junit.Test;
@@ -99,7 +99,7 @@ public class ChunkedTransferEncodingTest {
     private HTTPRequestCheckFilter httpRequestCheckFilter;
     
     final BlockingQueue<Future<Boolean>> resultQueue =
-            DataStructures.getLTQInstance();
+            new LinkedTransferQueue<>();
     
     @Parameters
     public static Collection<Object[]> getMode() {

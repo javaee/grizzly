@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2008-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,11 +42,11 @@ package org.glassfish.grizzly.servlet;
 
 import java.util.Enumeration;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import org.glassfish.grizzly.http.server.util.Enumerator;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Basic {@link ServletConfig} implementation.
@@ -57,7 +57,7 @@ public class ServletConfigImpl implements ServletConfig {
 
     protected String name;
     protected final ConcurrentMap<String, String> initParameters =
-            DataStructures.getConcurrentMap(16, 0.75f, 64);
+            new ConcurrentHashMap<>(16, 0.75f, 64);
     protected final WebappContext servletContextImpl;
 
     protected ServletConfigImpl(WebappContext servletContextImpl) {

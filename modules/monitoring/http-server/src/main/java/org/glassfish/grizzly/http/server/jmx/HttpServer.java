@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,6 +40,7 @@
 
 package org.glassfish.grizzly.http.server.jmx;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.monitoring.jmx.JmxObject;
@@ -49,7 +50,6 @@ import org.glassfish.gmbal.ManagedAttribute;
 import org.glassfish.gmbal.ManagedObject;
 
 import org.glassfish.grizzly.jmxbase.GrizzlyJmxManager;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * JMX management object for {@link org.glassfish.grizzly.http.server.HttpServer}.
@@ -65,9 +65,9 @@ public class HttpServer extends JmxObject {
 
     private GrizzlyJmxManager mom;
     private final ConcurrentMap<String, NetworkListener> currentListeners =
-            DataStructures.getConcurrentMap(4);
+            new ConcurrentHashMap<>(4);
     private final ConcurrentMap<String, Object> listenersJmx =
-            DataStructures.getConcurrentMap(4);
+            new ConcurrentHashMap<>(4);
     
 
 

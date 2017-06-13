@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -50,9 +50,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Configuration options for a particular {@link HttpServer} instance.
@@ -68,7 +68,7 @@ public class ServerConfiguration extends ServerFilterConfiguration {
     // Non-exposed
 
     final Map<HttpHandler, HttpHandlerRegistration[]> handlers =
-            DataStructures.getConcurrentMap();
+            new ConcurrentHashMap<>();
     private final Map<HttpHandler, HttpHandlerRegistration[]> unmodifiableHandlers =
             Collections.unmodifiableMap(handlers);
     final List<HttpHandler> orderedHandlers =
@@ -194,7 +194,7 @@ public class ServerConfiguration extends ServerFilterConfiguration {
      * Please note, the returned map is read-only.
      *
      * @return the {@link HttpHandler} map.
-     * @deprecated please use {@link #getHttpHandlersMap()}
+     * @deprecated please use {@link #getHttpHandlersWithMapping()}
      */
     public Map<HttpHandler, String[]> getHttpHandlers() {
         final Map<HttpHandler, String[]> map = new HashMap<HttpHandler, String[]>(

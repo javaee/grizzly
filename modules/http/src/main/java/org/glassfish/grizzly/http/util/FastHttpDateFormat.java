@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -66,9 +66,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.glassfish.grizzly.utils.DataStructures;
 
 import static org.glassfish.grizzly.http.util.HttpCodecUtils.*;
 import org.glassfish.grizzly.utils.Charsets;
@@ -171,14 +171,14 @@ public final class FastHttpDateFormat {
      * Formatter cache.
      */
     private static final ConcurrentMap<Long, String> formatCache = 
-        DataStructures.getConcurrentMap(CACHE_SIZE, 0.75f, 64);
+        new ConcurrentHashMap<>(CACHE_SIZE, 0.75f, 64);
 
 
     /**
      * Parser cache.
      */
-    private static final ConcurrentMap<String, Long> parseCache = 
-        DataStructures.getConcurrentMap(CACHE_SIZE, 0.75f, 64);
+    private static final ConcurrentMap<String, Long> parseCache =
+            new ConcurrentHashMap<>(CACHE_SIZE, 0.75f, 64);
 
 
     // --------------------------------------------------------- Public Methods

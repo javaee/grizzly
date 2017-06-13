@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -41,6 +41,7 @@ package org.glassfish.grizzly.connectionpool;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -53,7 +54,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.threadpool.GrizzlyExecutorService;
 import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.DelayedExecutor;
 import org.glassfish.grizzly.utils.DelayedExecutor.DelayQueue;
 import org.glassfish.grizzly.utils.Futures;
@@ -104,12 +104,12 @@ public class MultiEndpointPool<E> {
      * Maps endpoint -to- SingleEndpointPool
      */
     protected final Map<Endpoint<E>, SingleEndpointPool<E>> endpointToPoolMap =
-            DataStructures.getConcurrentMap();
+            new ConcurrentHashMap<>();
     /**
      * Maps Connection -to- ConnectionInfo
      */
     private final Map<Connection, ConnectionInfo<E>> connectionToSubPoolMap =
-            DataStructures.getConcurrentMap();
+            new ConcurrentHashMap<>();
 
     /**
      * Sync for endpointToPoolMap updates

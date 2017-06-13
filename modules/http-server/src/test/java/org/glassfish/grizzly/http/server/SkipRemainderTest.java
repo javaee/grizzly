@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2010-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,7 +43,6 @@ package org.glassfish.grizzly.http.server;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.BlockingQueue;
 import org.glassfish.grizzly.http.HttpRequestPacket.Builder;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
@@ -68,6 +67,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -110,7 +110,7 @@ public class SkipRemainderTest {
 
     @Test
     public void testKeepAliveConnection() throws Exception {
-        final BlockingQueue<Integer> transferQueue = DataStructures.getLTQInstance(Integer.class);
+        final BlockingQueue<Integer> transferQueue = new LinkedTransferQueue<>();
         
         final AtomicInteger counter = new AtomicInteger();
         final int contentSizeHalf = 32;
@@ -163,7 +163,7 @@ public class SkipRemainderTest {
 
     @Test
     public void testNonKeepAliveConnection() throws Exception {
-        final BlockingQueue<Integer> transferQueue = DataStructures.getLTQInstance(Integer.class);
+        final BlockingQueue<Integer> transferQueue = new LinkedTransferQueue<>();
         
         final int contentSizeHalf = 256 * 1024;
         final FutureImpl future = SafeFutureImpl.create();
@@ -210,7 +210,7 @@ public class SkipRemainderTest {
     @Test
     // http://java.net/jira/browse/GRIZZLY-1113
     public void testSuspendResume() throws Exception {
-        final BlockingQueue<Integer> transferQueue = DataStructures.getLTQInstance(Integer.class);
+        final BlockingQueue<Integer> transferQueue = new LinkedTransferQueue<>();
         
         final int contentSizeHalf = 256 * 1024;
         final FutureImpl future = SafeFutureImpl.create();

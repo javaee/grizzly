@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http2;
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
@@ -57,7 +58,6 @@ import org.glassfish.grizzly.http.HttpContent;
 import org.glassfish.grizzly.http.HttpHeader;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.CompositeBuffer;
-import org.glassfish.grizzly.utils.DataStructures;
 
 import static org.glassfish.grizzly.http2.Termination.IN_FIN_TERMINATION;
 
@@ -75,9 +75,8 @@ class DefaultInputBuffer implements StreamInputBuffer {
     @SuppressWarnings("unused")
     private volatile int inputQueueSize;
 
-    private final BlockingQueue<InputElement> inputQueue =
-            DataStructures.getLTQInstance(InputElement.class);
-    
+    private final BlockingQueue<InputElement> inputQueue = new LinkedTransferQueue<>();
+
     // true, if the input is closed
     private final AtomicBoolean inputClosed = new AtomicBoolean();
     

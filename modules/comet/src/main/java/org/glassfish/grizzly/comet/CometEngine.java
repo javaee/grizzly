@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2007-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,12 +42,12 @@ package org.glassfish.grizzly.comet;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.localization.LogMessages;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Main class allowing Comet support on top of Grizzly Asynchronous Request Processing mechanism. This class is the
@@ -124,7 +124,7 @@ public class CometEngine {
      * Create a singleton and initialize all lists required.
      */
     protected CometEngine() {
-        activeContexts = DataStructures.getConcurrentMap(16, 0.75f, 64);
+        activeContexts = new ConcurrentHashMap<>(16, 0.75f, 64);
     }
 
     /**

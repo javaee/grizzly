@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014-2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -43,13 +43,13 @@ package org.glassfish.grizzly.http.server;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.http.Cookie;
 import org.glassfish.grizzly.http.server.util.Globals;
-import org.glassfish.grizzly.utils.DataStructures;
 
 /**
  * Default {@link SessionManager} implementation.
@@ -73,7 +73,7 @@ public class DefaultSessionManager implements SessionManager {
      * of here
      */
     private final ConcurrentMap<String, Session> sessions
-            = DataStructures.getConcurrentMap();
+            = new ConcurrentHashMap<>();
 
     private final Random rnd = new Random();
 

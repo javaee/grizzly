@@ -67,6 +67,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -95,7 +96,6 @@ import org.glassfish.grizzly.nio.transport.TCPNIOConnectorHandler;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.utils.ChunkingFilter;
-import org.glassfish.grizzly.utils.DataStructures;
 import org.glassfish.grizzly.utils.Pair;
 
 import org.junit.Test;
@@ -212,7 +212,7 @@ public class ChunkedTransferEncodingTest {
             int expectedResponseCode)
             throws Exception {
         
-        final BlockingQueue<HttpContent> queue = DataStructures.getLTQInstance();
+        final BlockingQueue<HttpContent> queue = new LinkedTransferQueue<>();
                 
         final NetworkListener networkListener = httpServer.getListener("grizzly");
         final TCPNIOTransport transport = networkListener.getTransport();
@@ -384,7 +384,7 @@ public class ChunkedTransferEncodingTest {
     
     private class EchoHandler extends HttpHandler {
         private final BlockingQueue<Throwable> errors =
-                DataStructures.getLTQInstance(Throwable.class);
+                new LinkedTransferQueue<>();
         
         @Override
         public void service(Request request, Response response) throws Exception {
