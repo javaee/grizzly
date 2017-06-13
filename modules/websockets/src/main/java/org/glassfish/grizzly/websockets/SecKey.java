@@ -43,9 +43,9 @@ package org.glassfish.grizzly.websockets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Random;
 
-import org.glassfish.grizzly.http.util.Base64Utils;
 import org.glassfish.grizzly.utils.Charsets;
 
 /**
@@ -72,7 +72,7 @@ public class SecKey {
     private String create() {
         bytes = new byte[KEY_SIZE];
         random.nextBytes(bytes);
-        return Base64Utils.encodeToString(bytes, false);
+        return Base64.getEncoder().encodeToString(bytes);
     }
 
     public SecKey(String base64) {
@@ -101,7 +101,7 @@ public class SecKey {
                 throw new HandshakeException("Invalid key length.  Should be 20: " + digest.length);
             }
 
-            return new SecKey(Base64Utils.encodeToString(digest, false));
+            return new SecKey(Base64.getEncoder().encodeToString(digest));
         } catch (NoSuchAlgorithmException e) {
             throw new HandshakeException(e.getMessage());
         }
@@ -123,7 +123,7 @@ public class SecKey {
 
     public byte[] getBytes() {
         if(bytes == null) {
-            bytes = Base64Utils.decode(secKey);
+            bytes = Base64.getDecoder().decode(secKey);
         }
         return bytes;
     }
