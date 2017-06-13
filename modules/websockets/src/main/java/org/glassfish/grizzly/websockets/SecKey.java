@@ -46,8 +46,6 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Random;
 
-import org.glassfish.grizzly.utils.Charsets;
-
 /**
  * Class represents {@link WebSocket}'s security key, used during the handshake phase.
  *
