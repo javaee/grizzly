@@ -46,12 +46,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 
-import org.glassfish.grizzly.websockets.DataFrame;
-import org.glassfish.grizzly.websockets.ProtocolError;
-import org.glassfish.grizzly.websockets.StrictUtf8;
-import org.glassfish.grizzly.websockets.Utf8DecodingError;
-import org.glassfish.grizzly.websockets.Utils;
-import org.glassfish.grizzly.websockets.WebSocket;
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.websockets.frametypes.ClosingFrameType;
 
 public class ClosingFrame extends DataFrame {
@@ -107,7 +102,7 @@ public class ClosingFrame extends DataFrame {
         }
 
         final byte[] bytes = Utils.toArray(code);
-        final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes(new StrictUtf8());
+        final byte[] reasonBytes = reason == null ? EMPTY_BYTES : reason.getBytes(Charsets.UTF8_CHARSET);
         final byte[] frameBytes = new byte[2 + reasonBytes.length];
         System.arraycopy(bytes, bytes.length - 2, frameBytes, 0, 2);
         System.arraycopy(reasonBytes, 0, frameBytes, 2, reasonBytes.length);
@@ -130,7 +125,7 @@ public class ClosingFrame extends DataFrame {
 
     private void utf8Decode(byte[] data) {
         final ByteBuffer b = ByteBuffer.wrap(data, 2, data.length - 2);
-        Charset charset = new StrictUtf8();
+        Charset charset = Charsets.UTF8_CHARSET;
         final CharsetDecoder decoder = charset.newDecoder();
         int n = (int) (b.remaining() * decoder.averageCharsPerByte());
         CharBuffer cb = CharBuffer.allocate(n);

@@ -41,6 +41,7 @@
 package org.glassfish.grizzly.websockets.frametypes;
 
 
+import org.glassfish.grizzly.utils.Charsets;
 import org.glassfish.grizzly.websockets.BaseFrameType;
 import org.glassfish.grizzly.websockets.DataFrame;
 import org.glassfish.grizzly.websockets.Utf8Utils;
@@ -57,7 +58,7 @@ public class TextFrameType extends BaseFrameType {
             final byte[] bytes = dataFrame.getBytes();
             if (bytes == null) {
                 setPayload(dataFrame, Utf8Utils.encode(
-                        DataFrame.STRICT_UTF8_CHARSET,
+                        Charsets.UTF8_CHARSET,
                         dataFrame.getTextPayload()));
             }
             return dataFrame.getBytes();
