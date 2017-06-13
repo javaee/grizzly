@@ -56,21 +56,6 @@ public class JdkVersion implements Comparable<JdkVersion> {
     private static final Pattern VERSION_PATTERN = Pattern.compile(
                 "([0-9]+)(\\.([0-9]+))?(\\.([0-9]+))?([_\\.]([0-9]+))?.*");
 
-    private static final boolean IS_UNSAFE_SUPPORTED;
-    
-    static {
-        
-        boolean isUnsafeFound;
-        
-        try {
-            isUnsafeFound = Class.forName("sun.misc.Unsafe") != null;
-        } catch (Throwable t) {
-            isUnsafeFound = false;
-        }
-        
-        IS_UNSAFE_SUPPORTED = isUnsafeFound;        
-    }    
-
     private static final JdkVersion UNKNOWN_VERSION = new JdkVersion(-1, -1, -1, -1);
     private static final JdkVersion JDK_VERSION = parseVersion(System.getProperty("java.version"));
 
