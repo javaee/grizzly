@@ -55,8 +55,8 @@ import org.glassfish.grizzly.http.server.Request;
  *
  */
 public class ServerInputBuffer extends InputBuffer {
-    private long totalReadContentInBytes;
-    private Request serverRequest;
+    private volatile long totalReadContentInBytes;
+    private volatile Request serverRequest;
     
     public void initialize(final Request serverRequest,
             final FilterChainContext ctx) {
