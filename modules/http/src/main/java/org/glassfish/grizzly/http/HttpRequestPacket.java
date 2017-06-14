@@ -40,13 +40,6 @@
 
 package org.glassfish.grizzly.http;
 
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.http.util.DataChunk;
-import org.glassfish.grizzly.http.util.Header;
-import org.glassfish.grizzly.http.util.HttpCodecUtils;
-import org.glassfish.grizzly.http.util.MimeHeaders;
-import org.glassfish.grizzly.http.util.RequestURIRef;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collections;
@@ -54,9 +47,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
+import org.glassfish.grizzly.http.util.DataChunk;
+import org.glassfish.grizzly.http.util.Header;
+import org.glassfish.grizzly.http.util.HttpCodecUtils;
+import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.http.util.RequestURIRef;
 
 /**
  * The {@link HttpHeader} object, which represents HTTP request message.
@@ -731,8 +731,9 @@ public abstract class HttpRequestPacket extends HttpHeader {
                 .append("\n   headers=[");
         final MimeHeaders headersLocal = getHeaders();
         for (final String name : headersLocal.names()) {
-            sb.append("\n      ").append(name).append('=')
-                    .append(headersLocal.getHeader(name));
+            for (String value : headersLocal.values(name)) {
+                sb.append("\n      ").append(name).append('=').append(value);
+            }
         }
         sb.append("]\n)");
 
