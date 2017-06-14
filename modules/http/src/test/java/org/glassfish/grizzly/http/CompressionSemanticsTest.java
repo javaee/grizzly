@@ -475,6 +475,7 @@ public class CompressionSemanticsTest extends TestCase {
             clientFilterChainBuilder.add(new ChunkingFilter(2));
 
             final HttpClientFilter httpClientFilter = new HttpClientFilter();
+            httpClientFilter.setRemoveHandledContentEncodingHeaders(false);
             for(ContentEncoding ce: httpClientFilter.getContentEncodings()) {
                 httpClientFilter.removeContentEncoding(ce);
             }

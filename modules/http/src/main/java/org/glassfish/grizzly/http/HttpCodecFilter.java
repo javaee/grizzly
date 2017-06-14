@@ -152,7 +152,7 @@ public abstract class HttpCodecFilter extends HttpBaseFilter
     /**
      * @see #setRemoveHandledContentEncodingHeaders
      */
-    private boolean removeHandledContentEncodingHeaders = false;
+    private boolean removeHandledContentEncodingHeaders = true;
     
     /**
      * File cache probes

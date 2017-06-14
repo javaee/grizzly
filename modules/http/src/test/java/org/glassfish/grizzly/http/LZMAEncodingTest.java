@@ -354,6 +354,7 @@ public class LZMAEncodingTest {
         filterChainBuilder.add(new ChunkingFilter(networkChunkSize));
 
         final HttpServerFilter httpServerFilter = new HttpServerFilter();
+        httpServerFilter.setRemoveHandledContentEncodingHeaders(false);
         if (serverContentEncoding != null) {
             httpServerFilter.addContentEncoding(serverContentEncoding);
         }
@@ -375,6 +376,7 @@ public class LZMAEncodingTest {
             clientFilterChainBuilder.add(new ChunkingFilter(networkChunkSize));
 
             final HttpClientFilter httpClientFilter = new HttpClientFilter();
+            httpClientFilter.setRemoveHandledContentEncodingHeaders(false);
             if (clientContentEncoding != null) {
                 httpClientFilter.addContentEncoding(clientContentEncoding);
             }

@@ -340,6 +340,7 @@ public class GZipEncodingTest extends TestCase {
         filterChainBuilder.add(new ChunkingFilter(2));
 
         final HttpServerFilter httpServerFilter = new HttpServerFilter();
+        httpServerFilter.setRemoveHandledContentEncodingHeaders(false);
         if (serverContentEncoding != null) {
             httpServerFilter.addContentEncoding(serverContentEncoding);
         }
@@ -361,6 +362,7 @@ public class GZipEncodingTest extends TestCase {
             clientFilterChainBuilder.add(new ChunkingFilter(2));
 
             final HttpClientFilter httpClientFilter = new HttpClientFilter();
+            httpClientFilter.setRemoveHandledContentEncodingHeaders(false);
             if (clientContentEncoding != null) {
                 httpClientFilter.addContentEncoding(clientContentEncoding);
             }
