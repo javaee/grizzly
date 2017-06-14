@@ -335,8 +335,9 @@ public abstract class HttpResponsePacket extends HttpHeader {
                 .append("\n  headers=[");
         final MimeHeaders headersLocal = getHeaders();
         for (final String name : headersLocal.names()) {
-            sb.append("\n      ").append(name).append('=')
-                    .append(headersLocal.getHeader(name));
+            for (String value : headersLocal.values(name)) {
+                sb.append("\n      ").append(name).append('=').append(value);
+            }
         }
         sb.append("]\n)");
         

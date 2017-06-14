@@ -583,7 +583,7 @@ public abstract class HttpRequestPacket extends HttpHeader {
      *
      * @param <E> the {@link Note} type.
      * @param note {@link Note} value to be removed
-     * @return the old value associated with the {@link Node}, that was removed
+     * @return the old value associated with the {@link Note}, that was removed
      */
     public <E> E removeNote(final Note<E> note) {
         return note.attribute.remove(notesHolder);
@@ -729,8 +729,9 @@ public abstract class HttpRequestPacket extends HttpHeader {
                 .append("\n   headers=[");
         final MimeHeaders headersLocal = getHeaders();
         for (final String name : headersLocal.names()) {
-            sb.append("\n      ").append(name).append('=')
-                    .append(headersLocal.getHeader(name));
+            for (String value : headersLocal.values(name)) {
+                sb.append("\n      ").append(name).append('=').append(value);
+            }
         }
         sb.append("]\n)");
 
