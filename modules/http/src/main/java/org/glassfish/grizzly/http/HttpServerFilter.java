@@ -840,13 +840,18 @@ public class HttpServerFilter extends HttpCodecFilter {
         
         boolean entityBody = true;
         final int statusCode = response.getStatus();
-
-        if ((statusCode == 204) || (statusCode == 205)
-                || (statusCode == 304)) {
+        final boolean is204 = HttpStatus.NO_CONTENT_204.statusMatches(statusCode);
+        if (is204 || HttpStatus.RESET_CONTENT_205.statusMatches(statusCode)
+                || HttpStatus.NOT_MODIFIED_304.statusMatches(statusCode)) {
             // No entity body
             entityBody = false;
             response.setExpectContent(false);
+            if (is204) {
+                response.setTransferEncoding(null);
+                response.getHeaders().removeHeader(Header.TransferEncoding);
+            }
         }
+
         
         final boolean isHttp11OrHigher = (requestProtocol.compareTo(Protocol.HTTP_1_1) >= 0);
 
