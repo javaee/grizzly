@@ -112,6 +112,8 @@ import javax.servlet.SessionTrackingMode;
 import javax.servlet.descriptor.JspConfigDescriptor;
 import javax.servlet.http.HttpUpgradeHandler;
 
+import static java.util.concurrent.TimeUnit.*;
+
 /**
  * <p>
  * This class acts as the foundation for registering listeners, servlets, and
@@ -136,7 +138,7 @@ public class WebappContext implements ServletContext {
             Grizzly.logger(WebappContext.class);
 
     private static final Map<WebappContext, HttpServer> DEPLOYED_APPS =
-            new HashMap<WebappContext, HttpServer>();
+            new HashMap<>();
 
     private static final Set<SessionTrackingMode> DEFAULT_SESSION_TRACKING_MODES =
         EnumSet.of(SessionTrackingMode.COOKIE);
@@ -152,19 +154,19 @@ public class WebappContext implements ServletContext {
 
     /* Servlet context initialization parameters */
     private final Map<String,String> contextInitParams =
-            new LinkedHashMap<String, String>(8, 1.0f);
+            new LinkedHashMap<>(8, 1.0f);
 
     /**
      * The security roles for this application
      */
-    private final List<String> securityRoles = new ArrayList<String>();
+    private final List<String> securityRoles = new ArrayList<>();
 
     /* Registrations */
     protected final Map<String, ServletRegistration> servletRegistrations =
-            new HashMap<String,ServletRegistration>(8, 1.0f);
+            new HashMap<>(8, 1.0f);
     
     protected final Map<String, FilterRegistration> filterRegistrations =
-            new LinkedHashMap<String,FilterRegistration>(4, 1.0f);
+            new LinkedHashMap<>(4, 1.0f);
     protected final Map<String, FilterRegistration> unmodifiableFilterRegistrations =
             Collections.unmodifiableMap(filterRegistrations);
             
@@ -177,7 +179,7 @@ public class WebappContext implements ServletContext {
 
     /* Listeners */
     private final Set<EventListener> eventListenerInstances =
-            new LinkedHashSet<EventListener>(4, 1.0f);  // TODO - wire this in
+            new LinkedHashSet<>(4, 1.0f);  // TODO - wire this in
     private EventListener[] eventListeners = new EventListener[0];
 
     /* Application start/stop state */
@@ -196,12 +198,18 @@ public class WebappContext implements ServletContext {
 
     /* Thread local data used during request dispatch */
     /* TODO: seems like this may cause a leak - when is this ever cleared? */
-    private final ThreadLocal<DispatchData> dispatchData = new ThreadLocal<DispatchData>();
+    private final ThreadLocal<DispatchData> dispatchData = new ThreadLocal<>();
 
     /* Request dispatcher helper class */
     private DispatcherHelper dispatcherHelper;
 
     private ClassLoader webappClassLoader;
+
+    int sessionTimeoutInSeconds;
+
+    private String requestEncoding;
+
+    private String responseEncoding;
 
     /**
      * Session cookie config
@@ -227,7 +235,7 @@ public class WebappContext implements ServletContext {
      * The list of filter mappings for this application, in the order
      * they were defined in the deployment descriptor.
      */
-    private final List<FilterMap> filterMaps = new ArrayList<FilterMap>();
+    private final List<FilterMap> filterMaps = new ArrayList<>();
     
     // ------------------------------------------------------------ Constructors
 
@@ -331,6 +339,7 @@ public class WebappContext implements ServletContext {
                     }
                 }
                 setServerInfo(serverName);
+                sessionTimeoutInSeconds = targetServer.getServerConfiguration().getSessionTimeoutSeconds();
                 initializeListeners();
                 contextInitialized();
                 initServlets(targetServer);
@@ -1108,7 +1117,7 @@ public class WebappContext implements ServletContext {
 
         Set<String> set = Collections.emptySet();
         if (files != null) {
-            set = new HashSet<String>(files.length);
+            set = new HashSet<>(files.length);
             for (File f : files) {
                 try {
                     String canonicalPath = f.getCanonicalPath();
@@ -1296,6 +1305,66 @@ public class WebappContext implements ServletContext {
 
     /**
      * {@inheritDoc}
+     */
+    @Override
+    public javax.servlet.ServletRegistration.Dynamic addJspFile(final String servletName, final String jspFile) {
+        if (deployed) throw new IllegalStateException();
+        if (servletName == null) throw new IllegalArgumentException();
+        return null; // JSP not supported out of the box.
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getSessionTimeout() {
+        return (int) MINUTES.convert(sessionTimeoutInSeconds, SECONDS);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setSessionTimeout(final int sessionTimeout) {
+        if (deployed) throw new IllegalStateException();
+        sessionTimeoutInSeconds = (int) SECONDS.convert(sessionTimeout, MINUTES);
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getRequestCharacterEncoding() {
+        return requestEncoding;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setRequestCharacterEncoding(final String requestEncoding) {
+        if (deployed) throw new IllegalStateException();
+        this.requestEncoding = requestEncoding;
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getResponseCharacterEncoding() {
+        return responseEncoding;
+    }
+
+    @Override
+    public void setResponseCharacterEncoding(final String responseEncoding) {
+        if (deployed) throw new IllegalStateException();
+        this.responseEncoding = responseEncoding;
+    }
+
+    /**
+     * {@inheritDoc}
      *
      * @deprecated
      */
@@ -1313,7 +1382,7 @@ public class WebappContext implements ServletContext {
     @Override
     @Deprecated
     public Enumeration<Servlet> getServlets() {
-        return new Enumerator<Servlet>(Collections.<Servlet>emptyList());
+        return new Enumerator<>(Collections.emptyList());
     }
 
     /**
@@ -1324,7 +1393,7 @@ public class WebappContext implements ServletContext {
     @Override
     @Deprecated
     public Enumeration<String> getServletNames() {
-        return new Enumerator<String>(Collections.<String>emptyList());
+        return new Enumerator<>(Collections.emptyList());
     }
 
     /**
@@ -1384,6 +1453,7 @@ public class WebappContext implements ServletContext {
      */
     @Override
     public String getInitParameter(String name) {
+        if (name == null) throw new NullPointerException();
         return contextInitParams.get(name);
     }
 
@@ -1392,7 +1462,7 @@ public class WebappContext implements ServletContext {
      */
     @Override
     public Enumeration<String> getInitParameterNames() {
-        return new Enumerator<String>(contextInitParams.keySet());
+        return new Enumerator<>(contextInitParams.keySet());
     }
 
 
@@ -1401,6 +1471,7 @@ public class WebappContext implements ServletContext {
      */
     @Override
     public boolean setInitParameter(String name, String value) {
+        if (name == null) throw new NullPointerException();
         if (!deployed) {
             contextInitParams.put(name, value);
             return true;
@@ -1414,6 +1485,7 @@ public class WebappContext implements ServletContext {
      */
     @Override
     public Object getAttribute(String name) {
+        if (name == null) throw new NullPointerException();
         return attributes.get(name);
     }
 
@@ -1422,7 +1494,7 @@ public class WebappContext implements ServletContext {
      */
     @Override
     public Enumeration<String> getAttributeNames() {
-        return new Enumerator<String>(attributes.keySet());
+        return new Enumerator<>(attributes.keySet());
     }
 
     /**
@@ -1430,10 +1502,7 @@ public class WebappContext implements ServletContext {
      */
     @Override
     public void setAttribute(String name, Object value) {
-        // Name cannot be null
-        if (name == null) {
-            throw new IllegalArgumentException("Cannot be null");
-        }
+        if (name == null) throw new NullPointerException();
 
         // Null value is the same as removeAttribute()
         if (value == null) {
@@ -1736,7 +1805,7 @@ public class WebappContext implements ServletContext {
      * the given name.
      */
     protected Collection<String> getServletNameFilterMappings(String filterName) {
-        HashSet<String> mappings = new HashSet<String>();
+        HashSet<String> mappings = new HashSet<>();
         synchronized (filterMaps) {
             for (FilterMap fm : filterMaps) {
                 if (filterName.equals(fm.getFilterName()) &&
@@ -1753,7 +1822,7 @@ public class WebappContext implements ServletContext {
      * name.
      */
     protected Collection<String> getUrlPatternFilterMappings(String filterName) {
-        HashSet<String> mappings = new HashSet<String>();
+        HashSet<String> mappings = new HashSet<>();
         synchronized (filterMaps) {
             for (FilterMap fm : filterMaps) {
                 if (filterName.equals(fm.getFilterName()) &&
@@ -1835,9 +1904,9 @@ public class WebappContext implements ServletContext {
         boolean defaultMappingAdded = false;
         if (!servletRegistrations.isEmpty()) {
             final ServerConfiguration serverConfig = server.getServerConfiguration();
-            servletHandlers = new LinkedHashSet<ServletHandler>(servletRegistrations.size(), 1.0f);
+            servletHandlers = new LinkedHashSet<>(servletRegistrations.size(), 1.0f);
             final LinkedList<ServletRegistration> sortedRegistrations =
-                    new LinkedList<ServletRegistration>(servletRegistrations.values());
+                    new LinkedList<>(servletRegistrations.values());
             Collections.sort(sortedRegistrations);
             for (final ServletRegistration registration : sortedRegistrations) {
                 ServletHandler servletHandler;

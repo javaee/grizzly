@@ -84,7 +84,6 @@ import org.glassfish.grizzly.utils.Charsets;
  * Mapper, which implements the servlet API mapping rules (which are derived
  * from the HTTP rules).
  *
- * @author Remy Maucherat
  */
 @SuppressWarnings({"UnusedDeclaration"})
 public class Mapper {
@@ -134,7 +133,7 @@ public class Mapper {
 
 
     // START GlassFish 1024
-    private final Map<String, String> defaultContextPathsMap = new HashMap<String, String>();
+    private final Map<String, String> defaultContextPathsMap = new HashMap<>();
 
 
     /**
@@ -170,7 +169,7 @@ public class Mapper {
      * The Port this instance is used for mapping.
      */
     public void setPort(int port){
-         this.port = port;
+        this.port = port;
     }
 
 
@@ -424,7 +423,7 @@ public class Mapper {
      * @return The context names
      */
     public String[] getContextNames() {
-        List<String> list=new ArrayList<String>();
+        List<String> list= new ArrayList<>();
         for (Host host : hosts) {
             for (int j = 0; j < host.contextList.contexts.length; j++) {
                 String cname = host.contextList.contexts[j].name;
@@ -703,7 +702,7 @@ public class Mapper {
     }
 
     public String[] getWrapperNames( String host, String context ) {
-        List<String> list=new ArrayList<String>();
+        List<String> list= new ArrayList<>();
         if( host==null ) host="";
         if( context==null ) context="";
         for (Host host1 : hosts) {
@@ -1332,7 +1331,7 @@ public class Mapper {
                 mappingData.requestPath.setChars
                     (path.getBuffer(), path.getStart(), path.getEnd());
                 mappingData.wrapperPath.setChars
-                    (path.getBuffer(), path.getStart(), path.getEnd());
+                        (path.getBuffer(), path.getStart(), path.getEnd());
                 mappingData.mappingType = MappingData.DEFAULT;
                 mappingData.descriptorPath = "/";
                 mappingData.matchedPath = mappingData.requestPath.toString();

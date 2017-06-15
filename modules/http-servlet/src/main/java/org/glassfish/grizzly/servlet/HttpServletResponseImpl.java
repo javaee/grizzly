@@ -68,6 +68,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Supplier;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
@@ -582,7 +584,7 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
      */
     @Override
     public Collection<String> getHeaderNames() {
-        return new ArrayList<String>(Arrays.asList(response.getHeaderNames()));
+        return new ArrayList<>(Arrays.asList(response.getHeaderNames()));
     }
 
     /**
@@ -590,7 +592,7 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
      */
     @Override
     public Collection<String> getHeaders(String string) {
-        return new ArrayList<String>(Arrays.asList(response.getHeaderValues(string)));
+        return new ArrayList<>(Arrays.asList(response.getHeaderValues(string)));
     }
     
     /**
@@ -764,5 +766,21 @@ public class HttpServletResponseImpl implements HttpServletResponse, Holders.Res
     @Override
     public Response getInternalResponse() {
         return response;
-    }    
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setTrailerFields(final Supplier<Map<String, String>> supplier) {
+        response.setTrailers(supplier);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Supplier<Map<String, String>> getTrailerFields() {
+        return response.getTrailers();
+    }
 }

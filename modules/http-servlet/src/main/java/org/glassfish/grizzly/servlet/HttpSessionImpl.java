@@ -57,6 +57,8 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.http.server.Session;
 import org.glassfish.grizzly.localization.LogMessages;
 
+import static java.util.concurrent.TimeUnit.*;
+
 /**
  * Basic {@link HttpSession} based on {@link Session} support.
  * 
@@ -149,7 +151,7 @@ public class HttpSessionImpl implements HttpSession {
         if (sessionTimeout < 0) {
             sessionTimeout = -1;
         } else {
-            sessionTimeout = sessionTimeout * 1000;
+            sessionTimeout = (int) SECONDS.convert(sessionTimeout, MILLISECONDS);
         }
         
         session.setSessionTimeout(sessionTimeout);
@@ -165,7 +167,7 @@ public class HttpSessionImpl implements HttpSession {
             return -1;
         }
 
-        sessionTimeout /= 1000;
+        sessionTimeout = MILLISECONDS.convert(sessionTimeout, SECONDS);
         if (sessionTimeout > Integer.MAX_VALUE) {
             throw new IllegalArgumentException(sessionTimeout + " cannot be cast to int.");
         }

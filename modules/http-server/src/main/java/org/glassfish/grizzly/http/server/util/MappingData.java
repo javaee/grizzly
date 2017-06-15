@@ -62,10 +62,15 @@ import org.glassfish.grizzly.http.util.DataChunk;
 
 /**
  * Mapping data.
- *
- * @author Remy Maucherat
  */
 public class MappingData {
+
+    private static final String CONTEXT_DESC   = "context";
+    private static final String DEFAULT_DESC   = "default";
+    private static final String EXACT_DESC     = "exact";
+    private static final String EXTENSION_DESC = "extension";
+    private static final String PATH_DESC      = "path";
+    private static final String UNKNOWN_DESC   = "unknown";
 
     public static final byte CONTEXT_ROOT = 0x1;
     public static final byte DEFAULT      = 0x2;
@@ -92,7 +97,6 @@ public class MappingData {
     public final DataChunk redirectPath = DataChunk.newInstance();
 
     public final DataChunk tmpMapperDC = DataChunk.newInstance();
-    
     public void recycle() {
         mappingType = UNKNOWN;
         host = null;
@@ -107,7 +111,7 @@ public class MappingData {
         jspWildCard = false;
         // START GlassFish 1024
         isDefaultContext = false;
-    // END GlassFish 1024
+        // END GlassFish 1024
         descriptorPath = null;
         matchedPath = null;
     }
@@ -136,13 +140,15 @@ public class MappingData {
 
     private String getMappingDescription() {
         switch (mappingType) {
-            case CONTEXT_ROOT: return "context";
-            case DEFAULT: return "default";
-            case EXACT: return "exact";
-            case EXTENSION: return "extension";
-            case PATH: return "path";
-            default: return "unknown";
+            case CONTEXT_ROOT: return CONTEXT_DESC;
+            case DEFAULT: return DEFAULT_DESC;
+            case EXACT: return EXACT_DESC;
+            case EXTENSION: return EXTENSION_DESC;
+            case PATH: return PATH_DESC;
+            default: return UNKNOWN_DESC;
         }
     }
+
+
 
 }
