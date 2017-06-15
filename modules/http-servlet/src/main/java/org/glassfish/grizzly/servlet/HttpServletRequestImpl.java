@@ -66,10 +66,10 @@ import java.util.Collection;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.EventListener;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -84,11 +84,14 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestAttributeEvent;
 import javax.servlet.ServletRequestAttributeListener;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletMapping;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpUpgradeHandler;
+import javax.servlet.http.MappingMatch;
 import javax.servlet.http.Part;
+import javax.servlet.http.PushBuilder;
 import javax.servlet.http.WebConnection;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.EmptyCompletionHandler;
@@ -101,7 +104,10 @@ import org.glassfish.grizzly.http.server.Session;
 import org.glassfish.grizzly.http.server.TimeoutHandler;
 import org.glassfish.grizzly.http.server.util.Enumerator;
 import org.glassfish.grizzly.http.server.util.Globals;
+import org.glassfish.grizzly.http.server.util.MappingData;
 import org.glassfish.grizzly.localization.LogMessages;
+
+import static java.util.concurrent.TimeUnit.*;
 
 /**
  * Facade class that wraps a {@link Request} request object.
@@ -173,7 +179,12 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
      * The HttpUpgradeHandler to be used for upgrade request
      */
     private HttpUpgradeHandler httpUpgradeHandler;
-    
+
+    /**
+     * Mapping that invoked this request.
+     */
+    private HttpServletMapping httpServletMapping;
+
     private static final ThreadCache.CachedTypeIndex<HttpServletRequestImpl> CACHE_IDX =
             ThreadCache.obtainIndex(HttpServletRequestImpl.class, 2);
 
@@ -206,6 +217,12 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         this.servletResponse = servletResponse;
         inputStream.initialize();
         contextImpl = context;
+        if (context.getRequestCharacterEncoding() != null) {
+            request.setCharacterEncoding(context.getResponseCharacterEncoding());
+        }
+        if (context.getResponseCharacterEncoding() != null) {
+            servletResponse.setCharacterEncoding(context.getResponseCharacterEncoding());
+        }
     }
     
 
@@ -761,7 +778,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
         // Add the path info, if there is any
         String pathInfo = getPathInfo();
-        String requestPath = null;
+        String requestPath;
 
         if( pathInfo == null ) {
             requestPath = servletPath;
@@ -770,7 +787,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         }
 
         int pos = requestPath.lastIndexOf( '/' );
-        String relative = null;
+        String relative;
         if( pos >= 0 ) {
             relative = requestPath.substring( 0, pos + 1 ) + path;
         } else {
@@ -1105,6 +1122,8 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         if (internalSession == null) {
             return null;
         }
+
+        internalSession.setSessionTimeout(MILLISECONDS.convert(contextImpl.sessionTimeoutInSeconds, SECONDS));
         
         httpSession = new HttpSessionImpl(contextImpl, internalSession);
         
@@ -1435,7 +1454,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
                     return processTimeout();
                 }
             };
-            request.getResponse().suspend(-1, TimeUnit.MILLISECONDS,
+            request.getResponse().suspend(-1, MILLISECONDS,
                     requestCompletionHandler, timeoutHandler);
             asyncStartedThread = Thread.currentThread();
         }
@@ -1471,7 +1490,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
     void setAsyncTimeout(long timeout) {
         request.getResponse().getSuspendContext().setTimeout(
-                timeout, TimeUnit.MILLISECONDS);
+                timeout, MILLISECONDS);
     }
     
     /**
@@ -1544,7 +1563,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
             if (asyncStarted.get()) {
                 request.getResponse().getSuspendContext().setTimeout(
-                        asyncContext.getTimeout(), TimeUnit.MILLISECONDS);
+                        asyncContext.getTimeout(), MILLISECONDS);
             }
 
         } else if (isUpgrade()) {
@@ -1624,7 +1643,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     @Override
     public <T extends HttpUpgradeHandler> T upgrade(Class<T> handlerClass) throws IOException {
         upgrade = true;
-        T handler = null;
+        T handler;
         try {
             handler = contextImpl.createHttpUpgradeHandlerInstance(handlerClass);
         } catch(Exception ex) {
@@ -1671,7 +1690,130 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
     public Part getPart(String string) throws IOException, ServletException {
         throw new UnsupportedOperationException("Not supported yet.");
     }
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public HttpServletMapping getHttpServletMapping() {
+        if (httpServletMapping == null) {
+            httpServletMapping = new Mapping(request);
+        }
+        return httpServletMapping;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PushBuilder newPushBuilder() {
+        if (request.isPushEnabled()) {
+            final org.glassfish.grizzly.http.server.http2.PushBuilder pushBuilder = request.newPushBuilder();
+            return new PushBuilder() {
+
+                @Override
+                public PushBuilder method(final String method) {
+                    pushBuilder.method(method);
+                    return this;
+                }
+
+                @Override
+                public PushBuilder queryString(final String queryString) {
+                    pushBuilder.queryString(queryString);
+                    return this;
+                }
+
+                @Override
+                public PushBuilder sessionId(final String sessionId) {
+                    pushBuilder.sessionId(sessionId);
+                    return this;
+                }
+
+                @Override
+                public PushBuilder setHeader(final String name, final String value) {
+                    pushBuilder.setHeader(name, value);
+                    return this;
+                }
+
+                @Override
+                public PushBuilder addHeader(final String name, final String value) {
+                    pushBuilder.addHeader(name, value);
+                    return this;
+                }
+
+                @Override
+                public PushBuilder removeHeader(final String name) {
+                    pushBuilder.removeHeader(name);
+                    return this;
+                }
+
+                @Override
+                public PushBuilder path(final String path) {
+                    pushBuilder.path(path);
+                    return this;
+                }
+
+                @Override
+                public void push() {
+                    pushBuilder.push();
+                }
+
+                @Override
+                public String getMethod() {
+                    return pushBuilder.getMethod();
+                }
+
+                @Override
+                public String getQueryString() {
+                    return pushBuilder.getQueryString();
+                }
+
+                @Override
+                public String getSessionId() {
+                    return pushBuilder.getSessionId();
+                }
+
+                @Override
+                public Set<String> getHeaderNames() {
+                    final Iterable<String> i = pushBuilder.getHeaderNames();
+                    final Set<String> names = new HashSet<>();
+                    for (String s : i) {
+                        names.add(s);
+                    }
+
+                    return names;
+                }
+
+                @Override
+                public String getHeader(final String name) {
+                    return pushBuilder.getHeader(name);
+                }
+
+                @Override
+                public String getPath() {
+                    return pushBuilder.getPath();
+                }
+            };
+        }
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<String, String> getTrailerFields() {
+        return request.getTrailers();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isTrailerFieldsReady() {
+        return request.areTrailersAvailable();
+    }
+
     // ----------------------------------------------------------- DoPrivileged
 
     
@@ -1680,7 +1822,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         
         @Override
         public Enumeration<String> run() {
-            return new Enumerator<String>(request.getAttributeNames());
+            return new Enumerator<>(request.getAttributeNames());
         }            
     }
      
@@ -1705,7 +1847,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         }
         
         @Override
-        public RequestDispatcher run() {   
+        public RequestDispatcher run() {
             return getRequestDispatcherInternal(path);
         }           
     }    
@@ -1721,7 +1863,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         }
 
         @Override
-        public String run() {       
+        public String run() {
             return request.getParameter(name);
         }           
     }    
@@ -1731,7 +1873,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
             implements PrivilegedAction<Set<String>> {
         
         @Override
-        public Set<String> run() {          
+        public Set<String> run() {
             return request.getParameterNames();
         }           
     } 
@@ -1747,7 +1889,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         }
 
         @Override
-        public String[] run() {       
+        public String[] run() {
             return request.getParameterValues(name);
         }           
     }    
@@ -1757,7 +1899,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
             implements PrivilegedAction<Cookie[]> {
         
         @Override
-        public Cookie[] run() {       
+        public Cookie[] run() {
             return request.getCookies();
         }           
     }      
@@ -1767,7 +1909,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
             implements PrivilegedAction<String> {
         
         @Override
-        public String run() {       
+        public String run() {
             return request.getCharacterEncoding();
         }           
     }   
@@ -1783,8 +1925,8 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
         }
         
         @Override
-        public Enumeration<String> run() {       
-            return new Enumerator<String>(request.getHeaders(name));
+        public Enumeration<String> run() {
+            return new Enumerator<>(request.getHeaders(name));
         }           
     }    
         
@@ -1794,7 +1936,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
 
         @Override
         public Enumeration<String> run() {
-            return new Enumerator<String>(request.getHeaderNames());
+            return new Enumerator<>(request.getHeaderNames());
         }           
     }  
             
@@ -1803,7 +1945,7 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
             implements PrivilegedAction<Locale> {
 
         @Override
-        public Locale run() {       
+        public Locale run() {
             return request.getLocale();
         }           
     }    
@@ -1813,8 +1955,8 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
             implements PrivilegedAction<Enumeration<Locale>> {
 
         @Override
-        public Enumeration<Locale> run() {       
-            return new Enumerator<Locale>(request.getLocales());
+        public Enumeration<Locale> run() {
+            return new Enumerator<>(request.getLocales());
         }           
     }    
     
@@ -1843,6 +1985,95 @@ public class HttpServletRequestImpl implements HttpServletRequest, Holders.Reque
                 final ServletInputStream inputStream,
                 final ServletOutputStream outputStream) {
             return new WebConnectionImpl(req, inputStream, outputStream);
+        }
+    }
+
+    private static final class Mapping implements HttpServletMapping {
+
+        private String matchValue;
+        private String pattern;
+        private String servletName;
+        private MappingMatch mappingMatch;
+
+        private Mapping(final Request request) {
+            final MappingData data = request.obtainMappingData();
+            if (data == null) {
+                throw new NullPointerException("No MappingData available.");
+            }
+
+            // Trim leading "/"
+            matchValue = (((data.matchedPath != null) && (data.matchedPath.length() >= 2))
+                    ? data.matchedPath.substring(1)
+                    : "");
+            pattern = ((data.descriptorPath != null) ? data.descriptorPath : "");
+            servletName = ((data.servletName != null) ? data.servletName : "");
+
+            switch (data.mappingType) {
+                case MappingData.CONTEXT_ROOT:
+                    mappingMatch = MappingMatch.CONTEXT_ROOT;
+                    break;
+                case MappingData.DEFAULT:
+                    mappingMatch = MappingMatch.DEFAULT;
+                    break;
+                case MappingData.EXACT:
+                    mappingMatch = MappingMatch.EXACT;
+                    break;
+                case MappingData.EXTENSION:
+                    mappingMatch = MappingMatch.EXTENSION;
+                    // Ensure pattern is valid
+                    if (pattern.charAt(0) == '*') {
+                        // Mutate matchValue to mean "what * was matched with".
+                        int i = matchValue.indexOf(pattern.substring(1));
+                        if (-1 != i) {
+                            matchValue = matchValue.substring(0, i);
+                        }
+                    }
+                    break;
+                case MappingData.PATH:
+                    mappingMatch = MappingMatch.PATH;
+                    // Ensure pattern is valid
+                    int patternLen = pattern.length();
+                    if (patternLen > 0 && pattern.charAt(patternLen - 1) == '*') {
+                        int indexOfPatternStart = patternLen - 2;
+                        int matchValueLen = matchValue.length();
+                        if (0 <= indexOfPatternStart && indexOfPatternStart < matchValueLen) {
+                            // Remove the pattern from the end of matchValue
+                            matchValue = matchValue.substring(indexOfPatternStart);
+                        }
+                    }
+                    break;
+            }
+        }
+
+
+        @Override
+        public String getMatchValue() {
+            return matchValue;
+        }
+
+        @Override
+        public String getPattern() {
+            return pattern;
+        }
+
+        @Override
+        public String getServletName() {
+            return servletName;
+        }
+
+        @Override
+        public MappingMatch getMappingMatch() {
+            return mappingMatch;
+        }
+
+        @Override
+        public String toString() {
+            return "Mapping{" +
+                    "matchValue='" + matchValue + '\'' +
+                    ", pattern='" + pattern + '\'' +
+                    ", servletName='" + servletName + '\'' +
+                    ", mappingMatch=" + mappingMatch +
+                    '}';
         }
     }
 }

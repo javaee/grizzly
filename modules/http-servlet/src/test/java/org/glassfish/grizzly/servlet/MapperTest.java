@@ -67,17 +67,23 @@ public class MapperTest extends HttpServerAbstractTest {
             startHttpServer(PORT);
             WebappContext ctx = new WebappContext("Test");
             String[] aliases = new String[]{"/aaa/bbb", "/aaa/ccc"};
+            final String[] mappings = {
+                    "Mapping{matchValue='aaa/bbb', pattern='/aaa/bbb', servletName='', mappingMatch=EXACT}",
+                    "Mapping{matchValue='aaa/ccc', pattern='/aaa/ccc', servletName='', mappingMatch=EXACT}"
+            };
             for (String alias : aliases) {
                 addServlet(ctx, alias);
             }
             ctx.deploy(httpServer);
-            for (String alias : aliases) {
+            for (int i = 0, len = aliases.length; i < len; i++) {
+                final String alias = aliases[i];
                 HttpURLConnection conn = getConnection(alias, PORT);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 assertEquals(alias, readResponse(conn));
                 assertEquals(alias, conn.getHeaderField("servlet-path"));
                 assertNull(alias, conn.getHeaderField("path-info"));
+                assertEquals(mappings[i], conn.getHeaderField("http-servlet-mapping"));
             }
         } finally {
             stopHttpServer();
@@ -102,7 +108,7 @@ public class MapperTest extends HttpServerAbstractTest {
             assertEquals(alias[1], readResponse(conn));
             assertEquals("/jsp", conn.getHeaderField("servlet-path"));
             assertEquals("/index.jsp", conn.getHeaderField("path-info"));
-
+            assertEquals("Mapping{matchValue='index.jsp', pattern='/jsp/*', servletName='', mappingMatch=PATH}", conn.getHeaderField("http-servlet-mapping"));
         } finally {
             stopHttpServer();
         }
@@ -123,6 +129,7 @@ public class MapperTest extends HttpServerAbstractTest {
             assertEquals(alias, readResponse(conn));
             assertEquals("", conn.getHeaderField("servlet-path"));
             assertEquals("/index.html", conn.getHeaderField("path-info"));
+            assertEquals("Mapping{matchValue='index.html', pattern='/*', servletName='', mappingMatch=PATH}", conn.getHeaderField("http-servlet-mapping"));
         } finally {
             stopHttpServer();
         }
@@ -142,6 +149,7 @@ public class MapperTest extends HttpServerAbstractTest {
                 assertEquals(alias, readResponse(conn));
                 assertEquals("", conn.getHeaderField("servlet-path"));
                 assertEquals("/foo/index.html", conn.getHeaderField("path-info"));
+                assertEquals("Mapping{matchValue='foo/index.html', pattern='/*', servletName='', mappingMatch=PATH}", conn.getHeaderField("http-servlet-mapping"));
             } finally {
                 stopHttpServer();
             }
@@ -161,6 +169,7 @@ public class MapperTest extends HttpServerAbstractTest {
             assertEquals(alias, readResponse(conn));
             assertEquals("/", conn.getHeaderField("servlet-path"));
             assertEquals(null, conn.getHeaderField("path-info"));
+            assertEquals("Mapping{matchValue='', pattern='/', servletName='', mappingMatch=DEFAULT}", conn.getHeaderField("http-servlet-mapping"));
         } finally {
             stopHttpServer();
         }
@@ -180,6 +189,7 @@ public class MapperTest extends HttpServerAbstractTest {
             assertEquals(alias, readResponse(conn));
             assertEquals("/foo/index.html", conn.getHeaderField("servlet-path"));
             assertEquals(null, conn.getHeaderField("path-info"));
+            assertEquals("Mapping{matchValue='foo/index.html', pattern='/', servletName='', mappingMatch=DEFAULT}", conn.getHeaderField("http-servlet-mapping"));
         } finally {
             stopHttpServer();
         }
@@ -230,6 +240,7 @@ public class MapperTest extends HttpServerAbstractTest {
             assertEquals(alias, readResponse(conn));
             assertEquals("/index.html", conn.getHeaderField("servlet-path"));
             assertNull(conn.getHeaderField("path-info"));
+            assertEquals("Mapping{matchValue='index', pattern='*.html', servletName='', mappingMatch=EXTENSION}", conn.getHeaderField("http-servlet-mapping"));
         } finally {
             stopHttpServer();
         }
@@ -261,6 +272,7 @@ public class MapperTest extends HttpServerAbstractTest {
             HttpURLConnection conn = getConnection("/", PORT);
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
             assertEquals("/", conn.getHeaderField("servlet-path"));
+            assertEquals("Mapping{matchValue='', pattern='/', servletName='', mappingMatch=DEFAULT}", conn.getHeaderField("http-servlet-mapping"));
         } finally {
             stopHttpServer();
         }
@@ -279,6 +291,7 @@ public class MapperTest extends HttpServerAbstractTest {
             assertEquals("", conn.getHeaderField("context-path"));
             assertEquals("/foo", conn.getHeaderField("servlet-path"));
             assertEquals("/bar/baz", conn.getHeaderField("path-info"));
+            assertEquals("Mapping{matchValue='bar/baz', pattern='/foo/*', servletName='', mappingMatch=PATH}", conn.getHeaderField("http-servlet-mapping"));
         } finally {
             stopHttpServer();
         }
@@ -288,8 +301,7 @@ public class MapperTest extends HttpServerAbstractTest {
     // --------------------------------------------------------- Private Methods
 
 
-    private static ServletRegistration addServlet(final WebappContext ctx,
-                                                  final String alias) {
+    private static void addServlet(final WebappContext ctx, final String alias) {
         final ServletRegistration reg = ctx.addServlet(alias, new HttpServlet() {
 
             @Override
@@ -304,12 +316,11 @@ public class MapperTest extends HttpServerAbstractTest {
                 resp.setHeader("Servlet-Name", getServletName());
                 resp.setHeader("Request-Uri", req.getRequestURI());
                 resp.setHeader("Context-Path", req.getContextPath());
+                resp.setHeader("Http-Servlet-Mapping", req.getHttpServletMapping().toString());
                 resp.getWriter().write(alias);
             }
         });
         reg.addMapping(alias);
-
-        return reg;
     }
 
 }

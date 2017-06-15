@@ -62,27 +62,44 @@ import org.glassfish.grizzly.http.util.DataChunk;
 
 /**
  * Mapping data.
- *
- *
  */
 public class MappingData {
+
+    private static final String CONTEXT_DESC   = "context";
+    private static final String DEFAULT_DESC   = "default";
+    private static final String EXACT_DESC     = "exact";
+    private static final String EXTENSION_DESC = "extension";
+    private static final String PATH_DESC      = "path";
+    private static final String UNKNOWN_DESC   = "unknown";
+
+    public static final byte CONTEXT_ROOT = 0x1;
+    public static final byte DEFAULT      = 0x2;
+    public static final byte EXACT        = 0x4;
+    public static final byte EXTENSION    = 0x8;
+    public static final byte PATH         = 0x10;
+    public static final byte UNKNOWN      = 0x20;
+
+    public byte mappingType = UNKNOWN;
     public Object host = null;
     public Object context = null;
     public Object wrapper = null;
     public String servletName = null;
+    public String descriptorPath = null;
+    public String matchedPath = null;
     public boolean jspWildCard = false;
     // START GlassFish 1024
     public boolean isDefaultContext = false;
     // END GlassFish 1024
-    public DataChunk contextPath = DataChunk.newInstance();
-    public DataChunk requestPath = DataChunk.newInstance();
-    public DataChunk wrapperPath = DataChunk.newInstance();
-    public DataChunk pathInfo = DataChunk.newInstance();
-    public DataChunk redirectPath = DataChunk.newInstance();
+    public final DataChunk contextPath = DataChunk.newInstance();
+    public final DataChunk requestPath = DataChunk.newInstance();
+    public final DataChunk wrapperPath = DataChunk.newInstance();
+    public final DataChunk pathInfo = DataChunk.newInstance();
+    public final DataChunk redirectPath = DataChunk.newInstance();
 
-    public DataChunk tmpMapperDC = DataChunk.newInstance();
-    
+    public final DataChunk tmpMapperDC = DataChunk.newInstance();
+
     public void recycle() {
+        mappingType = UNKNOWN;
         host = null;
         context = null;
         wrapper = null;
@@ -95,7 +112,9 @@ public class MappingData {
         jspWildCard = false;
         // START GlassFish 1024
         isDefaultContext = false;
-    // END GlassFish 1024
+        // END GlassFish 1024
+        descriptorPath = null;
+        matchedPath = null;
     }
 
     @Override
@@ -110,6 +129,27 @@ public class MappingData {
         sb.append("\nwrapperPath: ").append(wrapperPath);
         sb.append("\npathInfo: ").append(pathInfo);
         sb.append("\nredirectPath: ").append(redirectPath);
+        sb.append("\nmappingType: ").append(getMappingDescription());
+        sb.append("\ndescriptorPath: ").append(descriptorPath);
+        sb.append("\nmatchedPath: ").append(matchedPath);
         return sb.toString();
     }
+
+
+    // -------------------------------------------------------- Private Methods
+
+
+    private String getMappingDescription() {
+        switch (mappingType) {
+            case CONTEXT_ROOT: return CONTEXT_DESC;
+            case DEFAULT: return DEFAULT_DESC;
+            case EXACT: return EXACT_DESC;
+            case EXTENSION: return EXTENSION_DESC;
+            case PATH: return PATH_DESC;
+            default: return UNKNOWN_DESC;
+        }
+    }
+
+
+
 }
