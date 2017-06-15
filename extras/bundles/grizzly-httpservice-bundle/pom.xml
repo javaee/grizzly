@@ -71,8 +71,7 @@
                         </Bundle-Activator>
                         <Bundle-Vendor>Grizzly Devs</Bundle-Vendor>
                         <Import-Package>
-                            sun.misc.*;resolution:=optional,
-                            *,
+                            *
                         </Import-Package>
                         <Export-Package>
                             org.glassfish.grizzly.*;version=${project.version};-split-package:=merge-first,
