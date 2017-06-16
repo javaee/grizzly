@@ -145,8 +145,8 @@ public class WebappContext implements ServletContext {
         EnumSet.of(SessionTrackingMode.COOKIE);
     
     /* Servlet major/minor versions */
-    private static final int MAJOR_VERSION = 3;
-    private static final int MINOR_VERSION = 1;
+    private static final int MAJOR_VERSION = 4;
+    private static final int MINOR_VERSION = 0;
 
     /* Logical name, path spec, and filesystem path of this application */
     private final String displayName;
