@@ -147,7 +147,7 @@
  <p>A JaxwsHandler could be associated with only one web service, which could be passed to JaxwsHandler constructor.two ways:</p> 
  <ul> 
   <li> <p>Web service instance, so default configuration will be used;</p></li> 
-  <li> <p><a class="externalLink" href="http://java.net/projects/jax-ws/sources/sources/content/tags/JAXWS_2_2_5_07282011/jaxws-ri/rt/src/com/sun/xml/ws/api/server/WSEndpoint.java">WSEndpoint</a>, which may contain customized web services configuration, like binding, WSDL location etc…</p></li> 
+  <li> <p>WSEndpoint which may contain customized web services configuration, like binding, WSDL location etc…</p></li> 
  </ul> 
  <p>A JaxwsHandler is able to process not just web service’s operation calls, but also meta data requests like requests for web service’s WSDL and XSD. So if you register JaxwsHandler to serve web service on *<a class="externalLink" href="http://localhost:8080/addservice*">http://localhost:8080/addservice*</a>, the WSDL of the service would be published at *<a class="externalLink" href="http://localhost:8080/addservice?WSDL*">http://localhost:8080/addservice?WSDL*</a>.</p> 
 </div> 
