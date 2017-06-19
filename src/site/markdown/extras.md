@@ -14,15 +14,11 @@ specific configuration.
 
 <!-- The javadocs for the full connection pool package may be found [here][pkgdocs]. -->
 
-[pkgdocs]: https://grizzly.java.net/docs/2.3/apidocs/org/glassfish/grizzly/connectionpool/package-summary.html
-
 ## SingleEndpointPool
 
 The SingleEndpointPool represents a connection pool to a single endpoint. For
 example if we want to create a connection pool to “grizzly.java.net:443″ and set
 the maximum number of connections in pool equal to eight – the code will look like:
-
-[sep]: https://grizzly.java.net/docs/2.3/apidocs/org/glassfish/grizzly/connectionpool/SingleEndpointPool.html
 
 ```java
 TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance()
@@ -179,8 +175,6 @@ is represented by an EndpointKey. The MultiEndpointPool supports pretty much the
 set of operations as SingleEndpointPool, but some of these operations (especially related to the
 Connection allocation) require EndpointKey parameter. Here is an example of MultiEndpointPool,
 which is used to allocate connections to 2 different servers:
-
-[mep]: https://grizzly.java.net/docs/2.3/apidocs/org/glassfish/grizzly/connectionpool/MultiEndpointPool.html
 
 ```java
 // Build a connection pool

@@ -201,11 +201,5 @@
             <item name="Twitter" href="https://twitter.com/project_grizzly"/>
             <item name="Mailing Lists" href="mailing.html"/>
         </menu>
-        <menu name="Project Info">
-            <item name="Source Control" href="https://github.com/javaee/grizzly"/>
-            <item name="Issue Tracking" href="https://github.com/javaee/grizzly/issues"/>
-            <item name="Mailing Lists" href="mailing.html"/>
-            <item name="Project Team" href="team-list.html"/>
-        </menu>
     </body>
 </project>

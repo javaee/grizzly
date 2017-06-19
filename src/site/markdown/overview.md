@@ -29,7 +29,7 @@ Grizzly source may be viewed online on the Java.net git
 ## Where to Get Help
 
 There are several ways to obtain help with Grizzly. The first resource
-is the [project mailing lists](http://java.net/projects/grizzly/lists).
+is the [Grizzly discussion group](https://javaee.groups.io/g/grizzly).
 The Grizzly team is very responsive to any mails sent to these lists.
 The second resource is the [project issue
 tracker](https://github.com/javaee/grizzly/issues). If you find a bug with

@@ -20,8 +20,7 @@ could be passed to JaxwsHandler constructor.two ways:
 
 -   Web service instance, so default configuration will be used;
 
--   [WSEndpoint](http://java.net/projects/jax-ws/sources/sources/content/tags/JAXWS_2_2_5_07282011/jaxws-ri/rt/src/com/sun/xml/ws/api/server/WSEndpoint.java),
-    which may contain customized web services configuration, like
+-   WSEndpoint which may contain customized web services configuration, like
     binding, WSDL location etc...
 
 A JaxwsHandler is able to process not just web service's operation
