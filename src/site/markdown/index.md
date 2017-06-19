@@ -33,7 +33,7 @@ See our list of [dependencies][deps] for details.
 
 <h2><a href="https://github.com/AsyncHttpClient/async-http-client" class="headerlink"><img src="images/reqres.png"/> Need an HTTP Client?</a></h2>
 
-We\'ve contributed a Grizzly-based provider to the [Async HTTP Client][ahc] project that,
+Check out the [Grizzly HTTP Client][ahc] project that,
 in addition to, HTTP, supports WebSockets and eventually, HTTP/2.
 
 
@@ -44,7 +44,7 @@ in addition to, HTTP, supports WebSockets and eventually, HTTP/2.
 [quick]: quickstart.html
 [deps]: dependencies.html
 [full]: documentation.html
-[ahc]: https://github.com/AsyncHttpClient/async-http-client
+[ahc]: https://github.com/javaee/grizzly-ahc
 [teamblog]: http://grizzly-nio.net
 
 [started]: images/compass.png
