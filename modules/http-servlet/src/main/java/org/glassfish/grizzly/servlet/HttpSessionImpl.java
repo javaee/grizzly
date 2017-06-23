@@ -151,7 +151,7 @@ public class HttpSessionImpl implements HttpSession {
         if (sessionTimeout < 0) {
             sessionTimeout = -1;
         } else {
-            sessionTimeout = (int) SECONDS.convert(sessionTimeout, MILLISECONDS);
+            sessionTimeout = (int) MILLISECONDS.convert(sessionTimeout, SECONDS);
         }
         
         session.setSessionTimeout(sessionTimeout);
@@ -167,7 +167,7 @@ public class HttpSessionImpl implements HttpSession {
             return -1;
         }
 
-        sessionTimeout = MILLISECONDS.convert(sessionTimeout, SECONDS);
+        sessionTimeout = SECONDS.convert(sessionTimeout, MILLISECONDS);
         if (sessionTimeout > Integer.MAX_VALUE) {
             throw new IllegalArgumentException(sessionTimeout + " cannot be cast to int.");
         }
