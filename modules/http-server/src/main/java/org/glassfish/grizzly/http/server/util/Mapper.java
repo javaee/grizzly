@@ -514,6 +514,11 @@ public class Mapper {
         addWrapper(context, path, wrapper, jspWildCard, isEmptyPathSpecial);
     }
 
+    public void addWrapper(String path, Object wrapper, boolean jspWildCard,
+            String servletName, boolean isEmptyPathSpecial) {
+        addWrapper(context, path, wrapper, jspWildCard, servletName,
+                isEmptyPathSpecial);
+    }
 
     protected void addWrapper(Context context, String path, Object wrapper) {
         addWrapper(context, path, wrapper, false, false);
