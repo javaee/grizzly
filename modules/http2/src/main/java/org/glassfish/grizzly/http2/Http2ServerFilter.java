@@ -708,6 +708,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
         // Create HTTP/2.0 connection for the given Grizzly Connection
         final Http2State http2State = Http2State.create(connection);
         http2State.setHttp2Session(http2Session);
+        http2Session.setupFilterChains(ctx, true);
         
         if (isLast) {
             http2State.setDirectUpgradePhase(); // expecting preface
@@ -732,7 +733,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
         // un-commit the response
         httpResponse.setCommitted(false);
         
-        http2Session.setupFilterChains(ctx, true);
+
         
         // server preface
         http2Session.sendPreface();
