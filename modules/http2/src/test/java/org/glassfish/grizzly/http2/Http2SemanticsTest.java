@@ -76,6 +76,7 @@ import static org.junit.Assert.assertNotNull;
 public class Http2SemanticsTest extends AbstractHttp2Test {
 
     private final boolean isSecure;
+    private final boolean priorKnowledge;
     private HttpServer httpServer;
     private static final int PORT = 18893;
 
@@ -83,8 +84,9 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
     // ----------------------------------------------------------- Constructors
 
 
-    public Http2SemanticsTest(final boolean isSecure) {
+    public Http2SemanticsTest(final boolean isSecure, final boolean priorKnowledge) {
         this.isSecure = isSecure;
+        this.priorKnowledge = priorKnowledge;
     }
 
 
@@ -92,8 +94,8 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
 
 
     @Parameterized.Parameters
-    public static Collection<Object[]> isSecure() {
-        return AbstractHttp2Test.isSecure();
+    public static Collection<Object[]> configure() {
+        return AbstractHttp2Test.configure();
     }
 
     @Before
@@ -197,7 +199,7 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
             throws Exception {
 
         final FilterChain clientChain =
-                createClientFilterChainAsBuilder(isSecure, true).build();
+                createClientFilterChainAsBuilder(isSecure, priorKnowledge).build();
 
         if (filter != null) {
             clientChain.add(filter);

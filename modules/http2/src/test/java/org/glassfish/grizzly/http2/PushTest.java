@@ -104,13 +104,15 @@ public class PushTest extends AbstractHttp2Test {
     private static final int PORT = 19999;
 
     private final boolean isSecure;
+    private final boolean priorKnowledge;
 
 
     // ----------------------------------------------------------- Constructors
 
 
-    public PushTest(final boolean isSecure) {
+    public PushTest(final boolean isSecure, final boolean priorKnowledge) {
         this.isSecure = isSecure;
+        this.priorKnowledge = priorKnowledge;
     }
 
 
@@ -118,8 +120,8 @@ public class PushTest extends AbstractHttp2Test {
 
 
     @Parameterized.Parameters
-    public static Collection<Object[]> isSecure() {
-        return AbstractHttp2Test.isSecure();
+    public static Collection<Object[]> configure() {
+        return AbstractHttp2Test.configure();
     }
 
     @Before
@@ -851,7 +853,7 @@ public class PushTest extends AbstractHttp2Test {
                 .header(Header.Host, "localhost:" + PORT)
                 .header(Header.Cookie, Globals.SESSION_COOKIE_NAME + '=' + expectedId)
                 .uri("/test")
-                .protocol(Protocol.HTTP_2_0)
+                .protocol(Protocol.HTTP_1_1)
                 .build();
 
         doApiTest(request, handler, result, latch);
@@ -905,7 +907,7 @@ public class PushTest extends AbstractHttp2Test {
         };
 
         final HttpRequestPacket request = HttpRequestPacket.builder()
-                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/main")
+                .method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/main")
                 .header(Header.Host, "localhost:" + PORT)
                 .build();
 
@@ -998,7 +1000,7 @@ public class PushTest extends AbstractHttp2Test {
         final Header[] conditionalHeaders = (Header[]) conditionalHeadersField.get(null);
 
         final HttpRequestPacket.Builder requestBuilder = HttpRequestPacket.builder()
-                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/main")
+                .method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/main")
                 .header(Header.Host, "localhost:" + PORT);
 
         for (int i = 0, len = removeHeaders.length; i < len; i++) {
@@ -1094,7 +1096,7 @@ public class PushTest extends AbstractHttp2Test {
         };
 
         final HttpRequestPacket request = HttpRequestPacket.builder()
-                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/main")
+                .method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/main")
                 .header(Header.Host, "localhost:" + PORT).build();
 
         final Callable<Throwable> validator = new Callable<Throwable>() {
@@ -1168,7 +1170,7 @@ public class PushTest extends AbstractHttp2Test {
         };
 
         final HttpRequestPacket request = HttpRequestPacket.builder()
-                .method(Method.GET).protocol(Protocol.HTTP_2_0).uri("/main")
+                .method(Method.GET).protocol(Protocol.HTTP_1_1).uri("/main")
                 .header(Header.Cookie, "ginger=snap")
                 .header(Header.Host, "localhost:" + PORT).build();
 
@@ -1302,7 +1304,7 @@ public class PushTest extends AbstractHttp2Test {
                 .method(Method.GET)
                 .header(Header.Host, "localhost:" + PORT)
                 .uri("/test")
-                .protocol(Protocol.HTTP_2_0)
+                .protocol(Protocol.HTTP_1_1)
                 .build();
 
         sendRequest(server, request);
@@ -1333,7 +1335,7 @@ public class PushTest extends AbstractHttp2Test {
             throws Exception {
 
         final FilterChain clientChain =
-                createClientFilterChainAsBuilder(isSecure, true).build();
+                createClientFilterChainAsBuilder(isSecure, priorKnowledge).build();
 
         if (filter != null) {
             clientChain.add(filter);

@@ -108,14 +108,16 @@ public class FileCacheTest extends AbstractHttp2Test {
     private HttpServer httpServer;
 
     private final boolean isSecure;
+    private final boolean priorKnowledge;
     
-    public FileCacheTest(final boolean isSecure) {
+    public FileCacheTest(final boolean isSecure, final boolean priorKnowledge) {
         this.isSecure = isSecure;
+        this.priorKnowledge = priorKnowledge;
     }
 
     @Parameters
-    public static Collection<Object[]> isSecure() {
-        return AbstractHttp2Test.isSecure();
+    public static Collection<Object[]> configure() {
+        return AbstractHttp2Test.configure();
     }
 
     @Before
@@ -415,7 +417,7 @@ public class FileCacheTest extends AbstractHttp2Test {
     throws Exception {
 
         final FilterChain clientChain =
-                createClientFilterChainAsBuilder(isSecure,
+                createClientFilterChainAsBuilder(isSecure, priorKnowledge,
                 new HttpMessageFilter(inQueue))
                 .build();
 

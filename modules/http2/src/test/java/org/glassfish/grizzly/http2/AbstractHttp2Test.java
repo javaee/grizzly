@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http2;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.logging.Logger;
@@ -77,15 +78,13 @@ public abstract class AbstractHttp2Test {
     private volatile static SSLEngineConfigurator clientSSLEngineConfigurator;
     private volatile static SSLEngineConfigurator serverSSLEngineConfigurator;    
 
-    public static Collection<Object[]> isSecure() {
-        final Collection<Object[]> modes = new LinkedList<>();
-        
-        modes.add(new Object[] {Boolean.FALSE});
-        
-//        if (AlpnSupport.isEnabled() && !Boolean.valueOf(System.getProperty("grizzly.skip.http2tls", "false"))) {
-//            modes.add(new Object[] {Boolean.TRUE});
-//        }
-        return modes;
+    public static Collection<Object[]> configure() {
+        return Arrays.asList(new Object[][]{
+                {Boolean.FALSE, Boolean.TRUE},   // not secure, prior knowledge
+                {Boolean.FALSE, Boolean.FALSE},  // not secure, upgrade
+                //{ (AlpnSupport.isEnabled() && !Boolean.valueOf(System.getProperty("grizzly.skip.http2tls", "false"))), Boolean.TRUE } // secure
+                //{ (AlpnSupport.isEnabled() && !Boolean.valueOf(System.getProperty("grizzly.skip.http2tls", "false"))), Boolean.FALSE }, // secure
+        });
     }
     
     protected Http2AddOn http2Addon;

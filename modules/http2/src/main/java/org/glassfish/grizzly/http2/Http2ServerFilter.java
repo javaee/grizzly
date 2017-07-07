@@ -831,7 +831,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
             }
 
             try {
-                stream.onRcvHeaders(true);
+                stream.onRcvHeaders(headersFrame.isEndStream());
                 DecoderUtils.decodeTrailerHeaders(http2Session, stream.getRequest());
             } catch (IOException ioe) {
                 throw new Http2SessionException(ErrorCode.COMPRESSION_ERROR, ioe.getCause().getMessage());

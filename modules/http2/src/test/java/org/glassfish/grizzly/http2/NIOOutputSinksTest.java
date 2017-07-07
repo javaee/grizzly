@@ -92,14 +92,16 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
     private static final int PORT = 9339;
 
     private final boolean isSecure;
+    private final boolean priorKnowledge;
     
-    public NIOOutputSinksTest(final boolean isSecure) {
+    public NIOOutputSinksTest(final boolean isSecure, final boolean priorKnowledge) {
         this.isSecure = isSecure;
+        this.priorKnowledge = priorKnowledge;
     }
     
     @Parameterized.Parameters
-    public static Collection<Object[]> isSecure() {
-        return AbstractHttp2Test.isSecure();
+    public static Collection<Object[]> configure() {
+        return AbstractHttp2Test.configure();
     }
     
     @Test
@@ -110,7 +112,7 @@ public class NIOOutputSinksTest extends AbstractHttp2Test {
         final FutureImpl<Integer> parseResult = SafeFutureImpl.create();
         
         FilterChainBuilder filterChainBuilder =
-                createClientFilterChainAsBuilder(isSecure);
+                createClientFilterChainAsBuilder(isSecure, priorKnowledge);
         filterChainBuilder.add(new BaseFilter() {
 
             private int bytesRead;

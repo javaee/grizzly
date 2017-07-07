@@ -87,14 +87,16 @@ public class HttpInputStreamsTest extends AbstractHttp2Test {
     private static final int PORT = 18300;
 
     private final boolean isSecure;
+    private final boolean priorKnowledge;
     
-    public HttpInputStreamsTest(final boolean isSecure) {
+    public HttpInputStreamsTest(final boolean isSecure, final boolean priorKnowledge) {
         this.isSecure = isSecure;
+        this.priorKnowledge = priorKnowledge;
     }
 
     @Parameters
-    public static Collection<Object[]> isSecure() {
-        return AbstractHttp2Test.isSecure();
+    public static Collection<Object[]> configure() {
+        return AbstractHttp2Test.configure();
     }
     
     // ----------------------------------------------------- Binary Test Methods
@@ -1259,7 +1261,7 @@ public class HttpInputStreamsTest extends AbstractHttp2Test {
             server.start();
             
             final FilterChain clientFilterChain =
-                    createClientFilterChain(isSecure, clientFilter);
+                    createClientFilterChainAsBuilder(isSecure, priorKnowledge, clientFilter).build();
             
             ctransport.setProcessor(clientFilterChain);
 

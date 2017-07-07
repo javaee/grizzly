@@ -107,14 +107,16 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
     private static final int PORT = 18301;
 
     private final boolean isSecure;
+    private final boolean priorKnowledge;
     
-    public NIOInputSourcesTest(final boolean isSecure) {
+    public NIOInputSourcesTest(final boolean isSecure, final boolean priorKnowledge) {
         this.isSecure = isSecure;
+        this.priorKnowledge = priorKnowledge;
     }
 
     @Parameterized.Parameters
-    public static Collection<Object[]> isSecure() {
-        return AbstractHttp2Test.isSecure();
+    public static Collection<Object[]> configure() {
+        return AbstractHttp2Test.configure();
     }
     
     @Before
@@ -689,7 +691,7 @@ public class NIOInputSourcesTest extends AbstractHttp2Test {
             server.start();
             
             FilterChain clientFilterChain =
-                    createClientFilterChain(isSecure, filter);
+                    createClientFilterChainAsBuilder(isSecure, priorKnowledge, filter).build();
             
             clientTransport.setProcessor(clientFilterChain);
             clientTransport.start();

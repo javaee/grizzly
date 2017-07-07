@@ -86,14 +86,16 @@ public class HttpOutputStreamsTest extends AbstractHttp2Test {
     private static final char[] ALPHA = "abcdefghijklmnopqrstuvwxyz".toCharArray();
 
     private final boolean isSecure;
+    private final boolean priorKnowledge;
     
-    public HttpOutputStreamsTest(final boolean isSecure) {
+    public HttpOutputStreamsTest(final boolean isSecure, final boolean priorKnowledge) {
         this.isSecure = isSecure;
+        this.priorKnowledge = priorKnowledge;
     }
 
     @Parameterized.Parameters
-    public static Collection<Object[]> isSecure() {
-        return AbstractHttp2Test.isSecure();
+    public static Collection<Object[]> configure() {
+        return AbstractHttp2Test.configure();
     }
 
     // --------------------------------------------------------- Character Tests
@@ -1126,8 +1128,8 @@ public class HttpOutputStreamsTest extends AbstractHttp2Test {
         try {
             server.start();
 
-            FilterChain clientFilterChain = createClientFilterChain(
-                    isSecure, new ClientFilter(parseResult));
+            FilterChain clientFilterChain = createClientFilterChainAsBuilder(
+                    isSecure, priorKnowledge, new ClientFilter(parseResult)).build();
                                 
             ctransport.setProcessor(clientFilterChain);
 

@@ -1145,17 +1145,9 @@ public class Http2Session {
         
         request.setExpectContent(!fin);
         final Http2Stream stream = newUpgradeStream(request, priority);
-        stream.onRcvHeaders(fin);
-        
-        synchronized (sessionLock) {
-            if (isClosed()) {
-                throw new Http2StreamException(Http2Stream.UPGRADE_STREAM_ID,
-                        ErrorCode.REFUSED_STREAM, "Session is closed");
-            }
-            registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
-            lastLocalStreamId= Http2Stream.UPGRADE_STREAM_ID;
-        }
-        
+
+        registerUpgradeStream(stream);
+
         return stream;
     }
 
@@ -1176,20 +1168,12 @@ public class Http2Session {
         
         // we already sent headers - so the initial state is OPEN
         final Http2Stream stream = newUpgradeStream(request, priority);
-        
-        synchronized(sessionLock) {
-            if (isClosed()) {
-                throw new Http2StreamException(Http2Stream.UPGRADE_STREAM_ID,
-                        ErrorCode.REFUSED_STREAM, "Session is closed");
-            }
 
-            registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
-            lastLocalStreamId = Http2Stream.UPGRADE_STREAM_ID;
-        }
-        
+        registerUpgradeStream(stream);
+
         return stream;
     }
-    
+
     /**
      * Initializes HTTP2 communication (if not initialized before) by forming
      * HTTP2 connection and stream {@link FilterChain}s.
@@ -1404,6 +1388,20 @@ public class Http2Session {
 
         streamsMap.put(streamId, stream);
         incStreamCount();
+    }
+
+    private void registerUpgradeStream(final Http2Stream stream) throws Http2StreamException {
+        synchronized(sessionLock) {
+            if (isClosed()) {
+                throw new Http2StreamException(Http2Stream.UPGRADE_STREAM_ID,
+                        ErrorCode.REFUSED_STREAM, "Session is closed");
+            }
+
+            registerStream(Http2Stream.UPGRADE_STREAM_ID, stream);
+            if (!isServer()) {
+                lastLocalStreamId = Http2Stream.UPGRADE_STREAM_ID;
+            }
+        }
     }
 
     void incStreamCount() {
