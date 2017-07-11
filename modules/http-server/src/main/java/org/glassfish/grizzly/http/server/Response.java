@@ -346,7 +346,7 @@ public class Response {
         if (isCommitted()) {
             throw new IllegalStateException("Response has already been committed.");
         }
-        final Protocol protocol = response.getProtocol();
+        final Protocol protocol = request.getProtocol();
         if (protocol.equals(Protocol.HTTP_0_9) || protocol.equals(Protocol.HTTP_1_0)) {
             throw new IllegalStateException("Trailers not supported by response protocol version " + protocol);
         }
