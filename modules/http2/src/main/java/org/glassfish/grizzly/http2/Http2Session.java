@@ -471,15 +471,13 @@ public class Http2Session {
             
             this.peerStreamWindowSize = peerStreamWindowSize;
 
-            if (peerStreamWindowSize > 0) {
-                sendWindowUpdate(0, peerStreamWindowSize);
-            }
-
-            for (final Http2Stream stream : streamsMap.values()) {
-                if (stream.isClosed()) {
-                    continue;
+            if (!streamsMap.isEmpty()) {
+                for (final Http2Stream stream : streamsMap.values()) {
+                    if (stream.isClosed()) {
+                        continue;
+                    }
+                    stream.getOutputSink().onPeerWindowUpdate(delta);
                 }
-                stream.getOutputSink().onPeerWindowUpdate(delta);
             }
 
         }
