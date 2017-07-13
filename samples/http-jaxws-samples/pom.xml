@@ -45,14 +45,14 @@
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2.4.0-beta11-SNAPSHOT</version>
+        <version>2.4.0-beta11</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.glassfish.grizzly.samples</groupId>
     <artifactId>grizzly-http-jaxws-samples</artifactId>
     <packaging>bundle</packaging>
-    <version>2.4.0-beta11-SNAPSHOT</version>
+    <version>2.4.0-beta11</version>
     <name>grizzly-http-jaxws-samples</name>
     <build>
         <defaultGoal>install</defaultGoal>
