@@ -71,10 +71,10 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.utils.Charsets;
 
 /**
- * Utilities to manipluate char chunks. While String is
+ * Utilities to manipulate char chunks. While String is
  * the easiest way to manipulate chars ( search, substrings, etc),
  * it is known to not be the most efficient solution - Strings are
- * designed as imutable and secure objects.
+ * designed as immutable and secure objects.
  *
  * @author dac@sun.com
  * @author James Todd [gonzo@sun.com]
@@ -82,8 +82,7 @@ import org.glassfish.grizzly.utils.Charsets;
  * @author Remy Maucherat
  */
 public final class CharChunk implements Chunk, Cloneable, Serializable {
-    private static final UTF8Decoder UTF8_DECODER = new UTF8Decoder();
-    
+
     /** Default encoding used to convert to strings. It should be UTF8,
 	as most standards seem to converge, but the servlet API requires
 	8859_1, and this object is used mostly for servlets.
@@ -625,29 +624,10 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
         final byte[] buffer = byteChunk.getBuffer();
         
-        if (Charsets.UTF8_CHARSET.equals(encoding)) {
-            try {
-//                final char[] ccBuf = getChars();
-//                final int ccStart = getStart();
-
-                end = UTF8_DECODER.convert(buffer,
-                        bufferStart, buff, end,
-                        bufferLength);
-//                cc.setEnd(ccEnd);
-            } catch (IOException e) {
-                if (!(e instanceof CharConversionException)) {
-                    throw new CharConversionException();
-                }
-
-                throw (CharConversionException) e;
-            }
-//            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
-            return;
-        } else if (!DEFAULT_HTTP_CHARSET.equals(encoding)) {
+        if (Charsets.UTF8_CHARSET.equals(encoding)
+                || !DEFAULT_HTTP_CHARSET.equals(encoding)) {
             final ByteBuffer bb = ByteBuffer.wrap(buffer,
                     bufferStart, bufferLength);
-//            final char[] ccBuf = cc.getChars();
-//            final int ccStart = cc.getStart();
             final CharBuffer cb = CharBuffer.wrap(buff, start, buff.length - start);
 
             final CharsetDecoder decoder = Charsets.getCharsetDecoder(encoding);
@@ -658,7 +638,6 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
             }
 
             end = start + cb.position();
-//            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
 
             return;
         }
@@ -668,11 +647,9 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
             buff[i] = (char) (buffer[i + bufferStart] & 0xff);
         }
         end = bufferLength;
-        
-//        return cc;
-//        uri.setChars(cbuf, 0, bc.getLength());
+
     }
-    
+
     /**
      * Set {@link BufferChunk} content to CharChunk using given {@link Charset}.
      * @throws CharConversionException
@@ -685,30 +662,11 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
         allocate(bufferLength, -1);
 
         final Buffer buffer = bufferChunk.getBuffer();
-        
-        if (Charsets.UTF8_CHARSET.equals(encoding)) {
-            try {
-//                final char[] ccBuf = getChars();
-//                final int ccStart = getStart();
 
-                end = UTF8_DECODER.convert(buffer,
-                        bufferStart, buff, end,
-                        bufferLength);
-//                cc.setEnd(ccEnd);
-            } catch (IOException e) {
-                if (!(e instanceof CharConversionException)) {
-                    throw new CharConversionException();
-                }
-
-                throw (CharConversionException) e;
-            }
-//            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
-            return;
-        } else if (!DEFAULT_HTTP_CHARSET.equals(encoding)) {
+        if (Charsets.UTF8_CHARSET.equals(encoding)
+                || !DEFAULT_HTTP_CHARSET.equals(encoding)) {
             final ByteBuffer bb = buffer.toByteBuffer(
                     bufferStart, bufferStart + bufferLength);
-//            final char[] ccBuf = cc.getChars();
-//            final int ccStart = cc.getStart();
             final CharBuffer cb = CharBuffer.wrap(buff, start, buff.length - start);
 
             final CharsetDecoder decoder = Charsets.getCharsetDecoder(encoding);
@@ -719,7 +677,6 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
             }
 
             end = start + cb.position();
-//            uri.setChars(cc.getChars(), cc.getStart(), cc.getEnd());
 
             return;
         }
