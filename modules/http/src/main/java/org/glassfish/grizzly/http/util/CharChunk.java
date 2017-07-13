@@ -624,8 +624,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
         final byte[] buffer = byteChunk.getBuffer();
         
-        if (Charsets.UTF8_CHARSET.equals(encoding)
-                || !DEFAULT_HTTP_CHARSET.equals(encoding)) {
+        if (!DEFAULT_HTTP_CHARSET.equals(encoding)) {
             final ByteBuffer bb = ByteBuffer.wrap(buffer,
                     bufferStart, bufferLength);
             final CharBuffer cb = CharBuffer.wrap(buff, start, buff.length - start);
@@ -663,8 +662,7 @@ public final class CharChunk implements Chunk, Cloneable, Serializable {
 
         final Buffer buffer = bufferChunk.getBuffer();
 
-        if (Charsets.UTF8_CHARSET.equals(encoding)
-                || !DEFAULT_HTTP_CHARSET.equals(encoding)) {
+        if (!DEFAULT_HTTP_CHARSET.equals(encoding)) {
             final ByteBuffer bb = buffer.toByteBuffer(
                     bufferStart, bufferStart + bufferLength);
             final CharBuffer cb = CharBuffer.wrap(buff, start, buff.length - start);
