@@ -1036,9 +1036,11 @@ public class HttpServerFilter extends HttpCodecFilter {
                         final KeepAliveContext keepAliveContext =
                                 keepAliveContextAttr.get(context);
 
-                        keepAliveQueue.add(keepAliveContext,
-                                keepAlive.getIdleTimeoutInSeconds(),
-                                TimeUnit.SECONDS);
+                        if (keepAliveContext != null) {
+                            keepAliveQueue.add(keepAliveContext,
+                                    keepAlive.getIdleTimeoutInSeconds(),
+                                    TimeUnit.SECONDS);
+                        }
                     }
 
                     final boolean isStayAlive =
