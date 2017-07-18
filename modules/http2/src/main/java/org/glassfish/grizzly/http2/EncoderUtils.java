@@ -59,6 +59,7 @@ import static org.glassfish.grizzly.http.util.DataChunk.Type.Bytes;
 
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.ssl.SSLUtils;
+import org.glassfish.grizzly.utils.Charsets;
 
 /**
  * HTTP Packet -> HTTP/2 frames encoder utils.
@@ -194,10 +195,14 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
 
         encoder.encodeHeader(AUTHORITY_HEADER, hostHeader);
 
-        encoder.encodeHeader(PATH_HEADER,
-                (pathLen == requestURI.length())
-                    ? requestURI
-                    : requestURI.substring(pathStart, pathStart + pathLen));
+        String path = (pathLen == requestURI.length())
+                ? requestURI
+                : requestURI.substring(pathStart, pathStart + pathLen);
+        final DataChunk query = request.getQueryStringDC();
+        if (!query.isNull()) {
+            path += '?' + query.toString(Charsets.UTF8_CHARSET);
+        }
+        encoder.encodeHeader(PATH_HEADER, path);
         
         encodeUserHeaders(headers, encoder);
 
