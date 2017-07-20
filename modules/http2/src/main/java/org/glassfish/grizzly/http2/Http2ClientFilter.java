@@ -42,14 +42,15 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.EmptyCompletionHandler;
 import org.glassfish.grizzly.Event;
-import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.FilterChainContext.TransportContext;
@@ -71,6 +72,7 @@ import org.glassfish.grizzly.http.util.HeaderValue;
 import org.glassfish.grizzly.http.util.HttpStatus;
 
 import org.glassfish.grizzly.http.util.MimeHeaders;
+import org.glassfish.grizzly.http2.NetLogger.Context;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
@@ -593,17 +595,18 @@ public class Http2ClientFilter extends Http2BaseFilter {
 
         stream.onRcvHeaders(isEOS);
         final HttpContent content;
+        final Map<String,String> capture = ((NetLogger.isActive()) ? new LinkedHashMap<>() : null);
         if (stream.getInboundHeaderFramesCounter() == 1) {
             if (isEOS) {
                 response.setExpectContent(false);
                 stream.inputBuffer.terminate(IN_FIN_TERMINATION);
             }
-            DecoderUtils.decodeResponseHeaders(http2Session, response);
+            DecoderUtils.decodeResponseHeaders(http2Session, response, capture);
             onHttpHeadersParsed(response, context);
             response.getHeaders().mark();
             content = response.httpContentBuilder().content(Buffers.EMPTY_BUFFER).last(isEOS).build();
         } else {
-            DecoderUtils.decodeTrailerHeaders(http2Session, response);
+            DecoderUtils.decodeTrailerHeaders(http2Session, response, capture);
             final HttpTrailer trailer = response.httpTrailerBuilder().content(Buffers.EMPTY_BUFFER).last(isEOS).build();
             final MimeHeaders mimeHeaders = response.getHeaders();
             if (mimeHeaders.trailerSize() > 0) {
@@ -616,6 +619,7 @@ public class Http2ClientFilter extends Http2BaseFilter {
             stream.flushInputData();
             //stream.inputBuffer.terminate(IN_FIN_TERMINATION);
         }
+        NetLogger.log(Context.RX, http2Session, headersFrame, capture);
 
         if (isEOS) {
             onHttpPacketParsed(response, context);
@@ -646,8 +650,10 @@ public class Http2ClientFilter extends Http2BaseFilter {
 
         final Http2Stream stream = http2Session.acceptStream(request,
                 pushPromiseFrame.getPromisedStreamId(), refStreamId, false, 0);
-        
-        DecoderUtils.decodeRequestHeaders(http2Session, request);
+
+        final Map<String,String> capture = ((NetLogger.isActive()) ? new LinkedHashMap<>() : null);
+        DecoderUtils.decodeRequestHeaders(http2Session, request, capture);
+        NetLogger.log(Context.RX, http2Session, pushPromiseFrame, capture);
         onHttpHeadersParsed(request, context);
 
         prepareIncomingRequest(stream, request);

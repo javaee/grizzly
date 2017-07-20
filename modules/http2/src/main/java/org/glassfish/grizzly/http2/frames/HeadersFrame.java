@@ -69,6 +69,7 @@ public class HeadersFrame extends HeaderBlockHead {
     private boolean exclusive;
     private int streamDependency;
     private int weight;
+    private int compressedHeadersLen;
     
     // ------------------------------------------------------------ Constructors
 
@@ -97,6 +98,7 @@ public class HeadersFrame extends HeaderBlockHead {
         }
         
         frame.compressedHeaders = buffer.split(buffer.position());
+        frame.compressedHeadersLen = frame.compressedHeaders.remaining();
         frame.setFrameBuffer(buffer);
         
         return frame;
@@ -226,8 +228,7 @@ public class HeadersFrame extends HeaderBlockHead {
         final boolean isPrioritySet = isFlagSet(PRIORITIZED);
 
         // we consider compressedHeaders buffer already includes the padding (if any)
-        return (isPadded ? 1 : 0) + (isPrioritySet ? 5 : 0) +
-                (compressedHeaders != null ? compressedHeaders.remaining() : 0);
+        return (isPadded ? 1 : 0) + (isPrioritySet ? 5 : 0) + (compressedHeadersLen);
     }
 
     @Override
@@ -294,6 +295,7 @@ public class HeadersFrame extends HeaderBlockHead {
             setHeaderValuesTo(frame);
             
             frame.compressedHeaders = compressedHeaders;
+            frame.compressedHeadersLen = compressedHeaders.remaining();
             frame.padLength = padLength;
             frame.streamDependency = streamDependency;
             frame.weight = weight;

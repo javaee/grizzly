@@ -56,6 +56,8 @@ import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.http2.frames.UnknownFrame;
 import org.glassfish.grizzly.http2.frames.WindowUpdateFrame;
 
+import java.util.Iterator;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -72,14 +74,14 @@ final class NetLogger {
     private static final String GOAWAY              = "GOAWAY";
     private static final String GOAWAY_FMT          = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"last-stream\":\"{3}\", \"error-code\":\"{4}\", \"detail\":\"{5}\" '}'";
     private static final String HEADERS             = "HEADERS";
-    private static final String HEADERS_FMT         = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"parent-stream\":\"{3}\", \"prioritized\":\"{4}\", \"exclusive\":\"{5}\", \"weight\":\"{6}\", \"fin\":\"{7}\", \"len\":\"{8}\" '}'";
+    private static final String HEADERS_FMT         = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"parent-stream\":\"{3}\", \"prioritized\":\"{4}\", \"exclusive\":\"{5}\", \"weight\":\"{6}\", \"fin\":\"{7}\", \"len\":\"{8}\", \"headers\":{9} '}'";
     private static final String OPEN_FMT            = "'{' \"session\":\"{0}\", \"event\":\"SESSION_OPEN\" '}'";
     private static final String PING                = "PING";
     private static final String PING_FMT            = "'{' session=\"{0}\", event=\"{1}\", is-ack=\"{2}\", opaque-data=\"{3}\" '}'";
     private static final String PRIORITY            = "PRIORITY";
     private static final String PRIORITY_FMT        = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"parent-stream\":\"{3}\", \"exclusive\":\"{4}\", \"weight\":\"{5}\" '}'";
     private static final String PUSH_PROMISE        = "PUSH_PROMISE";
-    private static final String PUSH_PROMISE_FMT    = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"promised-stream\":\"{3}\", \"len\":\"{4}\" '}'";
+    private static final String PUSH_PROMISE_FMT    = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"promised-stream\":\"{3}\", \"len\":\"{4}\", \"headers\":{5} '}'";
     private static final String RST                 = "RST";
     private static final String RST_FMT             = "'{' \"session\":\"{0}\", \"event\":\"{1}\", \"stream\":\"{2}\", \"error-code\":\"{3}\" '}'";
     private static final String SETTINGS            = "SETTINGS";
@@ -106,6 +108,10 @@ final class NetLogger {
         }
     }
 
+    static boolean isActive() {
+        return LOGGER.isLoggable(LEVEL);
+    }
+
     static void log(final Context ctx, final Http2Session c, final Http2Frame frame) {
         switch (frame.getType()) {
             case ContinuationFrame.TYPE:
@@ -118,7 +124,6 @@ final class NetLogger {
                 log(ctx, c, (GoAwayFrame) frame);
                 break;
             case HeadersFrame.TYPE:
-                log(ctx, c, (HeadersFrame) frame);
                 break;
             case PingFrame.TYPE:
                 log(ctx, c, (PingFrame) frame);
@@ -127,7 +132,6 @@ final class NetLogger {
                 log(ctx, c, (PriorityFrame) frame);
                 break;
             case PushPromiseFrame.TYPE:
-                log(ctx, c, (PushPromiseFrame) frame);
                 break;
             case RstStreamFrame.TYPE:
                 log(ctx, c, (RstStreamFrame) frame);
@@ -146,7 +150,7 @@ final class NetLogger {
 
     static void log(final Context ctx, final Http2Session c, final ContinuationFrame frame) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             LOGGER.log(LEVEL, CONTINUATION_FMT, new Object[]{
                     escape(c.getConnection().toString()),
                     ctx.getPrefix() + CONTINUATION,
@@ -157,7 +161,7 @@ final class NetLogger {
 
     static void log(final Context ctx, final Http2Session c, final DataFrame frame) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             LOGGER.log(LEVEL, DATA_FMT, new Object[]{
                     escape(c.getConnection().toString()),
                     ctx.getPrefix() + DATA,
@@ -169,7 +173,7 @@ final class NetLogger {
 
     static void log(final Context ctx, final Http2Session c, final GoAwayFrame frame) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             final Buffer b = frame.getAdditionalDebugData();
             final String details = ((b != null) ? b.toStringContent() : NOT_AVAILABLE);
             LOGGER.log(LEVEL, GOAWAY_FMT, new Object[]{
@@ -182,9 +186,12 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Session c, final HeadersFrame frame) {
+    static void log(final Context ctx,
+                    final Http2Session c,
+                    final HeadersFrame frame,
+                    final Map<String,String> headers) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             LOGGER.log(LEVEL, HEADERS_FMT, new Object[]{
                     escape(c.getConnection().toString()),
                     ctx.getPrefix() + HEADERS,
@@ -194,13 +201,18 @@ final class NetLogger {
                     frame.isExclusive(),
                     frame.getWeight(),
                     frame.isEndStream(),
-                    frame.getCompressedHeaders().remaining()});
+                    frame.getLength(),
+                    toJSON(headers)});
+
+
         }
     }
 
+
+
     static void log(final Context ctx, final Http2Session c, final PingFrame frame) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             LOGGER.log(LEVEL, PING_FMT, new Object[]{
                     escape(c.getConnection().toString()),
                     ctx.getPrefix() + PING,
@@ -211,7 +223,7 @@ final class NetLogger {
 
     static void log(final Context ctx, final Http2Session c, final PriorityFrame frame) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             LOGGER.log(LEVEL, PRIORITY_FMT, new Object[]{
                     escape(c.getConnection().toString()),
                     ctx.getPrefix() + PRIORITY,
@@ -222,21 +234,25 @@ final class NetLogger {
         }
     }
 
-    static void log(final Context ctx, final Http2Session c, final PushPromiseFrame frame) {
+    static void log(final Context ctx,
+                    final Http2Session c,
+                    final PushPromiseFrame frame,
+                    final Map<String,String> headers) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             LOGGER.log(LEVEL, PUSH_PROMISE_FMT, new Object[]{
                     escape(c.getConnection().toString()),
                     ctx.getPrefix() + PUSH_PROMISE,
                     frame.getStreamId(),
                     frame.getPromisedStreamId(),
-                    frame.getCompressedHeaders().remaining()});
+                    frame.getLength(),
+                    toJSON(headers)});
         }
     }
 
     static void log(final Context ctx, final Http2Session c, final RstStreamFrame frame) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             LOGGER.log(LEVEL, RST_FMT, new Object[]{
                     escape(c.getConnection().toString()),
                     ctx.getPrefix() + RST,
@@ -247,7 +263,7 @@ final class NetLogger {
 
     static void log(final Context ctx, final Http2Session c, final SettingsFrame frame) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             final int numSettings = frame.getNumberOfSettings();
             final StringBuilder sb = new StringBuilder();
             if (numSettings > 0) {
@@ -270,7 +286,7 @@ final class NetLogger {
 
     static void log(final Context ctx, final Http2Session c, final WindowUpdateFrame frame) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             LOGGER.log(LEVEL, WINDOW_UPDATE_FMT, new Object[]{
                     escape(c.getConnection().toString()),
                     ctx.getPrefix() + WINDOW_UPDATE,
@@ -280,7 +296,7 @@ final class NetLogger {
 
     static void log(final Context ctx, final Http2Session c, final UnknownFrame frame) {
         validateParams(ctx, c, frame);
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             LOGGER.log(LEVEL, UNKNOWN_FMT, new Object[]{
                     escape(c.getConnection().toString()),
                     ctx.getPrefix() + UNKNOWN,
@@ -297,18 +313,32 @@ final class NetLogger {
         logSessionEvent(OPEN_FMT, c);
     }
 
+
+    // --------------------------------------------------------- Private Methods
+
+
     private static void logSessionEvent(final String msg, final Http2Session c) {
         if (c == null) {
             throw new NullPointerException("Http2Session cannot be null");
         }
-        if (LOGGER.isLoggable(LEVEL)) {
+        if (isActive()) {
             LOGGER.log(LEVEL, msg, new Object[]{escape(c.getConnection().toString())});
         }
     }
 
-
-    // --------------------------------------------------------- Private Methods
-
+    private static StringBuilder toJSON(final Map<String, String> headers) {
+        final StringBuilder result = new StringBuilder(64);
+        result.append("{ ");
+        for (Iterator<Map.Entry<String,String>> i = headers.entrySet().iterator(); i.hasNext();) {
+            Map.Entry<String,String> entry = i.next();
+            result.append('"').append(entry.getKey()).append("\":\"").append(entry.getValue()).append('"');
+            if (i.hasNext()) {
+                result.append(", ");
+            }
+        }
+        result.append(" }");
+        return result;
+    }
 
     private static void validateParams(final Context ctx,
                                        final Http2Session c,

@@ -45,6 +45,8 @@ import org.glassfish.grizzly.http2.hpack.Encoder;
 import org.glassfish.grizzly.memory.CompositeBuffer;
 import org.glassfish.grizzly.memory.MemoryManager;
 
+import java.util.Map;
+
 /**
  *
  *
@@ -69,7 +71,10 @@ public class HeadersEncoder {
         hpackEncoder = new Encoder(maxHeaderTableSize);
     }
     
-    public void encodeHeader(final String name, final String value) {
+    public void encodeHeader(final String name, final String value, final Map<String,String> capture) {
+        if (capture != null) {
+            capture.put(name, value);
+        }
         init();
         hpackEncoder.header(name, value);
         while (!hpackEncoder.encode(buffer)) {
