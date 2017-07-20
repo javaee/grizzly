@@ -42,7 +42,9 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,7 +63,9 @@ import org.glassfish.grizzly.http.HttpPacket;
 import org.glassfish.grizzly.http.HttpResponsePacket;
 import org.glassfish.grizzly.http.HttpTrailer;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
+import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
+import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
 import org.glassfish.grizzly.http2.utils.ChunkedCompletionHandler;
 import org.glassfish.grizzly.memory.Buffers;
 
@@ -285,9 +289,18 @@ class DefaultOutputSink implements StreamOutputSink {
                 // !!!!! LOCK the deflater
                 isDeflaterLocked = true;
                 http2Session.getDeflaterLock().lock();
-                
+                final boolean logging = NetLogger.isActive();
+                final Map<String,String> capture = ((logging) ? new HashMap<>() : null);
                 headerFrames = http2Session.encodeHttpHeaderAsHeaderFrames(
-                        ctx, httpHeader, stream.getId(), isNoPayload, null);
+                        ctx, httpHeader, stream.getId(), isNoPayload, null, capture);
+                if (logging) {
+                    for (Http2Frame http2Frame : headerFrames) {
+                        if (http2Frame.getType() == PushPromiseFrame.TYPE) {
+                            NetLogger.log(NetLogger.Context.TX, http2Session, (HeadersFrame) http2Frame, capture);
+                            break;
+                        }
+                    }
+                }
                 stream.onSndHeaders(isNoPayload);
 
                 // 100-Continue block
@@ -700,10 +713,20 @@ class DefaultOutputSink implements StreamOutputSink {
                               final HttpTrailer httpContent)
     throws IOException {
         http2Session.getDeflaterLock().lock();
+        final boolean logging = NetLogger.isActive();
+        final Map<String,String> capture = ((logging) ? new HashMap<>() : null);
         List<Http2Frame> trailerFrames =
                 http2Session.encodeTrailersAsHeaderFrames(stream.getId(),
                         new ArrayList<>(4),
-                        httpContent.getHeaders());
+                        httpContent.getHeaders(), capture);
+        if (logging) {
+            for (Http2Frame http2Frame : trailerFrames) {
+                if (http2Frame.getType() == PushPromiseFrame.TYPE) {
+                    NetLogger.log(NetLogger.Context.TX, http2Session, (HeadersFrame) http2Frame, capture);
+                    break;
+                }
+            }
+        }
         unflushedWritesCounter.incrementAndGet();
         flushToConnectionOutputSink(trailerFrames, null,
                 new FlushCompletionHandler(completionHandler),

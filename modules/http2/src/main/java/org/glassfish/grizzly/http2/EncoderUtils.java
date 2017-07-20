@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http2;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.http.HttpRequestPacket;
@@ -72,7 +73,9 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
 
     @SuppressWarnings("unchecked")
     static Buffer encodeResponseHeaders(final Http2Session http2Session,
-            final HttpResponsePacket response) throws IOException {
+                                        final HttpResponsePacket response,
+                                        final Map<String,String> capture)
+            throws IOException {
         
         assert http2Session.getDeflaterLock().isLocked();
         
@@ -90,9 +93,9 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
 //                response.getHttpStatus().getStatusBytes(), false);
         
         encoder.encodeHeader(STATUS_HEADER,
-                String.valueOf(response.getHttpStatus().getStatusCode()));
+                String.valueOf(response.getHttpStatus().getStatusCode()), capture);
 
-        encodeUserHeaders(headers, encoder);
+        encodeUserHeaders(headers, encoder, capture);
 
         return encoder.flushHeaders();
     }
@@ -100,7 +103,8 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
     @SuppressWarnings("unchecked")
     static Buffer encodeRequestHeaders(
             final Http2Session http2Session,
-            final HttpRequestPacket request) throws IOException {
+            final HttpRequestPacket request,
+            final Map<String,String> capture) throws IOException {
 
         assert http2Session.getDeflaterLock().isLocked();
         
@@ -180,20 +184,21 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
         final HeadersEncoder encoder = http2Session.getHeadersEncoder();
 
         encoder.encodeHeader(METHOD_HEADER,
-                request.getMethod().toString());
+                request.getMethod().toString(), capture);
 
         if (schemeLen > 0) {
             encoder.encodeHeader(SCHEMA_HEADER,
-                    requestURI.substring(0, schemeLen));
+                    requestURI.substring(0, schemeLen), capture);
         } else {
             // guess
             encoder.encodeHeader(SCHEMA_HEADER,
                     ((SSLUtils.getSSLEngine(http2Session.getConnection()) == null)
-                    ? HTTP
-                    : HTTPS));
+                        ? HTTP
+                        : HTTPS),
+                    capture);
         }
 
-        encoder.encodeHeader(AUTHORITY_HEADER, hostHeader);
+        encoder.encodeHeader(AUTHORITY_HEADER, hostHeader, capture);
 
         String path = (pathLen == requestURI.length())
                 ? requestURI
@@ -202,15 +207,16 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
         if (!query.isNull()) {
             path += '?' + query.toString(Charsets.UTF8_CHARSET);
         }
-        encoder.encodeHeader(PATH_HEADER, path);
+        encoder.encodeHeader(PATH_HEADER, path, capture);
         
-        encodeUserHeaders(headers, encoder);
+        encodeUserHeaders(headers, encoder, capture);
 
         return encoder.flushHeaders();
     }
 
     static Buffer encodeTrailerHeaders(final Http2Session http2Session,
-                                       final MimeHeaders trailers) {
+                                       final MimeHeaders trailers,
+                                       final Map<String,String> capture) {
         assert http2Session.getDeflaterLock().isLocked();
 
         if (trailers == null || trailers.size() == 0) {
@@ -219,8 +225,7 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
 
         final HeadersEncoder encoder = http2Session.getHeadersEncoder();
         for (final String name : trailers.names()) {
-            // TODO: header name validation
-            encoder.encodeHeader(name, trailers.getHeader(name));
+            encoder.encodeHeader(name, trailers.getHeader(name), capture);
         }
 
         return encoder.flushHeaders();
@@ -228,7 +233,9 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
 
     @SuppressWarnings("unchecked")
     private static void encodeUserHeaders(final MimeHeaders headers,
-            final HeadersEncoder encoder) throws IOException {
+                                          final HeadersEncoder encoder,
+                                          final Map<String,String> capture)
+            throws IOException {
         
         final int mimeHeadersCount = headers.size();
         List<DataChunk> tmpList = null;
@@ -288,7 +295,7 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
                     valueStr = value1.toString();
                 }
                 
-                encoder.encodeHeader(nameStr, valueStr);
+                encoder.encodeHeader(nameStr, valueStr, capture);
             
             }
         }

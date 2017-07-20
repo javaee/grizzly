@@ -44,8 +44,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -76,10 +79,12 @@ import org.glassfish.grizzly.http.server.http2.PushEvent;
 import org.glassfish.grizzly.http.util.FastHttpDateFormat;
 import org.glassfish.grizzly.http.util.Header;
 import org.glassfish.grizzly.http.util.HttpStatus;
+import org.glassfish.grizzly.http2.NetLogger.Context;
 import org.glassfish.grizzly.http2.frames.ErrorCode;
 import org.glassfish.grizzly.http2.frames.HeaderBlockHead;
 import org.glassfish.grizzly.http2.frames.HeadersFrame;
 import org.glassfish.grizzly.http2.frames.Http2Frame;
+import org.glassfish.grizzly.http2.frames.PushPromiseFrame;
 import org.glassfish.grizzly.http2.frames.SettingsFrame;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
@@ -832,7 +837,9 @@ public class Http2ServerFilter extends Http2BaseFilter {
 
             try {
                 stream.onRcvHeaders(headersFrame.isEndStream());
-                DecoderUtils.decodeTrailerHeaders(http2Session, stream.getRequest());
+                final Map<String,String> capture = ((NetLogger.isActive()) ? new HashMap<>() : null);
+                DecoderUtils.decodeTrailerHeaders(http2Session, stream.getRequest(), capture);
+                NetLogger.log(Context.RX, http2Session, headersFrame, capture);
             } catch (IOException ioe) {
                 throw new Http2SessionException(ErrorCode.COMPRESSION_ERROR, ioe.getCause().getMessage());
             } catch (HeaderDecodingException hde) {
@@ -865,7 +872,9 @@ public class Http2ServerFilter extends Http2BaseFilter {
         }
 
         try {
-            DecoderUtils.decodeRequestHeaders(http2Session, request);
+            final Map<String,String> capture = ((NetLogger.isActive()) ? new LinkedHashMap<>() : null);
+            DecoderUtils.decodeRequestHeaders(http2Session, request, capture);
+            NetLogger.log(Context.RX, http2Session, headersFrame, capture);
         } catch (IOException ioe) {
             throw new Http2SessionException(ErrorCode.COMPRESSION_ERROR, ioe.getCause().getMessage());
         } catch (HeaderDecodingException hde) {
@@ -942,8 +951,8 @@ public class Http2ServerFilter extends Http2BaseFilter {
     }
 
     private void doPush(final FilterChainContext ctx, final PushEvent pushEvent) {
-        final Http2Session h2c = Http2Session.get(ctx.getConnection());
-        if (h2c == null) {
+        final Http2Session http2Session = Http2Session.get(ctx.getConnection());
+        if (http2Session == null) {
             throw new IllegalStateException("Unable to find valid Http2Session");
         }
 
@@ -980,28 +989,38 @@ public class Http2ServerFilter extends Http2BaseFilter {
             prepareOutgoingResponse(request.getResponse());
             final Http2Stream pushStream;
 
-            h2c.getNewClientStreamLock().lock();
+            http2Session.getNewClientStreamLock().lock();
             try {
-                pushStream = h2c.openStream(
+                pushStream = http2Session.openStream(
                         request,
-                        h2c.getNextLocalStreamId(), parentStream.getId(),
+                        http2Session.getNextLocalStreamId(), parentStream.getId(),
                         false, 0);
                 pushStream.inputBuffer.terminate(IN_FIN_TERMINATION);
 
-                h2c.getDeflaterLock().lock();
+                http2Session.getDeflaterLock().lock();
                 try {
+                    boolean logging = NetLogger.isActive();
+                    final Map<String,String> capture = ((logging) ? new LinkedHashMap<>() : null);
                     List<Http2Frame> pushPromiseFrames =
-                            h2c.encodeHttpRequestAsPushPromiseFrames(
+                            http2Session.encodeHttpRequestAsPushPromiseFrames(
                                     ctx, pushStream.getRequest(), parentStream.getId(),
-                                    pushStream.getId(), null);
-                    h2c.getOutputSink().writeDownStream(pushPromiseFrames);
+                                    pushStream.getId(), null, capture);
+                    if (logging) {
+                        for (Http2Frame http2Frame : pushPromiseFrames) {
+                            if (http2Frame.getType() == PushPromiseFrame.TYPE) {
+                                NetLogger.log(Context.TX, http2Session, (PushPromiseFrame) http2Frame, capture);
+                                break;
+                            }
+                        }
+                    }
+                    http2Session.getOutputSink().writeDownStream(pushPromiseFrames);
 
                 } finally {
                     pushStream.onSendPushPromise();
-                    h2c.getDeflaterLock().unlock();
+                    http2Session.getDeflaterLock().unlock();
                 }
             } finally {
-                h2c.getNewClientStreamLock().unlock();
+                http2Session.getNewClientStreamLock().unlock();
             }
 
             request.getProcessingState().setHttpContext(
@@ -1011,7 +1030,7 @@ public class Http2ServerFilter extends Http2BaseFilter {
             submit(ctx.getConnection(), new Runnable() {
                 @Override
                 public void run() {
-                    h2c.sendMessageUpstream(pushStream,
+                    http2Session.sendMessageUpstream(pushStream,
                                             HttpContent
                                                 .builder(request)
                                                 .content(Buffers.EMPTY_BUFFER)

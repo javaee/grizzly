@@ -42,6 +42,7 @@ package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -75,7 +76,8 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
             "Invalid character 0x%02x at index '%s' found in header %s [%s: %s]";
 
     static void decodeRequestHeaders(final Http2Session http2Session,
-                                     final HttpRequestPacket request)
+                                     final HttpRequestPacket request,
+                                     final Map<String,String> capture)
             throws IOException, HeaderDecodingException {
 
         final Set<String> serviceHeaders = new HashSet<>();
@@ -86,6 +88,9 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
                 @Override
                 public void onDecoded(CharSequence name, CharSequence value) {
+                    if (capture != null) {
+                        capture.put(name.toString(), value.toString());
+                    }
                     for (int i = 0, len = name.length(); i < len; i++) {
                         if (Character.isUpperCase(name.charAt(i))) {
                             throw new HeaderDecodingException(ErrorCode.PROTOCOL_ERROR, ErrorType.STREAM);
@@ -118,7 +123,8 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
     }
 
     static void decodeResponseHeaders(final Http2Session http2Session,
-                                      final HttpResponsePacket response)
+                                      final HttpResponsePacket response,
+                                      final Map<String,String> capture)
             throws IOException {
 
         try {
@@ -126,6 +132,9 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
                 @Override
                 public void onDecoded(final CharSequence name, final CharSequence value) {
+                    if (capture != null) {
+                        capture.put(name.toString(), value.toString());
+                    }
                     if (name.charAt(0) == ':') {
                         processServiceResponseHeader(response, name.toString(), value.toString());
                     } else {
@@ -144,7 +153,8 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
     }
 
     static void decodeTrailerHeaders(final Http2Session http2Session,
-                                     final HttpHeader header)
+                                     final HttpHeader header,
+                                     final Map<String,String> capture)
             throws IOException {
         try {
             final MimeHeaders headers = header.getHeaders();
@@ -152,6 +162,9 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
 
                 @Override
                 public void onDecoded(final CharSequence name, final CharSequence value) {
+                    if (capture != null) {
+                        capture.put(name.toString(), value.toString());
+                    }
                     // TODO trailer validation
                     headers.addValue(name.toString()).setString(value.toString());
                 }
@@ -213,7 +226,7 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
                 return;
             }
             case AUTHORITY_HEADER: {
-                request.getHeaders().addValue(Header.Host)
+                request.getHeaders().setValue(Header.Host)
                         .setString(value);
                 return;
             }
@@ -245,7 +258,9 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
     
     private static void processNormalHeader(final HttpHeader httpHeader,
             final String name, final String value) {
-
+        if (name.equals(Header.Host.getLowerCase())) {
+            return;
+        }
         final MimeHeaders mimeHeaders = httpHeader.getHeaders();
 
         final DataChunk valueChunk =

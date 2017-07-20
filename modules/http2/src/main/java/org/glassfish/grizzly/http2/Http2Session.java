@@ -43,6 +43,7 @@ package org.glassfish.grizzly.http2;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -852,14 +853,15 @@ public class Http2Session {
             final HttpHeader httpHeader,
             final int streamId,
             final boolean isLast,
-            final List<Http2Frame> toList)
+            final List<Http2Frame> toList,
+            final Map<String,String> capture)
             throws IOException {
         
         final Buffer compressedHeaders = !httpHeader.isRequest()
                 ? EncoderUtils.encodeResponseHeaders(
-                        this, (HttpResponsePacket) httpHeader)
+                        this, (HttpResponsePacket) httpHeader, capture)
                 : EncoderUtils.encodeRequestHeaders(
-                        this, (HttpRequestPacket) httpHeader);
+                        this, (HttpRequestPacket) httpHeader, capture);
         
         final List<Http2Frame> headerFrames =
                 bufferToHeaderFrames(streamId, compressedHeaders, isLast, toList);
@@ -882,9 +884,10 @@ public class Http2Session {
      */
     protected List<Http2Frame> encodeTrailersAsHeaderFrames(final int streamId,
                                                             final List<Http2Frame> toList,
-                                                            final MimeHeaders trailerHeaders)
+                                                            final MimeHeaders trailerHeaders,
+                                                            final Map<String,String> capture)
     throws IOException {
-        final Buffer compressedHeaders = EncoderUtils.encodeTrailerHeaders(this, trailerHeaders);
+        final Buffer compressedHeaders = EncoderUtils.encodeTrailerHeaders(this, trailerHeaders, capture);
         return bufferToHeaderFrames(streamId, compressedHeaders, true, toList);
     }
     
@@ -907,14 +910,17 @@ public class Http2Session {
             final HttpRequestPacket httpRequest,
             final int streamId,
             final int promisedStreamId,
-            final List<Http2Frame> toList)
+            final List<Http2Frame> toList,
+            final Map<String,String> capture)
             throws IOException {
-        
+
+        final boolean logging = NetLogger.isActive();
+
         final List<Http2Frame> headerFrames =
                 bufferToPushPromiseFrames(
                         streamId,
                         promisedStreamId,
-                        EncoderUtils.encodeRequestHeaders(this, httpRequest),
+                        EncoderUtils.encodeRequestHeaders(this, httpRequest, capture),
                         toList);
         
         handlerFilter.onHttpHeadersEncoded(httpRequest, ctx);

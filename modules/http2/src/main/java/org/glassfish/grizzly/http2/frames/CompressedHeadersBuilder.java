@@ -218,7 +218,7 @@ public final class CompressedHeadersBuilder {
     
     public Buffer build(final HeadersEncoder encoder) throws IOException {
         for (Map.Entry<String, String> entry : headers.entrySet()) {
-            encoder.encodeHeader(entry.getKey(), entry.getValue());
+            encoder.encodeHeader(entry.getKey(), entry.getValue(), null);
         }
         
         return encoder.flushHeaders();
