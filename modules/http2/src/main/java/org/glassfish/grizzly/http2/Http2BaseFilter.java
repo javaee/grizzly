@@ -673,6 +673,9 @@ public abstract class Http2BaseFilter extends HttpBaseFilter {
             }
             headersFrame.normalize();
         }
+        if (http2Session.isServer() && frame.getType() == PushPromiseFrame.TYPE) {
+            throw new Http2SessionException(ErrorCode.PROTOCOL_ERROR, "Server endpoint received PUSH_PROMISE frame.");
+        }
 
         final HeadersDecoder headersDecoder = http2Session.getHeadersDecoder();
         
