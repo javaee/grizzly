@@ -14,9 +14,9 @@ WebSocket, Comet, and more!
 Grizzly currently has several lines of development in the following
 branches:
 
-- 2.3.x : This is our current release sustaining branch.
-- 2.4.x : This is our upcoming release that includes HTTP/2 and support for Servlet 4.0 features.
-- master : This is our upcoming 3.0 release.  Fair warning; it's not backwards compatibile with previous releases.
+- 2.3.x : This is the sustaining branch for 2.3. (latest release is 2.3.31)
+- 2.4.x : This is the sustaining branch for the most recent major release of Grizzly. (latest release is 2.4.0)
+- master : This is our upcoming 3.0 release.  Fair warning; it's not backwards compatible with previous releases.
 
 There are other branches for older releases of Grizzly that we don't
 actively maintain at this time, but we keep them for the history.
