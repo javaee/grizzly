@@ -21,6 +21,8 @@
         <developerConnection>scm:git:git@github.com:javaee/grizzly.git</developerConnection>
     </scm>
 
+    <url>http://javaee.github.io/grizzly/${project.artifactId}</url>
+
     <developers>
         <developer>
             <id>oleksiys</id>
