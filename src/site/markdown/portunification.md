@@ -186,4 +186,4 @@ transport.start();
 ```
 
 Complete sample code could be found
-[here](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-portunif-samples/2.3.31).
+[here](https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-portunif-samples/2.4.0).

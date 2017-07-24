@@ -1,6 +1,6 @@
 ## HTTP/2 Overview
 
-Starting with 2.3.30, Grizzly offers support for HTTP/2. The goal of HTTP/2
+Starting with 2.4.0, Grizzly offers support for HTTP/2. The goal of HTTP/2
 is to reduce web page load time. This is achieved by prioritizing and
 multiplexing the transfer of web page resources so that only one
 connection per client is required.
@@ -20,7 +20,7 @@ implementation with support for Application-Layer Protocol Negotiation
 for details on ALPN).  Because this requires modifying internal JDK
 classes, the ALPN implementation is sensitive to version of the Oracle
 JDK that's being used.  As such, the current Grizzly ALPN implementation
-requires JDK 1.8.0_121.  Later versions of JDK8 *may* work, but if the
+requires JDK 1.8.0_(121,131,141).  Later versions of JDK8 *may* work, but if the
 classes change in a significant way, it will result in a runtime issue.
 
 <table>
@@ -122,7 +122,7 @@ and push requests.</td>
 
 ### HTTP/2 Server Push
 
-Starting with 2.3.31, Grizzly offers support for HTTP/2 server push mechanism
+Starting with 2.4.0, Grizzly offers support for HTTP/2 server push mechanism
 <https://tools.ietf.org/html/rfc7540#section-8.2>.
 
 > Quote:  

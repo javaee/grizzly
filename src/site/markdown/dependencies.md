@@ -20,7 +20,7 @@ developers are likely to find the Ant Tasks for Maven very useful.
 If you're not using maven, you can download the JARs you need for your
 project from maven central.
 
-The latest stable release of Grizzly is 2.3.31.  Older versions of Grizzly
+The latest stable release of Grizzly is 2.4.0.  Older versions of Grizzly
 (2.2.x, 1.9.x, 1.0.x) are still available and can be found on
 [Maven Central](http://search.maven.org).
 
@@ -36,7 +36,7 @@ event loop/filter chains/filters.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-framework</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -49,7 +49,7 @@ the server and client sides.
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http</artifactId>
-     <version>2.3.31</version>
+     <version>2.4.0</version>
 </dependency>
 ```
 
@@ -62,7 +62,7 @@ to Servlets.
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http-server</artifactId>
-     <version>2.3.31</version>
+     <version>2.4.0</version>
 </dependency>
 ```
 
@@ -78,7 +78,7 @@ Servlet 3.1 specification.
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http-servlet</artifactId>
-     <version>2.3.31</version>
+     <version>2.4.0</version>
 </dependency>
 ```
 
@@ -91,7 +91,7 @@ Servlet 3.1 specification.
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-portunif</artifactId>
-     <version>2.3.31</version>
+     <version>2.4.0</version>
 </dependency>
 ```
 
@@ -104,7 +104,7 @@ for building scalable Comet-based applications.
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-comet</artifactId>
-     <version>2.3.31</version>
+     <version>2.4.0</version>
 </dependency>
 ```
 
@@ -117,7 +117,7 @@ Websocket applications on both the server and client sides.
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-websockets</artifactId>
-     <version>2.3.31</version>
+     <version>2.4.0</version>
 </dependency>
 ```
 
@@ -129,7 +129,7 @@ Websocket applications on both the server and client sides.
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http-ajp</artifactId>
-     <version>2.3.31</version>
+     <version>2.4.0</version>
 </dependency>
 ```
 
@@ -142,7 +142,7 @@ the ability to create JAX-WS applications.
 <dependency>
      <groupId>org.glassfish.grizzly</groupId>
      <artifactId>grizzly-http-server-jaxws</artifactId>
-     <version>2.3.31</version>
+     <version>2.4.0</version>
 </dependency>
 ```
 
@@ -155,7 +155,7 @@ their applications.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-framework-monitoring</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -163,7 +163,7 @@ their applications.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-monitoring</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -171,7 +171,7 @@ their applications.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-server-monitoring</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -183,7 +183,7 @@ their applications.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>connection-pool</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -193,7 +193,7 @@ their applications.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>tls-sni</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -208,7 +208,7 @@ within an OSGi environment.
 <dependency>
     <groupId>org.glassfish.grizzly.osgi</groupId>
     <artifactId>grizzly-httpservice-bundle</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -221,7 +221,7 @@ multipart requests.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-server-multipart</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -235,7 +235,7 @@ handling.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-servlet-extras</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -257,7 +257,7 @@ modules.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-core</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -271,7 +271,7 @@ the `grizzly-http-server`, `grizzly-http-ajp`, and
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-server-core</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -284,7 +284,7 @@ with the `grizzly-http-servlet` module.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-servlet-server</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -297,7 +297,7 @@ with the `grizzly-comet` module.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-comet-server</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -310,7 +310,7 @@ with the `grizzly-websockets` module.
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-websockets-server</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```
 
@@ -323,6 +323,6 @@ with the `grizzly-http-servlet`, `grizzly-comet`, and `grizzly-websocket` module
 <dependency>
     <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http-all</artifactId>
-    <version>2.3.31</version>
+    <version>2.4.0</version>
 </dependency>
 ```

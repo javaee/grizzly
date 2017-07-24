@@ -207,11 +207,11 @@ The core framework samples can be reviewed in one of two ways:
 ```
 git clone https://github.com/javaee/grizzly.git
 cd grizzly
-git checkout @TAG@
+git checkout 2_4_0
 cd samples/framework-samples
 ```
 
 -   Download the sample source bundle from:
-    <https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-framework-samples/2.3.31/grizzly-framework-samples-2.3.31-sources.jar>
+    <https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-framework-samples/2.4.0/grizzly-framework-samples-2.4.0-sources.jar>
 
 
