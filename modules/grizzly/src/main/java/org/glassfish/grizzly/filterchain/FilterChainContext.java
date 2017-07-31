@@ -702,7 +702,7 @@ public class FilterChainContext implements AttributeStorage {
      * @return a special {@link NextAction} for a {@link Connection} connect phase,
      * which instructs {@link FilterChain} to suspend filter chain execution
      * (only handleConnect), so listeners waiting for a connect operation to complete
-     * won't be notified. But at the same time the {@link Conection} will be able to
+     * won't be notified. But at the same time the {@link Connection} will be able to
      * process incoming data and respond
      */
     public NextAction getSuspendConnectAction() {
@@ -1017,7 +1017,7 @@ public class FilterChainContext implements AttributeStorage {
         sb.append("connection=").append(getConnection());
         sb.append(", closeable=").append(getCloseable());
         sb.append(", operation=").append(getOperation());
-        sb.append(", message=").append(String.valueOf(getMessage()));
+        sb.append(", message=").append(String.valueOf((Object) getMessage()));
         sb.append(", address=").append(getAddress());
         sb.append(']');
 
