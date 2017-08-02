@@ -1368,7 +1368,7 @@ public class NIOOutputSinksTest extends TestCase {
                     outputStream.flush();
                     sentBytesCount.addAndGet(LENGTH);
                     //noinspection BusyWait
-                    Thread.sleep(20);
+                    Thread.sleep(5);
                 }
 
                 ses.schedule(new Runnable() {
@@ -1526,7 +1526,7 @@ public class NIOOutputSinksTest extends TestCase {
                         outputStream.write(b);
                         outputStream.flush();
                         //noinspection BusyWait
-                        Thread.sleep(20);
+                        Thread.sleep(5);
                     }
                 } catch (Exception e) {
                     result.failure(e);
