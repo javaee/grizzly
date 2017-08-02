@@ -67,7 +67,6 @@ import static org.junit.Assert.*;
  * 
  *
  */
-@FixMethodOrder(MethodSorters.JVM)
 public class NetworkListenerTest {
     public static final int PORT = 18897;
 
@@ -330,8 +329,10 @@ public class NetworkListenerTest {
         final AtomicBoolean passed = new AtomicBoolean(false);
 
         final HttpServer server = HttpServer.createSimpleServer("/tmp", PORT);
+        String defaultCookieName = null;
         if (cookieName != null) {
             final SessionManager custom = DefaultSessionManager.instance();
+            defaultCookieName = custom.getSessionCookieName();
             custom.setSessionCookieName(cookieName);
             server.getListener("grizzly").setSessionManager(custom);
         }
@@ -364,6 +365,9 @@ public class NetworkListenerTest {
             e.printStackTrace();
         } finally {
             server.shutdownNow();
+            if (defaultCookieName != null) {
+                DefaultSessionManager.instance().setSessionCookieName(defaultCookieName);
+            }
         }
     }
 }
