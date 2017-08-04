@@ -44,9 +44,8 @@ import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.Map;
-import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -56,6 +55,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.glassfish.grizzly.*;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
@@ -64,8 +64,8 @@ import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
+import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
 import org.glassfish.grizzly.utils.Futures;
 import org.glassfish.grizzly.utils.NullaryFunction;
@@ -121,9 +121,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile boolean isBlocking;
     protected volatile boolean isStandalone;        
     protected short zeroByteReadCount;
-    private final Queue<org.glassfish.grizzly.CloseListener> closeListeners =
-            new ConcurrentLinkedQueue<org.glassfish.grizzly.CloseListener>();
-    
+    private final Set<org.glassfish.grizzly.CloseListener> closeListeners = ConcurrentHashMap.newKeySet();
+
     /**
      * Storage contains states of different Processors this Connection is associated with.
      */
@@ -865,9 +864,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private void notifyCloseListeners(final CloseReason closeReason) {
         final org.glassfish.grizzly.CloseType closeType =
                 closeReason.getType();
-        
-        org.glassfish.grizzly.CloseListener closeListener;
-        while ((closeListener = closeListeners.poll()) != null) {
+        for(org.glassfish.grizzly.CloseListener closeListener : closeListeners){
             invokeCloseListener(closeListener, closeType);
         }
     }
