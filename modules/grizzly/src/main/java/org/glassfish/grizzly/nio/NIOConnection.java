@@ -44,13 +44,7 @@ import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Level;
@@ -65,10 +59,7 @@ import org.glassfish.grizzly.memory.Buffers;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.monitoring.MonitoringConfig;
 import org.glassfish.grizzly.monitoring.DefaultMonitoringConfig;
-import org.glassfish.grizzly.utils.CompletionHandlerAdapter;
-import org.glassfish.grizzly.utils.DataStructures;
-import org.glassfish.grizzly.utils.Futures;
-import org.glassfish.grizzly.utils.NullaryFunction;
+import org.glassfish.grizzly.utils.*;
 
 /**
  * Common {@link Connection} implementation for Java NIO <tt>Connection</tt>s.
@@ -121,8 +112,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile boolean isBlocking;
     protected volatile boolean isStandalone;        
     protected short zeroByteReadCount;
-    private final Queue<org.glassfish.grizzly.CloseListener> closeListeners =
-            new ConcurrentLinkedQueue<org.glassfish.grizzly.CloseListener>();
+    private final Map<org.glassfish.grizzly.CloseListener,Boolean> closeListeners =
+            new ConcurrentHashMap<org.glassfish.grizzly.CloseListener, Boolean>();
     
     /**
      * Storage contains states of different Processors this Connection is associated with.
@@ -657,7 +648,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         // check if connection is still open
         if (reason == null) {
             // add close listener
-            closeListeners.add(closeListener);
+            closeListeners.put(closeListener,true);
             // check the connection state again
             reason = closeReason;
             if (reason != null && closeListeners.remove(closeListener)) {
@@ -866,8 +857,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         final org.glassfish.grizzly.CloseType closeType =
                 closeReason.getType();
         
-        org.glassfish.grizzly.CloseListener closeListener;
-        while ((closeListener = closeListeners.poll()) != null) {
+        for (org.glassfish.grizzly.CloseListener closeListener: closeListeners.keySet()) {
             invokeCloseListener(closeListener, closeType);
         }
     }
