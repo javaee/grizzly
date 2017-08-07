@@ -44,9 +44,8 @@ import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.Map;
-import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -56,7 +55,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
+
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseReason;
+import org.glassfish.grizzly.Closeable;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.ConnectionProbe;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.ICloseType;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.ProcessorSelector;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.StandaloneProcessor;
+import org.glassfish.grizzly.StandaloneProcessorSelector;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
@@ -103,16 +120,17 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     private volatile TaskQueue<AsyncReadQueueRecord> asyncReadQueue;
     private final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
     
-    // Semaphor responsible for connect/close notification
-    protected final AtomicReferenceFieldUpdater<NIOConnection, Object> connectCloseSemaphorUpdater =
+    // Semaphore responsible for connect/close notification
+    protected static final AtomicReferenceFieldUpdater<NIOConnection, Object> connectCloseSemaphoreUpdater =
             AtomicReferenceFieldUpdater.newUpdater(NIOConnection.class,
-                    Object.class, "connectCloseSemaphor");
-    private volatile Object connectCloseSemaphor;
+                    Object.class, "connectCloseSemaphore");
+    @SuppressWarnings("unused")
+    private volatile Object connectCloseSemaphore;
     
     // closeTypeFlag, "null" value means the connection is open.
     private final AtomicBoolean isCloseScheduled = new AtomicBoolean();
     
-    private final AtomicReferenceFieldUpdater<NIOConnection, CloseReason> closeReasonUpdater =
+    private static final AtomicReferenceFieldUpdater<NIOConnection, CloseReason> closeReasonUpdater =
             AtomicReferenceFieldUpdater.newUpdater(NIOConnection.class,
                     CloseReason.class, "closeReason");
     private volatile CloseReason closeReason;
@@ -121,8 +139,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile boolean isBlocking;
     protected volatile boolean isStandalone;        
     protected short zeroByteReadCount;
-    private final Queue<org.glassfish.grizzly.CloseListener> closeListeners =
-            new ConcurrentLinkedQueue<org.glassfish.grizzly.CloseListener>();
+    private final Set<org.glassfish.grizzly.CloseListener> closeListeners = ConcurrentHashMap.newKeySet();
     
     /**
      * Storage contains states of different Processors this Connection is associated with.
@@ -134,7 +151,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Connection probes
      */
     protected final DefaultMonitoringConfig<ConnectionProbe> monitoringConfig =
-        new DefaultMonitoringConfig<ConnectionProbe>(ConnectionProbe.class);
+            new DefaultMonitoringConfig<>(ConnectionProbe.class);
 
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
@@ -248,12 +265,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 future.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
             this.selectorRunner = selectorRunner;
             this.selectionKey = result.getSelectionKey();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException | TimeoutException e) {
             throw new IOException("", e);
         } catch (ExecutionException e) {
             throw new IOException("", e.getCause());
-        } catch (TimeoutException e) {
-            throw new IOException("", e);
         }
 
 
@@ -863,18 +878,20 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify all close listeners
      */
     private void notifyCloseListeners(final CloseReason closeReason) {
-        final org.glassfish.grizzly.CloseType closeType =
-                closeReason.getType();
-        
-        org.glassfish.grizzly.CloseListener closeListener;
-        while ((closeListener = closeListeners.poll()) != null) {
-            invokeCloseListener(closeListener, closeType);
+        if (!closeListeners.isEmpty()) {
+            final org.glassfish.grizzly.CloseType closeType =
+                    closeReason.getType();
+
+            for (final org.glassfish.grizzly.CloseListener closeListener : closeListeners) {
+                invokeCloseListener(closeListener, closeType);
+            }
+            closeListeners.clear();
         }
     }
 
     protected void preClose() {
         // Check if connection init event (like CONNECT or ACCEPT) has been sent
-        if (connectCloseSemaphorUpdater.getAndSet(this, NOTIFICATION_CLOSED_COMPLETE) ==
+        if (connectCloseSemaphoreUpdater.getAndSet(this, NOTIFICATION_CLOSED_COMPLETE) ==
                 NOTIFICATION_INITIALIZED) {
             transport.fireIOEvent(IOEvent.CLOSED, this, null);
         }
