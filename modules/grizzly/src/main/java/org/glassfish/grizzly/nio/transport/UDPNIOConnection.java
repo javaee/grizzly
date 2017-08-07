@@ -456,7 +456,7 @@ public class UDPNIOConnection extends NIOConnection {
     }
 
     protected boolean notifyReady() {
-        return connectCloseSemaphorUpdater.compareAndSet(this,
+        return connectCloseSemaphoreUpdater.compareAndSet(this,
                 null, NOTIFICATION_INITIALIZED);
     }
 

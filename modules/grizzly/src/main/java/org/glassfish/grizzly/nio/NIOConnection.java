@@ -44,8 +44,6 @@ import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -55,7 +53,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.glassfish.grizzly.*;
+
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CloseReason;
+import org.glassfish.grizzly.Closeable;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.ConnectionProbe;
+import org.glassfish.grizzly.EmptyCompletionHandler;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.GrizzlyFuture;
+import org.glassfish.grizzly.ICloseType;
+import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.ProcessorSelector;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.StandaloneProcessor;
+import org.glassfish.grizzly.StandaloneProcessorSelector;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.TaskQueue;
@@ -78,16 +94,16 @@ import org.glassfish.grizzly.utils.NullaryFunction;
 public abstract class NIOConnection implements Connection<SocketAddress> {
     protected static final Object NOTIFICATION_INITIALIZED = Boolean.TRUE;
     protected static final Object NOTIFICATION_CLOSED_COMPLETE = Boolean.FALSE;
-    
+
     private static final boolean WIN32 = "\\".equals(System.getProperty("file.separator"));
     private static final Logger LOGGER = Grizzly.logger(NIOConnection.class);
     private static final short MAX_ZERO_READ_COUNT = 100;
-    
+
     /**
      * Is initial OP_READ enabling required for the connection
      */
     private boolean isInitialReadRequired = true;
-    
+
     protected final NIOTransport transport;
     protected volatile int maxAsyncWriteQueueSize;
     protected volatile long readTimeoutMillis = 30000;
@@ -95,46 +111,47 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile SelectableChannel channel;
     protected volatile SelectionKey selectionKey;
     protected volatile SelectorRunner selectorRunner;
-    
+
     protected volatile Processor processor;
     protected volatile ProcessorSelector processorSelector;
     protected final AttributeHolder attributes;
-    
+
     private volatile TaskQueue<AsyncReadQueueRecord> asyncReadQueue;
     private final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
-    
-    // Semaphor responsible for connect/close notification
-    protected final AtomicReferenceFieldUpdater<NIOConnection, Object> connectCloseSemaphorUpdater =
+
+    // Semaphore responsible for connect/close notification
+    protected static final AtomicReferenceFieldUpdater<NIOConnection, Object> connectCloseSemaphoreUpdater =
             AtomicReferenceFieldUpdater.newUpdater(NIOConnection.class,
-                    Object.class, "connectCloseSemaphor");
-    private volatile Object connectCloseSemaphor;
-    
+                    Object.class, "connectCloseSemaphore");
+    @SuppressWarnings("unused")
+    private volatile Object connectCloseSemaphore;
+
     // closeTypeFlag, "null" value means the connection is open.
     private final AtomicBoolean isCloseScheduled = new AtomicBoolean();
-    
-    private final AtomicReferenceFieldUpdater<NIOConnection, CloseReason> closeReasonUpdater =
+
+    private static final AtomicReferenceFieldUpdater<NIOConnection, CloseReason> closeReasonUpdater =
             AtomicReferenceFieldUpdater.newUpdater(NIOConnection.class,
                     CloseReason.class, "closeReason");
     private volatile CloseReason closeReason;
     private volatile GrizzlyFuture<CloseReason> closeFuture;
-    
+
     protected volatile boolean isBlocking;
-    protected volatile boolean isStandalone;        
+    protected volatile boolean isStandalone;
     protected short zeroByteReadCount;
-    private final Queue<org.glassfish.grizzly.CloseListener> closeListeners =
-            new ConcurrentLinkedQueue<org.glassfish.grizzly.CloseListener>();
-    
+    private final ConcurrentMap<org.glassfish.grizzly.CloseListener,Boolean> closeListeners =
+            DataStructures.getConcurrentMap();
+
     /**
      * Storage contains states of different Processors this Connection is associated with.
      */
     private final ProcessorStatesMap processorStateStorage =
             new ProcessorStatesMap();
-        
+
     /**
      * Connection probes
      */
     protected final DefaultMonitoringConfig<ConnectionProbe> monitoringConfig =
-        new DefaultMonitoringConfig<ConnectionProbe>(ConnectionProbe.class);
+            new DefaultMonitoringConfig<>(ConnectionProbe.class);
 
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
@@ -146,7 +163,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                         return maxAsyncWriteQueueSize;
                     }
                 });
-        
+
         attributes = transport.getAttributeBuilder().createSafeAttributeHolder();
     }
 
@@ -164,7 +181,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public MemoryManager<?> getMemoryManager() {
         return transport.getMemoryManager();
     }
-    
+
     @Override
     public synchronized void configureStandalone(boolean isStandalone) {
         if (this.isStandalone != isStandalone) {
@@ -204,7 +221,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public void setMaxAsyncWriteQueueSize(int maxAsyncWriteQueueSize) {
         this.maxAsyncWriteQueueSize = maxAsyncWriteQueueSize;
     }
-    
+
     @Override
     public long getReadTimeout(TimeUnit timeUnit) {
         return timeUnit.convert(readTimeoutMillis, TimeUnit.MILLISECONDS);
@@ -237,10 +254,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         throws IOException {
         detachSelectorRunner();
         final SelectorHandler selectorHandler = transport.getSelectorHandler();
-        
+
         final FutureImpl<RegisterChannelResult> future =
                 Futures.createSafeFuture();
-        
+
         selectorHandler.registerChannelAsync(
             selectorRunner, channel, 0, this, Futures.toCompletionHandler(future));
         try {
@@ -248,12 +265,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 future.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
             this.selectorRunner = selectorRunner;
             this.selectionKey = result.getSelectionKey();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException | TimeoutException e) {
             throw new IOException("", e);
         } catch (ExecutionException e) {
             throw new IOException("", e.getCause());
-        } catch (TimeoutException e) {
-            throw new IOException("", e);
         }
 
 
@@ -349,7 +364,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             threadPool.execute(runnable);
         }
     }
-    
+
     public TaskQueue<AsyncReadQueueRecord> getAsyncReadQueue() {
         if (asyncReadQueue == null) {
             synchronized (this) {
@@ -358,7 +373,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 }
             }
         }
-        
+
         return asyncReadQueue;
     }
 
@@ -376,7 +391,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         final FutureImpl<ReadResult<M, SocketAddress>> future =
                 Futures.createSafeFuture();
         read(Futures.toCompletionHandler(future));
-        
+
         return future;
     }
 
@@ -393,15 +408,15 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         final FutureImpl<WriteResult<M, SocketAddress>> future =
                 Futures.createSafeFuture();
         write(null, message, Futures.toCompletionHandler(future), null);
-        
+
         return future;
-        
+
     }
 
     @Override
     public <M> void write(final M message,
             final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler) {
-        
+
         write(null, message, completionHandler, null);
     }
 
@@ -419,7 +434,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         write(dstAddress, message, completionHandler, null);
     }
 
-    
+
     @SuppressWarnings("unchecked")
     @Override
     @Deprecated
@@ -432,12 +447,12 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 completionHandler, pushbackHandler);
     }
 
-    
+
     @Override
     public boolean isOpen() {
         return channel != null && channel.isOpen() && closeReason == null;
     }
-    
+
     @Override
     public void assertOpen() throws IOException {
         final CloseReason reason = getCloseReason();
@@ -458,7 +473,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         } else if (channel == null || !channel.isOpen()) {
             return CloseReason.LOCALLY_CLOSED_REASON;
         }
-        
+
         return null;
     }
 
@@ -472,7 +487,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
         final FutureImpl<Closeable> future = Futures.createSafeFuture();
         terminate0(Futures.toCompletionHandler(future),
                 CloseReason.LOCALLY_CLOSED_REASON);
-        
+
         return future;
     }
 
@@ -484,11 +499,11 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     @Override
     public GrizzlyFuture<Closeable> close() {
-        
+
         final FutureImpl<Closeable> future = Futures.createSafeFuture();
         closeGracefully0(Futures.toCompletionHandler(future),
                 CloseReason.LOCALLY_CLOSED_REASON);
-        
+
         return future;
     }
 
@@ -507,7 +522,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     public final void closeSilently() {
         closeGracefully0(null, CloseReason.LOCALLY_CLOSED_REASON);
     }
-    
+
     @Override
     public void closeWithReason(final IOException reason) {
         closeGracefully0(null, new CloseReason(
@@ -540,25 +555,25 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 }
             }
         }
-        
+
         return closeFuture;
     }
-    
+
     @SuppressWarnings("unchecked")
     protected void closeGracefully0(
             final CompletionHandler<Closeable> completionHandler,
             CloseReason closeReason) {
         if (isCloseScheduled.compareAndSet(false, true)) {
-            
+
             if (LOGGER.isLoggable(Level.FINEST)) {
                 // replace close reason: clone the original value and add stacktrace
                 closeReason = new CloseReason(closeReason.getType(),
                         new IOException("Connection is closed at",
                                 closeReason.getCause()));
             }
-            
+
             final CloseReason finalReason = closeReason;
-            
+
             transport.getWriter(this).write(this, Buffers.EMPTY_BUFFER,
                     new EmptyCompletionHandler<WriteResult<Buffer, SocketAddress>>() {
 
@@ -571,7 +586,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 public void failed(final Throwable throwable) {
                     terminate0(completionHandler, finalReason);
                 }
-                
+
             });
         } else {
             if (completionHandler != null) {
@@ -586,10 +601,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             }
         }
     }
-    
+
     protected void terminate0(final CompletionHandler<Closeable> completionHandler,
             final CloseReason reason) {
-        
+
         isCloseScheduled.set(true);
         if (closeReasonUpdater.compareAndSet(this, null, reason)) {
 
@@ -599,11 +614,11 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                         new IOException("Connection is closed at",
                                 reason.getCause()));
             }
-            
+
             preClose();
             notifyCloseListeners(reason);
             notifyProbesClose(this);
-            
+
             transport.getSelectorHandler().execute(
                     selectorRunner, new SelectorHandler.Task() {
 
@@ -653,17 +668,17 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     @Override
     public void addCloseListener(final org.glassfish.grizzly.CloseListener closeListener) {
         CloseReason reason = closeReason;
-        
+
         // check if connection is still open
         if (reason == null) {
             // add close listener
-            closeListeners.add(closeListener);
-            // check the connection state again
-            reason = closeReason;
-            if (reason != null && closeListeners.remove(closeListener)) {
-                // if connection was closed during the method call - notify the listener
-                invokeCloseListener(closeListener, reason.getType());
-            }
+                closeListeners.put(closeListener, Boolean.TRUE);
+                // check the connection state again
+                reason = closeReason;
+                if (reason != null && closeListeners.remove(closeListener)) {
+                    // if connection was closed during the method call - notify the listener
+                    invokeCloseListener(closeListener, reason.getType());
+                }
         } else { // if connection is closed - notify the listener
             invokeCloseListener(closeListener, reason.getType());
         }
@@ -863,18 +878,19 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify all close listeners
      */
     private void notifyCloseListeners(final CloseReason closeReason) {
-        final org.glassfish.grizzly.CloseType closeType =
-                closeReason.getType();
-        
-        org.glassfish.grizzly.CloseListener closeListener;
-        while ((closeListener = closeListeners.poll()) != null) {
-            invokeCloseListener(closeListener, closeType);
+        if (!closeListeners.isEmpty()) {
+            final org.glassfish.grizzly.CloseType closeType =
+                    closeReason.getType();
+            for (final org.glassfish.grizzly.CloseListener closeListener : closeListeners.keySet()) {
+                invokeCloseListener(closeListener, closeType);
+            }
+            closeListeners.clear();
         }
     }
 
     protected void preClose() {
         // Check if connection init event (like CONNECT or ACCEPT) has been sent
-        if (connectCloseSemaphorUpdater.getAndSet(this, NOTIFICATION_CLOSED_COMPLETE) ==
+        if (connectCloseSemaphoreUpdater.getAndSet(this, NOTIFICATION_CLOSED_COMPLETE) ==
                 NOTIFICATION_INITIALIZED) {
             transport.fireIOEvent(IOEvent.CLOSED, this, null);
         }
