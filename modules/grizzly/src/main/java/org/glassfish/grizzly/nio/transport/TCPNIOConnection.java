@@ -97,7 +97,7 @@ public class TCPNIOConnection extends NIOConnection {
     }
     
     protected boolean notifyReady() {
-        return connectCloseSemaphor.compareAndSet(null,
+        return connectCloseSemaphore.compareAndSet(null,
                 NOTIFICATION_INITIALIZED);
     }
     

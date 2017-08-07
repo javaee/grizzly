@@ -452,7 +452,7 @@ public class UDPNIOConnection extends NIOConnection {
     }
 
     protected boolean notifyReady() {
-        return connectCloseSemaphor.compareAndSet(null, NOTIFICATION_INITIALIZED);
+        return connectCloseSemaphore.compareAndSet(null, NOTIFICATION_INITIALIZED);
     }
 
     /**

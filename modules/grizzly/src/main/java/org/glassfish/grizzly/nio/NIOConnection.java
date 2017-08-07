@@ -44,8 +44,8 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -117,9 +117,9 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     protected final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
     
-    // Semaphor responsible for connect/close notification
-    protected final AtomicReference<Object> connectCloseSemaphor =
-            new AtomicReference<Object>();
+    // Semaphore responsible for connect/close notification
+    protected final AtomicReference<Object> connectCloseSemaphore =
+            new AtomicReference<>();
     
     // isCloseScheduled, "null" value means the connection hasn't been scheduled for
     // the graceful shutdown
@@ -127,21 +127,20 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     
     // closeReasonAtomic, "null" value means the connection is open.
     protected final AtomicReference<CloseReason> closeReasonAtomic =
-            new AtomicReference<CloseReason>();
+            new AtomicReference<>();
 
     private volatile GrizzlyFuture<CloseReason> closeFuture;
 
     protected volatile boolean isBlocking;
     protected short zeroByteReadCount;
-    private final Queue<CloseListener> closeListeners =
-            new ConcurrentLinkedQueue<CloseListener>();
+    private final Set<CloseListener> closeListeners = ConcurrentHashMap.newKeySet();
     private final FilterChainState filterChainState =
             new DefaultFilterChainState();
     /**
      * Connection probes
      */
     protected final DefaultMonitoringConfig<ConnectionProbe> monitoringConfig =
-        new DefaultMonitoringConfig<ConnectionProbe>(ConnectionProbe.class);
+            new DefaultMonitoringConfig<>(ConnectionProbe.class);
 
     public NIOConnection(final NIOTransport transport) {
         this.transport = transport;
@@ -312,12 +311,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
                 future.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
             this.selectorRunner = selectorRunner;
             this.selectionKey = result.getSelectionKey();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException | TimeoutException e) {
             throw new IOException("", e);
         } catch (ExecutionException e) {
             throw new IOException("", e.getCause());
-        } catch (TimeoutException e) {
-            throw new IOException("", e);
         }
 
 
@@ -848,18 +845,20 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      * Notify all close listeners
      */
     private void notifyCloseListeners(final CloseReason closeReason) {
-        CloseListener closeListener;
-        while ((closeListener = closeListeners.poll()) != null) {
-            try {
-                closeListener.onClosed(this, closeReason);
-            } catch (Exception ignored) {
+        if (!closeListeners.isEmpty()) {
+            for (final CloseListener closeListener : closeListeners) {
+                try {
+                    closeListener.onClosed(this, closeReason);
+                } catch (Exception ignored) {
+                }
             }
+            closeListeners.clear();
         }
     }
 
     protected void preClose() {
         // Check if connection init event (like CONNECT or ACCEPT) has been sent
-        if (connectCloseSemaphor.getAndSet(NOTIFICATION_CLOSED_COMPLETE) ==
+        if (connectCloseSemaphore.getAndSet(NOTIFICATION_CLOSED_COMPLETE) ==
                 NOTIFICATION_INITIALIZED) {
             transport.fireEvent(IOEvent.CLOSED, this, null);
         }
