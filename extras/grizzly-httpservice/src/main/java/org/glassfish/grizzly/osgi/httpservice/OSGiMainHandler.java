@@ -266,7 +266,13 @@ public class OSGiMainHandler extends HttpHandler implements OSGiHandler {
             if (internalPrefix == null) {
                 internalPrefix = "";
             }
-            OSGiServletContext servletContext = mapper.getServletContext(context);
+
+            OSGiServletContext servletContext =
+                    mapper.getServletContext(context);
+            if (servletContext == null) {
+                mapper.addContext(context, null);
+                servletContext = mapper.getServletContext(context);
+            }
 
             mapper.addHttpHandler(alias,
                                   new OSGiResourceHandler(alias,
