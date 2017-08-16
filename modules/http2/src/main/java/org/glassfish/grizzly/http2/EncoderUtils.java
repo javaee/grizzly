@@ -41,8 +41,6 @@
 package org.glassfish.grizzly.http2;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import org.glassfish.grizzly.Buffer;
@@ -238,65 +236,16 @@ class EncoderUtils extends EncoderDecoderUtilsBase {
             throws IOException {
         
         final int mimeHeadersCount = headers.size();
-        List<DataChunk> tmpList = null;
-        
+
         for (int i = 0; i < mimeHeadersCount; i++) {
-            int valueSize = 0;
-        
+
             if (!headers.setSerialized(i, true)) {
-                final DataChunk name = headers.getName(i);
-                
-                if (name.isNull() || name.getLength() == 0) {
-                    continue;
+                final String nameStr = nameToLowerCase(headers.getName(i));
+                final DataChunk value = headers.getValue(i);
+                if (!value.isNull()) {
+                    encoder.encodeHeader(nameStr, value.toString(), capture);
                 }
-                
-                final DataChunk value1 = headers.getValue(i);
-                
-                for (int j = i; j < mimeHeadersCount; j++) {
-                    if (!headers.isSerialized(j) &&
-                            name.equalsIgnoreCase(headers.getName(j))) {
-                        headers.setSerialized(j, true);
-                        final DataChunk value = headers.getValue(j);
-                        if (!value.isNull()) {
-                            if (tmpList == null || tmpList.isEmpty()) {
-                                tmpList = new ArrayList<>(2);
-                                if (!value1.isNull()) {
-                                    tmpList.add(value1);
-                                    valueSize += value1.getLength();
-                                }
-                            }
-                            tmpList.add(value);
-                            valueSize += value.getLength();
-                        }
-                    }
-                }
-                
-                final String nameStr = nameToLowerCase(name);
-                
-                String valueStr;
-                if (tmpList != null && !tmpList.isEmpty()) {
-                    final int valuesCount = tmpList.size();
-                    
-                    valueSize += valuesCount - 1; // 0 delims
-                    
-                    final StringBuilder sb = new StringBuilder(valueSize);
-                    int j = 0;
-                    
-                    for (;j < valuesCount - 1; j++) {
-                        sb.append(tmpList.get(j).toString());
-                        sb.append('\u0000');
-                    }
-                    
-                    sb.append(tmpList.get(j).toString());
-                    
-                    valueStr = sb.toString();
-                    tmpList.clear();
-                } else {
-                    valueStr = value1.toString();
-                }
-                
-                encoder.encodeHeader(nameStr, valueStr, capture);
-            
+
             }
         }
     }

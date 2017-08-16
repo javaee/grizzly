@@ -1197,7 +1197,7 @@ public class PushTest extends AbstractHttp2Test {
                             break;
                         case "/resource1":
                             final Cookies cookies = new Cookies();
-                            CookieParserUtils.parseServerCookies(cookies, req.getHeader(Header.Cookie), true, true);
+                            CookieParserUtils.parseServerCookies(cookies, iterableToString(req.getHeaders().values(Header.Cookie)), true, true);
                             final Cookie[] cookies1 = cookies.get();
                             assertThat(cookies1.length, is(3));
                             boolean sessionFound = false;
@@ -1240,6 +1240,17 @@ public class PushTest extends AbstractHttp2Test {
 
 
     // -------------------------------------------------------- Private Methods
+
+    private static String iterableToString(final Iterable<?> iterable) {
+        StringBuilder sb = new StringBuilder();
+        for (Iterator i = iterable.iterator(); i.hasNext();) {
+            sb.append(i.next().toString());
+            if (i.hasNext()) {
+                sb.append("; ");
+            }
+        }
+        return sb.toString();
+    }
 
 
     private void doPushTest(final HttpRequestPacket request,
