@@ -68,9 +68,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 @RunWith(Parameterized.class)
 public class Http2SemanticsTest extends AbstractHttp2Test {
@@ -137,8 +138,8 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
         c.write(HttpContent.builder(request).content(Buffers.EMPTY_BUFFER).last(true).build());
         Thread.sleep(1000);
         final Http2Stream stream = Http2Stream.getStreamFor(request);
-        assertNotNull(stream);
-        assertFalse(stream.isOpen());
+        assertThat(stream, notNullValue());
+        assertThat(stream.isOpen(), is(false));
     }
 
 
@@ -150,8 +151,8 @@ public class Http2SemanticsTest extends AbstractHttp2Test {
             @Override
             public void service(Request request, Response response) throws Exception {
                 try {
-                    assertEquals("Unexpected cookie header value", "a=b; c=d; e=f", request.getHeader(Header.Cookie));
-                    assertEquals("Unexpected test header value", "a, b", request.getHeader("test"));
+                    assertThat(request.getHeaders(Header.Cookie), hasItems("a=b", "c=d", "e=f"));
+                    assertThat(request.getHeaders("test"), hasItems("a", "b"));
                 } catch (Throwable t) {
                     error.set(t);
                 } finally {

@@ -70,6 +70,8 @@
                     <executable>java</executable>
                     <arguments>
                         <argument>-Xbootclasspath/p:${settings.localRepository}/org/glassfish/grizzly/grizzly-npn-bootstrap/${grizzly.alpn.version}/grizzly-npn-bootstrap-${grizzly.alpn.version}.jar</argument>
+                        <argument>-Xdebug</argument>
+                        <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</argument>
                         <argument>-classpath</argument>
                         <!-- automatically creates the classpath using all project dependencies,
                         also adding the project build directory -->

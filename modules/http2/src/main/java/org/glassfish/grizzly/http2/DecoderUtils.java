@@ -68,10 +68,6 @@ import static org.glassfish.grizzly.http2.HeaderDecodingException.ErrorType;
 class DecoderUtils extends EncoderDecoderUtilsBase {
     private final static Logger LOGGER = Grizzly.logger(DecoderUtils.class);
 
-    private static final String COOKIE_SEP = "; ";
-    private static final String HEADER_SEP = ", ";
-    private static final String WIRE_DELIM = "\u0000";
-
     private static final String INVALID_CHARACTER_MESSAGE =
             "Invalid character 0x%02x at index '%s' found in header %s [%s: %s]";
 
@@ -266,15 +262,9 @@ class DecoderUtils extends EncoderDecoderUtilsBase {
         final DataChunk valueChunk =
                 mimeHeaders.addValue(name);
 
-        valueChunk.setString(value.replace(WIRE_DELIM, getDelimiter(name)));
-        validateHeaderCharacters(name, valueChunk.toString());
+        validateHeaderCharacters(name, value);
+        valueChunk.setString(value);
         finalizeKnownHeader(httpHeader, name, value);
-    }
-
-    private static String getDelimiter(final String name) {
-        return ((Header.Cookie.getLowerCase().equals(name) || Header.SetCookie.getLowerCase().equals(name))
-                ? COOKIE_SEP
-                : HEADER_SEP);
     }
 
     private static void finalizeKnownHeader(final HttpHeader httpHeader,
