@@ -48,6 +48,7 @@ import static org.glassfish.grizzly.http.Method.GET;
 import static org.glassfish.grizzly.http.Protocol.HTTP_1_1;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Locale;
 import java.util.Date;
 import java.util.TimeZone;
 
@@ -156,13 +157,14 @@ public class ApacheLogFormatTest {
     @Test
     public void testBasicFormats() {
         final Response response = mockSimpleResponse();
+        Locale.setDefault(Locale.US);
 
-        assertEquals(ApacheLogFormat.COMMON_UTC        .unsafeFormat(response, date, nanos), "remote-host - remote-user [2014/Jan/15:23:45:12 +0000] \"GET /test/path?testing=true HTTP/1.1\" 210 1234567");
-        assertEquals(ApacheLogFormat.COMBINED_UTC      .unsafeFormat(response, date, nanos), "remote-host - remote-user [2014/Jan/15:23:45:12 +0000] \"GET /test/path?testing=true HTTP/1.1\" 210 1234567 \"http://referer/\" \"Test-User-Agent\"");
-        assertEquals(ApacheLogFormat.VHOST_COMMON_UTC  .unsafeFormat(response, date, nanos), "server-name remote-host - remote-user [2014/Jan/15:23:45:12 +0000] \"GET /test/path?testing=true HTTP/1.1\" 210 1234567");
-        assertEquals(ApacheLogFormat.VHOST_COMBINED_UTC.unsafeFormat(response, date, nanos), "server-name remote-host - remote-user [2014/Jan/15:23:45:12 +0000] \"GET /test/path?testing=true HTTP/1.1\" 210 1234567 \"http://referer/\" \"Test-User-Agent\"");
-        assertEquals(ApacheLogFormat.REFERER_UTC       .unsafeFormat(response, date, nanos), "http://referer/ -> /test/path");
-        assertEquals(ApacheLogFormat.AGENT_UTC         .unsafeFormat(response, date, nanos), "Test-User-Agent");
+        assertEquals("remote-host - remote-user [2014/Jan/15:23:45:12 +0000] \"GET /test/path?testing=true HTTP/1.1\" 210 1234567", ApacheLogFormat.COMMON_UTC.unsafeFormat(response, date, nanos));
+        assertEquals("remote-host - remote-user [2014/Jan/15:23:45:12 +0000] \"GET /test/path?testing=true HTTP/1.1\" 210 1234567 \"http://referer/\" \"Test-User-Agent\"", ApacheLogFormat.COMBINED_UTC.unsafeFormat(response, date, nanos));
+        assertEquals("server-name remote-host - remote-user [2014/Jan/15:23:45:12 +0000] \"GET /test/path?testing=true HTTP/1.1\" 210 1234567", ApacheLogFormat.VHOST_COMMON_UTC.unsafeFormat(response, date, nanos));
+        assertEquals("server-name remote-host - remote-user [2014/Jan/15:23:45:12 +0000] \"GET /test/path?testing=true HTTP/1.1\" 210 1234567 \"http://referer/\" \"Test-User-Agent\"", ApacheLogFormat.VHOST_COMBINED_UTC.unsafeFormat(response, date, nanos));
+        assertEquals("http://referer/ -> /test/path", ApacheLogFormat.REFERER_UTC.unsafeFormat(response, date, nanos));
+        assertEquals("Test-User-Agent", ApacheLogFormat.AGENT_UTC.unsafeFormat(response, date, nanos));
     }
 
     @Test
