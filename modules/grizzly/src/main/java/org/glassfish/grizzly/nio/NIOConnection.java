@@ -44,8 +44,9 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -133,7 +134,8 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
 
     protected volatile boolean isBlocking;
     protected short zeroByteReadCount;
-    private final Set<CloseListener> closeListeners = ConcurrentHashMap.newKeySet();
+    private final List<CloseListener> closeListeners =
+            Collections.synchronizedList(new LinkedList<>());
     private final FilterChainState filterChainState =
             new DefaultFilterChainState();
     /**
@@ -846,13 +848,15 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     private void notifyCloseListeners(final CloseReason closeReason) {
         if (!closeListeners.isEmpty()) {
-            for (final CloseListener closeListener : closeListeners) {
-                try {
-                    closeListener.onClosed(this, closeReason);
-                } catch (Exception ignored) {
+            synchronized (closeListeners) {
+                for (final CloseListener closeListener : closeListeners) {
+                    try {
+                        closeListener.onClosed(this, closeReason);
+                    } catch (Exception ignored) {
+                    }
                 }
+                closeListeners.clear();
             }
-            closeListeners.clear();
         }
     }
 
