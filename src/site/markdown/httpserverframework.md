@@ -1295,7 +1295,7 @@ The HTTP server framework samples can be reviewed in one of two ways:
 ```
 git clone https://github.com/javaee/grizzly.git
 cd grizzly
-git checkout 2_4_0
+git checkout 2_4_2
 cd samples/http-server-samples
 ```
 
