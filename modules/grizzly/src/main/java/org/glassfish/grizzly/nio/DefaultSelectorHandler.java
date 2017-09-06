@@ -68,8 +68,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
     public static final boolean IS_WORKAROUND_SELECTOR_SPIN =
             Boolean.getBoolean(DefaultSelectorHandler.class.getName() + ".force-selector-spin-detection") ||
-            (System.getProperty("os.name").equalsIgnoreCase("linux") &&
-                    JdkVersion.getJdkVersion().compareTo("1.7.0") < 0);
+            (System.getProperty("os.name").equalsIgnoreCase("linux"));
     
     protected final long selectTimeout;
 
