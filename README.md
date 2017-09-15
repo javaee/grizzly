@@ -14,8 +14,8 @@ WebSocket, Comet, and more!
 Grizzly currently has several lines of development in the following
 branches:
 
-- 2.3.x : This is the sustaining branch for 2.3. (latest release is 2.3.32)
-- 2.4.x : This is the sustaining branch for the most recent major release of Grizzly. (latest release is 2.4.1)
+- 2.3.x : This is the sustaining branch for 2.3. (latest release is 2.3.33)
+- 2.4.x : This is the sustaining branch for the most recent major release of Grizzly. (latest release is 2.4.2)
 - master : This is our upcoming 3.0 release.  Fair warning; it's not backwards compatible with previous releases.
 
 There are other branches for older releases of Grizzly that we don't
