@@ -132,7 +132,7 @@ public class FileTransferTest {
     public void negativeFileTransferAPITest() throws Exception {
         try {
             new FileTransfer(null);
-            fail("Expected IllegalArgumentException to be thrown");
+            fail("Expected IllegalArgumentException to be thrown, FileTransfer(null)");
         } catch (NullPointerException npe) {
         } catch (Exception e) {
             fail("Unexpected exception type: " + e);
@@ -140,7 +140,7 @@ public class FileTransferTest {
 
         try {
             new FileTransfer(null, 0, 1);
-            fail("Expected IllegalArgumentException to be thrown");
+            fail("Expected IllegalArgumentException to be thrown, FileTransfer(null, 0, 1)");
         } catch (IllegalArgumentException iae) {
         } catch (Exception e) {
             fail("Unexpected exception type: " + e);
@@ -149,7 +149,7 @@ public class FileTransferTest {
         File f = new File("foo");
         try {
             new FileTransfer(f, 0, 1);
-            fail("Expected IllegalArgumentException to be thrown");
+            fail("Expected IllegalArgumentException to be thrown, FileTransfer(new File('foo'), 0, 1");
         } catch (IllegalArgumentException iae) {
         } catch (Exception e) {
             fail("Unexpected exception type: " + e);
@@ -158,7 +158,7 @@ public class FileTransferTest {
         f = new File(System.getProperty("java.io.tmpdir"));
         try {
             new FileTransfer(f, 0, 1);
-            fail("Expected IllegalArgumentException to be thrown");
+            fail("Expected IllegalArgumentException to be thrown, FileTransfer(new File(System.getProperty(\"java.io.tmpdir\")), 0, 1)");
         } catch (IllegalArgumentException iae) {
         } catch (Exception e) {
             fail("Unexpected exception type: " + e);
@@ -170,7 +170,7 @@ public class FileTransferTest {
         if (f.setReadable(false)) { // skip this check if setReadable returned false
             try {
                 new FileTransfer(f, 0, 1);
-                fail("Expected IllegalArgumentException to be thrown");
+                fail("Expected IllegalArgumentException to be thrown, f.setReadable(false); FileTransfer(f, 0, 1)");
             } catch (IllegalArgumentException iae) {
                 //noinspection ResultOfMethodCallIgnored
                 f.setReadable(true);
@@ -181,7 +181,7 @@ public class FileTransferTest {
 
         try {
             new FileTransfer(f, -1, 1);
-            fail("Expected IllegalArgumentException to be thrown");
+            fail("Expected IllegalArgumentException to be thrown, FileTransfer(f, -1, 1)");
         } catch (IllegalArgumentException iae) {
         } catch (Exception e) {
             fail("Unexpected exception type: " + e);
@@ -189,7 +189,7 @@ public class FileTransferTest {
 
         try {
             new FileTransfer(f, 0, -1);
-            fail("Expected IllegalArgumentException to be thrown");
+            fail("Expected IllegalArgumentException to be thrown, FileTransfer(f, 0, -1)");
         } catch (IllegalArgumentException iae) {
         } catch (Exception e) {
             fail("Unexpected exception type: " + e);
@@ -197,7 +197,7 @@ public class FileTransferTest {
 
         try {
             new FileTransfer(f, 2, 1);
-            fail("Expected IllegalArgumentException to be thrown");
+            fail("Expected IllegalArgumentException to be thrown, FileTransfer(f, 2, 1)");
         } catch (IllegalArgumentException iae) {
         } catch (Exception e) {
             fail("Unexpected exception type: " + e);
