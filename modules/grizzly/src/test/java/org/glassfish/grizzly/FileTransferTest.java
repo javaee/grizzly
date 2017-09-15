@@ -167,7 +167,7 @@ public class FileTransferTest {
         f = File.createTempFile("grizzly-test-", ".tmp");
         new FileOutputStream(f).write(1);
         
-        if (f.setReadable(false)) { // skip this check if setReadable returned false
+        if (f.setReadable(false) && !f.canRead()) { // skip this check if setReadable returned false
             try {
                 new FileTransfer(f, 0, 1);
                 fail("Expected IllegalArgumentException to be thrown, f.setReadable(false); FileTransfer(f, 0, 1)");
