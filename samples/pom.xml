@@ -63,7 +63,6 @@
         <module>comet</module>
         <module>http-ajp-samples</module>
         <module>http-jaxws-samples</module>
-        <module>spdy-samples</module>
         <module>tls-sni-samples</module>
         <module>connection-pool-samples</module>
     </modules>
