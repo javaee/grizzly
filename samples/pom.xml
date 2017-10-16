@@ -57,7 +57,6 @@
     <modules>
         <module>framework-samples</module>
         <module>http-samples</module>
-        <module>websockets/chat</module>
         <module>http-server-samples</module>
         <module>http-multipart-samples</module>
         <module>portunif</module>
