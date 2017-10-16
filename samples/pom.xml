@@ -57,15 +57,12 @@
     <modules>
         <module>framework-samples</module>
         <module>http-samples</module>
-        <module>websockets/chat</module>
-        <module>websockets/chat-ssl</module>
         <module>http-server-samples</module>
         <module>http-multipart-samples</module>
         <module>portunif</module>
         <module>comet</module>
         <module>http-ajp-samples</module>
         <module>http-jaxws-samples</module>
-        <module>http2-samples</module>
         <module>tls-sni-samples</module>
         <module>connection-pool-samples</module>
     </modules>
