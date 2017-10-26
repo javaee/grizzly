@@ -113,6 +113,16 @@ public class HttpResponseParseTest extends TestCase {
         headers.put("Content-length", new Pair<String, String>("2345", "2345"));
         doHttpResponseTest("HTTP/1.0", 200, "DONE", headers, "\n");
     }
+    
+    public void testDecoder100continueThen200() {
+        try {
+            doTestDecoder("HTTP/1.1 100 Continue\n\nHTTP/1.1 200 OK\n\n", 4096);
+            assertTrue(true);
+        } catch (IllegalStateException e) {
+            logger.log(Level.SEVERE, "exception", e);
+            assertTrue("Unexpected exception", false);
+        }
+    }
 
     public void testDecoderOK() {
         try {
