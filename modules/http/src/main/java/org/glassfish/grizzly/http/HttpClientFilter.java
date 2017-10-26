@@ -434,6 +434,11 @@ public class HttpClientFilter extends HttpCodecFilter {
                         // 100-Continue.
                         parsingState.offset += 2;
                         parsingState.start = parsingState.offset;
+                        if (parsingState.start < end)
+                        {
+                            parsingState.subState = 0;
+                            continue;
+                        }
                         return false;
                     }
                     return true;
