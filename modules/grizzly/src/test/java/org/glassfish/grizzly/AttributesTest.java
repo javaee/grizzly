@@ -43,6 +43,7 @@ package org.glassfish.grizzly;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -118,5 +119,42 @@ public class AttributesTest {
         for (int i = 1; i < attrCount - 1; i++) {
             assertTrue(attrNames.contains(attrs[i].name()));
         }
+    }
+    
+    @Test
+    public void testAttributeGetWithNullaryFunctionOnEmptyHolder() {
+        AttributeBuilder builder = new DefaultAttributeBuilder();
+        AttributeHolder holder = isSafe
+                ? builder.createSafeAttributeHolder()
+                : builder.createUnsafeAttributeHolder();
+
+        final Attribute<String> attr = builder.createAttribute(
+                "attribute",
+                new Supplier<String>() {
+                    @Override
+                    public String get() {
+                        return "default";
+                    }
+                }
+        );
+
+        assertNull(attr.peek(holder));
+        assertEquals("default", attr.get(holder));
+        assertTrue(attr.isSet(holder));
+        assertEquals("default", attr.peek(holder));
+    }
+
+    @Test
+    public void testAttributeGetWithoutInitializerOnEmptyHolder() {
+        AttributeBuilder builder = new DefaultAttributeBuilder();
+        AttributeHolder holder = isSafe
+                ? builder.createSafeAttributeHolder()
+                : builder.createUnsafeAttributeHolder();
+
+        final Attribute<String> attr = builder.createAttribute("attribute");
+
+        assertNull(attr.peek(holder));
+        assertEquals(null, attr.get(holder));
+        assertFalse(attr.isSet(holder));
     }
 }

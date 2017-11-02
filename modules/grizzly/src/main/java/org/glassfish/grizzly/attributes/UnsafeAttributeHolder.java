@@ -83,7 +83,7 @@ final class UnsafeAttributeHolder implements AttributeHolder {
     public Object getAttribute(final String name,
             final Supplier initializer) {
         
-        if (!isSet) {
+        if (!isSet && initializer == null) {
             return null;
         }
         
@@ -265,7 +265,7 @@ final class UnsafeAttributeHolder implements AttributeHolder {
         @Override
         public Object getAttribute(final int index,
                 final Supplier initializer) {
-            if (!isSet) {
+            if (!isSet && initializer == null) {
                 return null;
             }
             
