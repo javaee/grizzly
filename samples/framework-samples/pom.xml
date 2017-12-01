@@ -45,14 +45,14 @@
     <parent>
         <groupId>org.glassfish.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2.3.34</version>
+        <version>2.3.35-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
      <groupId>org.glassfish.grizzly.samples</groupId>
     <artifactId>grizzly-framework-samples</artifactId>
     <packaging>bundle</packaging>
-    <version>2.3.34</version>
+    <version>2.3.35-SNAPSHOT</version>
     <name>grizzly-framework-samples</name>
     <build>
         <defaultGoal>install</defaultGoal>
