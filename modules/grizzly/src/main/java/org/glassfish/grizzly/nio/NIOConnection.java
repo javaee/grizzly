@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -885,11 +886,13 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             final org.glassfish.grizzly.CloseType closeType =
                     closeReason.getType();
 
+            final List<org.glassfish.grizzly.CloseListener> copiedCloseListeners;
             synchronized (closeListeners) {
-                for (final org.glassfish.grizzly.CloseListener closeListener : closeListeners) {
-                    invokeCloseListener(closeListener, closeType);
-                }
+                copiedCloseListeners = new ArrayList<>(closeListeners); //Don't call them when the list is locked.
                 closeListeners.clear();
+            }
+            for (final org.glassfish.grizzly.CloseListener closeListener : copiedCloseListeners) {
+                invokeCloseListener(closeListener, closeType);
             }
         }
     }
