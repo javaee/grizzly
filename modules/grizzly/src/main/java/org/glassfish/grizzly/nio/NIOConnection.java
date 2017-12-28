@@ -44,12 +44,11 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -142,8 +141,7 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
     protected volatile boolean isBlocking;
     protected volatile boolean isStandalone;        
     protected short zeroByteReadCount;
-    private final List<org.glassfish.grizzly.CloseListener> closeListeners =
-            Collections.synchronizedList(new LinkedList<>());
+    private final List<org.glassfish.grizzly.CloseListener> closeListeners = new CopyOnWriteArrayList<>();
     
     /**
      * Storage contains states of different Processors this Connection is associated with.
@@ -886,12 +884,10 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
             final org.glassfish.grizzly.CloseType closeType =
                     closeReason.getType();
 
-            synchronized (closeListeners) {
-                for (final org.glassfish.grizzly.CloseListener closeListener : closeListeners) {
-                    invokeCloseListener(closeListener, closeType);
-                }
-                closeListeners.clear();
+            for (final org.glassfish.grizzly.CloseListener closeListener : closeListeners) {
+                invokeCloseListener(closeListener, closeType);
             }
+            closeListeners.clear();
         }
     }
 
