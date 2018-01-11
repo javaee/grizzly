@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -848,14 +849,16 @@ public abstract class NIOConnection implements Connection<SocketAddress> {
      */
     private void notifyCloseListeners(final CloseReason closeReason) {
         if (!closeListeners.isEmpty()) {
+            final List<CloseListener> copiedCloseListeners;
             synchronized (closeListeners) {
-                for (final CloseListener closeListener : closeListeners) {
-                    try {
-                        closeListener.onClosed(this, closeReason);
-                    } catch (Exception ignored) {
-                    }
-                }
+                copiedCloseListeners = new ArrayList<>(closeListeners); //Don't call them when the list is locked.
                 closeListeners.clear();
+            }
+            for (CloseListener closeListener : copiedCloseListeners) {
+                try {
+                    closeListener.onClosed(this, closeReason);
+                } catch (Exception ignored) {
+                }
             }
         }
     }
