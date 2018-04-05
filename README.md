@@ -1,4 +1,6 @@
-**This project is now part of the EE4J initiative. This repository has been archived as all activities are now happening in the corresponding Eclipse repository [https://github.com/eclipse-ee4j/grizzly](https://github.com/eclipse-ee4j/grizzly). See here for the overall EE4J transition status [https://www.eclipse.org/ee4j/status.php](https://www.eclipse.org/ee4j/status.php).** 
+#### :warning:This project is now part of the EE4J initiative. This repository has been archived as all activities are now happening in the [corresponding Eclipse repository](https://github.com/eclipse-ee4j/grizzly). See [here](https://www.eclipse.org/ee4j/status.php) for the overall EE4J transition status.
+ 
+---
 # Grizzly NIO
 
 Writing scalable server applications in the Java™ programming language
