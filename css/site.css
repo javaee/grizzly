@@ -83,9 +83,7 @@ code, pre {
     border: 1px solid rgba(0, 0, 0, 0.15);
 
 }
-
 #archive-footer {
-    position: fixed;
     bottom: 0;
     width: 100%;
 }
