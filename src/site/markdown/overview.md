@@ -32,7 +32,7 @@ There are several ways to obtain help with Grizzly. The first resource
 is the [Grizzly discussion group](https://javaee.groups.io/g/grizzly).
 The Grizzly team is very responsive to any mails sent to these lists.
 The second resource is the [project issue
-tracker](https://github.com/javaee/grizzly/issues). If you find a bug with
+tracker](https://github.com/eclipse-ee4j/grizzly/issues). If you find a bug with
 Grizzly, or have recommendations on how to improve Grizzly, this is the
 place to do it.
 

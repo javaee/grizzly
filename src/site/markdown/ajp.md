@@ -96,8 +96,8 @@ config.addHttpHandler(new HelloWorldHandler(), "/grizzly");
 ```
 
 The
-[readme.txt](https://github.com/javaee/grizzly/blob/2.3.x/samples/http-ajp-samples/readme.txt)
+[readme.txt](https://github.com/eclipse-ee4j/grizzly/blob/master/samples/http-ajp-samples/readme.txt)
 contains setup and run instructions.
 
 Complete sources and instructions could be found
-[here](https://github.com/javaee/grizzly/tree/2.3.x/samples/http-ajp-samples).
+[here](https://github.com/eclipse-ee4j/grizzly/tree/master/samples/http-ajp-samples).

@@ -8,7 +8,7 @@ Issue reporting is central to OSS projects.  If the issue isn't reported,
 we can't fix it.  Please report any bugs, feature, and/or improvement requests on the
 [Grizzly GitHub Issues][grizzly-issues] tracker.
 
-[grizzly-issues]: https://github.com/javaee/grizzly/issues
+[grizzly-issues]: https://github.com/eclipse-ee4j/grizzly/issues
 [bug]: images/bug.png
 
 
@@ -18,7 +18,7 @@ Have a fix or a feature you\'d like to share?  Submit a [Pull Request][pull]!
 
 [git]: images/git.png
 [gist]: https://gist.github.com
-[pull]: https://github.com/javaee/grizzly/pulls
+[pull]: https://github.com/eclipse-ee4j/grizzly/pulls
 
 
 ## ![pen][pen] Documentation
