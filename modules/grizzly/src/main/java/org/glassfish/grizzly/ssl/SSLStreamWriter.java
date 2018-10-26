@@ -217,7 +217,8 @@ public class SSLStreamWriter extends TransformerStreamWriter {
                     }
                 }
 
-                if (handshakeStatus == HandshakeStatus.FINISHED) {
+                if (handshakeStatus == HandshakeStatus.FINISHED
+                      || handshakeStatus == HandshakeStatus.NOT_HANDSHAKING) {
                     return true;
                 }
             }

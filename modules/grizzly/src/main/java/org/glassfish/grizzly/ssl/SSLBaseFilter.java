@@ -817,6 +817,7 @@ public class SSLBaseFilter extends BaseFilter {
     private Buffer silentRehandshake(final FilterChainContext context,
             final SSLConnectionContext sslCtx) throws SSLException {
         try {
+            sslCtx.getSslEngine().closeOutbound();
             return doHandshakeSync(
                     sslCtx, context, null, handshakeTimeoutMillis);
         } catch (Throwable t) {

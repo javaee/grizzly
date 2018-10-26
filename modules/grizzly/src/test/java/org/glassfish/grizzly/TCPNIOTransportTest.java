@@ -81,6 +81,7 @@ import org.glassfish.grizzly.threadpool.ThreadPoolConfig;
 import org.glassfish.grizzly.utils.ClientCheckFilter;
 import org.glassfish.grizzly.utils.EchoFilter;
 import org.glassfish.grizzly.utils.Futures;
+import org.glassfish.grizzly.utils.JdkVersion;
 import org.glassfish.grizzly.utils.ParallelWriteFilter;
 import org.glassfish.grizzly.utils.RandomDelayOnWriteFilter;
 import org.glassfish.grizzly.utils.StringFilter;
@@ -415,6 +416,10 @@ public class TCPNIOTransportTest {
 
     @Test
     public void testThreadInterruptionDuringAcceptDoesNotMakeServerDeaf() throws Exception {
+        // This appears to no longer be an issue when using Java11, skip this test.
+        if (JdkVersion.getJdkVersion().getMajor() >= 11) {
+            return;
+        }
         final Field interruptField = TCPNIOServerConnection.class.getDeclaredField("DISABLE_INTERRUPT_CLEAR");
         interruptField.setAccessible(true);
         interruptField.setBoolean(null, true);
