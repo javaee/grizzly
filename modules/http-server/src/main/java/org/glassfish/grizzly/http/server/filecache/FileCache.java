@@ -267,7 +267,9 @@ public class FileCache implements MonitoringAware<FileCacheProbe> {
         entry.key = key;
         entry.requestURI = requestURI;
 
-        entry.lastModified = lastModified;
+        // We have to round here as Java11's file system timestamp has a high resolution than what
+        // was expected with previous versions.
+        entry.lastModified = lastModified - (lastModified % 1000);
         entry.contentType = ContentType.newContentType(contentType);
         entry.xPoweredBy = headers.getHeader(Header.XPoweredBy);
         entry.date = headers.getHeader(Header.Date);
