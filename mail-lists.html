@@ -8,7 +8,7 @@
 
 	<head>
 		<meta charset="UTF-8" />
-		<title>Project Grizzly - Port Unification Overview</title>
+		<title>Project Grizzly - Project Mailing Lists</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="description" content="" />
 		<meta http-equiv="content-language" content="en" />
@@ -34,7 +34,7 @@
 
 	</head>
 
-	<body class="page-portunification project-site" data-spy="scroll" data-offset="60" data-target="#toc-scroll-target">
+	<body class="page-mail-lists project-site" data-spy="scroll" data-offset="60" data-target="#toc-scroll-target">
 
 		<div class="navbar navbar-fixed-top">
 			<div class="navbar-inner">
@@ -53,7 +53,7 @@
 									<li ><a href="dependencies.html" title="Download">Download</a></li>
 								</ul>
 							</li>
-							<li class="dropdown active">
+							<li class="dropdown">
 								<a href="#" class="dropdown-toggle" data-toggle="dropdown">Documentation <b class="caret"></b></a>
 								<ul class="dropdown-menu">
 									<li ><a href="overview.html" title="Overview">Overview</a></li>
@@ -66,7 +66,7 @@
 											<li ><a href="transportsconnections.html" title="Transports and Connections">Transports and Connections</a></li>
 											<li ><a href="filterchainfilters.html" title="FilterChain and Filters">FilterChain and Filters</a></li>
 											<li ><a href="coreconfig.html" title="Core configuration">Core configuration</a></li>
-											<li class="active"><a href="" title="Port Unification">Port Unification</a></li>
+											<li ><a href="portunification.html" title="Port Unification">Port Unification</a></li>
 											<li ><a href="monitoring.html" title="Monitoring">Monitoring</a></li>
 											<li ><a href="extras.html" title="Extras">Extras</a></li>
 											<li ><a href="bestpractices.html" title="Best Practices">Best Practices</a></li>
@@ -129,11 +129,7 @@
 					</a>
 					<div class="nav-collapse collapse" id="toc-nav-collapse">
 						<ul id="toc" class="nav">
-						<li class="toplevel"><a href="#Port_Unification_Overview" title="Port Unification Overview">Port Unification Overview</a></li>
-						<li class="divider-vertical"></li>
-						<li class="toplevel"><a href="#How_it_works" title="How it works">How it works</a></li>
-						<li class="divider-vertical"></li>
-						<li class="toplevel"><a href="#Sample" title="Sample">Sample</a></li>
+						<li class="toplevel"><a href="#Project_Mailing_Lists" title="Project Mailing Lists">Project Mailing Lists</a></li>
 						</ul>
 					</div>
 				</div>
@@ -147,144 +143,10 @@
 			<div class="body-content">
 <div class="section"> 
  <div class="page-header">
-  <h2 id="Port_Unification_Overview">Port Unification Overview</h2>
+  <h2 id="Project_Mailing_Lists">Project Mailing Lists</h2>
  </div> 
- <p>When implementing a network application which provides several network services such as Web server (HTTP, HTTPS), Corba, JMS, we may think about how these services will be published.</p> 
- <p>The natural way of publishing different types of services - is to make them available on separate TCP ports (one TCP port per service). Usually HTTP is published on port 80, HTTPS 443, and so on. There might be no problems with that approach; the service consumer just must remember its own TCP port number, but sometimes, due to certain admin restrictions, we’re not able to make all the required TCP ports available for the external consumers on Internet. What if we’re limited just by one TCP port accessible for the external (Internet) service consumers? For that case, we have to have a solution which let’s us share a single TCP port among different services and, depending on incoming service request, redirect it to the corresponding service. This solution is called Port Unification.</p> 
-</div> 
-<div class="section"> 
- <h2 id="How_it_works">How it works</h2> 
- <p>Port Unification, in Grizzly, is represented by PUFilter which is a Grizzly 2.3 FilterChain Filter. This filter plays role of a fork in the FilterChain.</p> 
- <p>Each “unified” protocol, should be represented by a object pair:</p> 
- <ul> 
-  <li> <p><b>ProtocolFinder</b>, which is responsible for parsing incoming data and figuring out if the data belongs to the specific protocol;</p></li> 
-  <li> <p><b>FilterChain</b>, represents specific protocol FilterChain.</p></li> 
- </ul> 
- <p>So the final FilterChain will look like:</p> 
- <p><img src="images/portunification/portunification-diagram.png" alt="&quot;&quot;" /></p> 
- <p>For better usability, Grizzly Port Unification introduces the PUProtocol abstraction, which holds ProtocolFinder + FilterChain pair.</p> 
- <p>The picture above is not complete, one piece is missing. We can imagine how new data comes from network, comes into main FilterChain, it redirects it to the corresponding protocol FilterChain.</p> 
- <p>But what about opposite direction? Imagine HttpServerFilter wants to send data back to the client, so it constructs HttpPacket and send it by the custom protocol FilterChain. HttpFilter intercepts the HttpPacket, decodes it into a Buffer and… there is no Filter in the custom protocol FilterChain to pass the Buffer to, so it never comes to TransportFilter and never gets sent! In order to fix that, we need to add utility back channel Filter as the first Filter in the protocol FilterChain, which will be responsible for redirecting custom protocol FilterChain processing back to the main FilterChain. So finally complete picture will look like:</p> 
- <p><img src="images/portunification/portunification-diagram2.png" alt="&quot;&quot;" /></p> 
- <p>The PUFilter logic could be described using following flowchart diagram:</p> 
- <p><img src="images/portunification/pufilter-flowchart.png" alt="&quot;&quot;" /></p> 
-</div> 
-<div class="section"> 
- <h2 id="Sample">Sample</h2> 
- <p>Assume we have two services: add and sub, which are responsible for adding and subtracting passed integer values. The services protocol could be described by the following ABNF:</p> 
- <ul> 
-  <li><b>add</b></li> 
- </ul> 
- <div class="source"> 
-  <pre>        protocol  =  magic
-                     value1
-                     value2
-        magic     =  &quot;add&quot;
-        value1    =  INT
-        value2    =  INT
-        INT       =  4*BYTE
-        BYTE      =  OCTET
-</pre> 
- </div> 
- <ul> 
-  <li><b>sub</b></li> 
- </ul> 
- <div class="source"> 
-  <pre>        protocol  =  magic
-                     value1
-                     value2
-        magic     =  &quot;sub&quot;
-        value1    =  INT
-        value2    =  INT
-        INT       =  4*BYTE
-        BYTE      =  OCTET
-</pre> 
- </div> 
- <p>From the protocol description, it’s obvious we can distinguish two services and their protocols by 3-bytes magic header, add-service has “add”, sub-service “sub”. So it’s what service’s ProtocolFinder should address. For example add-service ProtocolFinder may look like:</p> 
- <div class="source"> 
-  <pre>/**
- * {@link ProtocolFinder}, responsible to determine if incoming byte buffer
- * represents ADD-service request.
- */
-public class AddProtocolFinder implements ProtocolFinder {
-
-    private final static byte[] magic = {'a', 'd', 'd'};
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Result find(final PUContext puContext, final FilterChainContext ctx) {
-        // Get the input Buffer
-        final Buffer inputBuffer = ctx.getMessage();
-
-        final int bytesToCompare = Math.min(magic.length, inputBuffer.remaining());
-
-        final int bufferStart = inputBuffer.position();
-
-        // Compare incoming bytes with ADD-service protocol magic
-        for (int i = 0; i &lt; bytesToCompare; i++) {
-            if (magic[i] != inputBuffer.get(bufferStart + i)) {
-                // If at least one byte doesn't match - it's not ADD-service protocol
-                return Result.NOT_FOUND;
-            }
-        }
-
-        // if we check entire magic - return FOUND, or NEED_MORE_DATA otherwise
-        return bytesToCompare == magic.length ?
-            Result.FOUND : Result.NEED_MORE_DATA;
-    }
-
-}
-</pre> 
- </div> 
- <p>The add-service FilterChain will contain two Filters:</p> 
- <ul> 
-  <li> <p><b>AddServerMessageFilter</b>, responsible for parsing/serializing add-service messages</p></li> 
-  <li> <p><b>AddServiceFilter</b> the actual service implementation</p></li> 
- </ul> 
- <p>The PUProtocol initialization and registration for add-service will look following way:</p> 
- <div class="source"> 
-  <pre>// Create PUFilter
-final PUFilter puFilter = new PUFilter();
-
-// Create ADD-service ProtocolFinder
-final ProtocolFinder addProtocolFinder = new AddProtocolFinder();
-
-// Create ADD-service FilterChain
-final FilterChain addProtocolFilterChain =
-        puFilter.getPUFilterChainBuilder()
-        // Add ADD-service message parser/serializer
-        .add(new AddServerMessageFilter())
-        // Add ADD-service filter
-        .add(new AddServiceFilter())
-        .build();
-
-// Construct PUProtocol
-final PUProtocol addServicePUProtocol = new PUProtocol(addProtocolFinder, addProtocolFilterChain);
-
-// Register add-service pu protocol
-puFilter.register(addServicePUProtocol);
-</pre> 
- </div> 
- <p>Similar coding is required for the sub-service. Finally port unification Filter (PUFilter) should be added to the main FilterChain and Transport could be started</p> 
- <div class="source"> 
-  <pre>// Construct the main filter chain
-final FilterChainBuilder puFilterChainBuilder = FilterChainBuilder.stateless()
-        .add(new TransportFilter())
-        .add(puFilter);
-
-// Build TCP transport
-final TCPNIOTransport transport = TCPNIOTransportBuilder.newInstance().build();
-transport.setProcessor(puFilterChainBuilder.build());
-
-// Bind to the server port
-transport.bind(PORT);
-// Start
-transport.start();
-</pre> 
- </div> 
- <p>Complete sample code could be found <a class="externalLink" href="https://maven.java.net/content/repositories/releases/org/glassfish/grizzly/samples/grizzly-portunif-samples/2.4.0">here</a>.</p> 
+ <a name="Project_Mailing_Lists"></a> 
+ <p>There are no mailing lists currently associated with this project.</p> 
 </div>
 			</div>
 		</div>

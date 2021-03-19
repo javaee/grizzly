@@ -52,25 +52,20 @@ a[name]:before {
     width: 1170px;
   }
 }
-@media (min-width: 768px) and (max-width: 979px) {
-  .navbar.affix .container {
-    width: 724px;
-  }
-}
-@media (max-width: 767px) {
-  .navbar.affix {
-    margin-right: -20px;
-    margin-left: -20px;
-  }
-}
+
 @media (max-width: 979px) {
   .navbar.affix {
     position: static;
+  }
+
+  /* Give a positive z-index to ToC bar, otherwise the pseudo elements before may overlap and
+     make the button unclickable. */
+  #toc-bar {
+    position: relative;
+    z-index:1020;
     margin-bottom: 20px;
   }
-  .navbar.affix .navbar-inner {
-    padding: 5px;
-  }
+
 }
 
 /* Fix for header links - do not color/underline them */
