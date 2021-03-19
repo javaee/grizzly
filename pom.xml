@@ -453,7 +453,7 @@
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <junit-version>4.12</junit-version>
+        <junit-version>4.13.1</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>4.0.0-b07</servlet-version>
         <felix-version>2.4.0</felix-version>
